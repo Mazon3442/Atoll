@@ -61,7 +61,7 @@ public sealed partial class CalendarViewModel(Action refresh) : ObservableObject
     public bool ShowEmpty => !HasEvents;
 
     public string EmptyMessage => !HasSources
-        ? "Add a calendar in Settings › Calendar"
+        ? "No calendars added yet"
         : IsRefreshing ? "Loading calendar events…"
         : string.IsNullOrEmpty(Status) ? "No events in the next 14 days" : Status;
 

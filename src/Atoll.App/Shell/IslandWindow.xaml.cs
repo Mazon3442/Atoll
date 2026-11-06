@@ -39,7 +39,7 @@ public partial class IslandWindow : Window
 
     private readonly SettingsService _settings;
     private readonly ModuleManager _modules;
-    private readonly Action _openSettings;
+    private readonly Action<int> _openSettings;
 
     // The cursor position is polled instead of using MouseEnter/Leave: a click-through window gets
     // no mouse events, and layered WPF windows raise spurious MouseLeave events anyway.
@@ -77,7 +77,7 @@ public partial class IslandWindow : Window
     private ImageBrush? _bubbleGlassBrush;
     private ImageBrush? _bubble2GlassBrush;
 
-    public IslandWindow(MonitorInfo monitor, SettingsService settings, ModuleManager modules, Action openSettings)
+    public IslandWindow(MonitorInfo monitor, SettingsService settings, ModuleManager modules, Action<int> openSettings)
     {
         InitializeComponent();
         Monitor = monitor;
@@ -486,8 +486,10 @@ public partial class IslandWindow : Window
             var size = new Size(side.ActualWidth * dpi.DpiScaleX, side.ActualHeight * dpi.DpiScaleY);
             var bubble = new Rect(side.PointToScreen(new Point()), size);
             bounds.Union(bubble);
-            var offset = 8 + (ReferenceEquals(side, Bubble2) && Bubble.IsVisible ? Bubble.Width + 8 : 0);
-            bounds.Union(new Rect(new Point(center + targetWidth / 2 + offset * dpi.DpiScaleX, bubble.Top), size));
+            // Where the bubble will sit once the pill reaches its target width: first on the right, second on the left.
+            var gap = 8 * dpi.DpiScaleX;
+            var left = ReferenceEquals(side, Bubble2) ? center - targetWidth / 2 - gap - size.Width : center + targetWidth / 2 + gap;
+            bounds.Union(new Rect(new Point(left, bubble.Top), size));
         }
         var moving = Math.Abs(Pill.ActualWidth - _target.W) > 1 || Math.Abs(Pill.ActualHeight - _target.H) > 1;
         bounds.Inflate((moving ? 40 : 8) * dpi.DpiScaleX, (moving ? 40 : 8) * dpi.DpiScaleY);
@@ -614,7 +616,7 @@ public partial class IslandWindow : Window
     private void UpdateBubbleOffset()
     {
         if (Bubble.IsVisible) BubbleShift.X = Pill.ActualWidth / 2 + 8 + Bubble.Width / 2;
-        if (Bubble2.IsVisible) Bubble2Shift.X = Pill.ActualWidth / 2 + 8 + (Bubble.IsVisible ? Bubble.Width + 8 : 0) + Bubble2.Width / 2;
+        if (Bubble2.IsVisible) Bubble2Shift.X = -(Pill.ActualWidth / 2 + 8 + Bubble2.Width / 2);
     }
 
     private void Animate(double w, double h, double r)
@@ -672,8 +674,18 @@ public partial class IslandWindow : Window
     private void OnSettingsClick(object sender, RoutedEventArgs e)
     {
         SetMode(IslandMode.Compact);
-        _openSettings();
+        _openSettings(SettingsPageFor((Tabs.SelectedItem as ModuleTab)?.Descriptor.Id));
     }
+
+    /// <summary>The header's one settings button opens the page for the tab being viewed (General when there is none).</summary>
+    internal static int SettingsPageFor(string? tabId) => tabId switch
+    {
+        "notifications" => 3,
+        "claude" => 4,
+        "clock" => 5,
+        "weather" => 6,
+        _ => 0,
+    };
 
     private static T Freeze<T>(T f) where T : Freezable
     {

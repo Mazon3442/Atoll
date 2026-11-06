@@ -173,7 +173,7 @@ public class SettingsUiTests
         using var host = new ActivityHost();
         using var manager = new ModuleManager([], host, Application.Current.Dispatcher, service);
         foreach (var tab in PanelGroups.Combine(GroupedPanelsTests.Modules())) manager.Tabs.Add(tab);
-        var island = new IslandWindow(Monitors.GetAll()[0], service, manager, () => { });
+        var island = new IslandWindow(Monitors.GetAll()[0], service, manager, _ => { });
         island.Show();
         try
         {

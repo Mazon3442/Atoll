@@ -26,6 +26,7 @@ class HermesAdapterTests(unittest.TestCase):
             self.assertEqual([m["hook_event_name"] for m in messages],
                 ["SessionStart", "UserPromptSubmit", "PreToolUse", "PermissionRequest", "PostToolUse", "PostToolUse", "Stop"])
             self.assertNotIn("secret", json.dumps(messages))
+            self.assertEqual({m["agent_pid"] for m in messages}, {self.module["os"].getpid()})
             self.assertEqual(run.call_args.args[0][1:], ["--agent", "hermes"])
 
     def test_interrupted_or_failed_turns_never_report_success(self):

@@ -58,6 +58,16 @@ public class GroupedPanelsTests
             Assert.IsType<MediaPanelViewModel>(tabs.Single(t => t.Contains("media")).Panel).Sound);
     }
 
+    [Theory]
+    [InlineData("clock", 5)]
+    [InlineData("claude", 4)]
+    [InlineData("notifications", 3)]
+    [InlineData("weather", 6)]
+    [InlineData("media", 0)]
+    [InlineData(null, 0)]
+    public void The_header_settings_button_opens_the_page_for_the_current_tab(string? tab, int page) =>
+        Assert.Equal(page, Atoll.Shell.IslandWindow.SettingsPageFor(tab));
+
     [Fact]
     public void Disabled_modules_leave_their_partners_and_volume_accessible()
     {
@@ -88,6 +98,18 @@ public class GroupedPanelsTests
             .Select(t => (Name: t.Descriptor.Id, Panel: t.Panel)).ToList();
         panels.Add(("calendar-only", new TimePanelViewModel(null, new CalendarViewModel(() => { }))));
         panels.Add(("clock-only", new TimePanelViewModel((ClockPanelViewModel)modules.Single(t => t.Descriptor.Id == "clock").Panel, null)));
+        var idleClock = (ClockPanelViewModel)modules.Single(t => t.Descriptor.Id == "clock").Panel;
+        var agenda = new CalendarViewModel(() => { }) { HasSources = true, HasEvents = true, Updated = "Updated 10:30 AM" };
+        var nine = new DateTimeOffset(2026, 11, 6, 9, 0, 0, TimeSpan.Zero);
+        CalendarEventViewModel Event(string title, string? place, bool allDay, int hour, string color, bool pinned = false) =>
+            new(new CalendarEventItem(title, nine.AddHours(hour - 9), nine.AddHours(hour - 8), allDay, title, place, "Work", color), _ => { }, _ => { }) { IsPinned = pinned };
+        agenda.Days.Add(new CalendarDay { Label = "Today", Events = [Event("Design review", "Room 4", false, 11, "#0A84FF", pinned: true), Event("Release day", null, true, 0, "#30D158")] });
+        agenda.Days.Add(new CalendarDay { Label = "Tomorrow", Events = [Event("Dentist appointment with a very long title", "Main Street", false, 14, "#FF9F0A")] });
+        var runningTimer = new TimerViewModel(TimeProvider.System);
+        runningTimer.StartCountdownCommand.Execute(5);
+        panels.Add(("time-timer-idle", new TimePanelViewModel(idleClock, agenda)));
+        panels.Add(("time-timer-running", new TimePanelViewModel(new ClockPanelViewModel(idleClock.Clock, runningTimer), agenda)));
+        panels.Add(("time-no-calendars", new TimePanelViewModel(idleClock, new CalendarViewModel(() => { }))));
         panels.Add(("clipboard-only", new FilesPanelViewModel(null, new ClipboardViewModel(new ClipboardHistory()))));
         panels.Add(("shelf-only", new FilesPanelViewModel(new ShelfViewModel(_ => { }, () => { }), null)));
         panels.Add(("system-with-volume", PanelGroups.Combine(modules.Where(t => t.Descriptor.Id != "media").ToList())

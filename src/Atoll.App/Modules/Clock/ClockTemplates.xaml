@@ -57,83 +57,93 @@
         <TextBlock Text="{Binding Display}" FontSize="11" FontWeight="SemiBold" Foreground="{DynamicResource Island.Accent}" />
     </DataTemplate>
 
-    <!-- Expanded tab -->
+        <!-- Expanded tab: the clock, then either timer presets or the running timer. Top-aligned so nothing jumps when a timer starts. -->
     <DataTemplate x:Key="ClockPanelViewModel.Panel">
         <DataTemplate.Resources>
             <Style x:Key="Clock.Button" TargetType="Button" BasedOn="{StaticResource Island.ChipButton}">
-                <Setter Property="FontSize" Value="11" />
-                <Setter Property="Margin" Value="0,0,4,4" />
+                <Setter Property="FontSize" Value="12" />
+                <Setter Property="Margin" Value="2" />
             </Style>
         </DataTemplate.Resources>
-        <Grid>
-            <Grid.RowDefinitions>
-                <RowDefinition Height="Auto" />
-                <RowDefinition Height="*" />
-            </Grid.RowDefinitions>
-
-            <StackPanel Margin="0,0,0,8">
-                <TextBlock Text="{Binding Clock.Time}" FontSize="26" FontWeight="Light" />
-                <TextBlock Text="{Binding Clock.Date}" FontSize="12"
-                           Foreground="{DynamicResource Island.Subtle}" />
-            </StackPanel>
+        <StackPanel>
+            <TextBlock Text="{Binding Clock.Time}" FontSize="30" FontWeight="Light" />
+            <TextBlock Text="{Binding Clock.Date}" FontSize="12" Margin="0,0,0,14"
+                       Foreground="{DynamicResource Island.Subtle}" />
 
             <!-- Timer idle: presets -->
-            <StackPanel Grid.Row="1" VerticalAlignment="Center" DataContext="{Binding Timer}"
+            <StackPanel DataContext="{Binding Timer}"
                         Visibility="{Binding IsActive, Converter={StaticResource Island.InverseBoolToVisibility}}">
-                <TextBlock Text="Timer" FontSize="12" Foreground="{DynamicResource Island.Subtle}" Margin="0,0,0,6" />
-                <WrapPanel>
-                    <Button Style="{StaticResource Clock.Button}" Content="1 min" Command="{Binding StartCountdownCommand}">
+                <TextBlock Text="Timer (minutes)" FontSize="11" FontWeight="SemiBold" Margin="0,0,0,6"
+                           Foreground="{DynamicResource Island.Subtle}" />
+                <UniformGrid Columns="4" Margin="-2,0">
+                    <Button Style="{StaticResource Clock.Button}" Content="1" Command="{Binding StartCountdownCommand}"
+                            ToolTip="1 minute timer" AutomationProperties.Name="1 minute timer">
                         <Button.CommandParameter><sys:Double>1</sys:Double></Button.CommandParameter>
                     </Button>
-                    <Button Style="{StaticResource Clock.Button}" Content="5 min" Command="{Binding StartCountdownCommand}">
+                    <Button Style="{StaticResource Clock.Button}" Content="5" Command="{Binding StartCountdownCommand}"
+                            ToolTip="5 minute timer" AutomationProperties.Name="5 minute timer">
                         <Button.CommandParameter><sys:Double>5</sys:Double></Button.CommandParameter>
                     </Button>
-                    <Button Style="{StaticResource Clock.Button}" Content="10 min" Command="{Binding StartCountdownCommand}">
+                    <Button Style="{StaticResource Clock.Button}" Content="10" Command="{Binding StartCountdownCommand}"
+                            ToolTip="10 minute timer" AutomationProperties.Name="10 minute timer">
                         <Button.CommandParameter><sys:Double>10</sys:Double></Button.CommandParameter>
                     </Button>
-                    <Button Style="{StaticResource Clock.Button}" Content="30 min" Command="{Binding StartCountdownCommand}">
+                    <Button Style="{StaticResource Clock.Button}" Content="30" Command="{Binding StartCountdownCommand}"
+                            ToolTip="30 minute timer" AutomationProperties.Name="30 minute timer">
                         <Button.CommandParameter><sys:Double>30</sys:Double></Button.CommandParameter>
                     </Button>
-                </WrapPanel>
-                <WrapPanel Margin="0,4,0,0">
+                </UniformGrid>
+                <UniformGrid Columns="2" Margin="-2,0">
                     <Button Style="{StaticResource Clock.Button}" Content="Stopwatch" Command="{Binding StartStopwatchCommand}" />
-                    <Button Style="{StaticResource Clock.Button}" Content="Pomodoro 25/5" Command="{Binding StartPomodoroCommand}" />
-                </WrapPanel>
+                    <Button Style="{StaticResource Clock.Button}" Content="Pomodoro" Command="{Binding StartPomodoroCommand}"
+                            ToolTip="25 minutes of focus, then a 5 minute break" />
+                </UniformGrid>
             </StackPanel>
 
-            <!-- Timer running -->
-            <StackPanel Grid.Row="1" VerticalAlignment="Center" DataContext="{Binding Timer}"
-                        Visibility="{Binding IsActive, Converter={StaticResource Island.BoolToVisibility}}">
-                <TextBlock Text="{Binding Label}" FontSize="12" Foreground="{DynamicResource Island.Subtle}" />
-                <TextBlock Text="{Binding Display}" FontSize="36" FontWeight="SemiBold" Foreground="{DynamicResource Island.Accent}" />
-                <Grid Height="4" Margin="0,4,0,10"
-                      Visibility="{Binding IsCountingDown, Converter={StaticResource Island.BoolToVisibility}}">
-                    <Border CornerRadius="2" Background="{DynamicResource Island.Hover}" />
-                    <Border CornerRadius="2" Background="{DynamicResource Island.Accent}" RenderTransformOrigin="0,0.5">
-                        <Border.RenderTransform>
-                            <ScaleTransform ScaleX="{Binding Progress}" />
-                        </Border.RenderTransform>
-                    </Border>
-                </Grid>
-                <WrapPanel>
-                    <Button Command="{Binding PauseResumeCommand}">
-                        <Button.Style>
-                            <Style TargetType="Button" BasedOn="{StaticResource Island.ChipButton}">
-                                <Setter Property="Content" Value="Pause" />
-                                <Style.Triggers>
-                                    <DataTrigger Binding="{Binding IsRunning}" Value="False">
-                                        <Setter Property="Content" Value="Resume" />
-                                    </DataTrigger>
-                                </Style.Triggers>
-                            </Style>
-                        </Button.Style>
-                    </Button>
-                    <Button Style="{StaticResource Island.ChipButton}" Content="+1 min" Command="{Binding AddMinuteCommand}"
-                            Visibility="{Binding IsCountingDown, Converter={StaticResource Island.BoolToVisibility}}" />
-                    <Button Style="{StaticResource Island.ChipButton}" Content="Stop" Command="{Binding ResetCommand}" />
-                </WrapPanel>
-            </StackPanel>
-        </Grid>
+            <!-- Timer running: the time, with its controls beside it and progress underneath. -->
+            <Border DataContext="{Binding Timer}" Background="{DynamicResource Island.Surface}" CornerRadius="12" Padding="12,8,6,10"
+                    Visibility="{Binding IsActive, Converter={StaticResource Island.BoolToVisibility}}">
+                <StackPanel>
+                    <TextBlock Text="{Binding Label}" FontSize="11" Foreground="{DynamicResource Island.Subtle}" />
+                    <DockPanel Margin="0,0,0,6">
+                        <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
+                            <Button Command="{Binding PauseResumeCommand}">
+                                <Button.Style>
+                                    <Style TargetType="Button" BasedOn="{StaticResource Island.IconButton}">
+                                        <Setter Property="Content" Value="&#xE769;" />
+                                        <Setter Property="ToolTip" Value="Pause" />
+                                        <Setter Property="AutomationProperties.Name" Value="Pause timer" />
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding IsRunning}" Value="False">
+                                                <Setter Property="Content" Value="&#xE768;" />
+                                                <Setter Property="ToolTip" Value="Resume" />
+                                                <Setter Property="AutomationProperties.Name" Value="Resume timer" />
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </Button.Style>
+                            </Button>
+                            <Button Style="{StaticResource Island.ChipButton}" Content="+1m" Command="{Binding AddMinuteCommand}"
+                                    MinHeight="32" Margin="2,0" ToolTip="Add a minute" AutomationProperties.Name="Add a minute"
+                                    Visibility="{Binding IsCountingDown, Converter={StaticResource Island.BoolToVisibility}}" />
+                            <Button Style="{StaticResource Island.IconButton}" Content="&#xE71A;" Command="{Binding ResetCommand}"
+                                    ToolTip="Stop" AutomationProperties.Name="Stop timer" />
+                        </StackPanel>
+                        <TextBlock Text="{Binding Display}" FontSize="30" FontWeight="SemiBold" VerticalAlignment="Center"
+                                   Foreground="{DynamicResource Island.Accent}" />
+                    </DockPanel>
+                    <Grid Height="4" Margin="0,0,6,0"
+                          Visibility="{Binding IsCountingDown, Converter={StaticResource Island.BoolToVisibility}}">
+                        <Border CornerRadius="2" Background="{DynamicResource Island.Hover}" />
+                        <Border CornerRadius="2" Background="{DynamicResource Island.Accent}" RenderTransformOrigin="0,0.5">
+                            <Border.RenderTransform>
+                                <ScaleTransform ScaleX="{Binding Progress}" />
+                            </Border.RenderTransform>
+                        </Border>
+                    </Grid>
+                </StackPanel>
+            </Border>
+        </StackPanel>
     </DataTemplate>
 
 </ResourceDictionary>

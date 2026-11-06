@@ -14,14 +14,14 @@ public sealed class IslandManager : IDisposable
     private readonly SettingsService _settings;
     private readonly ActivityHost _activities;
     private readonly ModuleManager _modules;
-    private readonly Action _openSettings;
+    private readonly Action<int> _openSettings;
     private readonly Dispatcher _dispatcher;
     private readonly FullscreenWatcher _fullscreen = new();
     private readonly List<IslandWindow> _windows = [];
     private string _monitorSignature = "";
     private bool _paused;
 
-    public IslandManager(SettingsService settings, ActivityHost activities, ModuleManager modules, Action openSettings, Dispatcher dispatcher)
+    public IslandManager(SettingsService settings, ActivityHost activities, ModuleManager modules, Action<int> openSettings, Dispatcher dispatcher)
     {
         _settings = settings;
         _activities = activities;
