@@ -6,60 +6,6 @@ using CommunityToolkit.Mvvm.Input;
 using System.Globalization;
 using System.Net.NetworkInformation;
 
-namespace Atoll.Modules.Media
-{
-    public sealed partial class MediaModule : IIslandModule
-    {
-        private readonly MediaViewModel _vm;
-        private readonly DispatcherTimer _timer = new() { Interval = TimeSpan.FromSeconds(2) };
-        private ModuleContext? _context;
-        private bool _busy;
-        private bool _disposed;
-        public MediaModule() => _vm = new MediaViewModel(() => Control("play-pause"), () => Control("next"), () => Control("previous"), Seek);
-        public object Panel => _vm;
-        public void Start(ModuleContext context) { _context = context; _timer.Tick += OnTick; _timer.Start(); OnTick(null, EventArgs.Empty); }
-        private static string MacPlayerScript(string action) =>
-            "if application \"Spotify\" is running then\n tell application \"Spotify\"\n" + action + "\n end tell\nelse if application \"Music\" is running then\n tell application \"Music\"\n" + action + "\n end tell\nend if";
-        private async void OnTick(object? sender, EventArgs e)
-        {
-            if (_busy || _disposed) return; _busy = true;
-            try
-            {
-                var raw = OperatingSystem.IsMacOS()
-                    ? await Commands.RunAsync("osascript", "-e", MacPlayerScript("if player state is stopped then return \"\"\nreturn (name of current track) & linefeed & (artist of current track) & linefeed & (player state as text)"))
-                    : await Commands.RunAsync("playerctl", "metadata", "--format", "{{title}}\n{{artist}}\n{{status}}");
-                if (_disposed) return;
-                var parts = raw.Split('\n');
-                _vm.HasSession = parts.Length >= 3;
-                _vm.Title = parts.ElementAtOrDefault(0) ?? ""; _vm.Artist = parts.ElementAtOrDefault(1) ?? "";
-                _vm.IsPlaying = parts.ElementAtOrDefault(2)?.Equals("playing", StringComparison.OrdinalIgnoreCase) == true;
-                _vm.Status = _vm.HasSession ? "" : "Play something in a media app to see it here.";
-                if (_vm.HasSession && _vm.IsPlaying) _context?.Post("now", _vm, ActivityPriority.Normal);
-                else _context?.Remove("now");
-            }
-            catch (Exception ex) when (ex is IOException or System.ComponentModel.Win32Exception)
-            {
-                _vm.HasSession = false; _context?.Remove("now");
-                _vm.Status = OperatingSystem.IsMacOS() ? "Open Music or Spotify and allow ATOLL in System Settings > Privacy & Security > Automation."
-                    : "No MPRIS player is active. Media controls require playerctl and a player that exposes MPRIS.";
-            }
-            finally { _busy = false; }
-        }
-        private async Task Control(string action)
-        {
-            try
-            {
-                if (OperatingSystem.IsMacOS()) await Commands.RunAsync("osascript", "-e", MacPlayerScript(action switch { "play-pause" => "playpause", "next" => "next track", _ => "previous track" }));
-                else await Commands.RunAsync("playerctl", action);
-                OnTick(null, EventArgs.Empty);
-            }
-            catch (Exception ex) when (ex is IOException or System.ComponentModel.Win32Exception) { _vm.Status = "The media player could not complete that command."; }
-        }
-        private Task Seek(double value) => Task.CompletedTask;
-        public void Dispose() { _disposed = true; _timer.Stop(); _timer.Tick -= OnTick; }
-    }
-}
-
 namespace Atoll.Modules.Indicators
 {
     public sealed partial class SystemPanelViewModel : ObservableObject

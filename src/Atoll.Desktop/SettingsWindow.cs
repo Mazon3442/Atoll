@@ -12,12 +12,12 @@ using Avalonia.Media;
 
 namespace Atoll.Desktop;
 
-public sealed class SettingsWindow : Window
+public sealed partial class SettingsWindow : Window
 {
     private readonly SettingsService _settings;
     private readonly DesktopModules _modules;
     private readonly ListBox _navigation;
-    private readonly ContentControl _page = new();
+    private readonly ContentControl _page = new() { HorizontalContentAlignment = HorizontalAlignment.Stretch };
     private readonly Action _quit;
     private static readonly string[] Pages = ["General", "Appearance", "Modules", "Notifications", "Agents", "Calendar", "Weather", "Updates & about"];
     private CancellationTokenSource? _search;
@@ -31,7 +31,7 @@ public sealed class SettingsWindow : Window
         _navigation.SelectionChanged += (_, _) => ShowPage();
         var layout = new Grid { ColumnDefinitions = new ColumnDefinitions("190,*") };
         layout.Children.Add(new Border { Background = new SolidColorBrush(Color.Parse("#808080"), .06), Child = Views.Stack(Views.Label("ATOLL", 25), _navigation), Padding = new Thickness(12, 22) });
-        var scroll = new ScrollViewer { Content = _page, Padding = new Thickness(28), HorizontalScrollBarVisibility = Avalonia.Controls.Primitives.ScrollBarVisibility.Disabled };
+        var scroll = new ScrollViewer { Content = _page, Margin = new Thickness(28), HorizontalContentAlignment = HorizontalAlignment.Stretch, HorizontalScrollBarVisibility = Avalonia.Controls.Primitives.ScrollBarVisibility.Disabled };
         Grid.SetColumn(scroll, 1); layout.Children.Add(scroll); Content = layout;
         Closed += (_, _) => { _settings.Flush(); _search?.Cancel(); _search?.Dispose(); };
         SelectPage(0);
@@ -137,6 +137,7 @@ public sealed class SettingsWindow : Window
             var row = Views.Stack(Views.Text("Name", 18), Views.Text("Status", 12), Views.Row(Views.Command("Install / update", "InstallCommand"), Views.Command("Remove adapter", "RemoveCommand")), Views.Text("Message", 12));
             row.DataContext = model; panel.Children.Add(row);
         }
+        panel.Children.Add(ProviderSettingsPanel());
         return panel;
     }
     private Control Calendar()

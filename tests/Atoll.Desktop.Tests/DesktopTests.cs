@@ -123,6 +123,11 @@ public sealed class DesktopTests
                 var output = Environment.GetEnvironmentVariable("ATOLL_TEST_SCREENSHOTS") ?? Path.Combine(Path.GetTempPath(), "atoll-desktop-review");
                 Directory.CreateDirectory(output); frame.Save(Path.Combine(output, $"settings-{theme}-{page}.png"));
                 Assert.DoesNotContain(window.GetVisualDescendants().OfType<TextBox>(), box => !double.IsFinite(box.Bounds.Width));
+                foreach (var text in window.GetVisualDescendants().OfType<TextBlock>().Where(t => t.IsEffectivelyVisible))
+                {
+                    var origin = text.TranslatePoint(default, window);
+                    if (origin is { } point) Assert.True(point.X + text.Bounds.Width <= window.ClientSize.Width + 1, $"Settings page {page}: text exceeds the window ({text.Bounds.Width}, x={point.X}).");
+                }
             }
         }
         window.Close();

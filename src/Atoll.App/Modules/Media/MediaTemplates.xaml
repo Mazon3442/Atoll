@@ -26,7 +26,7 @@
                     <Setter Property="Height" Value="16" />
                     <Setter Property="Margin" Value="1,0" />
                     <Setter Property="CornerRadius" Value="1.5" />
-                    <Setter Property="Background" Value="{DynamicResource Island.Accent}" />
+                    <Setter Property="Background" Value="{Binding Color}" />
                     <Setter Property="RenderTransformOrigin" Value="0.5,0.5" />
                 </Style>
             </StackPanel.Resources>
@@ -66,12 +66,16 @@
 
     <DataTemplate x:Key="MediaViewModel.Panel">
         <Grid>
+            <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
+            <ComboBox ItemsSource="{Binding Sources}" SelectedItem="{Binding SelectedSource, Mode=TwoWay}"
+                      DisplayMemberPath="Name" Margin="0,0,0,10" HorizontalAlignment="Stretch"
+                      AutomationProperties.Name="Audio source" ToolTip="Choose a media player or audio app" />
             <!-- Nothing playing -->
-            <TextBlock Text="Nothing playing" HorizontalAlignment="Center" VerticalAlignment="Center"
+            <TextBlock Grid.Row="1" Text="Nothing playing" HorizontalAlignment="Center" VerticalAlignment="Center"
                        Foreground="{DynamicResource Island.Subtle}"
                        Visibility="{Binding HasSession, Converter={StaticResource Island.InverseBoolToVisibility}}" />
 
-            <Grid Visibility="{Binding HasSession, Converter={StaticResource Island.BoolToVisibility}}">
+            <Grid Grid.Row="1" Visibility="{Binding HasSession, Converter={StaticResource Island.BoolToVisibility}}">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="Auto" />
                     <ColumnDefinition Width="*" />
@@ -91,10 +95,11 @@
 
                     <StackPanel Margin="0,6,0,0" Visibility="{Binding HasTimeline, Converter={StaticResource Island.BoolToVisibility}}">
                         <Slider Minimum="0" Maximum="1"
+                                IsMoveToPointEnabled="True" Loaded="SeekLoaded"
                                 Value="{Binding Progress, Mode=OneWay}" IsEnabled="{Binding CanSeek}"
                                 SmallChange="0.01" LargeChange="0.1"
                                 Thumb.DragStarted="SeekStarted" Thumb.DragCompleted="SeekCompleted"
-                                PreviewMouseLeftButtonUp="SeekClicked" PreviewKeyDown="SeekKeyPressed"
+                                PreviewKeyDown="SeekKeyPressed"
                                 PreviewKeyUp="SeekKeyReleased" LostKeyboardFocus="SeekFocusLost"
                                 AutomationProperties.Name="Song position" ToolTipService.ShowOnDisabled="True">
                             <Slider.Style>

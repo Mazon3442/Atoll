@@ -32,7 +32,7 @@ use `Get-FileHash -Algorithm SHA256` and compare the result.
 Linux uses X11 or XWayland. Overlay placement, tray icons and global clipboard access
 depend on your desktop/compositor. Install XWayland when using a Wayland session.
 The `.deb` and Arch package declare their required libraries, `playerctl` for MPRIS
-media controls, and PulseAudio-compatible tools for volume controls. A portable
+media controls, `gdbus` for player capabilities, and PulseAudio-compatible tools for volume controls. A portable
 copy needs the same libraries; see `packaging/package-linux.sh` for the full list.
 
 ## Use ATOLL
@@ -46,12 +46,13 @@ copy needs the same libraries; see `packaging/package-linux.sh` for the full lis
 
 | Feature | Availability |
 | --- | --- |
-| Agents | Claude Code, Codex, OpenCode and Hermes adapters on all platforms. Install or update adapters in Settings > Agents, then restart agent sessions. Claude token/cost totals come from local transcripts and are estimates at API list prices. |
+| Agents | Claude Code, Codex, OpenCode and Hermes adapters on all platforms. Install or update adapters in Settings > Agents, then restart agent sessions. Codex also reads recent local session events, including sessions already running when hooks were installed. Claude token/cost totals come from local transcripts and are estimates at API list prices. |
+| API providers | Optional local gateway for OpenAI-compatible Chat Completions/Responses and official Anthropic Messages. Live request activity and local token totals; OpenAI organization usage/costs with an optional admin key; DeepSeek balance with a normal key. |
 | Clock and timers | Clock, countdown presets, stopwatch and Pomodoro on all platforms. |
 | Calendar | Private HTTPS ICS links, upcoming events, pin/dismiss controls and pre-event alerts on all platforms. Add links in Settings > Calendar. |
 | Weather | Open-Meteo city search, current conditions and seven-day forecasts on all platforms. Hourly wind, rain and temperature charts support pointer and keyboard selection. |
 | Files | File shelf and clipboard history on all platforms. Clipboard access may be restricted by the desktop. History stays in memory; sensitive/private formats are skipped. |
-| Media | Windows media sessions with art and seeking; Linux MPRIS through `playerctl`; Music/Spotify on macOS through Apple Events. macOS may ask for Automation permission. |
+| Media | Choose a player in the source dropdown. Five bars take their color from its cover, adjusted for your theme. Windows captures the selected app's audio where process matching is available, with a labeled system-output fallback. Linux MPRIS through `playerctl`; Music/Spotify on macOS through Apple Events. Seeking requires player support. macOS may ask for Automation permission. |
 | Devices | Windows native audio/device events; Linux PulseAudio/PipeWire-compatible volume and battery readings; macOS volume and battery readings. |
 | System stats | CPU, memory and network readings on all platforms. |
 | Quick actions | Screenshot, microphone mute, lock, display off and Downloads. Linux screenshot/display actions require desktop tools such as `gnome-screenshot` and `xset`; `xset` requires X11. |
@@ -63,6 +64,55 @@ The Avalonia shell uses compact and expanded views with grouped tabs. It does no
 yet reproduce the old WPF side bubbles, animated peek view, GPU graphs or screenshot
 exclusion. The WPF project remains in the repository for regression coverage; release
 packages launch the Avalonia app on every platform.
+
+Audio-only sources such as Discord can appear on Windows and Linux without track
+metadata or playback controls. macOS source selection currently supports Music and
+Spotify. Live five-band audio capture is currently Windows-only; Linux/macOS bars
+keep their cover color but do not animate to the audio.
+
+### Provider keys and the local gateway
+
+1. Open Settings > Agents and add a provider. Choose OpenAI, DeepSeek, Anthropic,
+   or a custom **OpenAI-compatible** HTTPS base URL. Save its inference API key.
+2. Enable **Local API gateway**, then copy the gateway token. The token is separate
+   from the upstream key and authorizes local access to your configured providers.
+3. Copy the account's harness base URL (`http://127.0.0.1:47831/providers/<id>/v1`)
+   into the harness's API base URL setting. Use the **gateway token** as its API key.
+   Some Anthropic clients expect the URL without `/v1` and add that segment themselves.
+4. Keep ATOLL running. The Agents panel shows API requests in progress and token
+   totals. A finished API request does not mean the agent has finished its work;
+   use the agent adapters for tool/permission/completion alerts.
+
+Model names pass through unchanged. The gateway accepts `/chat/completions`,
+`/responses`, `/messages` and `/models`; it does not implement other vendor protocols,
+uploads, WebSockets or asynchronous Responses polling. For Chat Completions streaming,
+configure the harness to request `stream_options.include_usage` if supported. When
+the upstream omits usage, the request is marked **usage unavailable** rather than
+counted as zero tokens. Local totals persist across restarts and cover only requests
+forwarded through ATOLL.
+
+Provider account metrics refresh when a key is saved and every five minutes. OpenAI
+organization usage and actual costs require an optional, separate **admin API key**;
+ordinary project inference keys cannot read those endpoints. Organization totals
+include traffic outside ATOLL and can arrive late. DeepSeek reports the balance in
+the currency supplied by the provider. Other compatible providers show local totals
+unless an account metrics integration is available. ATOLL does not guess model prices.
+
+The gateway binds IPv4 loopback only, authenticates each request, rejects browser
+origins/unexpected hosts, and does not follow provider redirects. It does not log or
+save prompts, responses or credentials. The upstream provider receives the requests
+you route through it. Keys remain encrypted in ATOLL settings; remove an account to
+remove its saved keys. Never paste your real provider key into an ATOLL gateway URL.
+
+### Codex connection
+
+The Agents panel shows the last received hook or local session event. Codex's recent
+session files provide activity when hooks have not loaded, without reading chat text
+into the island. Hooks still provide permission alerts; install/update them, review
+and trust ATOLL's exact hook definitions in Codex Settings > Hooks (CLI: `/hooks`),
+and restart existing sessions. ATOLL never edits Codex trust records. Sessions with
+local history disabled need hooks. The fallback recognizes local rollout events and
+may need updating when Codex changes that file format.
 
 ### Windows notification setup
 
@@ -80,13 +130,16 @@ Uninstalling the Windows app is otherwise available through Windows Settings > A
 - Settings, shelf paths and logs live under the current user's application-data
   folder: `%AppData%/Atoll` on Windows, `~/.config/Atoll` on Linux (or the .NET
   application-data location), and `~/Library/Application Support/Atoll` on macOS.
-- Calendar links retain Windows DPAPI encryption. Linux/macOS use AES-GCM with a
+- Calendar links and provider keys retain Windows DPAPI encryption. Linux/macOS use AES-GCM with a
   random key in `secrets.key`, readable only by the user. Back up that key with your
   settings; losing it means saving your calendar links again. This protects stored
   links from other accounts, not from programs running as you.
 - Clipboard history is not saved. Private/concealed/password formats are ignored.
 - Agent adapters send short summaries over a current-user-only local named pipe.
   Existing hooks are preserved and backed up; malformed settings are left unchanged.
+- Codex fallback monitoring reads bounded recent local event records; prompts and
+  replies are not displayed, retained or uploaded. Gateway storage contains only
+  request/failure counts and token totals. Optional metrics requests go to OpenAI or DeepSeek.
 - Weather requests send the search text or selected coordinates to Open-Meteo.
   Calendar requests go to the ICS providers you add. Update checks go to GitHub.
 

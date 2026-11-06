@@ -24,6 +24,12 @@ public class MediaSeekTests
     }
 
     [Fact]
+    public void Players_with_unspecified_seek_bounds_use_the_track_timeline()
+    {
+        Assert.Equal(TimeSpan.FromSeconds(120), MediaModule.SeekPosition(.5, TimeSpan.FromSeconds(20), TimeSpan.FromSeconds(220), TimeSpan.Zero, TimeSpan.Zero));
+    }
+
+    [Fact]
     public void Invalid_timeline_or_progress_cannot_seek()
     {
         Assert.Null(MediaModule.SeekPosition(double.NaN, TimeSpan.Zero, TimeSpan.FromMinutes(3), TimeSpan.Zero, TimeSpan.FromMinutes(3)));
@@ -75,6 +81,7 @@ public class MediaSeekTests
                 panel.UpdateLayout();
                 var slider = FindSlider(panel)!;
                 Assert.NotNull(slider);
+                slider.RaiseEvent(new RoutedEventArgs(FrameworkElement.LoadedEvent));
                 Assert.Equal(0.25, slider.Value);
 
                 slider.RaiseEvent(new DragStartedEventArgs(0, 0) { RoutedEvent = Thumb.DragStartedEvent });
@@ -91,9 +98,12 @@ public class MediaSeekTests
                 Assert.Equal(0.75, slider.Value);
                 Assert.Single(positions);
 
+                slider.RaiseEvent(new MouseButtonEventArgs(Mouse.PrimaryDevice, 0, MouseButton.Left)
+                { RoutedEvent = UIElement.PreviewMouseDownEvent });
+                Assert.True(vm.IsScrubbing);
                 slider.SetCurrentValue(Slider.ValueProperty, 0.5);
                 slider.RaiseEvent(new MouseButtonEventArgs(Mouse.PrimaryDevice, 0, MouseButton.Left)
-                { RoutedEvent = UIElement.PreviewMouseLeftButtonUpEvent });
+                { RoutedEvent = UIElement.PreviewMouseUpEvent });
                 Assert.Equal([0.75, 0.5], positions);
                 vm.Progress = 0.6;
                 slider.GetBindingExpression(Slider.ValueProperty)!.UpdateTarget();

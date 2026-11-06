@@ -35,7 +35,7 @@ Priority: optional
 Architecture: amd64
 Maintainer: Mazon3442 <noreply@github.com>
 Homepage: https://github.com/Mazon3442/Atoll
-Depends: libc6 (>= 2.35), libgcc-s1, libstdc++6, libssl3t64 | libssl3, libicu74 | libicu70 | libicu72 | libicu76, zlib1g, libgssapi-krb5-2, libx11-6, libice6, libsm6, libfontconfig1, libxrandr2, libxi6, libxcursor1, libxext6, libxrender1, libxtst6, libxfixes3, playerctl, pulseaudio-utils, sound-theme-freedesktop
+Depends: libc6 (>= 2.35), libgcc-s1, libstdc++6, libssl3t64 | libssl3, libicu74 | libicu70 | libicu72 | libicu76, zlib1g, libgssapi-krb5-2, libglib2.0-bin, libx11-6, libice6, libsm6, libfontconfig1, libxrandr2, libxi6, libxcursor1, libxext6, libxrender1, libxtst6, libxfixes3, playerctl, pulseaudio-utils, sound-theme-freedesktop
 Recommends: xwayland
 Suggests: gnome-screenshot, x11-xserver-utils
 Description: ATOLL desktop island
@@ -55,6 +55,7 @@ packager = Mazon3442
 size = $size
 arch = x86_64
 depend = glibc
+depend = glib2
 depend = gcc-libs
 depend = openssl
 depend = icu

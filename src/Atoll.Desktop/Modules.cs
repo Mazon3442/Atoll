@@ -31,6 +31,7 @@ public sealed class DesktopModules : IDisposable
     public static IReadOnlyList<(string Id, string Name, Func<IIslandModule> Create)> Catalog { get; } =
     [
         ("claude", "Agents", () => new ClaudeModule()),
+        ("providers", "API providers", () => new Providers.ProviderModule()),
         ("media", "Media", () => new MediaModule()),
         ("clock", "Clock & timer", () => new ClockModule()),
         ("calendar", "Calendar", () => new CalendarModule()),
@@ -84,7 +85,7 @@ public sealed class DesktopModules : IDisposable
         }
         foreach (var id in _panels.Keys.Where(id => !wanted.Contains(id)).ToList()) _panels.Remove(id);
         var groups = _settings.Current.Modules.Where(e => e.Enabled && _panels.ContainsKey(e.Id)).Select(e => _panels[e.Id])
-            .GroupBy(p => p.Id switch { "calendar" => "clock", "clipboard" => "shelf", "stats" or "actions" => "system", _ => p.Id })
+            .GroupBy(p => p.Id switch { "providers" => "claude", "calendar" => "clock", "clipboard" => "shelf", "stats" or "actions" => "system", _ => p.Id })
             .Select(g => new ModuleTab(g.Key, g.Key switch { "claude" => "Agents", "clock" => "Clock", "shelf" => "Files", "system" => "System", "notifications" => "Alerts", _ => g.First().Name },
                 g.Count() == 1 ? g.First().Panel : new PanelGroup(g.ToArray()))).ToList();
         var changed = groups.Count != Tabs.Count || groups.Where((g, i) => i >= Tabs.Count || g.Id != Tabs[i].Id || !SamePanel(g.Panel, Tabs[i].Panel)).Any();

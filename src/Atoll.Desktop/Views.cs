@@ -49,10 +49,17 @@ internal static class Views
     private static Control Context(Control control, object model) { control.DataContext = model; return control; }
     internal static Control Compact(object? content)
     {
+        if (content is MediaViewModel media)
+        {
+            var art = new Image { Width = 20, Height = 20, Stretch = Stretch.UniformToFill };
+            art.Bind(Image.SourceProperty, new Binding("Art"));
+            var title = Text("Title", 13); title.MaxWidth = 155; title.TextWrapping = TextWrapping.NoWrap; title.TextTrimming = TextTrimming.CharacterEllipsis;
+            return Context(new StackPanel { Orientation = Orientation.Horizontal, Spacing = 10, Children = { art, title, MediaBars(media) } }, media);
+        }
         var path = content switch
         {
             ClockViewModel => "Time", TimerViewModel => "Display", ClaudeViewModel => "Current.Project",
-            ClaudeAlertViewModel => "Title", MediaViewModel => "Title", NextEventViewModel => "Title",
+            ClaudeAlertViewModel => "Title", Providers.ProviderViewModel => "Activity", MediaViewModel => "Title", NextEventViewModel => "Title",
             CalendarAlertViewModel => "Title", IndicatorViewModel => "Title",
 #if WINDOWS
             Atoll.Modules.Notifications.NotificationItemViewModel => "Title",
@@ -71,6 +78,7 @@ internal static class Views
             PanelGroup group => Stack(group.Modules.Select(m => Views.Stack(Label(m.Name, 18), For(m.Panel))).ToArray()),
             ClockPanelViewModel clock => Clock(clock), CalendarViewModel calendar => Calendar(calendar),
             WeatherViewModel weather => Weather(weather), ClaudeViewModel agents => Agents(agents),
+            Providers.ProviderViewModel providers => Stack(Text("Status", 12), new ItemsControl { ItemsSource = providers.Providers, ItemTemplate = new FuncDataTemplate<Providers.ProviderRow>((row, _) => row is null ? null : Context(Stack(Text("Name", 18), Text("Activity"), Text("Totals", 12), Text("Metrics", 12)), row)) }),
             ShelfViewModel shelf => Shelf(shelf), ClipboardModule clipboard => Clipboard(clipboard),
             MediaViewModel media => Media(media), SystemPanelViewModel devices => Devices(devices),
             StatisticsModule => Stack(Label("System stats", 18), Text("Cpu", 32), Label("CPU"), Text("Memory", 24), Label("Memory in use"), Text("Network", 24), Label("Network traffic"), Text("Status")),
@@ -126,19 +134,33 @@ internal static class Views
         var list = new ItemsControl { ItemsSource = vm.Tracker.Sessions, ItemTemplate = new FuncDataTemplate<ClaudeSessionViewModel>((session, _) => session is null ? null : Context(Stack(Text("Project", 18), Text("AgentName", 12), Text("Detail"), Text("Elapsed", 12), Command("Focus session", "FocusCommand")), session)) };
         var empty = Label("No agent sessions yet. Install an adapter in Settings > Agents, then start a session.");
         empty.Bind(Control.IsVisibleProperty, new Binding("!HasSessions"));
-        return Stack(empty, list, Label("Claude usage today (API equivalent estimate)", 12), Context(Stack(Text("TodayText"), Text("BlockText"), Text("BlockResets")), vm.Usage), Button("Manage agent adapters", () => Navigation.OpenSettings?.Invoke(4)));
+        return Stack(Text("ConnectionStatus", 12), empty, list, Label("Claude usage today (API equivalent estimate)", 12), Context(Stack(Text("TodayText"), Text("BlockText"), Text("BlockResets")), vm.Usage), Button("Manage agent adapters", () => Navigation.OpenSettings?.Invoke(4)));
     }
 
     private static Control Media(MediaViewModel vm)
     {
+        var sources = new ComboBox { ItemsSource = vm.Sources, DisplayMemberBinding = new Binding("Name"), HorizontalAlignment = HorizontalAlignment.Stretch };
+        sources.Bind(ComboBox.SelectedItemProperty, new Binding("SelectedSource", BindingMode.TwoWay));
+        AutomationProperties.SetName(sources, "Audio source");
         var art = new Image { Width = 100, Height = 100, HorizontalAlignment = HorizontalAlignment.Left, Stretch = Stretch.UniformToFill };
         art.Bind(Image.SourceProperty, new Binding("Art"));
-        var progress = new Slider { Minimum = 0, Maximum = 1 };
+        var progress = new MediaSeekSlider { Minimum = 0, Maximum = 1, SmallChange = .01, LargeChange = .1 };
         progress.Bind(Slider.ValueProperty, new Binding("Progress", BindingMode.OneWay)); progress.Bind(Control.IsEnabledProperty, new Binding("CanSeek"));
-        progress.PointerPressed += (_, _) => vm.IsScrubbing = true;
-        progress.PointerReleased += async (_, _) => { vm.IsScrubbing = false; if (vm.CanSeek) await vm.SeekCommand.ExecuteAsync(progress.Value); };
         AutomationProperties.SetName(progress, "Playback position");
-        return Stack(art, Text("Title", 24), Text("Artist"), Text("Status", 12), progress, Row(Text("PositionText", 12), Text("DurationText", 12)), Row(Command("Previous", "PreviousCommand"), Command("Play / pause", "PlayPauseCommand"), Command("Next", "NextCommand")));
+        return Stack(sources, Row(art, MediaBars(vm)), Text("Title", 24), Text("Artist"), Text("Status", 12), progress, Row(Text("PositionText", 12), Text("DurationText", 12)), Row(Command("Previous", "PreviousCommand"), Command("Play / pause", "PlayPauseCommand"), Command("Next", "NextCommand")), Text("VisualizerNote", 11));
+    }
+
+    private static Control MediaBars(MediaViewModel vm)
+    {
+        var bars = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 2, Height = 16, VerticalAlignment = VerticalAlignment.Center };
+        for (var i = 0; i < 5; i++)
+        {
+            var transform = new ScaleTransform(1, .18);
+            transform.Bind(ScaleTransform.ScaleYProperty, new Binding("Bar" + i) { Source = vm.Visualizer });
+            var bar = new Border { Width = 3, Height = 16, CornerRadius = new CornerRadius(1.5), RenderTransform = transform, RenderTransformOrigin = new RelativePoint(.5, .5, RelativeUnit.Relative) };
+            bar.Bind(Border.BackgroundProperty, new Binding("Color") { Source = vm.Visualizer }); bars.Children.Add(bar);
+        }
+        ToolTip.SetTip(bars, vm.VisualizerNote); return bars;
     }
 
     private static Control Shelf(ShelfViewModel vm)

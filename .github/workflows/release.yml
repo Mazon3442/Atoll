@@ -26,6 +26,7 @@ jobs:
           - os: macos-15
             rid: osx-arm64
     runs-on: ${{ matrix.os }}
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-dotnet@v4
@@ -35,11 +36,13 @@ jobs:
         if: runner.os == 'Linux'
         run: sudo apt-get update && sudo apt-get install -y zstd xvfb libice6 libsm6 libfontconfig1 libxrandr2 libxi6 libxcursor1 libxtst6 playerctl pulseaudio-utils
       - name: Run portable logic and rendered UI tests
+        timeout-minutes: 5
         shell: pwsh
         run: dotnet test tests/Atoll.Desktop.Tests/Atoll.Desktop.Tests.csproj -c Release --artifacts-path artifacts/tests --results-directory artifacts/test-results --logger "trx;LogFileName=desktop.trx"
         env:
           ATOLL_TEST_SCREENSHOTS: ${{ github.workspace }}/artifacts/screenshots
       - name: Run existing Windows regression tests
+        timeout-minutes: 5
         if: runner.os == 'Windows'
         shell: pwsh
         run: dotnet test tests/Atoll.Tests/Atoll.Tests.csproj -c Release --artifacts-path artifacts/legacy-tests --results-directory artifacts/windows-test-results --logger "trx;LogFileName=windows.trx"

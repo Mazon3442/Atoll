@@ -15,6 +15,7 @@
     <BuiltInComInteropSupport>true</BuiltInComInteropSupport>
   </PropertyGroup>
   <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
     <PackageReference Include="Avalonia.Desktop" Version="11.3.22" />
     <PackageReference Include="Avalonia.Themes.Fluent" Version="11.3.22" />
     <PackageReference Include="Avalonia.Fonts.Inter" Version="11.3.22" />
@@ -29,6 +30,7 @@
     <Compile Include="../Atoll.App/Modules/Shelf/ShelfModule.cs" Link="Modules/ShelfModule.cs" />
     <Compile Include="../Atoll.App/Modules/Media/MediaViewModel.cs" Link="Modules/MediaViewModel.cs" />
     <Compile Include="../Atoll.App/Modules/Media/MediaNames.cs" Link="Modules/MediaNames.cs" />
+    <Compile Include="../Atoll.App/Modules/Media/MediaArtwork.cs" Link="Modules/MediaArtwork.cs" />
     <Compile Include="../Atoll.App/Updates/UpdateService.cs" Link="UpdateService.cs" />
     <AvaloniaResource Include="../../packaging/identity/Assets/Square150x150Logo.png" Link="Assets/Atoll.png" />
     <InternalsVisibleTo Include="Atoll.Desktop.Tests" />
@@ -38,6 +40,7 @@
     <PackageReference Include="System.Management" Version="10.0.14" />
     <Compile Include="../Atoll.App/Modules/Media/MediaModule.cs" Link="Modules/MediaModule.cs" />
     <Compile Include="../Atoll.App/Modules/Media/AudioLevels.cs" Link="Modules/AudioLevels.cs" />
+    <Compile Include="../Atoll.App/Modules/Media/AudioSources.cs" Link="Modules/AudioSources.cs" />
     <Compile Include="../Atoll.App/Modules/Indicators/IndicatorsModule.cs" Link="Modules/IndicatorsModule.cs" />
     <Compile Include="../Atoll.App/Modules/Actions/QuickActionsModule.cs" Link="Modules/QuickActionsModule.cs" />
     <Compile Include="../Atoll.App/Modules/Notifications/NotificationsModule.cs" Link="Modules/NotificationsModule.cs" />
