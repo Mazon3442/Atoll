@@ -37,6 +37,7 @@ public sealed partial class MediaModule : IIslandModule
     private string _trackKey = "";
     private bool _disposed;
     private readonly Dictionary<string, Session> _sessions = [];
+    private readonly Dictionary<string, string> _appNames = [];
     private IReadOnlyList<AudioSource> _audioSources = [];
     private DispatcherTimer? _sourceTimer;
     private uint? _captureProcess;
@@ -113,7 +114,7 @@ public sealed partial class MediaModule : IIslandModule
                 _sessions["media:" + group.Key] = group.FirstOrDefault(s => ReferenceEquals(s, _session)) ?? group.First();
             try { _audioSources = AudioSources.Get(); }
             catch (Exception ex) { _audioSources = []; Log.Info($"Audio source enumeration unavailable ({ex.GetType().Name})."); }
-            var choices = _sessions.Select(pair => new MediaSourceChoice(pair.Key, FriendlyAppName(pair.Value.SourceAppUserModelId))).ToList();
+            var choices = _sessions.Select(pair => new MediaSourceChoice(pair.Key, DisplayName(pair.Value.SourceAppUserModelId))).ToList();
             foreach (var source in _audioSources.Where(a => !_sessions.Values.Any(s => Matches(s.SourceAppUserModelId, a.Name))))
                 choices.Add(new MediaSourceChoice("audio:" + source.ProcessId, source.Name + " (audio)"));
             _vm.SetSources(choices);
@@ -121,6 +122,28 @@ public sealed partial class MediaModule : IIslandModule
         }
         catch (Exception ex) { Log.Error("Media sources could not be refreshed", ex); }
     }
+    /// <summary>
+    /// The name Windows shows for an app in Start (for example "Firefox" for "308046B0AF4A39CB"),
+    /// falling back to a tidied app ID. Cached because sources refresh every two seconds.
+    /// </summary>
+    private string DisplayName(string? aumid)
+    {
+        if (string.IsNullOrEmpty(aumid)) return "";
+        if (_appNames.TryGetValue(aumid, out var cached)) return cached;
+        var name = FriendlyAppName(aumid);
+        try
+        {
+            if (Type.GetTypeFromProgID("Shell.Application") is { } type)
+            {
+                dynamic shell = Activator.CreateInstance(type)!;
+                var item = shell.NameSpace("shell:AppsFolder")?.ParseName(aumid);
+                if (item?.Name is string shown && !string.IsNullOrWhiteSpace(shown)) name = shown;
+            }
+        }
+        catch (Exception ex) { Log.Info($"App name lookup unavailable ({ex.GetType().Name})."); }
+        return _appNames[aumid] = name;
+    }
+
     private static bool Matches(string appId, string processName) => processName.Length > 2 && appId.Contains(processName, StringComparison.OrdinalIgnoreCase);
 
     private void BindCurrentSession()
@@ -157,7 +180,7 @@ public sealed partial class MediaModule : IIslandModule
         _session = next;
         _vm.CanControl = next is not null;
         _vm.Status = next is null ? "Play something in a media app or choose an audio source." : "";
-        _vm.VisualizerNote = _captureProcess is null ? "System output; this player does not expose its audio process." : "Audio from " + FriendlyAppName(next?.SourceAppUserModelId);
+        _vm.VisualizerNote = _captureProcess is null ? "System output; this player does not expose its audio process." : "Audio from " + DisplayName(next?.SourceAppUserModelId);
         _vm.IsScrubbing = false;
         _vm.CanSeek = false;
         _vm.HasTimeline = false;
@@ -171,7 +194,7 @@ public sealed partial class MediaModule : IIslandModule
         next.PlaybackInfoChanged += OnPlaybackInfoChanged;
         next.TimelinePropertiesChanged += OnTimelineChanged;
         _vm.HasSession = true;
-        _vm.AppName = FriendlyAppName(next.SourceAppUserModelId);
+        _vm.AppName = DisplayName(next.SourceAppUserModelId);
         RefreshPlayback(); RefreshTimeline(); _ = RefreshPropertiesAsync(next);
     }
 

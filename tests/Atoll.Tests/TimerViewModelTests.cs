@@ -83,6 +83,10 @@ public class TimerViewModelTests
     [Theory]
     [InlineData("SpotifyAB.SpotifyMusic_zpdnekdrzrea0!Spotify", "Spotify")]
     [InlineData("chrome.exe", "chrome")]
+    [InlineData("com.wimpysworld.sidra", "Sidra")]
+    [InlineData("org.mozilla.Firefox", "Firefox")]
+    [InlineData("Microsoft.ZuneMusic_8wekyb3d8bbwe!Microsoft.ZuneMusic", "Microsoft.ZuneMusic")]
+    [InlineData("308046B0AF4A39CB", "308046B0AF4A39CB")]
     [InlineData("", "")]
     [InlineData(null, "")]
     public void Media_app_names_are_shortened(string? aumid, string expected) =>
