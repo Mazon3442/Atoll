@@ -66,7 +66,7 @@ public partial class IslandWindow : Window
     private ForegroundKind _foreground;
     private bool? _clickThroughApplied;
     private TimeSpan? _edgeHoverSince;
-    private bool _fullscreenRevealed;
+    private bool _revealed;
 
     // Frosted glass: the screen behind the window, blurred, painted as the pill/bubble background.
     private readonly DispatcherTimer _glassTimer;
@@ -169,8 +169,6 @@ public partial class IslandWindow : Window
     private double Roundness => Math.Clamp(_settings.Current.Theme.Roundness, 0, 1);
     private double AvailablePanelHeight => Math.Max(140, Monitor.WorkArea.Height / Monitor.Scale - Math.Clamp(_settings.Current.TopOffset, 0, 80) - 24);
     private double WeatherPanelHeight => Math.Min(580, AvailablePanelHeight);
-    // Artwork, title, source, timeline, controls and the volume row need about 185 px below the tabs.
-    internal const double MediaPanelHeight = 270;
 
     /// <summary>Pass clicks through only when a maximized or fullscreen app sits behind the island (tabs, toolbars).</summary>
     private bool ClickThrough =>
@@ -207,7 +205,7 @@ public partial class IslandWindow : Window
         var offset = Math.Clamp(_settings.Current.TopOffset, 0, 80);
         Stage.Margin = new Thickness(0, offset, 0, 0);
         Width = Math.Max(760, Math.Clamp(t.ExpandedWidth, 320, 900) + 4 * (Math.Max(CompactHeight, 96) + 8));
-        Height = Math.Min(Math.Max(Math.Clamp(t.ExpandedHeight, 140, 600), WeatherPanelHeight), AvailablePanelHeight) + offset + 24;
+        Height = AvailablePanelHeight + offset + 24; // room for panels that grow to fit their content
         _target = (-1, -1, -1);
         _shownContent = null; // template choice may depend on size; rebuild
         Place();
@@ -232,9 +230,9 @@ public partial class IslandWindow : Window
     {
         _paused = paused;
         _foreground = foreground;
-        if (paused || foreground is not (ForegroundKind.Fullscreen or ForegroundKind.Game))
+        if (paused || ShownWithoutReveal())
         {
-            _fullscreenRevealed = false;
+            _revealed = false;
             _edgeHoverSince = null;
         }
         UpdatePresence();
@@ -242,17 +240,16 @@ public partial class IslandWindow : Window
 
     internal void CheckFullscreenEdge(Point cursor, TimeSpan now)
     {
-        if (_paused || _foreground is not (ForegroundKind.Fullscreen or ForegroundKind.Game)
-            || (_foreground == ForegroundKind.Fullscreen && _settings.Current.FullscreenMode is FullscreenMode.Stay or FullscreenMode.Dim))
+        if (_paused || ShownWithoutReveal())
         {
             _edgeHoverSince = null;
             return;
         }
-        if (_fullscreenRevealed)
+        if (_revealed)
         {
             if (!IsCursorOverIsland(cursor) && _mode == IslandMode.Compact)
             {
-                _fullscreenRevealed = false;
+                _revealed = false;
                 _edgeHoverSince = null;
                 UpdatePresence();
             }
@@ -260,8 +257,8 @@ public partial class IslandWindow : Window
         }
         if (!IsTopEdge(cursor)) { _edgeHoverSince = null; return; }
         _edgeHoverSince ??= now;
-        if (now - _edgeHoverSince.Value < TimeSpan.FromSeconds(3)) return;
-        _fullscreenRevealed = true;
+        if (now - _edgeHoverSince.Value < TimeSpan.FromMilliseconds(Math.Clamp(_settings.Current.RevealHoldMs, 250, 10000))) return;
+        _revealed = true;
         UpdatePresence();
         SetClickThrough(false);
         SetMode(IslandMode.Peek);
@@ -280,22 +277,34 @@ public partial class IslandWindow : Window
             Native.SetWindowPos(_hwnd, Native.HWND_TOPMOST, 0, 0, 0, 0, Native.SWP_NOMOVE | Native.SWP_NOSIZE | Native.SWP_NOACTIVATE);
     }
 
-    /// <summary>Shows, hides or dims the window for pause and the fullscreen setting.</summary>
+    /// <summary>The visibility setting that applies to what is in front of the island.</summary>
+    internal static FullscreenMode ModeFor(ForegroundKind foreground, AppSettings settings) => foreground switch
+    {
+        ForegroundKind.Game => FullscreenMode.Hide, // only an intentional edge hold can reveal it
+        ForegroundKind.Fullscreen => settings.FullscreenMode,
+        ForegroundKind.Maximized => settings.MaximizedMode,
+        _ => FullscreenMode.Stay,
+    };
+
+    /// <summary>
+    /// Whether the island shows without an edge hold. PopUp shows only things that end on their own (alerts,
+    /// notifications, short indicators). Hide-when-idle hides an empty island unless it is open.
+    /// </summary>
+    internal static bool ShownWithoutReveal(FullscreenMode mode, bool hideWhenIdle, Activity? primary, bool open) => mode switch
+    {
+        FullscreenMode.Hide => false,
+        FullscreenMode.PopUp => primary is { Alert: true } || primary?.Duration is not null,
+        _ => open || !hideWhenIdle || primary is not null,
+    };
+
+    private bool ShownWithoutReveal() => ShownWithoutReveal(ModeFor(_foreground, _settings.Current),
+        _settings.Current.HideWhenIdle, _primary, _mode != IslandMode.Compact);
+
+    /// <summary>Shows, hides or dims the window for pause and the visibility settings.</summary>
     private void UpdatePresence()
     {
-        var mode = _foreground switch
-        {
-            ForegroundKind.Game => FullscreenMode.Hide, // only an intentional edge hold can reveal it
-            ForegroundKind.Fullscreen => _settings.Current.FullscreenMode,
-            _ => FullscreenMode.Stay,
-        };
-        var shown = !_paused && (_fullscreenRevealed || mode switch
-        {
-            FullscreenMode.Hide => false,
-            // Pop up only for things that end on their own: alerts and short indicators.
-            FullscreenMode.PopUp => _primary is { Alert: true } || _primary?.Duration is not null,
-            _ => true,
-        });
+        var mode = ModeFor(_foreground, _settings.Current);
+        var shown = !_paused && (_revealed || ShownWithoutReveal());
         Opacity = mode == FullscreenMode.Dim ? 0.5 : 1;
 
         if (shown == IsVisible) return;
@@ -434,7 +443,7 @@ public partial class IslandWindow : Window
 
     internal bool IsCursorOverIsland(Point screen) => IsVisible &&
         (IslandBounds().Contains(screen) || (_mode == IslandMode.Peek && _peekAnchor.Contains(screen))
-            || (_fullscreenRevealed && IsTopEdge(screen)));
+            || (_revealed && IsTopEdge(screen)));
 
     private Rect IslandBounds()
     {
@@ -534,6 +543,17 @@ public partial class IslandWindow : Window
 
     // ---------- rendering ----------
 
+    /// <summary>The panel height that shows all of the selected tab's content without scrolling or clipping.</summary>
+    private double FittedPanelHeight(double expandedWidth)
+    {
+        var border = Pill.BorderThickness;
+        PanelRoot.Visibility = Visibility.Visible; // collapsed elements measure as zero
+        PanelRoot.Width = expandedWidth - PanelRoot.Margin.Left - PanelRoot.Margin.Right - border.Left - border.Right;
+        PanelRoot.Height = double.NaN;
+        PanelRoot.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
+        return PanelRoot.DesiredSize.Height + border.Top + border.Bottom;
+    }
+
     private void Render()
     {
         var t = _settings.Current.Theme;
@@ -545,8 +565,8 @@ public partial class IslandWindow : Window
             var expandedHeight = Math.Clamp(t.ExpandedHeight, 140, 600);
             if (Tabs.SelectedItem is ModuleTab { Panel: Atoll.Modules.Weather.WeatherViewModel })
                 expandedHeight = Math.Max(expandedHeight, WeatherPanelHeight);
-            else if (Tabs.SelectedItem is ModuleTab { Panel: MediaPanelViewModel })
-                expandedHeight = Math.Max(expandedHeight, MediaPanelHeight);
+            else if (Tabs.SelectedItem is ModuleTab { Panel: MediaPanelViewModel or SystemGroupViewModel })
+                expandedHeight = Math.Max(expandedHeight, FittedPanelHeight(expandedWidth)); // show all of it
             expandedHeight = Math.Min(expandedHeight, AvailablePanelHeight);
             // Lay out at the destination size, so opening the pill cannot create transient overflow.
             PanelRoot.Width = expandedWidth - PanelRoot.Margin.Left - PanelRoot.Margin.Right - Pill.BorderThickness.Left - Pill.BorderThickness.Right;

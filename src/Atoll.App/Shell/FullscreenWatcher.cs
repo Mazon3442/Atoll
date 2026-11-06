@@ -1,7 +1,9 @@
 using System.Text;
 #if AVALONIA
 using Avalonia.Threading;
+using Int32Rect = Avalonia.PixelRect;
 #else
+using System.Windows;
 using System.Windows.Threading;
 #endif
 using Microsoft.Win32;
@@ -55,8 +57,9 @@ public sealed class FullscreenWatcher : IDisposable
         Native.GetClassName(hwnd, cls, cls.Capacity);
         if (cls.ToString() is "WorkerW" or "Progman") return ForegroundKind.Normal;
 
+        if (!Native.GetWindowRect(hwnd, out var r)) return ForegroundKind.Normal;
         var maximized = Native.IsZoomed(hwnd);
-        var fullscreen = !maximized && CoversMonitor(hwnd, monitor);
+        var fullscreen = IsFullscreen(r.Left, r.Top, r.Right, r.Bottom, monitor.Bounds, maximized);
         if (!maximized && !fullscreen) return ForegroundKind.Normal;
 
         // Exclusive-fullscreen Direct3D apps are games (or similar) by definition.
@@ -65,11 +68,16 @@ public sealed class FullscreenWatcher : IDisposable
         return maximized ? ForegroundKind.Maximized : ForegroundKind.Fullscreen;
     }
 
-    private static bool CoversMonitor(nint hwnd, MonitorInfo monitor)
+    /// <summary>
+    /// A window is fullscreen when it covers the monitor. Browsers keep the maximized flag when a video goes
+    /// fullscreen from a maximized window, so a maximized window that exactly matches the monitor counts too.
+    /// An ordinary maximized window overhangs the monitor by its frame (or stops at the taskbar), so it does not.
+    /// </summary>
+    internal static bool IsFullscreen(int left, int top, int right, int bottom, Int32Rect monitor, bool maximized)
     {
-        if (!Native.GetWindowRect(hwnd, out var r)) return false;
-        var b = monitor.Bounds;
-        return r.Left <= b.X && r.Top <= b.Y && r.Right >= b.X + b.Width && r.Bottom >= b.Y + b.Height;
+        int mr = monitor.X + monitor.Width, mb = monitor.Y + monitor.Height;
+        if (!maximized) return left <= monitor.X && top <= monitor.Y && right >= mr && bottom >= mb;
+        return Math.Abs(left - monitor.X) <= 1 && Math.Abs(top - monitor.Y) <= 1 && Math.Abs(right - mr) <= 1 && Math.Abs(bottom - mb) <= 1;
     }
 
     public void Dispose()

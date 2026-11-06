@@ -40,6 +40,8 @@ public sealed partial class MediaModule : IIslandModule
     private readonly Dictionary<string, string> _appNames = [];
     private IReadOnlyList<AudioSource> _audioSources = [];
     private DispatcherTimer? _sourceTimer;
+    private DispatcherTimer? _followTimer;
+    private string? _followedId;
     private uint? _captureProcess;
     private string? _audioOnlyId;
     private readonly SemaphoreSlim _seekGate = new(1, 1);
@@ -72,6 +74,8 @@ public sealed partial class MediaModule : IIslandModule
         _progressTimer.Tick += (_, _) => UpdateProgress();
         _sourceTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(2) };
         _sourceTimer.Tick += (_, _) => RefreshSources(); _sourceTimer.Start();
+        _followTimer = new DispatcherTimer { Interval = FollowDelay };
+        _followTimer.Tick += (_, _) => { _followTimer.Stop(); FollowSystem(); };
         _ = InitAsync();
     }
 
@@ -91,14 +95,34 @@ public sealed partial class MediaModule : IIslandModule
         }
     }
 
-    private void OnCurrentSessionChanged(SessionManager sender, CurrentSessionChangedEventArgs args) => OnUi(FollowSystem);
+    private void OnCurrentSessionChanged(SessionManager sender, CurrentSessionChangedEventArgs args) => OnUi(ScheduleFollow);
 
-    /// <summary>Shows the session Windows reports as current. A user's pick holds only until this changes.</summary>
+    /// <summary>
+    /// Players hand Windows' "current session" to another app for a moment between tracks. Switching waits
+    /// <see cref="FollowDelay"/> and then re-reads the current session, so a skip never flashes other media.
+    /// </summary>
+    internal static readonly TimeSpan FollowDelay = TimeSpan.FromSeconds(1.5);
+
+    private void ScheduleFollow()
+    {
+        if (_followTimer is { IsEnabled: false }) _followTimer.Start();
+    }
+
+    private (string? Id, bool Playing) SystemCandidate()
+    {
+        var current = _manager?.GetCurrentSession();
+        if (current is null) return (null, false);
+        bool playing;
+        try { playing = current.GetPlaybackInfo()?.PlaybackStatus == GlobalSystemMediaTransportControlsSessionPlaybackStatus.Playing; }
+        catch (Exception ex) { playing = false; Log.Info($"Playback state unavailable ({ex.GetType().Name})."); }
+        return ("media:" + current.SourceAppUserModelId, playing);
+    }
+
     private void FollowSystem()
     {
         if (_disposed || _manager is null) return;
-        var current = _manager.GetCurrentSession();
-        _vm.Follow(current is null ? null : "media:" + current.SourceAppUserModelId);
+        var (id, playing) = SystemCandidate();
+        if (ShouldFollow(id, playing, _followedId, _vm.SelectedSource is not null)) { _followedId = id; _vm.Follow(id); }
         BindCurrentSession();
     }
     private void OnSessionsChanged(SessionManager sender, SessionsChangedEventArgs args) => OnUi(RefreshSources);
@@ -118,7 +142,11 @@ public sealed partial class MediaModule : IIslandModule
             foreach (var source in _audioSources.Where(a => !_sessions.Values.Any(s => Matches(s.SourceAppUserModelId, a.Name))))
                 choices.Add(new MediaSourceChoice("audio:" + source.ProcessId, source.Name + " (audio)"));
             _vm.SetSources(choices);
-            if (_vm.SelectedSource is null) FollowSystem(); else BindCurrentSession();
+            if (_vm.SelectedSource is null) { FollowSystem(); return; }
+            BindCurrentSession();
+            // Catches a paused app that starts playing while it is already Windows' current session.
+            var (id, playing) = SystemCandidate();
+            if (ShouldFollow(id, playing, _followedId, true)) ScheduleFollow();
         }
         catch (Exception ex) { Log.Error("Media sources could not be refreshed", ex); }
     }
@@ -391,6 +419,7 @@ public sealed partial class MediaModule : IIslandModule
         _disposed = true;
         _progressTimer?.Stop();
         _sourceTimer?.Stop();
+        _followTimer?.Stop();
         if (_context is not null) _context.Settings.Changed -= OnThemeChanged;
         _levels.Dispose();
         if (_manager is not null) { _manager.CurrentSessionChanged -= OnCurrentSessionChanged; _manager.SessionsChanged -= OnSessionsChanged; }

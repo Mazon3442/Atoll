@@ -23,6 +23,15 @@ public sealed class AppSettings
     /// <summary>What the island does over fullscreen apps (videos, games, F11 browsers).</summary>
     public FullscreenMode FullscreenMode { get; set; } = FullscreenMode.PopUp;
 
+    /// <summary>What the island does while a maximized window is in front. Hide and PopUp reveal with an edge hold.</summary>
+    public FullscreenMode MaximizedMode { get; set; } = FullscreenMode.Stay;
+
+    /// <summary>Hide the island while nothing is happening; it returns for activity or an edge hold.</summary>
+    public bool HideWhenIdle { get; set; }
+
+    /// <summary>How long to hold the pointer at the top edge, near the island, to bring back a hidden island.</summary>
+    public int RevealHoldMs { get; set; } = 3000;
+
     /// <summary>
     /// The compact island lets clicks through to the app behind it (e.g. browser tabs) and fades
     /// while the cursor passes over; resting on it for the hover delay makes it usable.

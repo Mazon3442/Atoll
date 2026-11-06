@@ -2,6 +2,14 @@ namespace Atoll.Modules.Media;
 
 public sealed partial class MediaModule
 {
+    /// <summary>
+    /// Whether to switch to the player the system calls current or playing. Only a newly current player that is
+    /// playing takes over what is shown; a paused one (a YouTube tab during a track change) does not. A user's pick
+    /// holds until another player starts playing.
+    /// </summary>
+    internal static bool ShouldFollow(string? candidateId, bool candidatePlaying, string? followedId, bool showing) =>
+        !showing || (candidateId is not null && candidateId != followedId && candidatePlaying);
+
     internal static string FriendlyAppName(string? aumid)
     {
         if (string.IsNullOrEmpty(aumid)) return "";
