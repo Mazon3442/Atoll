@@ -169,6 +169,8 @@ public partial class IslandWindow : Window
     private double Roundness => Math.Clamp(_settings.Current.Theme.Roundness, 0, 1);
     private double AvailablePanelHeight => Math.Max(140, Monitor.WorkArea.Height / Monitor.Scale - Math.Clamp(_settings.Current.TopOffset, 0, 80) - 24);
     private double WeatherPanelHeight => Math.Min(580, AvailablePanelHeight);
+    // Artwork, title, source, timeline, controls and the volume row need about 185 px below the tabs.
+    internal const double MediaPanelHeight = 270;
 
     /// <summary>Pass clicks through only when a maximized or fullscreen app sits behind the island (tabs, toolbars).</summary>
     private bool ClickThrough =>
@@ -543,6 +545,8 @@ public partial class IslandWindow : Window
             var expandedHeight = Math.Clamp(t.ExpandedHeight, 140, 600);
             if (Tabs.SelectedItem is ModuleTab { Panel: Atoll.Modules.Weather.WeatherViewModel })
                 expandedHeight = Math.Max(expandedHeight, WeatherPanelHeight);
+            else if (Tabs.SelectedItem is ModuleTab { Panel: MediaPanelViewModel })
+                expandedHeight = Math.Max(expandedHeight, MediaPanelHeight);
             expandedHeight = Math.Min(expandedHeight, AvailablePanelHeight);
             // Lay out at the destination size, so opening the pill cannot create transient overflow.
             PanelRoot.Width = expandedWidth - PanelRoot.Margin.Left - PanelRoot.Margin.Right - Pill.BorderThickness.Left - Pill.BorderThickness.Right;
