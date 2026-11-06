@@ -193,6 +193,7 @@ public class CalendarModuleTests
         Exception? failure = null;
         var thread = new Thread(() => { try { action(); } catch (Exception ex) { failure = ex; } });
         thread.SetApartmentState(ApartmentState.STA);
+        thread.IsBackground = true; // a hung test fails at its timeout instead of keeping the test host alive
         thread.Start();
         Assert.True(thread.Join(TimeSpan.FromSeconds(20)), "Calendar dispatcher test timed out");
         if (failure is not null) ExceptionDispatchInfo.Capture(failure).Throw();

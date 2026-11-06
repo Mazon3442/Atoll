@@ -117,6 +117,7 @@ public class MediaSeekTests
             finally { Application.Current?.Shutdown(); }
         });
         thread.SetApartmentState(ApartmentState.STA);
+        thread.IsBackground = true; // a hung test fails at its timeout instead of keeping the test host alive
         thread.Start();
         thread.Join();
         if (failure is not null) ExceptionDispatchInfo.Capture(failure).Throw();
