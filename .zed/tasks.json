@@ -1,0 +1,26 @@
+[
+  {
+    "label": "atoll: build",
+    "command": "dotnet build Atoll.sln",
+    "cwd": "$ZED_WORKTREE_ROOT",
+    "reveal": "always"
+  },
+  {
+    "label": "atoll: run",
+    "command": "dotnet run --project src/Atoll.App",
+    "cwd": "$ZED_WORKTREE_ROOT",
+    "reveal": "always"
+  },
+  {
+    "label": "atoll: test",
+    "command": "dotnet test Atoll.sln",
+    "cwd": "$ZED_WORKTREE_ROOT",
+    "reveal": "always"
+  },
+  {
+    "label": "atoll: settings",
+    "command": "dotnet run --project src/Atoll.App -- --settings",
+    "cwd": "$ZED_WORKTREE_ROOT",
+    "reveal": "always"
+  }
+]
