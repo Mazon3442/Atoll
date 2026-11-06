@@ -1,0 +1,60 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <TargetFramework Condition="$([MSBuild]::IsOSPlatform('Windows')) and ('$(RuntimeIdentifier)' == '' or $(RuntimeIdentifier.StartsWith('win-')))">net10.0-windows10.0.19041.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <RootNamespace>Atoll.Desktop</RootNamespace>
+    <AssemblyName>Atoll</AssemblyName>
+    <ApplicationManifest Condition="$(TargetFramework.Contains('-windows'))">../Atoll.App/app.manifest</ApplicationManifest>
+    <Product>ATOLL</Product>
+    <ApplicationIcon>../../packaging/identity/Assets/Atoll.ico</ApplicationIcon>
+    <DefineConstants>$(DefineConstants);AVALONIA</DefineConstants>
+    <AvaloniaUseCompiledBindingsByDefault>false</AvaloniaUseCompiledBindingsByDefault>
+    <BuiltInComInteropSupport>true</BuiltInComInteropSupport>
+  </PropertyGroup>
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+    <PackageReference Include="Avalonia.Desktop" Version="11.3.22" />
+    <PackageReference Include="Avalonia.Themes.Fluent" Version="11.3.22" />
+    <PackageReference Include="Avalonia.Fonts.Inter" Version="11.3.22" />
+    <PackageReference Include="Velopack" Version="1.2.161" />
+    <ProjectReference Include="../Atoll.Core/Atoll.Core.csproj" />
+    <Compile Include="../Atoll.App/Modules/IIslandModule.cs" Link="Modules/IIslandModule.cs" />
+    <Compile Include="../Atoll.App/Modules/Clock/ClockModule.cs" Link="Modules/ClockModule.cs" />
+    <Compile Include="../Atoll.App/Modules/Calendar/CalendarModule.cs" Link="Modules/CalendarModule.cs" />
+    <Compile Include="../Atoll.App/Modules/Claude/ClaudeModule.cs" Link="Modules/ClaudeModule.cs" />
+    <Compile Include="../Atoll.App/Modules/Weather/WeatherViewModel.cs" Link="Modules/WeatherViewModel.cs" />
+    <Compile Include="../Atoll.App/Modules/Weather/WeatherModule.cs" Link="Modules/WeatherModule.cs" />
+    <Compile Include="../Atoll.App/Modules/Shelf/ShelfModule.cs" Link="Modules/ShelfModule.cs" />
+    <Compile Include="../Atoll.App/Modules/Media/MediaViewModel.cs" Link="Modules/MediaViewModel.cs" />
+    <Compile Include="../Atoll.App/Modules/Media/MediaNames.cs" Link="Modules/MediaNames.cs" />
+    <Compile Include="../Atoll.App/Modules/Media/MediaArtwork.cs" Link="Modules/MediaArtwork.cs" />
+    <Compile Include="../Atoll.App/Updates/UpdateService.cs" Link="UpdateService.cs" />
+    <AvaloniaResource Include="../../packaging/identity/Assets/Square150x150Logo.png" Link="Assets/Atoll.png" />
+    <InternalsVisibleTo Include="Atoll.Desktop.Tests" />
+  </ItemGroup>
+  <ItemGroup Condition="$(TargetFramework.Contains('-windows'))">
+    <PackageReference Include="NAudio.Wasapi" Version="3.3.0" />
+    <PackageReference Include="System.Management" Version="10.0.14" />
+    <Compile Include="../Atoll.App/Modules/Media/MediaModule.cs" Link="Modules/MediaModule.cs" />
+    <Compile Include="../Atoll.App/Modules/Media/AudioLevels.cs" Link="Modules/AudioLevels.cs" />
+    <Compile Include="../Atoll.App/Modules/Media/AudioSources.cs" Link="Modules/AudioSources.cs" />
+    <Compile Include="../Atoll.App/Modules/Indicators/IndicatorsModule.cs" Link="Modules/IndicatorsModule.cs" />
+    <Compile Include="../Atoll.App/Modules/Actions/QuickActionsModule.cs" Link="Modules/QuickActionsModule.cs" />
+    <Compile Include="../Atoll.App/Modules/Notifications/NotificationsModule.cs" Link="Modules/NotificationsModule.cs" />
+    <Compile Include="../Atoll.App/Modules/Notifications/NotificationSetup.cs" Link="Modules/NotificationSetup.cs" />
+    <Compile Include="../Atoll.App/Shell/Native.cs" Link="Native.cs" />
+    <Compile Include="../Atoll.App/Shell/WindowFocus.cs" Link="WindowFocus.cs" />
+    <Compile Include="../Atoll.App/Shell/Monitors.cs" Link="Monitors.cs" />
+    <Compile Include="../Atoll.App/Shell/FullscreenWatcher.cs" Link="FullscreenWatcher.cs" />
+    <Compile Remove="Platforms/UnixModules.cs" />
+    <Content Include="../../packaging/setup-identity.ps1" Link="NotificationSetup/setup-identity.ps1" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="../../packaging/out/AtollDev.cer" Link="NotificationSetup/out/AtollDev.cer" CopyToOutputDirectory="PreserveNewest" Condition="Exists('../../packaging/out/AtollDev.cer')" />
+    <Content Include="../../packaging/out/Atoll.Identity.msix" Link="NotificationSetup/out/Atoll.Identity.msix" CopyToOutputDirectory="PreserveNewest" Condition="Exists('../../packaging/out/Atoll.Identity.msix')" />
+  </ItemGroup>
+  <ItemGroup Condition="!$(TargetFramework.Contains('-windows'))">
+    <Compile Remove="Platforms/Windows.cs" />
+  </ItemGroup>
+</Project>

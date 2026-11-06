@@ -2,6 +2,7 @@ using System.Diagnostics;
 using System.Runtime.InteropServices;
 using NAudio.Dsp;
 using NAudio.Wave;
+using NAudio.CoreAudioApi;
 
 namespace Atoll.Modules.Media;
 
@@ -27,29 +28,52 @@ public sealed class AudioLevels : IDisposable
     private WaveFormat? _format;
     private int _filled;
     private long _lastEmit;
+    private int _generation;
+    private uint? _processId;
+    private bool _starting;
+    private bool _disposed;
 
     public event Action<float[]>? LevelsAvailable;
+    public event Action? Unavailable;
 
     /// <summary>Starts loopback capture of the current default output device.</summary>
-    public void Start()
+    public void Start(uint? processId = null)
     {
         lock (_gate)
         {
-            if (_recorder is not null) return;
-            try
+            if (_disposed || (_recorder is not null || _starting) && _processId == processId) return;
+        }
+        Stop();
+        int generation;
+        lock (_gate) { if (_disposed) return; generation = ++_generation; _processId = processId; _starting = true; }
+        _ = StartAsync(processId, generation);
+    }
+
+    private async Task StartAsync(uint? processId, int generation)
+    {
+        WasapiRecorder? recorder = null;
+        try
+        {
+            var builder = new WasapiRecorderBuilder();
+            if (processId is { } pid) builder.WithProcessLoopback(pid, ProcessLoopbackMode.IncludeTargetProcessTree);
+            else builder.WithLoopbackCapture();
+            recorder = await builder.BuildAsync().ConfigureAwait(false);
+            lock (_gate)
             {
-                _recorder = new WasapiRecorderBuilder().WithLoopbackCapture().Build();
-                _format = _recorder.WaveFormat;
+                if (_disposed || generation != _generation) { recorder.Dispose(); return; }
+                _recorder = recorder; _format = recorder.WaveFormat;
                 if (!IsFloat32(_format)) Log.Info($"Visualizer: unsupported audio format {_format}; bars stay still");
-                _recorder.DataAvailable += (buffer, _, _, _) => OnData(buffer);
-                _recorder.StartRecording();
+                recorder.DataAvailable += (buffer, _, _, _) => { lock (_gate) { if (generation == _generation) OnData(buffer); } };
+                recorder.StartRecording(); _starting = false;
             }
-            catch (Exception ex)
-            {
-                Log.Error("Audio visualizer could not start", ex);
-                _recorder?.Dispose();
-                _recorder = null;
-            }
+        }
+        catch (Exception ex)
+        {
+            bool current;
+            lock (_gate) { current = !_disposed && generation == _generation; if (current) { _recorder = null; _starting = false; } }
+            recorder?.Dispose();
+            Log.Error("Selected audio visualizer could not start", ex);
+            if (current) Unavailable?.Invoke();
         }
     }
 
@@ -58,8 +82,10 @@ public sealed class AudioLevels : IDisposable
         WasapiRecorder? recorder;
         lock (_gate)
         {
+            _generation++; _starting = false;
             recorder = _recorder;
             _recorder = null;
+            _filled = 0;
         }
         if (recorder is null) return;
         try { recorder.StopRecording(); }
@@ -126,5 +152,5 @@ public sealed class AudioLevels : IDisposable
         LevelsAvailable?.Invoke((float[])_levels.Clone());
     }
 
-    public void Dispose() => Stop();
+    public void Dispose() { lock (_gate) _disposed = true; Stop(); }
 }

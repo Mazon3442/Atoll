@@ -1,6 +1,5 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
-using System.Windows.Threading;
 
 namespace Atoll.Settings;
 
@@ -35,26 +34,32 @@ public sealed class SettingsStore(string path)
     }
 
     public void Save(AppSettings settings)
+        => SaveJson(Serialize(settings));
+
+    internal static string Serialize(AppSettings settings) => JsonSerializer.Serialize(settings, Json);
+
+    internal void SaveJson(string json)
     {
         Directory.CreateDirectory(System.IO.Path.GetDirectoryName(Path)!);
         var temp = Path + ".tmp";
-        File.WriteAllText(temp, JsonSerializer.Serialize(settings, Json));
+        File.WriteAllText(temp, json);
         File.Move(temp, Path, overwrite: true);
     }
 }
 
 /// <summary>Live settings shared by the app. Call <see cref="NotifyChanged"/> after editing <see cref="Current"/>; saves are debounced.</summary>
-public sealed class SettingsService
+public sealed class SettingsService : IDisposable
 {
     private readonly SettingsStore _store;
-    private readonly DispatcherTimer _saveTimer;
+    private readonly Timer _saveTimer;
+    private readonly object _gate = new();
+    private string? _pending;
 
     public SettingsService(SettingsStore store)
     {
         _store = store;
         Current = store.Load();
-        _saveTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(500) };
-        _saveTimer.Tick += (_, _) => Flush();
+        _saveTimer = new Timer(_ => SavePending(), null, Timeout.Infinite, Timeout.Infinite);
     }
 
     public AppSettings Current { get; }
@@ -64,20 +69,40 @@ public sealed class SettingsService
     public void NotifyChanged()
     {
         Changed?.Invoke();
-        _saveTimer.Stop();
-        _saveTimer.Start();
+        lock (_gate)
+        {
+            // Capture on the caller's UI thread; the writer never reads mutable settings.
+            _pending = SettingsStore.Serialize(Current);
+            _saveTimer.Change(500, Timeout.Infinite);
+        }
     }
 
     public void Flush()
     {
-        _saveTimer.Stop();
-        try
+        lock (_gate)
         {
-            _store.Save(Current);
-        }
-        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
-        {
-            Log.Error("Could not save settings", ex);
+            _saveTimer.Change(Timeout.Infinite, Timeout.Infinite);
+            _pending = SettingsStore.Serialize(Current);
+            SavePending();
         }
     }
+
+    private void SavePending()
+    {
+        lock (_gate)
+        {
+            if (_pending is null) return;
+            try
+            {
+                _store.SaveJson(_pending);
+                _pending = null;
+            }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+            {
+                Log.Error("Could not save settings", ex);
+            }
+        }
+    }
+
+    public void Dispose() { Flush(); _saveTimer.Dispose(); }
 }

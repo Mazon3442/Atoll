@@ -1,7 +1,11 @@
 using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.Text.Json;
+#if AVALONIA
+using ImageSource = Avalonia.Media.IImage;
+#else
 using System.Windows.Media;
+#endif
 using Atoll.Activities;
 using Atoll.Shell;
 using CommunityToolkit.Mvvm.ComponentModel;
@@ -53,7 +57,7 @@ public sealed class ShelfStore(string path)
         foreach (var p in added.Concat(existing))
         {
             if (result.Count >= MaxItems) break;
-            if (!result.Contains(p, StringComparer.OrdinalIgnoreCase)) result.Add(p);
+            if (!result.Contains(p, OperatingSystem.IsWindows() ? StringComparer.OrdinalIgnoreCase : StringComparer.Ordinal)) result.Add(p);
         }
         return result;
     }
@@ -86,7 +90,10 @@ public sealed partial class ShelfItem(string path, Action<ShelfItem> remove) : O
     [RelayCommand]
     private void Reveal()
     {
-        if (Exists) Process.Start(new ProcessStartInfo("explorer.exe", $"/select,\"{Path}\"") { UseShellExecute = true });
+        if (!Exists) return;
+        if (OperatingSystem.IsWindows())
+            Process.Start(new ProcessStartInfo("explorer.exe", $"/select,\"{Path}\"") { UseShellExecute = true });
+        else Start(Directory.Exists(Path) ? Path : System.IO.Path.GetDirectoryName(Path)!);
     }
 
     [RelayCommand]

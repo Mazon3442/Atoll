@@ -2,7 +2,6 @@ using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Atoll.Claude;
-using Atoll.Shell;
 
 namespace Atoll.Modules.Claude;
 
@@ -42,6 +41,7 @@ public sealed partial class ClaudeSessionViewModel(string sessionId) : Observabl
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(CanFocus))]
+    [NotifyCanExecuteChangedFor(nameof(FocusCommand))]
     private long _hwnd;
 
     /// <summary>The agent's process id when its adapter reports one; lets the island notice it was closed.</summary>
@@ -55,8 +55,10 @@ public sealed partial class ClaudeSessionViewModel(string sessionId) : Observabl
     public bool NeedsYou => State == ClaudeState.NeedsYou;
     public bool CanFocus => Hwnd != 0;
 
-    [RelayCommand]
-    private void Focus() => WindowFocus.Bring((nint)Hwnd);
+    public static Action<nint>? FocusWindow { get; set; }
+
+    [RelayCommand(CanExecute = nameof(CanFocus))]
+    private void Focus() => FocusWindow?.Invoke((nint)Hwnd);
 }
 
 /// <summary>Turns the stream of hook events into per-session state. UI thread only.</summary>
@@ -185,7 +187,7 @@ public sealed class ClaudeSessionTracker(TimeProvider time, Func<int, bool>? isP
 
     internal static string ProjectName(string cwd)
     {
-        var name = Path.GetFileName(cwd.TrimEnd('/', '\\'));
+        var name = cwd.Replace('\\', '/').TrimEnd('/').Split('/')[^1];
         return string.IsNullOrEmpty(name) ? cwd : name;
     }
 

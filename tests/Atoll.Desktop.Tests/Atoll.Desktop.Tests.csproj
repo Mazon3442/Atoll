@@ -1,0 +1,25 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <TargetFramework Condition="$([MSBuild]::IsOSPlatform('Windows')) and ('$(RuntimeIdentifier)' == '' or $(RuntimeIdentifier.StartsWith('win-')))">net10.0-windows10.0.19041.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Avalonia.Headless.XUnit" Version="11.3.22" />
+    <PackageReference Include="Microsoft.Extensions.TimeProvider.Testing" Version="10.11.0" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.14.1" />
+    <PackageReference Include="xunit" Version="2.9.3" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="3.1.4" />
+    <ProjectReference Include="../../src/Atoll.Desktop/Atoll.Desktop.csproj" />
+    <Using Include="Xunit" />
+    <Compile Include="../Atoll.Tests/ActivityHostTests.cs" Link="Core/ActivityHostTests.cs" />
+    <Compile Include="../Atoll.Tests/TimerViewModelTests.cs" Link="Core/TimerViewModelTests.cs" />
+    <Compile Include="../Atoll.Tests/SettingsStoreTests.cs" Link="Core/SettingsStoreTests.cs" />
+    <Compile Include="../Atoll.Tests/CalendarTests.cs" Link="Core/CalendarTests.cs" />
+    <Compile Include="../Atoll.Tests/ClaudeTests.cs" Link="Core/ClaudeTests.cs" />
+    <Compile Include="../Atoll.Tests/AgentIntegrationTests.cs" Link="Core/AgentIntegrationTests.cs" />
+    <Compile Include="../Atoll.Tests/WeatherForecastTests.cs" Link="Core/WeatherForecastTests.cs" />
+  </ItemGroup>
+</Project>

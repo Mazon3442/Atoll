@@ -1,7 +1,14 @@
 using System.Collections.ObjectModel;
+#if !AVALONIA
 using System.Media;
+#endif
 using System.Net.Http;
+#if AVALONIA
+using Avalonia.Threading;
+using Atoll.Desktop;
+#else
 using System.Windows.Threading;
+#endif
 using Atoll.Activities;
 using Atoll.Settings;
 using CommunityToolkit.Mvvm.ComponentModel;
@@ -83,7 +90,7 @@ public sealed partial class CalendarViewModel(Action refresh) : ObservableObject
     [RelayCommand]
     private void OpenSettings()
     {
-        if (System.Windows.Application.Current is App app) app.OpenSettings(5);
+        Atoll.Navigation.OpenSettings?.Invoke(5);
     }
 }
 
@@ -151,10 +158,10 @@ public sealed class CalendarModule : IIslandModule
     {
         _context = context;
         context.Settings.Changed += OnSettingsChanged;
-        _refreshTimer = new DispatcherTimer(DispatcherPriority.Background, context.Dispatcher) { Interval = RefreshEvery };
+        _refreshTimer = new DispatcherTimer(DispatcherPriority.Background) { Interval = RefreshEvery };
         _refreshTimer.Tick += (_, _) => _ = RefreshAsync();
         _refreshTimer.Start();
-        _ticker = new DispatcherTimer(DispatcherPriority.Background, context.Dispatcher) { Interval = TickEvery };
+        _ticker = new DispatcherTimer(DispatcherPriority.Background) { Interval = TickEvery };
         _ticker.Tick += (_, _) => OnTick();
         _ticker.Start();
         _ = RefreshAsync();

@@ -25,12 +25,12 @@ public sealed class AgentIntegrationInstaller(string? userDirectory = null, stri
         "codex" => Path.Combine(Home("CODEX_HOME", Path.Combine(_userDirectory, ".codex")), "hooks.json"),
         "opencode" => Path.Combine(Home("OPENCODE_CONFIG_DIR", Path.Combine(Home("XDG_CONFIG_HOME", Path.Combine(_userDirectory, ".config")), "opencode")), "plugins", "atoll.js"),
         "hermes" => Path.Combine(Home("HERMES_HOME", userDirectory is null
-            ? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "hermes")
+            ? OperatingSystem.IsWindows() ? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "hermes") : Path.Combine(_userDirectory, ".hermes")
             : Path.Combine(_userDirectory, ".hermes")), "plugins", "atoll", "__init__.py"),
         _ => throw new ArgumentException("Unknown agent", nameof(agent)),
     };
 
-    private string Command(string agent) => $"\"{_hookExe.Replace('\\', '/')}\"" + (agent == "claude" ? "" : $" --agent {agent}");
+    private string Command(string agent) => ClaudeHookInstaller.QuoteCommand(_hookExe) + (agent == "claude" ? "" : $" --agent {agent}");
 
     public bool IsInstalled(string agent)
     {
@@ -144,7 +144,7 @@ public sealed class AgentIntegrationInstaller(string? userDirectory = null, stri
         var verb = enable ? "enable" : "disable";
         try
         {
-            var start = new ProcessStartInfo("hermes.exe")
+            var start = new ProcessStartInfo(OperatingSystem.IsWindows() ? "hermes.exe" : "hermes")
             {
                 UseShellExecute = false, CreateNoWindow = true,
                 RedirectStandardInput = true, RedirectStandardOutput = true, RedirectStandardError = true,

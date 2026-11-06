@@ -18,7 +18,7 @@ public static class UpdateService
     private static UpdateManager Create() => new(new GithubSource(GitHubUrl, accessToken: null, prerelease: false));
 
     /// <summary>True only when running from a Velopack install (never from a build folder).</summary>
-    public static bool IsInstalled => Create().IsInstalled;
+    public static bool IsInstalled => OperatingSystem.IsWindows() && Create().IsInstalled;
 
     /// <summary>The installed Velopack version, or null when not installed.</summary>
     public static string? InstalledVersion => Create().CurrentVersion?.ToString();
@@ -28,6 +28,7 @@ public static class UpdateService
 
     public static async Task<UpdateResult> CheckAndDownloadAsync()
     {
+        if (!OperatingSystem.IsWindows()) return new UpdateResult(false, false, null, null);
         var manager = Create();
         if (!manager.IsInstalled) return new UpdateResult(false, false, null, null);
         try

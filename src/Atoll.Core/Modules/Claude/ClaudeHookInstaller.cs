@@ -18,10 +18,15 @@ public static class ClaudeHookInstaller
     public static string SettingsPath { get; } = Path.Combine(
         Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".claude", "settings.json");
 
-    public static string HookExePath => Path.Combine(AppContext.BaseDirectory, "Atoll.ClaudeHook.exe");
+    public static string HookExePath => Path.Combine(AppContext.BaseDirectory,
+        OperatingSystem.IsWindows() ? "Atoll.ClaudeHook.exe" : "Atoll.ClaudeHook");
 
     /// <summary>Forward slashes and quotes so the same string works in Git Bash and cmd.</summary>
-    public static string HookCommand => $"\"{HookExePath.Replace('\\', '/')}\"";
+    public static string HookCommand => QuoteCommand(HookExePath);
+
+    internal static string QuoteCommand(string path) => OperatingSystem.IsWindows()
+        ? $"\"{path.Replace('\\', '/')}\""
+        : "'" + path.Replace("'", "'\"'\"'") + "'";
 
     public enum Status
     {

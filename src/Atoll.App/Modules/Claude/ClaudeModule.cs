@@ -1,6 +1,13 @@
 using System.Globalization;
+#if !AVALONIA
 using System.Media;
+#endif
+#if AVALONIA
+using Avalonia.Threading;
+using Atoll.Desktop;
+#else
 using System.Windows.Threading;
+#endif
 using CommunityToolkit.Mvvm.ComponentModel;
 using Atoll.Activities;
 using Atoll.Claude;
@@ -49,6 +56,7 @@ public sealed partial class ClaudeViewModel(ClaudeSessionTracker tracker) : Obse
     [ObservableProperty] private ClaudeSessionViewModel? _current;
     [ObservableProperty] private int _activeCount;
     [ObservableProperty] private string _countBadge = "";
+    [ObservableProperty] private string _connectionStatus = "Waiting for agent events. Codex also uses recent local session events when hooks are unavailable.";
 
     public bool HasSessions => Tracker.Sessions.Count > 0;
 
@@ -72,6 +80,8 @@ public sealed class ClaudeModule : IIslandModule
     private readonly ClaudeSessionTracker _tracker = new(TimeProvider.System);
     private readonly ClaudeViewModel _vm;
     private readonly HookPipeServer _server = new();
+    private readonly CodexSessionMonitor _codex = new();
+    private readonly Dictionary<string, DateTimeOffset> _codexHooks = [];
     private readonly UsageMonitor _usage = new(UsageMonitor.DefaultRoot);
     private ModuleContext? _context;
     private DispatcherTimer? _ticker;
@@ -86,13 +96,25 @@ public sealed class ClaudeModule : IIslandModule
     public void Start(ModuleContext context)
     {
         _context = context;
-        _server.Received += m => context.Dispatcher.BeginInvoke(() => OnHook(m));
+        _server.Received += m => context.Dispatcher.BeginInvoke(() =>
+        {
+            if (m.Agent == "codex") _codexHooks[m.SessionId] = DateTimeOffset.UtcNow;
+            _vm.ConnectionStatus = $"Last hook: {HookProtocol.AgentName(m.Agent)} · {m.Event} · {DateTimeOffset.Now:t}";
+            OnHook(m);
+        });
         _server.Start();
+        _codex.Received += m => context.Dispatcher.BeginInvoke(() =>
+        {
+            if (_disposed || _codexHooks.TryGetValue(m.SessionId, out var seen) && DateTimeOffset.UtcNow - seen < TimeSpan.FromSeconds(15)) return;
+            _vm.ConnectionStatus = $"Codex connected through local session events · {DateTimeOffset.Now:t}. Hooks remain available for permission alerts.";
+            OnHook(m);
+        });
+        _codex.Start();
 
         _usage.Updated += s => context.Dispatcher.BeginInvoke(() => _vm.Usage.Update(s, DateTimeOffset.Now));
         _usage.Start();
 
-        _ticker = new DispatcherTimer(DispatcherPriority.Background, context.Dispatcher) { Interval = TimeSpan.FromSeconds(1) };
+        _ticker = new DispatcherTimer(DispatcherPriority.Background) { Interval = TimeSpan.FromSeconds(1) };
         _ticker.Tick += (_, _) =>
         {
             _tracker.Tick();
@@ -152,6 +174,7 @@ public sealed class ClaudeModule : IIslandModule
         _disposed = true;
         _ticker?.Stop();
         _server.Dispose();
+        _codex.Dispose();
         _usage.Dispose();
     }
 }

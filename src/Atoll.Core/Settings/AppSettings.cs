@@ -45,6 +45,7 @@ public sealed class AppSettings
     public List<Atoll.Theme.ThemePreset> CustomThemes { get; set; } = [];
 
     public ClaudeSettings Claude { get; set; } = new();
+    public ProviderSettings Providers { get; set; } = new();
 
     public NotificationSettings Notifications { get; set; } = new();
 
@@ -54,6 +55,22 @@ public sealed class AppSettings
 
     /// <summary>List order = tab order in the expanded panel.</summary>
     public List<ModuleEntry> Modules { get; set; } = [];
+}
+
+public sealed class ProviderSettings
+{
+    public bool GatewayEnabled { get; set; }
+    public string EncryptedGatewayToken { get; set; } = "";
+    public List<ProviderAccount> Accounts { get; set; } = [];
+}
+
+public sealed class ProviderAccount
+{
+    public string Id { get; set; } = Guid.NewGuid().ToString("N");
+    public string Name { get; set; } = "OpenAI";
+    public string BaseUrl { get; set; } = "https://api.openai.com/v1/";
+    public string EncryptedKey { get; set; } = "";
+    public string EncryptedAdminKey { get; set; } = "";
 }
 
 public sealed class ThemeSettings

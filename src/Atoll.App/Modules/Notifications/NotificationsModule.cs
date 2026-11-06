@@ -1,6 +1,15 @@
 using System.Collections.ObjectModel;
+#if AVALONIA
+using ImageSource = Avalonia.Media.IImage;
+#else
 using System.Windows.Media;
+#endif
+#if AVALONIA
+using Avalonia.Threading;
+using Atoll.Desktop;
+#else
 using System.Windows.Threading;
+#endif
 using Atoll.Activities;
 using Atoll.Settings;
 using Atoll.Shell;
@@ -131,7 +140,7 @@ public sealed partial class NotificationsViewModel(Action requestAccess) : Obser
     [RelayCommand]
     private void OpenSetup()
     {
-        if (System.Windows.Application.Current is App app) app.OpenSettings(3);
+        Atoll.Navigation.OpenSettings?.Invoke(3);
     }
 
     [RelayCommand]
@@ -217,7 +226,7 @@ public sealed class NotificationsModule : IIslandModule
         {
             // Some Windows builds only raise this event for background tasks; poll instead.
             Log.Info($"Notification events unavailable ({ex.Message}); polling");
-            _poll = new DispatcherTimer(DispatcherPriority.Background, _context!.Dispatcher) { Interval = TimeSpan.FromSeconds(1.5) };
+            _poll = new DispatcherTimer(DispatcherPriority.Background) { Interval = TimeSpan.FromSeconds(1.5) };
             _poll.Tick += (_, _) => _ = RefreshAsync();
             _poll.Start();
         }
