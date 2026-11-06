@@ -3,7 +3,7 @@
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/assets/brand/banner-dark.svg">
   <source media="(prefers-color-scheme: light)" srcset="docs/assets/brand/banner-light.svg">
-  <img alt="ATOLL: a desktop island for Windows, macOS and Linux" src="docs/assets/brand/banner-dark.svg" width="100%">
+  <img alt="ATOLL: a Dynamic Island for Windows, macOS and Linux" src="docs/assets/brand/banner-dark.svg" width="100%">
 </picture>
 
 **Coding agents, music, timers, calendars, weather and files, in a pill at the top of your screen.<br>Click it to open a panel. ATOLL runs on your own computer, with no account and no telemetry.**

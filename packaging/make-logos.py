@@ -40,6 +40,8 @@ PAPER = "#F1EEE7"   # warm off-white: reads as a printed mark, not a screen glow
 INK = "#0B0C0E"     # the island's own near-black (DESIGN.md)
 ACCENT = "#0A84FF"  # the app's default accent, used only inside the banner's illustration
 CORNER = 0.22       # tile corner radius, fraction of the side
+TAGLINE = "A Dynamic Island for your desktop"
+PLATFORMS = "Windows, macOS and Linux"
 
 
 def geometry(small: bool) -> dict:
@@ -220,9 +222,9 @@ def svg_banner(theme: str, bold: Outliner, regular: Outliner) -> str:
     W, H = 1280, 400
     mdefs, mbody = svg_mark(80, 56, 112, "b", edge=t.get("edge"))
     word = bold.path("ATOLL", 78, 256, 84, tracking=0.04)
-    tag = regular.path("A Dynamic Island for Windows", 81, 302, 30)
-    sub1 = regular.path("Music, timers, coding agents, notifications, calendar", 82, 340, 19)
-    sub2 = regular.path("and weather, in a pill at the top of your screen.", 82, 366, 19)
+    tag = regular.path(TAGLINE, 81, 302, 30)
+    sub1 = regular.path("Coding agents, music, timers, calendars and weather,", 82, 340, 19)
+    sub2 = regular.path(f"in a pill at the top of {PLATFORMS}.", 82, 366, 19)
 
     # The illustration: a desktop's top edge, the island open on a now-playing panel, two side bubbles.
     sx, sy, sw, sh = 640, 40, 576, 320
@@ -271,7 +273,7 @@ def svg_banner(theme: str, bold: Outliner, regular: Outliner) -> str:
              "@keyframes eq{from{transform:scaleY(.35)}to{transform:scaleY(1)}}"
              "@media (prefers-reduced-motion:reduce){.v{animation:none}}"
              "</style>")
-    return f"""<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {W} {H}" width="{W}" height="{H}" role="img" aria-label="ATOLL: a Dynamic Island for Windows">
+    return f"""<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {W} {H}" width="{W}" height="{H}" role="img" aria-label="ATOLL: a Dynamic Island for {PLATFORMS}">
   <title>ATOLL</title>
   <defs>
     {mdefs}
@@ -307,7 +309,7 @@ def social_preview(bold_path: Path, regular_path: Path) -> Image.Image:
     for c in word:
         d.text((x, 440), c, font=f_word, fill="#F2F2F4", anchor="ls")
         x += d.textlength(c, font=f_word) + track
-    d.text((W / 2, 516), "A Dynamic Island for Windows", font=ImageFont.truetype(str(regular_path), 38),
+    d.text((W / 2, 516), TAGLINE, font=ImageFont.truetype(str(regular_path), 38),
            fill="#A3A8B0", anchor="ms")
     return img
 
