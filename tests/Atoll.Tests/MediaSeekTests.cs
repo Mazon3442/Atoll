@@ -101,6 +101,7 @@ public class MediaSeekTests
                 Assert.Equal(2, positions.Count);
                 GroupedPanelsTests.VerifyTemplates();
                 SettingsUiTests.VerifySettings();
+                CalendarUiTests.Verify();
             }
             catch (Exception ex) { failure = ex; }
             finally { Application.Current?.Shutdown(); }

@@ -77,5 +77,15 @@
             </shell:PillBorder.RenderTransform>
             <ContentPresenter x:Name="BubbleContent" HorizontalAlignment="Center" VerticalAlignment="Center" />
         </shell:PillBorder>
+        <shell:PillBorder x:Name="Bubble2"
+                          Background="{DynamicResource Island.Background}" BorderBrush="{DynamicResource Island.Rim}" BorderThickness="1"
+                          HorizontalAlignment="Center" VerticalAlignment="Top"
+                          Visibility="Collapsed" Cursor="Hand"
+                          AutomationProperties.Name="Third activity">
+            <shell:PillBorder.RenderTransform>
+                <TranslateTransform x:Name="Bubble2Shift" />
+            </shell:PillBorder.RenderTransform>
+            <ContentPresenter x:Name="Bubble2Content" HorizontalAlignment="Center" VerticalAlignment="Center" />
+        </shell:PillBorder>
     </Grid>
 </Window>

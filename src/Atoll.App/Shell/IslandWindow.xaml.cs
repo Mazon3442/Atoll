@@ -1,5 +1,6 @@
 using System.ComponentModel;
 using System.Windows;
+using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Interop;
 using System.Windows.Media;
@@ -32,6 +33,7 @@ public partial class IslandWindow : Window
 
     private const int PointerTickMs = 60;
     private const int CollapseAfterMs = 900;
+    private const int PeekCollapseAfterMs = 450;
     private const int MinClickThroughDwellMs = 350; // short passes (moving to a browser tab) must not open it
     private const double PassThroughOpacity = 0.25;
 
@@ -52,6 +54,8 @@ public partial class IslandWindow : Window
     private IslandMode _mode = IslandMode.Compact;
     private Activity? _primary;
     private Activity? _secondary;
+    private Activity? _tertiary;
+    private Rect _peekAnchor = Rect.Empty;
     private object? _shownContent;
     private string? _shownTemplateMode;
     private INotifyPropertyChanged? _watched;
@@ -61,6 +65,8 @@ public partial class IslandWindow : Window
     private bool _paused;
     private ForegroundKind _foreground;
     private bool? _clickThroughApplied;
+    private TimeSpan? _edgeHoverSince;
+    private bool _fullscreenRevealed;
 
     // Frosted glass: the screen behind the window, blurred, painted as the pill/bubble background.
     private readonly DispatcherTimer _glassTimer;
@@ -69,6 +75,7 @@ public partial class IslandWindow : Window
     private Int32Rect _glassArea;
     private ImageBrush? _pillGlassBrush;
     private ImageBrush? _bubbleGlassBrush;
+    private ImageBrush? _bubble2GlassBrush;
 
     public IslandWindow(MonitorInfo monitor, SettingsService settings, ModuleManager modules, Action openSettings)
     {
@@ -104,6 +111,11 @@ public partial class IslandWindow : Window
         Bubble.MouseLeftButtonUp += (_, e) =>
         {
             SetMode(IslandMode.Expanded, ActivityTab(_secondary));
+            e.Handled = true;
+        };
+        Bubble2.MouseLeftButtonUp += (_, e) =>
+        {
+            SetMode(IslandMode.Expanded, ActivityTab(_tertiary));
             e.Handled = true;
         };
         Pill.SizeChanged += (_, _) => UpdateBubbleOffset();
@@ -162,11 +174,12 @@ public partial class IslandWindow : Window
     private bool ClickThrough =>
         _settings.Current.ClickThrough && _foreground is ForegroundKind.Maximized or ForegroundKind.Fullscreen;
 
-    public void SetActivities(Activity? primary, Activity? secondary)
+    public void SetActivities(Activity? primary, Activity? secondary, Activity? tertiary = null)
     {
         var isNewPrimary = !ReferenceEquals(primary, _primary);
         _primary = primary;
         _secondary = secondary;
+        _tertiary = tertiary;
 
         if (isNewPrimary && primary is { Alert: true } && _mode == IslandMode.Compact)
         {
@@ -191,7 +204,7 @@ public partial class IslandWindow : Window
         var t = _settings.Current.Theme;
         var offset = Math.Clamp(_settings.Current.TopOffset, 0, 80);
         Stage.Margin = new Thickness(0, offset, 0, 0);
-        Width = Math.Max(760, Math.Clamp(t.ExpandedWidth, 320, 900) + 2 * (CompactHeight + 24));
+        Width = Math.Max(760, Math.Clamp(t.ExpandedWidth, 320, 900) + 4 * (Math.Max(CompactHeight, 96) + 8));
         Height = Math.Min(Math.Max(Math.Clamp(t.ExpandedHeight, 140, 600), WeatherPanelHeight), AvailablePanelHeight) + offset + 24;
         _target = (-1, -1, -1);
         _shownContent = null; // template choice may depend on size; rebuild
@@ -217,7 +230,46 @@ public partial class IslandWindow : Window
     {
         _paused = paused;
         _foreground = foreground;
+        if (paused || foreground is not (ForegroundKind.Fullscreen or ForegroundKind.Game))
+        {
+            _fullscreenRevealed = false;
+            _edgeHoverSince = null;
+        }
         UpdatePresence();
+    }
+
+    internal void CheckFullscreenEdge(Point cursor, TimeSpan now)
+    {
+        if (_paused || _foreground is not (ForegroundKind.Fullscreen or ForegroundKind.Game)
+            || (_foreground == ForegroundKind.Fullscreen && _settings.Current.FullscreenMode is FullscreenMode.Stay or FullscreenMode.Dim))
+        {
+            _edgeHoverSince = null;
+            return;
+        }
+        if (_fullscreenRevealed)
+        {
+            if (!IsCursorOverIsland(cursor) && _mode == IslandMode.Compact)
+            {
+                _fullscreenRevealed = false;
+                _edgeHoverSince = null;
+                UpdatePresence();
+            }
+            return;
+        }
+        if (!IsTopEdge(cursor)) { _edgeHoverSince = null; return; }
+        _edgeHoverSince ??= now;
+        if (now - _edgeHoverSince.Value < TimeSpan.FromSeconds(3)) return;
+        _fullscreenRevealed = true;
+        UpdatePresence();
+        SetClickThrough(false);
+        SetMode(IslandMode.Peek);
+    }
+
+    private bool IsTopEdge(Point cursor)
+    {
+        var center = Monitor.Bounds.X + Monitor.Bounds.Width / 2.0;
+        return Math.Abs(cursor.X - center) <= Math.Max(120, CompactHeight * 3) * Monitor.Scale
+            && cursor.Y >= Monitor.Bounds.Y && cursor.Y <= Monitor.Bounds.Y + 5 * Monitor.Scale;
     }
 
     public void EnsureTopmost()
@@ -231,17 +283,17 @@ public partial class IslandWindow : Window
     {
         var mode = _foreground switch
         {
-            ForegroundKind.Game => FullscreenMode.Hide, // games never show the island
+            ForegroundKind.Game => FullscreenMode.Hide, // only an intentional edge hold can reveal it
             ForegroundKind.Fullscreen => _settings.Current.FullscreenMode,
             _ => FullscreenMode.Stay,
         };
-        var shown = !_paused && mode switch
+        var shown = !_paused && (_fullscreenRevealed || mode switch
         {
             FullscreenMode.Hide => false,
             // Pop up only for things that end on their own: alerts and short indicators.
             FullscreenMode.PopUp => _primary is { Alert: true } || _primary?.Duration is not null,
             _ => true,
-        };
+        });
         Opacity = mode == FullscreenMode.Dim ? 0.5 : 1;
 
         if (shown == IsVisible) return;
@@ -271,6 +323,8 @@ public partial class IslandWindow : Window
 
     private void SetMode(IslandMode mode, string? moduleId = null)
     {
+        // Keep the original hover region while the pill grows and pushes side activities away.
+        _peekAnchor = mode == IslandMode.Peek && _mode != IslandMode.Peek ? IslandBounds() : Rect.Empty;
         if (mode == IslandMode.Expanded)
         {
             SetClickThrough(false);
@@ -316,7 +370,12 @@ public partial class IslandWindow : Window
 
     private void OnPointerTick()
     {
-        var over = IsCursorOverIsland();
+        if (Native.GetCursorPos(out var p)) OnPointerTick(new Point(p.X, p.Y));
+    }
+
+    internal void OnPointerTick(Point screen)
+    {
+        var over = IsCursorOverIsland(screen);
         switch (_mode)
         {
             case IslandMode.Compact:
@@ -337,7 +396,7 @@ public partial class IslandWindow : Window
             case IslandMode.Peek:
                 SetClickThrough(false);
                 if (over) _outsideMs = 0;
-                else if (!_alertPeek) SetMode(IslandMode.Compact); // alerts close when their activity ends
+                else if (!_alertPeek && (_outsideMs += PointerTickMs) >= PeekCollapseAfterMs) SetMode(IslandMode.Compact);
                 break;
 
             case IslandMode.Expanded:
@@ -361,19 +420,28 @@ public partial class IslandWindow : Window
         var to = faded ? PassThroughOpacity : 1;
         Pill.BeginAnimation(OpacityProperty, new DoubleAnimation(to, FadeDuration));
         Bubble.BeginAnimation(OpacityProperty, new DoubleAnimation(to, FadeDuration));
+        Bubble2.BeginAnimation(OpacityProperty, new DoubleAnimation(to, FadeDuration));
     }
 
     private bool IsCursorOverIsland()
     {
         if (!IsVisible || !Native.GetCursorPos(out var p)) return false;
-        var screen = new Point(p.X, p.Y);
-        return Contains(Pill, screen) || (Bubble.IsVisible && Contains(Bubble, screen));
+        return IsCursorOverIsland(new Point(p.X, p.Y));
     }
 
-    private static bool Contains(FrameworkElement e, Point screen)
+    internal bool IsCursorOverIsland(Point screen) => IsVisible &&
+        (IslandBounds().Contains(screen) || (_mode == IslandMode.Peek && _peekAnchor.Contains(screen))
+            || (_fullscreenRevealed && IsTopEdge(screen)));
+
+    private Rect IslandBounds()
     {
-        var local = e.PointFromScreen(screen);
-        return local.X >= 0 && local.Y >= 0 && local.X <= e.ActualWidth && local.Y <= e.ActualHeight;
+        if (!IsVisible) return Rect.Empty;
+        static Rect Bounds(FrameworkElement element) => new(element.PointToScreen(new Point()),
+            element.PointToScreen(new Point(element.ActualWidth, element.ActualHeight)));
+        var bounds = Bounds(Pill);
+        if (Bubble.IsVisible) bounds.Union(Bounds(Bubble));
+        if (Bubble2.IsVisible) bounds.Union(Bounds(Bubble2));
+        return bounds;
     }
 
     // ---------- frosted glass ----------
@@ -397,8 +465,10 @@ public partial class IslandWindow : Window
             if (_hwnd != 0) GlassSampler.ExcludeFromCapture(_hwnd, false);
             _glassImage = null;
             _pillGlassBrush = null; _bubbleGlassBrush = null;
+            _bubble2GlassBrush = null;
             Pill.SetResourceReference(BackgroundProperty, "Island.Background");
             Bubble.SetResourceReference(BackgroundProperty, "Island.Background");
+            Bubble2.SetResourceReference(BackgroundProperty, "Island.Background");
         }
     }
 
@@ -411,12 +481,13 @@ public partial class IslandWindow : Window
         var targetHeight = Math.Max(1, _target.H) * dpi.DpiScaleY;
         var center = pill.Left + pill.Width / 2;
         var bounds = Rect.Union(pill, new Rect(center - targetWidth / 2, pill.Top, targetWidth, targetHeight));
-        if (Bubble.IsVisible)
+        foreach (var side in new[] { Bubble, Bubble2 }.Where(side => side.IsVisible))
         {
-            var size = new Size(Bubble.ActualWidth * dpi.DpiScaleX, Bubble.ActualHeight * dpi.DpiScaleY);
-            var bubble = new Rect(Bubble.PointToScreen(new Point()), size);
+            var size = new Size(side.ActualWidth * dpi.DpiScaleX, side.ActualHeight * dpi.DpiScaleY);
+            var bubble = new Rect(side.PointToScreen(new Point()), size);
             bounds.Union(bubble);
-            bounds.Union(new Rect(new Point(center + targetWidth / 2 + 8 * dpi.DpiScaleX, bubble.Top), size));
+            var offset = 8 + (ReferenceEquals(side, Bubble2) && Bubble.IsVisible ? Bubble.Width + 8 : 0);
+            bounds.Union(new Rect(new Point(center + targetWidth / 2 + offset * dpi.DpiScaleX, bubble.Top), size));
         }
         var moving = Math.Abs(Pill.ActualWidth - _target.W) > 1 || Math.Abs(Pill.ActualHeight - _target.H) > 1;
         bounds.Inflate((moving ? 40 : 8) * dpi.DpiScaleX, (moving ? 40 : 8) * dpi.DpiScaleY);
@@ -433,6 +504,7 @@ public partial class IslandWindow : Window
         if (!_glassActive || _glassImage is null || ActualWidth <= 0) return;
         Pill.Background = _pillGlassBrush = GlassBrush(Pill, _pillGlassBrush);
         if (Bubble.IsVisible) Bubble.Background = _bubbleGlassBrush = GlassBrush(Bubble, _bubbleGlassBrush);
+        if (Bubble2.IsVisible) Bubble2.Background = _bubble2GlassBrush = GlassBrush(Bubble2, _bubble2GlassBrush);
     }
 
     private ImageBrush GlassBrush(FrameworkElement e, ImageBrush? previous)
@@ -475,7 +547,8 @@ public partial class IslandWindow : Window
             PillContent.Visibility = Visibility.Collapsed;
             PanelRoot.Visibility = Visibility.Visible;
             Animate(expandedWidth, expandedHeight, Roundness * 32);
-            RenderBubble(null, h0);
+            RenderBubble(Bubble, BubbleContent, null, h0);
+            RenderBubble(Bubble2, Bubble2Content, null, h0);
             return;
         }
 
@@ -511,32 +584,38 @@ public partial class IslandWindow : Window
             w = Math.Max(h0 * 3.2, desired.Width + h0);
         }
         Animate(w, h, Roundness * Math.Min(h / 2, 28));
-        RenderBubble(_secondary?.Content, h0);
-    }
-
-    private void RenderBubble(object? content, double size)
-    {
-        if (content is null)
-        {
-            Bubble.Visibility = Visibility.Collapsed;
-            BubbleContent.Content = null;
-            return;
-        }
-        if (!ReferenceEquals(BubbleContent.Content, content))
-        {
-            BubbleContent.Content = null;
-            BubbleContent.ContentTemplate = Templates.Find(this, content, "Mini");
-            BubbleContent.Content = content;
-        }
-        BubbleContent.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
-        Bubble.Height = size;
-        Bubble.Width = Math.Max(size, BubbleContent.DesiredSize.Width + size * 0.6); // grows for text like "4:59"
-        Bubble.Radius = Roundness * size / 2;
-        Bubble.Visibility = Visibility.Visible;
+        RenderBubble(Bubble, BubbleContent, _secondary?.Content, h0);
+        RenderBubble(Bubble2, Bubble2Content, _tertiary?.Content, h0);
         UpdateBubbleOffset();
     }
 
-    private void UpdateBubbleOffset() => BubbleShift.X = Pill.ActualWidth / 2 + 8 + Bubble.Width / 2;
+    private void RenderBubble(PillBorder bubble, ContentPresenter presenter, object? content, double size)
+    {
+        if (content is null)
+        {
+            bubble.Visibility = Visibility.Collapsed;
+            presenter.Content = null;
+            return;
+        }
+        if (!ReferenceEquals(presenter.Content, content))
+        {
+            presenter.Content = null;
+            presenter.ContentTemplate = Templates.Find(this, content, "Mini");
+            presenter.Content = content;
+        }
+        presenter.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
+        bubble.Height = size;
+        bubble.Width = Math.Max(size, Math.Min(96, presenter.DesiredSize.Width + size * 0.6));
+        bubble.ClipToBounds = true;
+        bubble.Radius = Roundness * size / 2;
+        bubble.Visibility = Visibility.Visible;
+    }
+
+    private void UpdateBubbleOffset()
+    {
+        if (Bubble.IsVisible) BubbleShift.X = Pill.ActualWidth / 2 + 8 + Bubble.Width / 2;
+        if (Bubble2.IsVisible) Bubble2Shift.X = Pill.ActualWidth / 2 + 8 + (Bubble.IsVisible ? Bubble.Width + 8 : 0) + Bubble2.Width / 2;
+    }
 
     private void Animate(double w, double h, double r)
     {
