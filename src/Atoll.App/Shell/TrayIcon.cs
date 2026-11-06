@@ -1,5 +1,4 @@
 using System.Windows.Controls;
-using System.Windows.Media;
 using H.NotifyIcon;
 
 namespace Atoll.Shell;
@@ -28,18 +27,22 @@ public sealed class TrayIcon : IDisposable
         _icon = new TaskbarIcon
         {
             ToolTipText = "ATOLL",
-            IconSource = new GeneratedIconSource
-            {
-                Text = "A",
-                Foreground = Brushes.White,
-                Background = Brushes.Black,
-                FontWeight = System.Windows.FontWeights.Bold,
-            },
+            Icon = LoadIcon(),
             ContextMenu = menu,
             NoLeftClickDelay = true,
         };
         _icon.TrayLeftMouseDown += (_, _) => openSettings();
         _icon.ForceCreate(enablesEfficiencyMode: false);
+    }
+
+    // The exe's own icon, at the tray's size so Windows picks the simplified small variant
+    // instead of shrinking the large one.
+    private static System.Drawing.Icon? LoadIcon()
+    {
+        var size = Native.GetSystemMetrics(Native.SM_CXSMICON);
+        return Environment.ProcessPath is { } exe
+            ? System.Drawing.Icon.ExtractIcon(exe, 0, size > 0 ? size : 16)
+            : null;
     }
 
     public void Dispose() => _icon.Dispose();

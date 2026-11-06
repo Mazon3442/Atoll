@@ -8,6 +8,8 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <UseWPF>true</UseWPF>
     <ApplicationManifest>app.manifest</ApplicationManifest>
+    <!-- Drawn by packaging\make-logos.py; also used for the tray icon (see TrayIcon). -->
+    <ApplicationIcon>..\..\packaging\identity\Assets\Atoll.ico</ApplicationIcon>
     <AssemblyName>Atoll</AssemblyName>
     <RootNamespace>Atoll</RootNamespace>
     <!-- Custom entry point (Program.cs) so VelopackApp.Build().Run() runs before WPF starts. -->
