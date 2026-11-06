@@ -19,8 +19,16 @@ namespace Atoll.Desktop
             public void Play()
             {
                 if (OperatingSystem.IsWindows()) WindowsSound();
-                else if (OperatingSystem.IsMacOS()) _ = Commands.RunAsync("afplay", "/System/Library/Sounds/Glass.aiff");
-                else _ = Commands.RunAsync("canberra-gtk-play", "-i", "complete");
+                else _ = PlayAsync();
+            }
+            private static async Task PlayAsync()
+            {
+                try
+                {
+                    if (OperatingSystem.IsMacOS()) await Commands.RunAsync("afplay", "/System/Library/Sounds/Glass.aiff");
+                    else await Commands.RunAsync("paplay", "/usr/share/sounds/freedesktop/stereo/complete.oga");
+                }
+                catch (Exception ex) when (ex is IOException or System.ComponentModel.Win32Exception) { Log.Info("Alert sound is unavailable on this desktop."); }
             }
         }
         [System.Runtime.InteropServices.DllImport("user32.dll")]

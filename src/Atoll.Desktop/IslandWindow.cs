@@ -82,7 +82,12 @@ public sealed class IslandWindow : Window, IDisposable
         Foreground = new SolidColorBrush(Parse(theme.Foreground, "#FFFFFF"));
         RequestedThemeVariant = background.R + background.G + background.B > 420 ? Avalonia.Styling.ThemeVariant.Light : Avalonia.Styling.ThemeVariant.Dark;
         _surface.CornerRadius = new CornerRadius(Math.Clamp(theme.Roundness, 0, 1) * (_expanded ? 28 : 24));
-        if (Application.Current is { } app) app.Resources["SystemAccentColor"] = Parse(theme.Accent, "#0A84FF");
+        if (Application.Current is { } app)
+        {
+            app.Resources["SystemAccentColor"] = Parse(theme.Accent, "#0A84FF");
+            app.Resources["Atoll.Accent"] = new SolidColorBrush(Parse(theme.Accent, "#0A84FF"));
+            app.Resources["Atoll.Foreground"] = Foreground;
+        }
         TransparencyLevelHint = theme.Glass ? [WindowTransparencyLevel.AcrylicBlur, WindowTransparencyLevel.Transparent] : [WindowTransparencyLevel.Transparent];
         Width = _expanded ? Math.Clamp(theme.ExpandedWidth, 420, 900) : 300;
         _compact.MinHeight = Math.Clamp(theme.CompactHeight, 28, 80);

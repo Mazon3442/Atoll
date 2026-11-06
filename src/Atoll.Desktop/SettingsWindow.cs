@@ -96,12 +96,7 @@ public sealed class SettingsWindow : Window
     private Control Appearance()
     {
         var theme = _settings.Current.Theme;
-        var presets = new List<ThemePreset>
-        {
-            new("Midnight", "#000000", "#FFFFFF", "#0A84FF"), new("Graphite", "#1C1C1E", "#F2F2F7", "#FF9F0A"),
-            new("Ocean", "#0B1E33", "#E6F1FF", "#64D2FF"), new("Forest", "#0F1F17", "#E8F5EC", "#30D158"),
-            new("Paper", "#F5F5F7", "#1C1C1E", "#007AFF"),
-        };
+        var presets = ThemePresets.All.ToList();
         presets.AddRange(_settings.Current.CustomThemes);
         var choices = new ComboBox { ItemsSource = presets, ItemTemplate = new FuncDataTemplate<ThemePreset>((p, _) => Views.Label(p?.Name ?? "")), HorizontalAlignment = HorizontalAlignment.Stretch };
         choices.SelectionChanged += (_, _) => { if (choices.SelectedItem is ThemePreset p) { theme.Background = p.Background; theme.Foreground = p.Foreground; theme.Accent = p.Accent; theme.Glass = p.Glass; _settings.NotifyChanged(); ShowPage(); } };

@@ -39,13 +39,13 @@ jobs:
         run: sudo apt-get update && sudo apt-get install -y zstd xvfb libice6 libsm6 libfontconfig1 libxrandr2 libxi6 libxcursor1 libxtst6 playerctl pulseaudio-utils
       - name: Run portable logic and rendered UI tests
         shell: pwsh
-        run: dotnet test tests/Atoll.Desktop.Tests/Atoll.Desktop.Tests.csproj -c Release --artifacts-path artifacts/tests --logger "trx;LogFileName=desktop.trx"
+        run: dotnet test tests/Atoll.Desktop.Tests/Atoll.Desktop.Tests.csproj -c Release --artifacts-path artifacts/tests --results-directory artifacts/test-results --logger "trx;LogFileName=desktop.trx"
         env:
           ATOLL_TEST_SCREENSHOTS: ${{ github.workspace }}/artifacts/screenshots
       - name: Run existing Windows regression tests
         if: runner.os == 'Windows'
         shell: pwsh
-        run: dotnet test tests/Atoll.Tests/Atoll.Tests.csproj -c Release --artifacts-path artifacts/legacy-tests --logger "trx;LogFileName=windows.trx"
+        run: dotnet test tests/Atoll.Tests/Atoll.Tests.csproj -c Release --artifacts-path artifacts/legacy-tests --results-directory artifacts/windows-test-results --logger "trx;LogFileName=windows.trx"
       - name: Resolve package version
         shell: pwsh
         env:
@@ -67,6 +67,26 @@ jobs:
           status=$?
           set -e
           test "$status" -eq 124
+      - name: Verify Windows application launch
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $app = Start-Process "$env:GITHUB_WORKSPACE/artifacts/package/publish/Atoll.exe" -ArgumentList '--settings' -WindowStyle Hidden -PassThru
+          try {
+            Start-Sleep -Seconds 8
+            if ($app.HasExited) { throw "ATOLL exited during startup ($($app.ExitCode))." }
+          } finally {
+            if (-not $app.HasExited) { Stop-Process -Id $app.Id }
+          }
+      - name: Verify macOS application launch
+        if: runner.os == 'macOS'
+        shell: bash
+        run: |
+          artifacts/package/mac-stage/ATOLL.app/Contents/MacOS/Atoll --settings > artifacts/mac-launch.log 2>&1 &
+          app=$!
+          trap 'kill "$app" 2>/dev/null || true' EXIT
+          sleep 8
+          if ! kill -0 "$app" 2>/dev/null; then cat artifacts/mac-launch.log; exit 1; fi
       - name: Verify Arch package installation
         if: runner.os == 'Linux'
         run: |
@@ -84,7 +104,8 @@ jobs:
           name: test-evidence-${{ matrix.rid }}
           path: |
             artifacts/screenshots/
-            artifacts/**/TestResults/*.trx
+            artifacts/test-results/
+            artifacts/windows-test-results/
           if-no-files-found: ignore
   release:
     if: github.event_name == 'push' && github.ref_type == 'tag'

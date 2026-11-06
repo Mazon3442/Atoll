@@ -4,15 +4,23 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Media;
+using Avalonia.Markup.Xaml.MarkupExtensions;
 
 namespace Atoll.Desktop;
 
 public sealed class ForecastChart : Control
 {
+    public static readonly StyledProperty<IBrush> AccentProperty = AvaloniaProperty.Register<ForecastChart, IBrush>(nameof(Accent), Brushes.DodgerBlue);
+    public static readonly StyledProperty<IBrush> InkProperty = AvaloniaProperty.Register<ForecastChart, IBrush>(nameof(Ink), Brushes.Gray);
+    public IBrush Accent { get => GetValue(AccentProperty); set => SetValue(AccentProperty, value); }
+    public IBrush Ink { get => GetValue(InkProperty); set => SetValue(InkProperty, value); }
+    static ForecastChart() => AffectsRender<ForecastChart>(AccentProperty, InkProperty);
     private readonly WeatherViewModel _weather;
     public ForecastChart(WeatherViewModel weather)
     {
         _weather = weather; Focusable = true; Cursor = new Cursor(StandardCursorType.Cross);
+        this.Bind(AccentProperty, new DynamicResourceExtension("Atoll.Accent"));
+        this.Bind(InkProperty, new DynamicResourceExtension("Atoll.Foreground"));
         Avalonia.Automation.AutomationProperties.SetName(this, "Hourly forecast. Use left and right arrows to select a reading.");
         AttachedToVisualTree += (_, _) => { weather.PropertyChanged += OnChanged; weather.ChartPoints.CollectionChanged += OnPointsChanged; };
         DetachedFromVisualTree += (_, _) => { weather.PropertyChanged -= OnChanged; weather.ChartPoints.CollectionChanged -= OnPointsChanged; };
@@ -29,7 +37,7 @@ public sealed class ForecastChart : Control
         var min = _weather.SelectedMetric == WeatherMetric.Temperature ? Math.Floor(values.Min()) - 2 : 0;
         var max = _weather.SelectedMetric == WeatherMetric.Precipitation ? 100 : Math.Max(min + 1, values.Max() + 2);
         var height = Bounds.Height - 24; var slot = Bounds.Width / points.Count;
-        var accent = new SolidColorBrush(Color.Parse("#0A84FF"));
+        var accent = Accent;
         Point? previous = null;
         for (var i = 0; i < points.Count; i++)
         {
@@ -45,7 +53,7 @@ public sealed class ForecastChart : Control
             else context.DrawRectangle(accent, null, new Rect(x - Math.Min(20, slot - 3) / 2, y, Math.Max(2, Math.Min(20, slot - 3)), Math.Max(2, height - y)), 3, 3);
             if (i % Math.Max(1, points.Count / 6) == 0)
             {
-                var label = new FormattedText(points[i].Label, System.Globalization.CultureInfo.CurrentCulture, FlowDirection.LeftToRight, new Typeface("Inter"), 10, new SolidColorBrush(Color.Parse("#898989")));
+                var label = new FormattedText(points[i].Label, System.Globalization.CultureInfo.CurrentCulture, FlowDirection.LeftToRight, new Typeface("Inter"), 10, Ink);
                 context.DrawText(label, new Point(Math.Clamp(x - 12, 0, Math.Max(0, Bounds.Width - 35)), height + 8));
             }
         }

@@ -37,6 +37,29 @@ public sealed class DesktopTests
     }
 
     [AvaloniaFact]
+    public void Island_expands_for_alerts_and_collapses_from_the_keyboard()
+    {
+        var directory = Path.Combine(Path.GetTempPath(), "atoll-desktop-tests", Guid.NewGuid().ToString("N"));
+        using var settings = NewSettings(Path.Combine(directory, "settings.json"));
+        settings.Current.Modules.Single(e => e.Id == "clock").Enabled = true;
+        using var activities = new ActivityHost(); using var modules = new DesktopModules(settings, activities);
+        var island = new IslandWindow(settings, activities, modules, _ => { }); island.Show();
+        Assert.Equal(300, island.Width);
+        activities.Post(new Activity("test.alert", "clock", new IndicatorViewModel("", "Timer finished"), ActivityPriority.Critical, TimeSpan.FromSeconds(8), true));
+        Dispatcher.UIThread.RunJobs();
+        Assert.Equal(settings.Current.Theme.ExpandedWidth, island.Width);
+        using (var frame = island.CaptureRenderedFrame())
+        {
+            Assert.NotNull(frame);
+            var output = Environment.GetEnvironmentVariable("ATOLL_TEST_SCREENSHOTS") ?? Path.Combine(Path.GetTempPath(), "atoll-desktop-review");
+            Directory.CreateDirectory(output); frame.Save(Path.Combine(output, "island-expanded.png"));
+        }
+        island.GetVisualDescendants().OfType<Button>().First().Focus();
+        island.KeyPressQwerty(PhysicalKey.Escape, RawInputModifiers.None); island.KeyReleaseQwerty(PhysicalKey.Escape, RawInputModifiers.None);
+        Assert.Equal(300, island.Width); island.Close();
+    }
+
+    [AvaloniaFact]
     public void Clock_controls_drive_the_shared_timer()
     {
         var timer = new TimerViewModel(TimeProvider.System);
@@ -94,6 +117,35 @@ public sealed class DesktopTests
         Assert.DoesNotContain("example.org", encrypted);
         Assert.Equal("https://example.org/private-calendar.ics", SecretStore.Unprotect(encrypted));
         Assert.Null(SecretStore.Unprotect("invalid ciphertext"));
+        var prefix = encrypted.StartsWith("aes1:", StringComparison.Ordinal) ? "aes1:" : "";
+        var bytes = Convert.FromBase64String(encrypted[prefix.Length..]); bytes[^1] ^= 1;
+        Assert.Null(SecretStore.Unprotect(prefix + Convert.ToBase64String(bytes)));
+    }
+
+    [Theory]
+    [InlineData("ExcludeClipboardContentFromMonitorProcessing")]
+    [InlineData("CanIncludeInClipboardHistory")]
+    [InlineData("org.nspasteboard.ConcealedType")]
+    [InlineData("application/x-password-manager")]
+    public void Private_clipboard_formats_are_skipped(string format) => Assert.True(ClipboardModule.IsPrivate(["text/plain", format]));
+
+    [Fact]
+    public async Task Unix_hook_commands_keep_special_path_characters_literal()
+    {
+        if (OperatingSystem.IsWindows()) return;
+        var directory = Path.Combine(Path.GetTempPath(), "atoll-command-tests-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(directory);
+        var path = Path.Combine(directory, "Atoll.ClaudeHook ' $dollar `literal`");
+        try
+        {
+            File.WriteAllText(path, "#!/bin/sh\nprintf '%s' \"$1\"\n");
+            File.SetUnixFileMode(path, UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute);
+            var start = new System.Diagnostics.ProcessStartInfo("/bin/sh") { RedirectStandardOutput = true, UseShellExecute = false };
+            start.ArgumentList.Add("-c"); start.ArgumentList.Add(Atoll.Modules.Claude.ClaudeHookInstaller.QuoteCommand(path) + " expected");
+            using var process = System.Diagnostics.Process.Start(start)!;
+            Assert.Equal("expected", await process.StandardOutput.ReadToEndAsync()); await process.WaitForExitAsync(); Assert.Equal(0, process.ExitCode);
+        }
+        finally { Directory.Delete(directory, true); }
     }
 
     [Fact]
