@@ -60,7 +60,7 @@ public sealed class DesktopModules : IDisposable
         var wanted = _settings.Current.Modules.Where(e => e.Enabled).Select(e => e.Id).ToHashSet();
         foreach (var id in _running.Keys.Where(id => !wanted.Contains(id)).ToList())
         {
-            _running[id].Dispose();
+            DisposeModule(id, _running[id]);
             _running.Remove(id);
             _activities.RemoveModule(id);
             _panels.Remove(id);
@@ -76,7 +76,7 @@ public sealed class DesktopModules : IDisposable
             }
             catch (Exception ex)
             {
-                module.Dispose();
+                DisposeModule(id, module);
                 _activities.RemoveModule(id);
                 Log.Error($"Could not start {name}", ex);
                 _panels[id] = new ModuleTab(id, name, new ModuleError($"{name} could not start. Restart ATOLL or check its log."));
@@ -97,10 +97,16 @@ public sealed class DesktopModules : IDisposable
     private static bool SamePanel(object left, object right) => ReferenceEquals(left, right)
         || left is PanelGroup a && right is PanelGroup b && a.Modules.SequenceEqual(b.Modules);
 
+    private static void DisposeModule(string id, IIslandModule module)
+    {
+        try { module.Dispose(); }
+        catch (Exception ex) { Log.Error($"Module '{id}' failed to stop", ex); }
+    }
+
     public void Dispose()
     {
         _settings.Changed -= Apply;
-        foreach (var module in _running.Values) module.Dispose();
+        foreach (var (id, module) in _running) DisposeModule(id, module);
         _running.Clear();
     }
 }
