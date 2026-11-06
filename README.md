@@ -59,9 +59,9 @@ ATOLL's own agent, calendar and timer alerts work everywhere. Audio-only sources
 appear on Windows and Linux without track details or playback controls.
 
 > [!NOTE]
-> Release packages run the new Avalonia shell on every platform. It doesn't yet have the old WPF
-> side bubbles, the animated peek view, GPU graphs or screenshot exclusion. The WPF project stays in
-> the repository so its regression tests keep running.
+> The Windows package runs the WPF island, the same app `dotnet run --project src/Atoll.App` starts.
+> Linux and macOS packages run the Avalonia shell, which doesn't yet have the WPF side bubbles, the
+> animated peek view, GPU graphs or screenshot exclusion.
 
 ## Install
 

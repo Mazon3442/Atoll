@@ -90,7 +90,16 @@ public sealed partial class MediaModule : IIslandModule
         }
     }
 
-    private void OnCurrentSessionChanged(SessionManager sender, CurrentSessionChangedEventArgs args) => OnUi(() => { if (_vm.SelectedSource?.Id == "auto") BindCurrentSession(); });
+    private void OnCurrentSessionChanged(SessionManager sender, CurrentSessionChangedEventArgs args) => OnUi(FollowSystem);
+
+    /// <summary>Shows the session Windows reports as current. A user's pick holds only until this changes.</summary>
+    private void FollowSystem()
+    {
+        if (_disposed || _manager is null) return;
+        var current = _manager.GetCurrentSession();
+        _vm.Follow(current is null ? null : "media:" + current.SourceAppUserModelId);
+        BindCurrentSession();
+    }
     private void OnSessionsChanged(SessionManager sender, SessionsChangedEventArgs args) => OnUi(RefreshSources);
     private void OnThemeChanged() => _vm.ApplyTheme(_context!.Settings.Current.Theme);
 
@@ -108,7 +117,7 @@ public sealed partial class MediaModule : IIslandModule
             foreach (var source in _audioSources.Where(a => !_sessions.Values.Any(s => Matches(s.SourceAppUserModelId, a.Name))))
                 choices.Add(new MediaSourceChoice("audio:" + source.ProcessId, source.Name + " (audio)"));
             _vm.SetSources(choices);
-            BindCurrentSession();
+            if (_vm.SelectedSource is null) FollowSystem(); else BindCurrentSession();
         }
         catch (Exception ex) { Log.Error("Media sources could not be refreshed", ex); }
     }
@@ -117,8 +126,8 @@ public sealed partial class MediaModule : IIslandModule
     private void BindCurrentSession()
     {
         if (_disposed || _manager is null) return;
-        var selected = _vm.SelectedSource?.Id ?? "auto";
-        if (selected.StartsWith("audio:", StringComparison.Ordinal))
+        var selected = _vm.SelectedSource?.Id;
+        if (selected?.StartsWith("audio:", StringComparison.Ordinal) == true)
         {
             if (uint.TryParse(selected[6..], out var pid) && _audioSources.FirstOrDefault(s => s.ProcessId == pid) is { } source)
             {
@@ -135,7 +144,7 @@ public sealed partial class MediaModule : IIslandModule
                 UpdateActivity(); return;
             }
         }
-        var next = selected == "auto" ? _manager.GetCurrentSession() : _sessions.GetValueOrDefault(selected);
+        var next = selected is null ? _manager.GetCurrentSession() : _sessions.GetValueOrDefault(selected);
         if (ReferenceEquals(next, _session) && _audioOnlyId is null)
         {
             var pid = next is null ? null : _audioSources.FirstOrDefault(a => Matches(next.SourceAppUserModelId, a.Name))?.ProcessId;

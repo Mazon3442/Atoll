@@ -1,4 +1,5 @@
 using System.Windows;
+using System.Windows.Automation;
 using System.Windows.Controls;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
@@ -24,6 +25,8 @@ public class GroupedPanelsTests
         clock.Update(new DateTime(2026, 11, 6, 10, 30, 0));
         var player = new MediaViewModel(() => Task.CompletedTask, () => Task.CompletedTask, () => Task.CompletedTask, _ => Task.CompletedTask)
         { HasSession = true, HasTimeline = true, CanSeek = true, Title = "A song with a longer title", Artist = "Artist name", AppName = "Music player", PositionText = "1:23", DurationText = "4:30", Progress = 0.3 };
+        player.SetSources([new("media:spotify", "Spotify"), new("audio:42", "Discord (audio)")]);
+        player.Follow("media:spotify");
         var sound = new SystemPanelViewModel(_ => { }, () => { })
         { Volume = 50, Network = "Connected", Bluetooth = "Headphones", Battery = "85%" };
         var panels = new Dictionary<string, object>
@@ -146,6 +149,18 @@ public class GroupedPanelsTests
             background.Arrange(new Rect(0, 0, 476, 170));
             background.UpdateLayout();
             Assert.True(presenter.ActualWidth > 0);
+            if (panel.Name == "media")
+            {
+                // The source picker is a small label showing the followed player; playback controls stay in view.
+                var picker = Descendants<ComboBox>(background).Single();
+                Assert.Equal("Spotify", Assert.IsType<MediaSourceChoice>(picker.SelectedItem).Name);
+                Assert.InRange(picker.ActualWidth, 1, 200);
+                foreach (var name in new[] { "Previous track", "Play or pause", "Next track" })
+                {
+                    var button = Descendants<Button>(background).Single(b => AutomationProperties.GetName(b) == name);
+                    Assert.InRange(button.TranslatePoint(new Point(0, button.ActualHeight), background).Y, 1, 170);
+                }
+            }
             var bitmap = new RenderTargetBitmap(476, 170, 96, 96, PixelFormats.Pbgra32);
             bitmap.Render(background);
             var encoder = new PngBitmapEncoder();
@@ -154,6 +169,16 @@ public class GroupedPanelsTests
             Directory.CreateDirectory(dir);
             using var output = File.Create(Path.Combine(dir, panel.Name + ".png"));
             encoder.Save(output);
+        }
+    }
+
+    private static IEnumerable<T> Descendants<T>(DependencyObject parent) where T : DependencyObject
+    {
+        for (var i = 0; i < VisualTreeHelper.GetChildrenCount(parent); i++)
+        {
+            var child = VisualTreeHelper.GetChild(parent, i);
+            if (child is T match) yield return match;
+            foreach (var nested in Descendants<T>(child)) yield return nested;
         }
     }
 }

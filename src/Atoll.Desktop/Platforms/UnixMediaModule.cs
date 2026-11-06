@@ -22,6 +22,7 @@ public sealed partial class MediaModule : IIslandModule
     private readonly SemaphoreSlim _seekGate = new(1, 1);
     private long _seekVersion;
     private readonly Dictionary<string, string> _audioOnly = [];
+    private string? _active;
     public MediaModule()
     {
         _vm = new MediaViewModel(() => Control("play-pause"), () => Control("next"), () => Control("previous"), Seek);
@@ -70,22 +71,25 @@ public sealed partial class MediaModule : IIslandModule
             }
             if (_disposed || revision != _revision) return;
             _vm.SetSources(choices);
-            var selection = _vm.SelectedSource?.Id ?? "auto";
-            if (_audioOnly.TryGetValue(selection, out var audioName))
+            // Always follow the playing player; a pick from the list holds until another player takes over.
+            var active = players.FirstOrDefault();
+            foreach (var candidate in players.Take(12))
+            {
+                var state = OperatingSystem.IsMacOS() ? await Optional(() => Commands.RunAsync("osascript", "-e", MacScript(candidate, "return player state as text")))
+                    : await Optional(() => Commands.RunAsync("playerctl", "--player", candidate, "status"));
+                if (state.Equals("playing", StringComparison.OrdinalIgnoreCase)) { active = candidate; break; }
+            }
+            if (_disposed || revision != _revision) return;
+            if (active != _active || _vm.SelectedSource is null) { _active = active; _vm.Follow(active); }
+            var selection = _vm.SelectedSource?.Id;
+            if (selection is not null && _audioOnly.TryGetValue(selection, out var audioName))
             {
                 _player = null; _artKey = ""; _vm.Title = audioName + " audio"; _vm.Artist = ""; _vm.Art = null; _vm.HasSession = true; _vm.IsPlaying = false;
                 _vm.CanControl = false; _vm.CanSeek = false; _vm.HasTimeline = false;
                 _vm.Status = "This audio stream does not expose track metadata or playback controls.";
                 _context?.Post("now", _vm, ActivityPriority.Ambient); return;
             }
-            var player = selection == "auto" ? players.FirstOrDefault() : players.FirstOrDefault(p => p == selection);
-            if (selection == "auto")
-                foreach (var candidate in players.Take(12))
-                {
-                    var state = OperatingSystem.IsMacOS() ? await Optional(() => Commands.RunAsync("osascript", "-e", MacScript(candidate, "return player state as text")))
-                        : await Optional(() => Commands.RunAsync("playerctl", "--player", candidate, "status"));
-                    if (state.Equals("playing", StringComparison.OrdinalIgnoreCase)) { player = candidate; break; }
-                }
+            var player = players.FirstOrDefault(p => p == selection);
             if (player is null) { Clear(); return; }
             string title, artist, status, art;
             double duration, position;

@@ -139,7 +139,7 @@ internal static class Views
 
     private static Control Media(MediaViewModel vm)
     {
-        var sources = new ComboBox { ItemsSource = vm.Sources, DisplayMemberBinding = new Binding("Name"), HorizontalAlignment = HorizontalAlignment.Stretch };
+        var sources = new ComboBox { ItemsSource = vm.Sources, DisplayMemberBinding = new Binding("Name"), PlaceholderText = "Choose source", FontSize = 11, MinHeight = 24, Padding = new Thickness(8, 2), MaxWidth = 200, HorizontalAlignment = HorizontalAlignment.Left };
         sources.Bind(ComboBox.SelectedItemProperty, new Binding("SelectedSource", BindingMode.TwoWay));
         AutomationProperties.SetName(sources, "Audio source");
         var art = new Image { Width = 100, Height = 100, HorizontalAlignment = HorizontalAlignment.Left, Stretch = Stretch.UniformToFill };
@@ -147,7 +147,7 @@ internal static class Views
         var progress = new MediaSeekSlider { Minimum = 0, Maximum = 1, SmallChange = .01, LargeChange = .1 };
         progress.Bind(Slider.ValueProperty, new Binding("Progress", BindingMode.OneWay)); progress.Bind(Control.IsEnabledProperty, new Binding("CanSeek"));
         AutomationProperties.SetName(progress, "Playback position");
-        return Stack(sources, Row(art, MediaBars(vm)), Text("Title", 24), Text("Artist"), Text("Status", 12), progress, Row(Text("PositionText", 12), Text("DurationText", 12)), Row(Command("Previous", "PreviousCommand"), Command("Play / pause", "PlayPauseCommand"), Command("Next", "NextCommand")), Text("VisualizerNote", 11));
+        return Stack(Row(art, MediaBars(vm)), Text("Title", 24), Text("Artist"), sources, Text("Status", 12), progress, Row(Text("PositionText", 12), Text("DurationText", 12)), Row(Command("Previous", "PreviousCommand"), Command("Play / pause", "PlayPauseCommand"), Command("Next", "NextCommand")), Text("VisualizerNote", 11));
     }
 
     private static Control MediaBars(MediaViewModel vm)

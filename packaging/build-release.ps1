@@ -24,7 +24,9 @@ $packages = Join-Path $OutputRoot 'packages'
 $build = Join-Path $OutputRoot 'build'
 New-Item -ItemType Directory -Path $packages | Out-Null
 if ($hostOs -eq 'win') { & (Join-Path $PSScriptRoot 'build-identity.ps1') }
-dotnet publish (Join-Path $root 'src/Atoll.Desktop/Atoll.Desktop.csproj') -c Release -r $RuntimeIdentifier --self-contained true --artifacts-path $build -o $publishDir "-p:Version=$Version"
+# Windows ships the WPF island (the app `dotnet run --project src/Atoll.App` starts); Linux and macOS ship the Avalonia port.
+$appProject = if ($hostOs -eq 'win') { 'src/Atoll.App/Atoll.App.csproj' } else { 'src/Atoll.Desktop/Atoll.Desktop.csproj' }
+dotnet publish (Join-Path $root $appProject) -c Release -r $RuntimeIdentifier --self-contained true --artifacts-path $build -o $publishDir "-p:Version=$Version"
 if ($LASTEXITCODE -ne 0) { throw 'App publish failed.' }
 dotnet publish (Join-Path $root 'src/Atoll.ClaudeHook/Atoll.ClaudeHook.csproj') -c Release -r $RuntimeIdentifier --self-contained true --artifacts-path $build -o $hookDir "-p:Version=$Version" -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true
 if ($LASTEXITCODE -ne 0) { throw 'Hook publish failed.' }
