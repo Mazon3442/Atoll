@@ -400,7 +400,8 @@ public partial class IslandWindow : Window
                 break;
 
             case IslandMode.Expanded:
-                if (over)
+                // An open dropdown list may extend past the island; keep the island open while it is in use.
+                if (over || Mouse.Captured is ComboBox { IsDropDownOpen: true })
                 {
                     _outsideMs = 0;
                     _heldOpen = false;

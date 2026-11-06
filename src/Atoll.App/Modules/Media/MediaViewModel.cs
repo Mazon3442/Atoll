@@ -41,16 +41,21 @@ public sealed record MediaSourceChoice(string Id, string Name);
 public sealed partial class MediaViewModel(Func<Task> playPause, Func<Task> next, Func<Task> previous,
     Func<double, Task> seek) : ObservableObject
 {
-    public static MediaSourceChoice Automatic { get; } = new("auto", "Automatic");
     private ThemeSettings _theme = new();
     private string? _artworkColor;
     public int PlaybackRevision { get; private set; }
     public void InvalidatePlayback() { PlaybackRevision++; IsScrubbing = false; }
     partial void OnTitleChanged(string value) => PlaybackRevision++;
     partial void OnArtistChanged(string value) => PlaybackRevision++;
-    public ObservableCollection<MediaSourceChoice> Sources { get; } = [Automatic];
-    [ObservableProperty] private MediaSourceChoice? _selectedSource = Automatic;
+    public ObservableCollection<MediaSourceChoice> Sources { get; } = [];
+    /// <summary>
+    /// The source on screen. The module keeps it on the system's active player through <see cref="Follow"/>;
+    /// a pick from the list holds until the active player changes or the picked source closes.
+    /// </summary>
+    [ObservableProperty] private MediaSourceChoice? _selectedSource;
+    /// <summary>Raised only when the user picks a source.</summary>
     public event Action<string>? SourceChanged;
+    private bool _following;
     [ObservableProperty]
     [NotifyCanExecuteChangedFor(nameof(PlayPauseCommand), nameof(NextCommand), nameof(PreviousCommand))]
     private bool _canControl;
@@ -85,17 +90,24 @@ public sealed partial class MediaViewModel(Func<Task> playPause, Func<Task> next
     }
     partial void OnSelectedSourceChanged(MediaSourceChoice? value)
     {
-        if (value is null) { SelectedSource = Automatic; return; }
         IsScrubbing = false;
         PlaybackRevision++;
-        SourceChanged?.Invoke(value.Id);
+        if (value is not null && !_following) SourceChanged?.Invoke(value.Id);
     }
+    /// <summary>Shows the system's active source without treating it as a user pick. Null clears the selection.</summary>
+    public void Follow(string? id)
+    {
+        _following = true;
+        try { SelectedSource = Sources.FirstOrDefault(s => s.Id == id); }
+        finally { _following = false; }
+    }
+    /// <summary>Updates the list in place. A closed selection is cleared so the module follows the system again.</summary>
     public void SetSources(IEnumerable<MediaSourceChoice> choices)
     {
-        var wanted = new[] { Automatic }.Concat(choices).DistinctBy(c => c.Id).ToList();
+        var wanted = choices.DistinctBy(c => c.Id).ToList();
         foreach (var source in Sources.Where(s => wanted.All(w => w.Id != s.Id)).ToList()) Sources.Remove(source);
         foreach (var source in wanted.Where(s => Sources.All(w => w.Id != s.Id))) Sources.Add(source);
-        if (SelectedSource is null || Sources.All(s => s.Id != SelectedSource.Id)) SelectedSource = Automatic;
+        if (SelectedSource is not null && Sources.All(s => s.Id != SelectedSource.Id)) Follow(null);
     }
 
     [RelayCommand(CanExecute = nameof(CanSeek), AllowConcurrentExecutions = true)]

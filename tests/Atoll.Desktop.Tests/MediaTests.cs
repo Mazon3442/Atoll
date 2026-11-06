@@ -25,16 +25,31 @@ public sealed class MediaTests
     }
 
     [Fact]
-    public void Selected_source_survives_refresh_and_falls_back_only_when_it_closes()
+    public void Selected_source_survives_refresh_and_clears_only_when_it_closes()
     {
         var vm = NewModel([]);
         vm.SetSources([new("sidra", "Sidra"), new("firefox", "Firefox"), new("discord", "Discord (audio)")]);
-        vm.SelectedSource = vm.Sources.Single(s => s.Id == "sidra");
+        Assert.DoesNotContain(vm.Sources, s => s.Name == "Automatic");
         var changes = new List<string>(); vm.SourceChanged += changes.Add;
+        vm.SelectedSource = vm.Sources.Single(s => s.Id == "sidra");
         vm.SetSources([new("firefox", "Firefox"), new("sidra", "Sidra")]);
-        Assert.Equal("sidra", vm.SelectedSource!.Id); Assert.Empty(changes);
+        Assert.Equal("sidra", vm.SelectedSource!.Id); Assert.Equal(["sidra"], changes);
         vm.SetSources([new("firefox", "Firefox")]);
-        Assert.Equal("auto", vm.SelectedSource!.Id); Assert.Equal(["auto"], changes);
+        Assert.Null(vm.SelectedSource); Assert.Equal(["sidra"], changes);
+    }
+
+    [Fact]
+    public void Following_the_active_player_shows_it_without_counting_as_a_pick()
+    {
+        var vm = NewModel([]);
+        vm.SetSources([new("sidra", "Sidra"), new("firefox", "Firefox")]);
+        var changes = new List<string>(); vm.SourceChanged += changes.Add;
+        vm.Follow("firefox");
+        Assert.Equal("firefox", vm.SelectedSource!.Id); Assert.Empty(changes);
+        vm.SelectedSource = vm.Sources.Single(s => s.Id == "sidra");
+        Assert.Equal(["sidra"], changes);
+        vm.Follow("closed");
+        Assert.Null(vm.SelectedSource); Assert.Equal(["sidra"], changes);
     }
 
     [AvaloniaFact]

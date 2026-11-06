@@ -38,6 +38,17 @@
         </StackPanel>
     </DataTemplate>
 
+    <!-- Shows the source on screen (it follows the active player); pick another from the list. -->
+    <DataTemplate x:Key="Media.SourcePicker">
+        <ComboBox Style="{StaticResource Island.Picker}" ItemsSource="{Binding Sources}"
+                  SelectedItem="{Binding SelectedSource, Mode=TwoWay}" Tag="Choose source" MaxWidth="200"
+                  AutomationProperties.Name="Audio source" ToolTip="Switch player or audio app">
+            <ComboBox.ItemTemplate>
+                <DataTemplate><TextBlock Text="{Binding Name}" TextTrimming="CharacterEllipsis" /></DataTemplate>
+            </ComboBox.ItemTemplate>
+        </ComboBox>
+    </DataTemplate>
+
     <DataTemplate x:Key="MediaViewModel.Compact">
         <StackPanel Orientation="Horizontal">
             <ContentPresenter Content="{Binding}" ContentTemplate="{StaticResource Media.Art}" Tag="5"
@@ -66,16 +77,15 @@
 
     <DataTemplate x:Key="MediaViewModel.Panel">
         <Grid>
-            <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
-            <ComboBox ItemsSource="{Binding Sources}" SelectedItem="{Binding SelectedSource, Mode=TwoWay}"
-                      DisplayMemberPath="Name" Margin="0,0,0,10" HorizontalAlignment="Stretch"
-                      AutomationProperties.Name="Audio source" ToolTip="Choose a media player or audio app" />
-            <!-- Nothing playing -->
-            <TextBlock Grid.Row="1" Text="Nothing playing" HorizontalAlignment="Center" VerticalAlignment="Center"
-                       Foreground="{DynamicResource Island.Subtle}"
-                       Visibility="{Binding HasSession, Converter={StaticResource Island.InverseBoolToVisibility}}" />
+            <!-- Nothing playing; audio-only apps can still be picked. -->
+            <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center"
+                        Visibility="{Binding HasSession, Converter={StaticResource Island.InverseBoolToVisibility}}">
+                <TextBlock Text="Nothing playing" HorizontalAlignment="Center" Foreground="{DynamicResource Island.Subtle}" />
+                <ContentPresenter Content="{Binding}" ContentTemplate="{StaticResource Media.SourcePicker}"
+                                  HorizontalAlignment="Center" Margin="0,4,0,0" />
+            </StackPanel>
 
-            <Grid Grid.Row="1" Visibility="{Binding HasSession, Converter={StaticResource Island.BoolToVisibility}}">
+            <Grid Visibility="{Binding HasSession, Converter={StaticResource Island.BoolToVisibility}}">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="Auto" />
                     <ColumnDefinition Width="*" />
@@ -91,7 +101,8 @@
                     </DockPanel>
                     <TextBlock Text="{Binding Artist}" FontSize="13" Foreground="{DynamicResource Island.Subtle}"
                                TextTrimming="CharacterEllipsis" />
-                    <TextBlock Text="{Binding AppName}" FontSize="11" Foreground="{DynamicResource Island.Subtle}" Margin="0,2,0,0" />
+                    <ContentPresenter Content="{Binding}" ContentTemplate="{StaticResource Media.SourcePicker}"
+                                      HorizontalAlignment="Left" Margin="-6,1,0,0" />
 
                     <StackPanel Margin="0,6,0,0" Visibility="{Binding HasTimeline, Converter={StaticResource Island.BoolToVisibility}}">
                         <Slider Minimum="0" Maximum="1"
