@@ -21,6 +21,9 @@ $hookDir = Join-Path $root "publish-hook"
 $releasesDir = Join-Path $root "releases"
 $icon = Join-Path $PSScriptRoot "identity\Assets\Atoll.ico"
 
+# Include the signed notification package so setup can run from Settings after installation.
+& (Join-Path $PSScriptRoot "build-identity.ps1")
+
 "== 1/3 Publish the app (self-contained, win-x64) =="
 dotnet publish $project -c Release -r win-x64 --self-contained -o $publishDir
 if ($LASTEXITCODE -ne 0) { throw "dotnet publish failed ($LASTEXITCODE)" }

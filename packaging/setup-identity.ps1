@@ -5,7 +5,8 @@
 # Undo: packaging\remove-identity.ps1
 param(
     # Defaults to the installed copy (Velopack), then falls back to the Debug build folder.
-    [string]$AppDir = $null
+    [string]$AppDir = $null,
+    [switch]$NoPause
 )
 $ErrorActionPreference = "Stop"
 if (-not $AppDir) {
@@ -27,9 +28,10 @@ foreach ($f in @($cer, $msix, (Join-Path $AppDir "Atoll.exe"))) {
 $isAdmin = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole(
     [Security.Principal.WindowsBuiltInRole]::Administrator)
 if (-not $isAdmin) {
-    Start-Process powershell -Verb RunAs -Wait -ArgumentList @(
-        "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", "`"$PSCommandPath`"", "-AppDir", "`"$AppDir`"")
-    return
+    $arguments = @("-NoProfile", "-ExecutionPolicy", "Bypass", "-File", "`"$PSCommandPath`"", "-AppDir", "`"$AppDir`"")
+    if ($NoPause) { $arguments += "-NoPause" }
+    $setup = Start-Process powershell -Verb RunAs -Wait -PassThru -WindowStyle Hidden -ArgumentList $arguments
+    exit $setup.ExitCode
 }
 
 $thumb = (New-Object System.Security.Cryptography.X509Certificates.X509Certificate2 $cer).Thumbprint
@@ -41,4 +43,4 @@ if (-not (Get-ChildItem Cert:\LocalMachine\TrustedPeople | Where-Object Thumbpri
 Get-AppxPackage -Name Atoll | Remove-AppxPackage   # replace any earlier registration
 Add-AppxPackage -Path $msix -ExternalLocation $AppDir
 "Registered ATOLL identity for $AppDir. Restart ATOLL, then allow notification access in its settings."
-Read-Host "Press Enter to close"
+if (-not $NoPause) { Read-Host "Press Enter to close" }

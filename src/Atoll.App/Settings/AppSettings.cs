@@ -104,6 +104,10 @@ public sealed class WeatherSettings
     /// <summary>Place name looked up with Open-Meteo's geocoding (e.g. "Chicago" or "Paris, France").</summary>
     public string City { get; set; } = "";
 
+    /// <summary>Coordinates chosen from search or Windows location. Null keeps legacy city lookup working.</summary>
+    public double? Latitude { get; set; }
+    public double? Longitude { get; set; }
+
     public TemperatureUnits Units { get; set; } = TemperatureUnits.Auto;
 }
 

@@ -27,6 +27,9 @@ public static class NotificationAccessInfo
 {
     /// <summary>Raised after a permission request so the running module can start listening.</summary>
     public static event Action? Changed;
+    public static event Action? PreviewRequested;
+    public static void Preview() => PreviewRequested?.Invoke();
+    public static NotificationAccess Refresh() { Changed?.Invoke(); return Get(); }
 
     public static bool HasIdentity()
     {
@@ -72,7 +75,7 @@ public static class NotificationAccessInfo
     public static string Describe(NotificationAccess access) => access switch
     {
         NotificationAccess.NeedsSetup =>
-            "One-time setup needed: run packaging\\setup-identity.ps1 (asks for admin), then restart ATOLL.",
+            "Open Settings › Notifications to connect ATOLL to Windows notifications.",
         NotificationAccess.NeedsPermission => "ATOLL needs your permission to read notifications.",
         NotificationAccess.Denied =>
             "Notification access is off. Turn it on for ATOLL in Windows Settings > Privacy & security > Notifications.",
@@ -126,6 +129,12 @@ public sealed partial class NotificationsViewModel(Action requestAccess) : Obser
     private void OpenWindowsSettings() => NotificationAccessInfo.OpenWindowsSettings();
 
     [RelayCommand]
+    private void OpenSetup()
+    {
+        if (System.Windows.Application.Current is App app) app.OpenSettings(3);
+    }
+
+    [RelayCommand]
     private void Clear()
     {
         Items.Clear();
@@ -160,22 +169,37 @@ public sealed class NotificationsModule : IIslandModule
     {
         _context = context;
         NotificationAccessInfo.Changed += OnAccessChanged;
+        NotificationAccessInfo.PreviewRequested += ShowPreview;
         OnAccessChanged();
+    }
+
+    private void ShowPreview()
+    {
+        if (_context is null || _disposed) return;
+        var item = new NotificationItemViewModel(Mute, Dismiss)
+        {
+            Id = 0, AppName = "ATOLL preview", Title = "Your island is ready",
+            Body = "This is a preview. New Windows notifications will appear here once access is connected.", Time = DateTimeOffset.Now,
+        };
+        _context.Post("preview", item, ActivityPriority.High, PopupTime, alert: true);
     }
 
     private void OnAccessChanged() => _context?.Dispatcher.BeginInvoke(async () =>
     {
+        if (_disposed) return;
         _vm.Access = NotificationAccessInfo.Get();
         if (_vm.Access == NotificationAccess.Allowed && _listener is null) await StartListeningAsync();
+        else if (_vm.Access != NotificationAccess.Allowed) StopListening();
     });
 
     private async Task StartListeningAsync()
     {
-        _listener = UserNotificationListener.Current;
+        var listener = _listener = UserNotificationListener.Current;
         try
         {
             // Toasts already in the notification center are history, not news.
-            var existing = await _listener.GetNotificationsAsync(NotificationKinds.Toast);
+            var existing = await listener.GetNotificationsAsync(NotificationKinds.Toast);
+            if (_disposed || _vm.Access != NotificationAccess.Allowed || !ReferenceEquals(_listener, listener)) return;
             _known = existing.Select(n => n.Id).ToHashSet();
         }
         catch (Exception ex)
@@ -183,9 +207,11 @@ public sealed class NotificationsModule : IIslandModule
             Log.Error("Reading notifications failed", ex);
         }
 
+        if (_disposed || _vm.Access != NotificationAccess.Allowed || !ReferenceEquals(_listener, listener)) return;
+
         try
         {
-            _listener.NotificationChanged += OnNotificationChanged;
+            listener.NotificationChanged += OnNotificationChanged;
         }
         catch (Exception ex)
         {
@@ -217,6 +243,7 @@ public sealed class NotificationsModule : IIslandModule
             {
                 _refreshAgain = false;
                 var list = await _listener.GetNotificationsAsync(NotificationKinds.Toast);
+                if (_disposed || _vm.Access != NotificationAccess.Allowed) return;
                 var fresh = list.Where(n => !_known.Contains(n.Id)).OrderBy(n => n.CreationTime).ToList();
                 _known = list.Select(n => n.Id).ToHashSet();
                 foreach (var n in fresh) await ShowAsync(n);
@@ -305,11 +332,23 @@ public sealed class NotificationsModule : IIslandModule
     {
         _disposed = true;
         NotificationAccessInfo.Changed -= OnAccessChanged;
+        NotificationAccessInfo.PreviewRequested -= ShowPreview;
+        StopListening();
+    }
+
+    private void StopListening()
+    {
         _poll?.Stop();
+        _poll = null;
+        _context?.Remove("latest");
+        _context?.Remove("preview");
+        _vm.Items.Clear();
+        _vm.ItemsChanged();
         if (_listener is not null)
         {
             try { _listener.NotificationChanged -= OnNotificationChanged; }
             catch (Exception) { /* was never subscribed (polling mode) */ }
+            _listener = null;
         }
     }
 }

@@ -58,7 +58,7 @@ public static class ThemeService
         else
         {
             GlassTint = null;
-            res["Island.Background"] = Frozen(new SolidColorBrush(bg) { Opacity = opacity * bg.A / 255.0 });
+            res["Island.Background"] = Frozen(new SolidColorBrush(bg) { Opacity = opacity });
             res["Island.Rim"] = Frozen(new SolidColorBrush(Colors.Transparent));
         }
         res["Island.Foreground"] = Frozen(new SolidColorBrush(fg));

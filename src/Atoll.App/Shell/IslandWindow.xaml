@@ -23,7 +23,8 @@
                 <ContentPresenter x:Name="PillContent"
                                   HorizontalAlignment="Center" VerticalAlignment="Center" />
 
-                <Grid x:Name="PanelRoot" Visibility="Collapsed" Margin="14,10,14,14">
+                <Grid x:Name="PanelRoot" Visibility="Collapsed" Margin="14,10,14,14"
+                      HorizontalAlignment="Center" VerticalAlignment="Top">
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto" />
                         <RowDefinition Height="*" />

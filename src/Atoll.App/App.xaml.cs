@@ -19,6 +19,7 @@ public partial class App : Application
     private IslandManager? _islands;
     private TrayIcon? _tray;
     private SettingsWindow? _settingsWindow;
+    private int? _restartSettingsPage;
 
     protected override void OnStartup(StartupEventArgs e)
     {
@@ -67,15 +68,28 @@ public partial class App : Application
 
     private void OpenSettings() => OpenSettings(0);
 
-    private void OpenSettings(int page)
+    internal void RestartToSettings(int page)
+    {
+        if (!File.Exists(System.IO.Path.Combine(AppContext.BaseDirectory, "Atoll.exe")))
+            throw new FileNotFoundException("ATOLL executable was not found.");
+        _restartSettingsPage = page;
+        Shutdown();
+    }
+
+    internal void OpenSettings(int page)
     {
         if (_settings is null || _modules is null) return;
         if (_settingsWindow is { IsLoaded: true })
         {
+            if (_settingsWindow.DataContext is SettingsViewModel existing)
+            {
+                existing.PageIndex = Math.Clamp(page, 0, existing.Pages.Count - 1);
+                if (page == 6) existing.WeatherLocationExpanded = true;
+            }
             _settingsWindow.Activate();
             return;
         }
-        var vm = new SettingsViewModel(_settings, _modules.Catalog) { PageIndex = Math.Clamp(page, 0, 6) };
+        var vm = new SettingsViewModel(_settings, _modules.Catalog) { PageIndex = Math.Clamp(page, 0, 7) };
         _settingsWindow = new SettingsWindow(vm);
         _settingsWindow.Closed += (_, _) => _settingsWindow = null;
         _settingsWindow.Show();
@@ -115,5 +129,17 @@ public partial class App : Application
         _settings?.Flush();
         _singleInstance?.Dispose();
         base.OnExit(e);
+        // Start only after settings, module handles, and the single-instance mutex are released.
+        if (_restartSettingsPage is { } page)
+        {
+            try
+            {
+                var start = new System.Diagnostics.ProcessStartInfo(System.IO.Path.Combine(AppContext.BaseDirectory, "Atoll.exe")) { UseShellExecute = true };
+                start.ArgumentList.Add($"--settings={page}");
+                System.Diagnostics.Process.Start(start);
+            }
+            catch (Exception ex) when (ex is System.ComponentModel.Win32Exception or InvalidOperationException)
+            { Log.Error("Could not restart ATOLL; reopen it manually", ex); }
+        }
     }
 }

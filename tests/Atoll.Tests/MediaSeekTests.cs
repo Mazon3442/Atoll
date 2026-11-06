@@ -56,7 +56,7 @@ public class MediaSeekTests
         {
             try
             {
-                _ = new Application();
+                _ = new Application { ShutdownMode = ShutdownMode.OnExplicitShutdown };
                 var positions = new List<double>();
                 MediaViewModel vm = null!;
                 vm = new MediaViewModel(() => Task.CompletedTask, () => Task.CompletedTask, () => Task.CompletedTask,
@@ -100,6 +100,7 @@ public class MediaSeekTests
                 Assert.Equal(0.6, slider.Value);
                 Assert.Equal(2, positions.Count);
                 GroupedPanelsTests.VerifyTemplates();
+                SettingsUiTests.VerifySettings();
             }
             catch (Exception ex) { failure = ex; }
             finally { Application.Current?.Shutdown(); }

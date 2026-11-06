@@ -25,7 +25,7 @@ When two things happen at once, the second shows in a small bubble next to the p
 | **Agents** | Claude Code, Codex, OpenCode, and Hermes activity and completion/attention alerts, labeled by agent and project. Token/cost totals currently cover Claude Code only. |
 | **Notifications** | Windows notifications shown in the island, with history, per-app mute, and a privacy switch that hides message text. |
 | **Files** | A file shelf for drag-and-drop alongside your last 25 clipboard entries (text, images, files). Click an entry to copy it again. |
-| **Weather** | Current conditions and a 5-day forecast for your city. |
+| **Weather** | Current conditions, wind and gusts, rain timing, and a selectable 7-day forecast with hourly precipitation and wind. |
 
 ### Fits around your work
 
@@ -41,8 +41,8 @@ When two things happen at once, the second shows in a small bubble next to the p
 
 ### Looks
 
-20 built-in themes (including two frosted-glass themes) and your own saved themes, plus color,
-opacity, size and roundness controls with a live preview. Frosted glass blurs what is behind the
+20 built-in themes (including two frosted-glass themes) and your own saved themes, plus a visual
+color picker with RGB, opacity and hex controls. Size and roundness update in a live preview. Frosted glass blurs what is behind the
 island; while it is on, ATOLL is left out of screenshots and screen recordings (that is how it can
 sample the screen behind itself).
 
@@ -52,7 +52,7 @@ sample the screen behind itself).
 
 - Windows 10 version 2004 or later, or Windows 11
 - [.NET 10 SDK](https://dotnet.microsoft.com/download) to build
-- Windows SDK (only for the notifications setup below; `makeappx.exe` and `signtool.exe`)
+- Windows SDK for notification setup packages and release builds (`makeappx.exe` and `signtool.exe`)
 
 ### Build and run
 
@@ -89,6 +89,12 @@ to skip for personal use.
 
 Windows only lets apps with a *package identity* read notifications. ATOLL gets one from a small
 signed package registered next to `Atoll.exe`:
+
+Open **Settings › Notifications** and click **Set up notifications**. Approve the Windows
+administrator prompt, restart ATOLL using the button shown, then click **Allow access**.
+The page checks access again when you return from Windows Settings. **Preview in the island**
+checks the display; receive a notification from another app to check the Windows connection.
+Release builds include the signed setup files. For a source build, prepare them once:
 
 ```powershell
 # Builds and signs packaging\out\Atoll.Identity.msix. Creates a "CN=Atoll Dev" signing
@@ -129,7 +135,15 @@ Usage totals work without the hooks: ATOLL reads the transcripts Claude Code alr
 
 ### Weather
 
-Set your city in Settings › Modules › Weather.
+Open **Settings › Weather**. Click **Use my location** to request Windows location access,
+or search for a city and choose the correct region from the results. Windows coordinates are
+rounded to two decimal places before being stored or sent to Open-Meteo; ATOLL does not track
+your location in the background. If Windows location is unavailable, city search still works.
+
+Select a forecast day to see hourly conditions, precipitation chances and amounts, and wind.
+Forecast times use the selected place's local time. Celsius uses km/h and millimeters;
+Fahrenheit uses mph and inches. Forecasts refresh every 20 minutes or when you click **Refresh**.
+Rain timing is a forecast, not an alert service.
 
 ### Calendar
 
@@ -145,8 +159,11 @@ publishing, so "Publish a calendar" may be missing for work accounts.
 
 ## Settings
 
-Settings has seven pages: General, Appearance, Modules, Notifications, Agents, Calendar and
+Settings has eight pages: General, Appearance, Modules, Notifications, Agents, Calendar, Weather and
 About. Every change applies immediately.
+
+In Modules, drag a handle, choose a position number, or use Alt + Up/Down on a focused handle
+to reorder features. Related features share a tab at the first enabled feature's position.
 
 Settings, the shelf list and the log live in `%AppData%\Atoll`
 (`settings.json`, `shelf.json`, `atoll.log`).
@@ -162,10 +179,10 @@ Launch options:
 
 ATOLL runs locally and has no account or telemetry.
 
-- **Network**: the only outgoing requests are to [Open-Meteo](https://open-meteo.com) for weather
-  (only when a city is set) and to the calendar servers you add in Settings › Calendar. Weather
-  requests contain that city name and its coordinates; calendar requests contain only the ICS link
-  itself.
+- **Network**: weather searches send a city name to [Open-Meteo](https://open-meteo.com), and forecasts
+  send the selected coordinates. Choosing Windows location requests an approximate position through
+  Windows; ATOLL does not track movement. Calendar downloads use the ICS links you add. Installed
+  copies also check the project's GitHub releases for updates.
 - **Calendar links** are stored encrypted with your Windows login (DPAPI), so they can't be read from
   the settings file. Anyone with one of these links can read that calendar, so keep them private.
 - **Clipboard history** stays in memory and is gone when ATOLL closes. Copies marked private by

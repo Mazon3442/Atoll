@@ -27,10 +27,13 @@ public sealed partial class SettingsViewModel : ObservableObject
     public SettingsViewModel(SettingsService service, IReadOnlyList<ModuleDescriptor> catalog)
     {
         _service = service;
+        Weather = new Atoll.Modules.Weather.WeatherViewModel(service);
+        WeatherLocationExpanded = S.Weather.City.Length == 0;
         Modules = new(S.Modules
             .Select(e => (Entry: e, Descriptor: catalog.FirstOrDefault(d => d.Id == e.Id)))
             .Where(x => x.Descriptor is not null)
-            .Select(x => new ModuleRow(x.Entry, x.Descriptor!, Save)));
+            .Select(x => new ModuleRow(x.Entry, x.Descriptor!, Save, MoveModule)));
+        RefreshModulePositions();
         Displays = new(Shell.Monitors.GetAll().Select(m => new DisplayRow(m, S, Save)));
         CalendarSources = new(S.Calendar.Sources.Select(s => new CalendarSourceRow(s) { Url = SecretStore.Unprotect(s.EncryptedUrl) ?? "" }));
         RebuildThemes();
@@ -49,14 +52,27 @@ public sealed partial class SettingsViewModel : ObservableObject
         new("Notifications", ""),
         new("Agents", ""),
         new("Calendar", "\uE787"),
+        new("Weather", "\uE753"),
         new("About", ""),
     ];
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(PageTitle))]
+    [NotifyPropertyChangedFor(nameof(PageDescription))]
     private int _pageIndex;
 
     public string PageTitle => Pages[Math.Clamp(PageIndex, 0, Pages.Count - 1)].Title;
+    public string PageDescription => PageIndex switch
+    {
+        1 => "Make the island yours. Changes apply automatically.",
+        2 => "Choose what appears in your island.",
+        3 => "Decide which notifications reach you and what they show.",
+        4 => "Connect your coding agents and choose their alert sounds.",
+        5 => "Connect calendars and set event reminders.",
+        6 => "Choose a place and explore its forecast.",
+        7 => "Version, updates, and local app data.",
+        _ => "Set how ATOLL opens, behaves, and sits on your displays.",
+    };
 
     // ---------- General ----------
 
@@ -128,9 +144,8 @@ public sealed partial class SettingsViewModel : ObservableObject
         get
         {
             var bg = ThemeService.TryParseColor(T.Background, out var c) ? c : Colors.Black;
-            var alpha = Math.Clamp(T.Opacity, 0.3, 1) * bg.A / 255.0;
-            // Glass shows the backdrop through a tint; a solid theme shows its color at the chosen opacity.
-            return Freeze(new SolidColorBrush(bg) { Opacity = T.Glass ? Math.Max(alpha, 0.25) : alpha });
+            // The brush color already carries alpha; apply only the separate background opacity here.
+            return Freeze(new SolidColorBrush(bg) { Opacity = Math.Clamp(T.Opacity, 0.3, 1) });
         }
     }
 
@@ -216,6 +231,7 @@ public sealed partial class SettingsViewModel : ObservableObject
     // ---------- Modules ----------
 
     public ObservableCollection<ModuleRow> Modules { get; }
+    public IReadOnlyList<int> ModulePositions => Enumerable.Range(1, Modules.Count).ToArray();
 
     [RelayCommand]
     private void MoveUp(ModuleRow row) => Move(row, -1);
@@ -223,12 +239,14 @@ public sealed partial class SettingsViewModel : ObservableObject
     [RelayCommand]
     private void MoveDown(ModuleRow row) => Move(row, +1);
 
-    private void Move(ModuleRow row, int delta)
+    private void Move(ModuleRow row, int delta) => MoveModule(row, Modules.IndexOf(row) + delta);
+
+    public void MoveModule(ModuleRow row, int to)
     {
         var from = Modules.IndexOf(row);
-        var to = from + delta;
-        if (from < 0 || to < 0 || to >= Modules.Count) return;
+        if (from < 0 || to < 0 || to >= Modules.Count || from == to) return;
         Modules.Move(from, to);
+        RefreshModulePositions();
 
         // Rebuild the settings list in the new order, keeping entries for modules this build does not know.
         var unknown = S.Modules.Where(e => Modules.All(m => m.Entry != e)).ToList();
@@ -238,24 +256,33 @@ public sealed partial class SettingsViewModel : ObservableObject
         Save();
     }
 
+    private void RefreshModulePositions()
+    {
+        for (var i = 0; i < Modules.Count; i++) Modules[i].UpdatePosition(i + 1);
+    }
+
     // ---------- Weather (on the Modules page) ----------
 
-    public string WeatherCity { get => S.Weather.City; set => Set(S.Weather.City, value.Trim(), v => S.Weather.City = v); }
+    public string WeatherCity
+    {
+        get => S.Weather.City;
+        set => Set(S.Weather.City, value.Trim(), v => { S.Weather.City = v; S.Weather.Latitude = null; S.Weather.Longitude = null; });
+    }
 
     public IReadOnlyList<Choice<TemperatureUnits>> TemperatureUnitChoices { get; } =
     [
         new(TemperatureUnits.Auto, "Match my region"),
-        new(TemperatureUnits.Celsius, "Celsius (°C)"),
-        new(TemperatureUnits.Fahrenheit, "Fahrenheit (°F)"),
+        new(TemperatureUnits.Celsius, "Celsius · km/h · mm"),
+        new(TemperatureUnits.Fahrenheit, "Fahrenheit · mph · inches"),
     ];
 
     public TemperatureUnits TemperatureUnits { get => S.Weather.Units; set => Set(S.Weather.Units, value, v => S.Weather.Units = v); }
 
     // ---------- Notifications ----------
 
-    public string NotificationStatus => NotificationAccessInfo.Describe(NotificationAccessInfo.Get());
-    public bool CanRequestNotifications => NotificationAccessInfo.Get() == NotificationAccess.NeedsPermission;
-    public bool NotificationsAllowed => NotificationAccessInfo.Get() == NotificationAccess.Allowed;
+    public string NotificationStatus => NotificationAccessInfo.Describe(_notificationAccess);
+    public bool CanRequestNotifications => _notificationAccess == NotificationAccess.NeedsPermission;
+    public bool NotificationsAllowed => _notificationAccess == NotificationAccess.Allowed;
 
     public bool ShowNotificationContent
     {
@@ -270,9 +297,7 @@ public sealed partial class SettingsViewModel : ObservableObject
     private async Task AllowNotifications()
     {
         await NotificationAccessInfo.RequestAsync();
-        OnPropertyChanged(nameof(NotificationStatus));
-        OnPropertyChanged(nameof(CanRequestNotifications));
-        OnPropertyChanged(nameof(NotificationsAllowed));
+        RefreshNotificationAccess();
     }
 
     [RelayCommand]
@@ -397,11 +422,11 @@ public sealed partial class SettingsViewModel : ObservableObject
 
     // ---------- helpers ----------
 
-    private void SetColor(string current, string value, Action<string> assign)
+    private void SetColor(string current, string value, Action<string> assign, [CallerMemberName] string? name = null)
     {
         // Only commit parseable colors so a half-typed hex does not flash the island.
         if (!ThemeService.TryParseColor(value, out _)) return;
-        Set(current, value, assign);
+        Set(current, value, assign, name);
     }
 
     private void Set<T>(T current, T value, Action<T> assign, [CallerMemberName] string? name = null)
@@ -438,11 +463,19 @@ public sealed partial class ThemeCard(ThemePreset preset, bool isCustom) : Obser
     [ObservableProperty] private bool _isSelected;
 }
 
-public sealed class ModuleRow(ModuleEntry entry, ModuleDescriptor descriptor, Action save) : ObservableObject
+public sealed class ModuleRow(ModuleEntry entry, ModuleDescriptor descriptor, Action save, Action<ModuleRow, int> move) : ObservableObject
 {
+    private int _position;
     public ModuleEntry Entry { get; } = entry;
     public string Name => descriptor.Name;
     public string Glyph => descriptor.Glyph;
+    public string Group => PanelGroups.TabId(Entry.Id) switch
+    {
+        "clock" => "Clock & calendar tab", "media" => "Media tab", "shelf" => "Files tab", "system" => "System tab",
+        "claude" => "Agents tab", "notifications" => "Notifications tab", "weather" => "Weather tab", _ => "",
+    };
+    public int Position { get => _position; set { if (value != _position) move(this, value - 1); } }
+    internal void UpdatePosition(int position) { _position = position; OnPropertyChanged(nameof(Position)); }
 
     public bool Enabled
     {

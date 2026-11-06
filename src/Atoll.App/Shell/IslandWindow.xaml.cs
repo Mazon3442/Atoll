@@ -433,9 +433,14 @@ public partial class IslandWindow : Window
 
         if (_mode == IslandMode.Expanded)
         {
+            var expandedWidth = Math.Clamp(t.ExpandedWidth, 320, 900);
+            var expandedHeight = Math.Clamp(t.ExpandedHeight, 140, 600);
+            // Lay out at the destination size, so opening the pill cannot create transient overflow.
+            PanelRoot.Width = expandedWidth - PanelRoot.Margin.Left - PanelRoot.Margin.Right - Pill.BorderThickness.Left - Pill.BorderThickness.Right;
+            PanelRoot.Height = expandedHeight - PanelRoot.Margin.Top - PanelRoot.Margin.Bottom - Pill.BorderThickness.Top - Pill.BorderThickness.Bottom;
             PillContent.Visibility = Visibility.Collapsed;
             PanelRoot.Visibility = Visibility.Visible;
-            Animate(Math.Clamp(t.ExpandedWidth, 320, 900), Math.Clamp(t.ExpandedHeight, 140, 600), Roundness * 32);
+            Animate(expandedWidth, expandedHeight, Roundness * 32);
             RenderBubble(null, h0);
             return;
         }

@@ -2,6 +2,13 @@
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
                     xmlns:shell="clr-namespace:Atoll.Shell">
 
+    <ResourceDictionary.MergedDictionaries>
+        <ResourceDictionary Source="Scrollbars.xaml" />
+    </ResourceDictionary.MergedDictionaries>
+    <Style TargetType="ScrollBar" BasedOn="{StaticResource Atoll.ScrollBar}">
+        <Setter Property="Foreground" Value="{DynamicResource Island.Subtle}" />
+    </Style>
+
     <BooleanToVisibilityConverter x:Key="Island.BoolToVisibility" />
     <shell:InverseBoolToVisibilityConverter x:Key="Island.InverseBoolToVisibility" />
 
