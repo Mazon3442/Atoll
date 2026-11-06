@@ -168,9 +168,10 @@ refresh every 20 minutes. Rain timing is a forecast, not an alert service.
 ### Settings
 
 Settings has eight pages: General, Appearance, Modules, Notifications, Agents, Calendar, Weather
-and About. Every change applies immediately. In Modules, drag a handle, choose a position number,
-or use Alt + Up/Down on a focused handle to reorder; related features share a tab at the first
-enabled feature's position.
+and About. Every change applies immediately. Modules has one card per island tab, in tab order,
+with a preview of the tab strip above them. Move a tab with its arrows, by dragging its handle, or
+with Alt + Up/Down on the handle; switch a tab's features on or off inside its card. A tab with
+every feature off is left out of the island.
 
 Settings, the shelf list and the log live in `%AppData%\Atoll` (`settings.json`, `shelf.json`,
 `atoll.log`).

@@ -426,34 +426,105 @@
 
                     <!-- ===================== Modules ===================== -->
                     <StackPanel Visibility="{Binding PageIndex, Converter={StaticResource PageVisible}, ConverterParameter=2}">
-                        <TextBlock Style="{StaticResource Hint}" Margin="2,8,0,14"
-                                   Text="Drag a handle to reorder, or choose a position from its menu. Alt + ↑ / ↓ moves a focused handle. Related features share a tab, placed at the first enabled feature in that group." />
-                        <ItemsControl x:Name="ModuleList" ItemsSource="{Binding Modules}">
+                        <TextBlock Style="{StaticResource Hint}" Margin="2,8,0,10"
+                                   Text="Each card is a tab in the expanded island, in the order below. Move a card to move its tab, and switch off anything you don't use." />
+
+                        <!-- The island's tab strip, as it will look with these settings. -->
+                        <Border Background="#0B0C0E" CornerRadius="20" Padding="5" HorizontalAlignment="Left" Margin="0,0,0,16"
+                                AutomationProperties.Name="Tab order preview">
+                            <ItemsControl ItemsSource="{Binding TabPreview}" Focusable="False">
+                                <ItemsControl.ItemsPanel><ItemsPanelTemplate><WrapPanel /></ItemsPanelTemplate></ItemsControl.ItemsPanel>
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <Border x:Name="Chip" CornerRadius="15" Padding="12,5" Background="Transparent">
+                                            <TextBlock x:Name="Label" Text="{Binding Name}" FontSize="12" Foreground="#B3FFFFFF" />
+                                        </Border>
+                                        <DataTemplate.Triggers>
+                                            <DataTrigger Binding="{Binding IsFirst}" Value="True">
+                                                <Setter TargetName="Chip" Property="Background" Value="White" />
+                                                <Setter TargetName="Label" Property="Foreground" Value="#0B0C0E" />
+                                                <Setter TargetName="Label" Property="FontWeight" Value="SemiBold" />
+                                            </DataTrigger>
+                                        </DataTemplate.Triggers>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </Border>
+
+                        <ItemsControl x:Name="ModuleList" ItemsSource="{Binding ModuleTabs}" Focusable="False">
                             <ItemsControl.ItemTemplate>
                                 <DataTemplate>
-                                    <Border Padding="10,12,16,12" Margin="0,0,0,6" CornerRadius="10" BorderThickness="1"
+                                    <Border x:Name="Card" Padding="6,8,16,8" Margin="0,0,0,8" CornerRadius="10" BorderThickness="1"
                                             Background="{DynamicResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
                                             AllowDrop="True" DragOver="OnModuleDragOver" DragLeave="OnModuleDragLeave" Drop="OnModuleDrop">
-                                        <Grid>
-                                            <Grid.ColumnDefinitions><ColumnDefinition Width="Auto" /><ColumnDefinition Width="Auto" /><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
-                                            <Button Content="&#xE784;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" Padding="8,10" Margin="0,0,10,0" Cursor="SizeAll"
-                                                    ToolTip="Drag to reorder. Alt + Up or Down also moves this feature."
-                                                    PreviewMouseLeftButtonDown="OnModuleDragStart" PreviewMouseMove="OnModuleDragMove" PreviewKeyDown="OnModuleKeyDown"
-                                                    AutomationProperties.Name="{Binding Name, StringFormat=Reorder {0}}" />
-                                            <TextBlock Grid.Column="1" Text="{Binding Glyph}" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" FontSize="18" VerticalAlignment="Center" Margin="0,0,14,0" />
-                                            <StackPanel Grid.Column="2" VerticalAlignment="Center" Margin="0,0,10,0">
-                                                <TextBlock Text="{Binding Name}" TextWrapping="Wrap" />
-                                                <TextBlock Text="{Binding Group}" Style="{StaticResource Hint}" Margin="0,2,0,0" />
-                                            </StackPanel>
-                                            <StackPanel Grid.Column="3" Margin="0,0,16,0" VerticalAlignment="Center">
-                                                <TextBlock Text="Position" Style="{StaticResource Hint}" Margin="0,0,0,3" />
-                                                <ComboBox Width="64" ItemsSource="{Binding DataContext.ModulePositions, ElementName=ModuleList}" SelectedItem="{Binding Position}"
-                                                          AutomationProperties.Name="{Binding Name, StringFormat=Position of {0}}" />
-                                            </StackPanel>
-                                            <CheckBox Grid.Column="4" Style="{StaticResource Toggle}" IsChecked="{Binding Enabled}" VerticalAlignment="Center"
-                                                      AutomationProperties.Name="{Binding Name, StringFormat=Turn {0} on or off}" />
-                                        </Grid>
+                                        <StackPanel>
+                                            <Grid MinHeight="44">
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="Auto" /><ColumnDefinition Width="Auto" /><ColumnDefinition Width="*" />
+                                                    <ColumnDefinition Width="Auto" /><ColumnDefinition Width="Auto" />
+                                                </Grid.ColumnDefinitions>
+                                                <Button Content="&#xE76F;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" FontSize="14" Padding="8,10" Margin="0,0,8,0"
+                                                        Cursor="SizeAll" Background="Transparent" BorderThickness="0" VerticalAlignment="Center"
+                                                        ToolTip="Drag to move this tab. Alt + Up or Down also moves it."
+                                                        PreviewMouseLeftButtonDown="OnModuleDragStart" PreviewMouseMove="OnModuleDragMove" PreviewKeyDown="OnModuleKeyDown"
+                                                        AutomationProperties.Name="{Binding Name, StringFormat=Move the {0} tab}" />
+                                                <TextBlock Grid.Column="1" Text="{Binding Glyph}" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" FontSize="18"
+                                                           VerticalAlignment="Center" Margin="0,0,14,0" />
+                                                <StackPanel Grid.Column="2" VerticalAlignment="Center" Margin="0,0,12,0">
+                                                    <TextBlock Text="{Binding Name}" FontWeight="SemiBold" TextWrapping="Wrap" />
+                                                    <TextBlock Text="{Binding Description}" Style="{StaticResource Hint}" Margin="0,2,0,0" />
+                                                    <TextBlock x:Name="Status" Text="{Binding Status}" Style="{StaticResource Hint}" Margin="0,2,0,0"
+                                                               Visibility="{Binding Status, Converter={StaticResource EmptyToCollapsed}}" />
+                                                </StackPanel>
+                                                <StackPanel Grid.Column="3" Orientation="Horizontal" VerticalAlignment="Center">
+                                                    <Button x:Name="Up" Content="&#xE70E;" Command="{Binding DataContext.MoveTabUpCommand, ElementName=ModuleList}" CommandParameter="{Binding}"
+                                                            FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" FontSize="12" Width="34" Height="32" Padding="0"
+                                                            ToolTip="Move up" AutomationProperties.Name="{Binding Name, StringFormat=Move {0} up}" />
+                                                    <Button x:Name="Down" Content="&#xE70D;" Command="{Binding DataContext.MoveTabDownCommand, ElementName=ModuleList}" CommandParameter="{Binding}"
+                                                            FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" FontSize="12" Width="34" Height="32" Padding="0" Margin="4,0,0,0"
+                                                            ToolTip="Move down" AutomationProperties.Name="{Binding Name, StringFormat=Move {0} down}" />
+                                                </StackPanel>
+                                                <CheckBox x:Name="OnlyToggle" Grid.Column="4" Style="{StaticResource Toggle}" Margin="20,0,0,0" VerticalAlignment="Center"
+                                                          IsChecked="{Binding OnlyFeature.Enabled}"
+                                                          AutomationProperties.Name="{Binding Name, StringFormat=Show the {0} tab}" />
+                                            </Grid>
+
+                                            <!-- A tab made of several features: one switch each. -->
+                                            <ItemsControl x:Name="Features" ItemsSource="{Binding Features}" Margin="80,6,0,0" Visibility="Collapsed" Focusable="False">
+                                                <ItemsControl.ItemTemplate>
+                                                    <DataTemplate>
+                                                        <Border BorderThickness="0,1,0,0" BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}" Padding="0,8,0,8">
+                                                            <Grid>
+                                                                <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                                                                <StackPanel VerticalAlignment="Center" Margin="0,0,12,0">
+                                                                    <TextBlock Text="{Binding Name}" TextWrapping="Wrap" />
+                                                                    <TextBlock Text="{Binding Description}" Style="{StaticResource Hint}" />
+                                                                </StackPanel>
+                                                                <CheckBox Grid.Column="1" Style="{StaticResource Toggle}" IsChecked="{Binding Enabled}" VerticalAlignment="Center"
+                                                                          AutomationProperties.Name="{Binding Name, StringFormat=Turn {0} on or off}" />
+                                                            </Grid>
+                                                        </Border>
+                                                    </DataTemplate>
+                                                </ItemsControl.ItemTemplate>
+                                            </ItemsControl>
+                                        </StackPanel>
                                     </Border>
+                                    <DataTemplate.Triggers>
+                                        <DataTrigger Binding="{Binding HasSeveralFeatures}" Value="True">
+                                            <Setter TargetName="Features" Property="Visibility" Value="Visible" />
+                                            <!-- Hidden, not collapsed, so the arrows line up on every card. -->
+                                            <Setter TargetName="OnlyToggle" Property="Visibility" Value="Hidden" />
+                                        </DataTrigger>
+                                        <DataTrigger Binding="{Binding IsFirst}" Value="True">
+                                            <Setter TargetName="Up" Property="IsEnabled" Value="False" />
+                                        </DataTrigger>
+                                        <DataTrigger Binding="{Binding IsLast}" Value="True">
+                                            <Setter TargetName="Down" Property="IsEnabled" Value="False" />
+                                        </DataTrigger>
+                                        <DataTrigger Binding="{Binding IsShown}" Value="False">
+                                            <Setter TargetName="Status" Property="Foreground" Value="{DynamicResource SystemFillColorCautionBrush}" />
+                                        </DataTrigger>
+                                    </DataTemplate.Triggers>
                                 </DataTemplate>
                             </ItemsControl.ItemTemplate>
                         </ItemsControl>

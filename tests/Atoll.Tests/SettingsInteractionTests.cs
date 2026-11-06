@@ -37,24 +37,46 @@ public class SettingsInteractionTests
     }
 
     [Fact]
-    public void Drag_and_position_menu_share_reordering_and_preserve_unknown_modules()
+    public void Modules_page_orders_whole_tabs_the_way_the_island_shows_them()
     {
         var service = new SettingsService(new SettingsStore(Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".json")));
-        foreach (var descriptor in ModuleCatalog.All) service.Current.Modules.Add(new ModuleEntry { Id = descriptor.Id, Enabled = descriptor.Id != "weather" });
+        // Scattered order: Quick actions (System tab) comes first, and Weather is off.
+        foreach (var id in new[] { "actions", "claude", "media", "weather", "clipboard", "notifications", "clock", "calendar", "system", "shelf", "stats" })
+            service.Current.Modules.Add(new ModuleEntry { Id = id, Enabled = id != "weather" });
         var unknown = new ModuleEntry { Id = "future-module", Enabled = false };
         service.Current.Modules.Add(unknown);
         using var vm = new SettingsViewModel(service, ModuleCatalog.All);
-        var weather = vm.Modules.Single(m => m.Entry.Id == "weather");
-        vm.MoveModule(weather, 0);
-        Assert.Same(weather, vm.Modules[0]);
-        Assert.False(weather.Enabled);
+
+        // One card per tab, placed where the island puts it: at its first switched-on feature.
+        Assert.Equal(["System", "Agents", "Media", "Files", "Notifications", "Clock & calendar", "Weather"], vm.ModuleTabs.Select(t => t.Name));
+        Assert.Equal(["System", "Agents", "Media", "Files", "Notifications", "Clock & calendar"], vm.TabPreview.Select(c => c.Name));
+        Assert.True(vm.TabPreview[0].IsFirst);
+        Assert.False(vm.TabPreview[1].IsFirst);
+        Assert.Equal(["Status popups", "Live graphs", "Quick actions"], vm.ModuleTabs[0].Features.Select(f => f.Name));
+        Assert.True(vm.ModuleTabs[0].IsFirst);
+
+        // Each tab's features are kept together, so the island's order is exactly the card order.
+        Assert.Equal(["system", "stats", "actions", "claude", "media", "shelf", "clipboard", "notifications", "clock", "calendar", "weather"],
+            service.Current.Modules.Take(11).Select(m => m.Id));
         Assert.Same(unknown, service.Current.Modules.Last());
-        Assert.Equal(Enumerable.Range(1, vm.Modules.Count), vm.Modules.Select(m => m.Position));
-        weather.Position = 4;
-        Assert.Same(weather, vm.Modules[3]);
-        Assert.Equal(vm.Modules.Select(m => m.Entry.Id), service.Current.Modules.Take(vm.Modules.Count).Select(m => m.Id));
-        weather.Position = 0;
-        Assert.Equal(4, weather.Position);
+
+        var weather = vm.ModuleTabs.Single(t => t.Id == "weather");
+        Assert.False(weather.IsShown);
+        Assert.StartsWith("Not in the island", weather.Status);
+        vm.MoveTab(weather, 0);
+        Assert.Same(weather, vm.ModuleTabs[0]);
+        Assert.Equal(["weather", "system", "stats", "actions"], service.Current.Modules.Take(4).Select(m => m.Id));
+        weather.OnlyFeature.Enabled = true;
+        Assert.Equal("Weather", vm.TabPreview[0].Name);
+
+        var system = vm.ModuleTabs.Single(t => t.Id == "system");
+        vm.MoveTabDownCommand.Execute(system);
+        Assert.Equal(3, system.Number);
+        system.Features.Single(f => f.Entry.Id == "stats").Enabled = false;
+        Assert.Equal("2 of 3 on", system.Status);
+        vm.MoveTab(system, 99);
+        Assert.Equal(3, system.Number);
+        Assert.Same(unknown, service.Current.Modules.Last());
     }
 
     [Theory]
