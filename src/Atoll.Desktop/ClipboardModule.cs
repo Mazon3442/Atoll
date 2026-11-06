@@ -22,6 +22,14 @@ public sealed partial class ClipboardEntry(string text, Action<ClipboardEntry> c
         : string.Join(" ", Text.Split(['\r', '\n'], StringSplitOptions.RemoveEmptyEntries));
     [RelayCommand] private void Copy() => copy(this);
     [RelayCommand] private void Remove() => remove(this);
+
+    internal Bitmap CopyImageForClipboard()
+    {
+        using var bytes = new MemoryStream();
+        (Image ?? throw new InvalidOperationException("This entry is not an image.")).Save(bytes);
+        bytes.Position = 0;
+        return new Bitmap(bytes);
+    }
 }
 
 public sealed partial class ClipboardModule : ObservableObject, IIslandModule
@@ -81,7 +89,8 @@ public sealed partial class ClipboardModule : ObservableObject, IIslandModule
         {
             if (Clipboard is not { } clipboard) return;
             _last = entry.Key;
-            if (entry.Image is { } bitmap) await clipboard.SetBitmapAsync(bitmap);
+            // Clipboard providers can read lazily, after this history entry has been removed.
+            if (entry.Image is not null) await clipboard.SetBitmapAsync(entry.CopyImageForClipboard());
             else if (entry.Files is { } paths)
             {
                 var provider = (Avalonia.Application.Current?.ApplicationLifetime as Avalonia.Controls.ApplicationLifetimes.IClassicDesktopStyleApplicationLifetime)?.MainWindow?.StorageProvider;

@@ -37,6 +37,17 @@ public sealed class DesktopTests
     }
 
     [AvaloniaFact]
+    public void Removing_a_history_image_keeps_the_clipboard_copy_readable()
+    {
+        var source = new Avalonia.Media.Imaging.RenderTargetBitmap(new PixelSize(8, 8));
+        var entry = new ClipboardEntry("", _ => { }, _ => { }) { Image = source };
+        using var copy = entry.CopyImageForClipboard();
+        source.Dispose();
+        using var output = new MemoryStream(); copy.Save(output);
+        Assert.True(output.Length > 0);
+    }
+
+    [AvaloniaFact]
     public void Island_expands_for_alerts_and_collapses_from_the_keyboard()
     {
         var directory = Path.Combine(Path.GetTempPath(), "atoll-desktop-tests", Guid.NewGuid().ToString("N"));
