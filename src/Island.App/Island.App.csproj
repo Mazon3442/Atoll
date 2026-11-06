@@ -19,6 +19,12 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Compile Include="..\Shared\ClaudeHookProtocol.cs" Link="Shared\ClaudeHookProtocol.cs" />
+    <!-- Builds the hook exe and copies it next to Island.exe; the app does not call its code. -->
+    <ProjectReference Include="..\Island.ClaudeHook\Island.ClaudeHook.csproj" ReferenceOutputAssembly="false" OutputItemType="Content" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.2" />
     <PackageReference Include="H.NotifyIcon.Wpf" Version="2.4.1" />
     <PackageReference Include="NAudio.Wasapi" Version="3.3.0" />

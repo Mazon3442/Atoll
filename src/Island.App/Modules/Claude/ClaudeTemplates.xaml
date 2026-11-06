@@ -1,0 +1,174 @@
+﻿<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <SolidColorBrush x:Key="Claude.Orange" Color="#D97757" />
+
+    <!-- Claude asterisk; spins slowly while a session is working (15 fps keeps the overlay cheap). -->
+    <DataTemplate x:Key="Claude.Spark">
+        <TextBlock x:Name="Spark" Text="&#x273B;" FontFamily="Segoe UI Symbol" FontSize="15"
+                   Foreground="{StaticResource Claude.Orange}" RenderTransformOrigin="0.5,0.55"
+                   VerticalAlignment="Center">
+            <TextBlock.RenderTransform>
+                <RotateTransform />
+            </TextBlock.RenderTransform>
+            <TextBlock.Triggers>
+                <EventTrigger RoutedEvent="Loaded">
+                    <BeginStoryboard>
+                        <Storyboard Timeline.DesiredFrameRate="15">
+                            <DoubleAnimation Storyboard.TargetProperty="RenderTransform.Angle"
+                                             From="0" To="360" Duration="0:0:2.4" RepeatBehavior="Forever" />
+                        </Storyboard>
+                    </BeginStoryboard>
+                </EventTrigger>
+            </TextBlock.Triggers>
+        </TextBlock>
+    </DataTemplate>
+
+    <DataTemplate x:Key="Claude.StaticSpark">
+        <TextBlock Text="&#x273B;" FontFamily="Segoe UI Symbol" FontSize="15"
+                   Foreground="{StaticResource Claude.Orange}" VerticalAlignment="Center" />
+    </DataTemplate>
+
+    <!-- Work activity -->
+    <DataTemplate x:Key="ClaudeViewModel.Compact">
+        <StackPanel Orientation="Horizontal">
+            <ContentPresenter Content="{Binding}" ContentTemplate="{StaticResource Claude.Spark}" />
+            <TextBlock Text="{Binding Current.Detail}" FontSize="12" FontWeight="SemiBold" Margin="8,0,0,0"
+                       MaxWidth="220" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
+            <TextBlock Text="{Binding CountBadge}" FontSize="11" Margin="6,0,0,0" VerticalAlignment="Center"
+                       Foreground="{StaticResource Claude.Orange}" />
+        </StackPanel>
+    </DataTemplate>
+
+    <DataTemplate x:Key="ClaudeViewModel.Peek">
+        <StackPanel Orientation="Horizontal">
+            <ContentPresenter Content="{Binding}" ContentTemplate="{StaticResource Claude.Spark}" VerticalAlignment="Center">
+                <ContentPresenter.LayoutTransform>
+                    <ScaleTransform ScaleX="1.4" ScaleY="1.4" />
+                </ContentPresenter.LayoutTransform>
+            </ContentPresenter>
+            <StackPanel Margin="12,0,0,0" VerticalAlignment="Center" MaxWidth="320">
+                <TextBlock FontSize="12" Foreground="{DynamicResource Island.Subtle}">
+                    <Run Text="{Binding Current.Project, Mode=OneWay}" /><Run Text="  Â·  " /><Run Text="{Binding Current.Elapsed, Mode=OneWay}" />
+                </TextBlock>
+                <TextBlock Text="{Binding Current.Detail}" FontSize="14" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
+                <TextBlock FontSize="11" Foreground="{DynamicResource Island.Subtle}" Margin="0,2,0,0"
+                           Visibility="{Binding Usage.HasBlock, Converter={StaticResource Island.BoolToVisibility}}">
+                    <Run Text="5h block " /><Run Text="{Binding Usage.BlockText, Mode=OneWay}" />
+                </TextBlock>
+            </StackPanel>
+        </StackPanel>
+    </DataTemplate>
+
+    <DataTemplate x:Key="ClaudeViewModel.Mini">
+        <ContentPresenter Content="{Binding}" ContentTemplate="{StaticResource Claude.Spark}" />
+    </DataTemplate>
+
+    <!-- Done / needs-you alerts -->
+    <DataTemplate x:Key="ClaudeAlertViewModel.Compact">
+        <StackPanel Orientation="Horizontal">
+            <ContentPresenter Content="{Binding}" ContentTemplate="{StaticResource Claude.StaticSpark}" />
+            <TextBlock Text="{Binding Title}" FontSize="12" FontWeight="SemiBold" Margin="8,0,0,0" VerticalAlignment="Center" />
+        </StackPanel>
+    </DataTemplate>
+
+    <DataTemplate x:Key="ClaudeAlertViewModel.Peek">
+        <StackPanel Orientation="Horizontal">
+            <ContentPresenter Content="{Binding}" ContentTemplate="{StaticResource Claude.StaticSpark}" VerticalAlignment="Center">
+                <ContentPresenter.LayoutTransform>
+                    <ScaleTransform ScaleX="1.4" ScaleY="1.4" />
+                </ContentPresenter.LayoutTransform>
+            </ContentPresenter>
+            <StackPanel Margin="12,0,0,0" VerticalAlignment="Center" MaxWidth="320">
+                <TextBlock Text="{Binding Title}" FontSize="14" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
+                <TextBlock Text="{Binding Detail}" FontSize="12" Foreground="{DynamicResource Island.Subtle}"
+                           TextTrimming="CharacterEllipsis" />
+            </StackPanel>
+            <Button Style="{StaticResource Island.ChipButton}" Content="Open" Margin="14,0,0,0" VerticalAlignment="Center"
+                    Command="{Binding Session.FocusCommand}"
+                    Visibility="{Binding Session.CanFocus, Converter={StaticResource Island.BoolToVisibility}}"
+                    AutomationProperties.Name="Open the Claude session" />
+        </StackPanel>
+    </DataTemplate>
+
+    <DataTemplate x:Key="ClaudeAlertViewModel.Mini">
+        <ContentPresenter Content="{Binding}" ContentTemplate="{StaticResource Claude.StaticSpark}" />
+    </DataTemplate>
+
+    <!-- Expanded tab: sessions + usage -->
+    <DataTemplate x:Key="ClaudeViewModel.Panel">
+        <DockPanel>
+            <!-- Usage -->
+            <Grid DockPanel.Dock="Bottom" Margin="0,8,0,0"
+                  Visibility="{Binding Usage.HasData, Converter={StaticResource Island.BoolToVisibility}}">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                <StackPanel>
+                    <DockPanel>
+                        <TextBlock DockPanel.Dock="Right" Text="{Binding Usage.BlockResets}" FontSize="11"
+                                   Foreground="{DynamicResource Island.Subtle}"
+                                   Visibility="{Binding Usage.HasBlock, Converter={StaticResource Island.BoolToVisibility}}" />
+                        <TextBlock FontSize="11" Foreground="{DynamicResource Island.Subtle}">
+                            <Run Text="5h block  " /><Run Text="{Binding Usage.BlockText, Mode=OneWay}" Foreground="{DynamicResource Island.Foreground}" />
+                        </TextBlock>
+                    </DockPanel>
+                    <Grid Height="3" Margin="0,4,12,0">
+                        <Border CornerRadius="1.5" Background="{DynamicResource Island.Hover}" />
+                        <Border CornerRadius="1.5" Background="{StaticResource Claude.Orange}" RenderTransformOrigin="0,0.5">
+                            <Border.RenderTransform>
+                                <ScaleTransform ScaleX="{Binding Usage.BlockProgress}" />
+                            </Border.RenderTransform>
+                        </Border>
+                    </Grid>
+                </StackPanel>
+                <TextBlock Grid.Column="1" FontSize="11" Foreground="{DynamicResource Island.Subtle}" VerticalAlignment="Top">
+                    <Run Text="Today  " /><Run Text="{Binding Usage.TodayText, Mode=OneWay}" Foreground="{DynamicResource Island.Foreground}" />
+                </TextBlock>
+            </Grid>
+
+            <!-- Sessions -->
+            <Grid>
+                <TextBlock Text="No Claude Code sessions yet" HorizontalAlignment="Center" VerticalAlignment="Center"
+                           Foreground="{DynamicResource Island.Subtle}"
+                           Visibility="{Binding HasSessions, Converter={StaticResource Island.InverseBoolToVisibility}}" />
+                <ScrollViewer VerticalScrollBarVisibility="Auto">
+                    <ItemsControl ItemsSource="{Binding Tracker.Sessions}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <Border x:Name="Row" CornerRadius="10" Padding="10,6" Margin="0,0,0,4" Background="{DynamicResource Island.Hover}">
+                                    <DockPanel>
+                                        <Button DockPanel.Dock="Right" Style="{StaticResource Island.ChipButton}" Content="Open"
+                                                Margin="8,0,0,0" VerticalAlignment="Center" Command="{Binding FocusCommand}"
+                                                Visibility="{Binding CanFocus, Converter={StaticResource Island.BoolToVisibility}}"
+                                                AutomationProperties.Name="{Binding Project, StringFormat=Open {0}}" />
+                                        <TextBlock DockPanel.Dock="Right" Text="{Binding Elapsed}" FontSize="11" VerticalAlignment="Center"
+                                                   Foreground="{DynamicResource Island.Subtle}" />
+                                        <ContentPresenter x:Name="Icon" DockPanel.Dock="Left" Content="{Binding}" ContentTemplate="{StaticResource Claude.StaticSpark}"
+                                                          Margin="0,0,10,0" />
+                                        <StackPanel>
+                                            <TextBlock Text="{Binding Project}" FontSize="13" FontWeight="SemiBold" />
+                                            <TextBlock Text="{Binding Detail}" FontSize="12" Foreground="{DynamicResource Island.Subtle}"
+                                                       TextTrimming="CharacterEllipsis" />
+                                        </StackPanel>
+                                    </DockPanel>
+                                </Border>
+                                <DataTemplate.Triggers>
+                                    <DataTrigger Binding="{Binding IsWorking}" Value="True">
+                                        <Setter TargetName="Icon" Property="ContentTemplate" Value="{StaticResource Claude.Spark}" />
+                                    </DataTrigger>
+                                    <DataTrigger Binding="{Binding NeedsYou}" Value="True">
+                                        <Setter TargetName="Row" Property="BorderBrush" Value="{StaticResource Claude.Orange}" />
+                                        <Setter TargetName="Row" Property="BorderThickness" Value="1" />
+                                    </DataTrigger>
+                                </DataTemplate.Triggers>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </ScrollViewer>
+            </Grid>
+        </DockPanel>
+    </DataTemplate>
+
+</ResourceDictionary>

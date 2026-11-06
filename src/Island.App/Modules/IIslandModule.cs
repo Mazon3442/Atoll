@@ -1,5 +1,6 @@
 using System.Windows.Threading;
 using Island.Activities;
+using Island.Settings;
 
 namespace Island.Modules;
 
@@ -14,10 +15,13 @@ public interface IIslandModule : IDisposable
 
 public sealed record ModuleDescriptor(string Id, string Name, string Glyph, Func<IIslandModule> Create);
 
-public sealed class ModuleContext(string moduleId, ActivityHost activities, Dispatcher dispatcher)
+public sealed class ModuleContext(string moduleId, ActivityHost activities, Dispatcher dispatcher, SettingsService settings)
 {
     public string ModuleId { get; } = moduleId;
     public ActivityHost Activities { get; } = activities;
+
+    /// <summary>Live app settings (read on use; they change while the module runs).</summary>
+    public SettingsService Settings { get; } = settings;
 
     /// <summary>UI thread dispatcher, for modules whose sources raise events on other threads.</summary>
     public Dispatcher Dispatcher { get; } = dispatcher;

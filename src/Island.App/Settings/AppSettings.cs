@@ -23,6 +23,8 @@ public sealed class AppSettings
 
     public ThemeSettings Theme { get; set; } = new();
 
+    public ClaudeSettings Claude { get; set; } = new();
+
     /// <summary>List order = tab order in the expanded panel.</summary>
     public List<ModuleEntry> Modules { get; set; } = [];
 }
@@ -43,6 +45,12 @@ public sealed class ThemeSettings
 
     public double ExpandedWidth { get; set; } = 520;
     public double ExpandedHeight { get; set; } = 240;
+}
+
+public sealed class ClaudeSettings
+{
+    public bool SoundOnDone { get; set; } = true;
+    public bool SoundOnAttention { get; set; } = true;
 }
 
 public sealed class ModuleEntry

@@ -5,6 +5,14 @@
     <TargetFramework>net10.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
+    <!-- Runs on every Claude Code hook call, so keep startup lean. -->
+    <InvariantGlobalization>true</InvariantGlobalization>
+    <UseSystemResourceKeys>true</UseSystemResourceKeys>
+    <TieredPGO>false</TieredPGO>
   </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Include="..\Shared\ClaudeHookProtocol.cs" Link="Shared\ClaudeHookProtocol.cs" />
+  </ItemGroup>
 
 </Project>

@@ -1,6 +1,7 @@
 using System.Collections.ObjectModel;
 using System.Windows.Threading;
 using Island.Activities;
+using Island.Modules.Claude;
 using Island.Modules.Clock;
 using Island.Modules.Indicators;
 using Island.Modules.Media;
@@ -12,6 +13,7 @@ public static class ModuleCatalog
 {
     public static IReadOnlyList<ModuleDescriptor> All { get; } =
     [
+        new("claude", "Claude", "", () => new ClaudeModule()),
         new("media", "Media", "", () => new MediaModule()),
         new("clock", "Clock & timer", "", () => new ClockModule()),
         new("system", "System", "", () => new IndicatorsModule()),
@@ -53,7 +55,7 @@ public sealed class ModuleManager(
             var module = d.Create();
             try
             {
-                module.Start(new ModuleContext(d.Id, activities, dispatcher));
+                module.Start(new ModuleContext(d.Id, activities, dispatcher, settings));
                 _running[d.Id] = module;
             }
             catch (Exception ex)

@@ -123,8 +123,7 @@ public partial class IslandWindow : Window
 
     public void SetActivities(Activity? primary, Activity? secondary)
     {
-        var isNewPrimary = !ReferenceEquals(primary, _primary);
-        _primary = primary;
+        var isNewPrimary = !ReferenceEquals(primary, _primary);        _primary = primary;
         _secondary = secondary;
 
         if (isNewPrimary && primary is { Alert: true } && _mode == IslandMode.Compact)

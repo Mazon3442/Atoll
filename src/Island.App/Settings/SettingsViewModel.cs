@@ -3,6 +3,7 @@ using System.Runtime.CompilerServices;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Island.Modules;
+using Island.Modules.Claude;
 using Island.Shell;
 using Island.Theme;
 
@@ -83,6 +84,38 @@ public sealed partial class SettingsViewModel : ObservableObject
     public double Roundness { get => T.Roundness; set => Set(T.Roundness, value, v => T.Roundness = v); }
     public double ExpandedWidth { get => T.ExpandedWidth; set => Set(T.ExpandedWidth, value, v => T.ExpandedWidth = v); }
     public double ExpandedHeight { get => T.ExpandedHeight; set => Set(T.ExpandedHeight, value, v => T.ExpandedHeight = v); }
+
+    // ---------- Claude Code ----------
+
+    public bool SoundOnDone { get => S.Claude.SoundOnDone; set => Set(S.Claude.SoundOnDone, value, v => S.Claude.SoundOnDone = v); }
+    public bool SoundOnAttention { get => S.Claude.SoundOnAttention; set => Set(S.Claude.SoundOnAttention, value, v => S.Claude.SoundOnAttention = v); }
+
+    public string HookSettingsPath => ClaudeHookInstaller.SettingsPath;
+
+    public string HookStatus => ClaudeHookInstaller.GetStatus() switch
+    {
+        ClaudeHookInstaller.Status.Installed => "Hooks installed. New Claude Code sessions report to the island.",
+        ClaudeHookInstaller.Status.InstalledElsewhere => "Hooks point to another copy of Island. Install again to update them.",
+        ClaudeHookInstaller.Status.Unreadable => "Claude Code settings could not be read.",
+        _ => "Hooks not installed. Usage still shows; live activity needs the hooks.",
+    };
+
+    [ObservableProperty] private string _hookMessage = "";
+
+    [RelayCommand]
+    private void InstallHooks()
+    {
+        HookMessage = ClaudeHookInstaller.Install()
+            ?? $"Added hooks to {HookSettingsPath} (backup saved next to it). Restart running Claude Code sessions to pick them up.";
+        OnPropertyChanged(nameof(HookStatus));
+    }
+
+    [RelayCommand]
+    private void RemoveHooks()
+    {
+        HookMessage = ClaudeHookInstaller.Uninstall() ?? "Removed the island's hooks. Your other hooks were left as they were.";
+        OnPropertyChanged(nameof(HookStatus));
+    }
 
     [RelayCommand]
     private void MoveUp(ModuleRow row) => Move(row, -1);

@@ -84,6 +84,22 @@ internal static class Native
     public static extern short GetKeyState(int virtualKey);
 
     [DllImport("user32.dll")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    public static extern bool IsWindow(nint hwnd);
+
+    [DllImport("user32.dll")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    public static extern bool IsIconic(nint hwnd);
+
+    [DllImport("user32.dll")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    public static extern bool ShowWindow(nint hwnd, int command);
+
+    [DllImport("user32.dll")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    public static extern bool SetForegroundWindow(nint hwnd);
+
+    [DllImport("user32.dll")]
     public static extern nint GetForegroundWindow();
 
     [DllImport("user32.dll")]
