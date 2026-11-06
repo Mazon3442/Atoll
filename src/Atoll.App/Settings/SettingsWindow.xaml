@@ -15,6 +15,7 @@
         <ResourceDictionary>
         <ResourceDictionary.MergedDictionaries>
             <ResourceDictionary Source="/Atoll;component/Theme/Scrollbars.xaml" />
+            <ResourceDictionary Source="/Atoll;component/Theme/Logo.xaml" />
         </ResourceDictionary.MergedDictionaries>
         <Style TargetType="ScrollBar" BasedOn="{StaticResource Atoll.ScrollBar}">
             <Setter Property="Foreground" Value="{DynamicResource TextFillColorSecondaryBrush}" />
@@ -195,9 +196,9 @@
         <Border Background="{DynamicResource SubtleFillColorSecondaryBrush}" BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}" BorderThickness="0,0,1,0">
         <DockPanel Margin="12,20,12,16">
             <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="10,4,0,22">
-                <Border Width="30" Height="30" CornerRadius="9" Background="Black">
-                    <TextBlock Text="A" Foreground="White" FontWeight="Bold" FontSize="15"
-                               HorizontalAlignment="Center" VerticalAlignment="Center" />
+                <!-- The hairline keeps the paper tile visible on a light sidebar. -->
+                <Border Width="30" Height="30" CornerRadius="6.6" BorderThickness="1" BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}">
+                    <Image Source="{StaticResource Atoll.LogoSmall}" AutomationProperties.Name="ATOLL logo" />
                 </Border>
                 <TextBlock Text="ATOLL" FontSize="17" FontWeight="SemiBold" Margin="12,0,0,0" VerticalAlignment="Center" />
             </StackPanel>
@@ -613,9 +614,8 @@
                     <!-- ===================== About ===================== -->
                     <StackPanel Visibility="{Binding PageIndex, Converter={StaticResource PageVisible}, ConverterParameter=7}">
                         <StackPanel Orientation="Horizontal" Margin="2,12,0,18">
-                            <Border Width="56" Height="56" CornerRadius="16" Background="Black">
-                                <TextBlock Text="A" Foreground="White" FontWeight="Bold" FontSize="28"
-                                           HorizontalAlignment="Center" VerticalAlignment="Center" />
+                            <Border Width="56" Height="56" CornerRadius="12.3" BorderThickness="1" BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}">
+                                <Image Source="{StaticResource Atoll.Logo}" AutomationProperties.Name="ATOLL logo" />
                             </Border>
                             <StackPanel Margin="16,0,0,0" VerticalAlignment="Center">
                                 <TextBlock Text="ATOLL" FontSize="20" FontWeight="SemiBold" />

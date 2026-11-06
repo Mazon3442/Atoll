@@ -6,7 +6,7 @@
   <img alt="ATOLL: a Dynamic Island for Windows" src="docs/assets/brand/banner-dark.svg" width="100%">
 </picture>
 
-**Music, timers, coding agents, notifications, calendar and weather, in a pill at the top of your screen.<br>Click it and it opens into a panel. Runs on your own PC, with no account and no telemetry.**
+**Music, timers, coding agents, notifications, calendar and weather, in a pill at the top of your screen.<br>Click it to open a panel. ATOLL runs on your own PC, with no account and no telemetry.**
 
 [![Release](https://img.shields.io/github/v/release/Mazon3442/Atoll?style=flat-square&color=2FD3E6&label=release)](https://github.com/Mazon3442/Atoll/releases/latest)
 [![Platform: Windows 10 and 11](https://img.shields.io/badge/platform-Windows%2010%20%7C%2011-555?style=flat-square&logo=windows&logoColor=white)](#install)
@@ -249,7 +249,7 @@ Then restart ATOLL and click **Allow access** in Settings › Notifications. To 
 
 ### Logo and brand assets
 
-The icon, banners and MSIX logos are drawn by `packaging/make-logos.py` (Python with Pillow, numpy
+The icon, banners, MSIX logos and the Settings logo (`Theme/Logo.xaml`) are drawn by `packaging/make-logos.py` (Python with Pillow, numpy
 and fontTools, plus the Noto Sans font). The output is committed, so you only need it after changing
 the design.
 
