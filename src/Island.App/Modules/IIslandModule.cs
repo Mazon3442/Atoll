@@ -23,8 +23,8 @@ public sealed class ModuleContext(string moduleId, ActivityHost activities, Disp
     public Dispatcher Dispatcher { get; } = dispatcher;
 
     /// <summary>Posts an activity owned by this module. <paramref name="key"/> is unique within the module.</summary>
-    public void Post(string key, object content, ActivityPriority priority, TimeSpan? duration = null) =>
-        Activities.Post(new Activity($"{ModuleId}.{key}", ModuleId, content, priority, duration));
+    public void Post(string key, object content, ActivityPriority priority, TimeSpan? duration = null, bool alert = false) =>
+        Activities.Post(new Activity($"{ModuleId}.{key}", ModuleId, content, priority, duration, alert));
 
     public void Remove(string key) => Activities.Remove($"{ModuleId}.{key}");
 }

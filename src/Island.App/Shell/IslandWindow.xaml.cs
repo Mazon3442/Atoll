@@ -38,6 +38,7 @@ public partial class IslandWindow : Window
     // by polling the real cursor position while the island is hovered or open.
     private readonly DispatcherTimer _hoverWatch;
     private int _outsideMs;
+    private bool _alertPeek;
 
     private nint _hwnd;
     private IslandMode _mode = IslandMode.Compact;
@@ -122,8 +123,22 @@ public partial class IslandWindow : Window
 
     public void SetActivities(Activity? primary, Activity? secondary)
     {
+        var isNewPrimary = !ReferenceEquals(primary, _primary);
         _primary = primary;
         _secondary = secondary;
+
+        if (isNewPrimary && primary is { Alert: true } && _mode == IslandMode.Compact)
+        {
+            // Alerts open the island on their own; hovering is not required to keep them open.
+            _alertPeek = true;
+            _mode = IslandMode.Peek;
+        }
+        else if (isNewPrimary && _alertPeek)
+        {
+            _alertPeek = false;
+            if (_mode == IslandMode.Peek && !IsCursorOverPill()) _mode = IslandMode.Compact;
+        }
+
         if (_mode == IslandMode.Peek && primary is null) _mode = IslandMode.Compact;
         Render();
     }
@@ -192,6 +207,7 @@ public partial class IslandWindow : Window
         {
             SetNoActivate(true);
         }
+        _alertPeek = false;
         _mode = mode;
         _outsideMs = 0;
         if (mode != IslandMode.Compact) _hoverWatch.Start();
@@ -263,14 +279,16 @@ public partial class IslandWindow : Window
             BubbleContent.Content = null;
             return;
         }
-        Bubble.Width = Bubble.Height = size;
-        Bubble.Radius = Roundness * size / 2;
         if (!ReferenceEquals(BubbleContent.Content, content))
         {
             BubbleContent.Content = null;
             BubbleContent.ContentTemplate = Templates.Find(this, content, "Mini");
             BubbleContent.Content = content;
         }
+        BubbleContent.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
+        Bubble.Height = size;
+        Bubble.Width = Math.Max(size, BubbleContent.DesiredSize.Width + size * 0.6); // grows for text like "4:59"
+        Bubble.Radius = Roundness * size / 2;
         Bubble.Visibility = Visibility.Visible;
         UpdateBubbleOffset();
     }
@@ -335,6 +353,9 @@ public partial class IslandWindow : Window
         _hoverTimer.Stop();
         switch (_mode)
         {
+            case IslandMode.Peek when _alertPeek:
+                _hoverWatch.Stop(); // the alert closes itself when its activity ends
+                return;
             case IslandMode.Peek:
                 SetMode(IslandMode.Compact);
                 break;

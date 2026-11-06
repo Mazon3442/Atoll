@@ -77,6 +77,12 @@ internal static class Native
     [return: MarshalAs(UnmanagedType.Bool)]
     public static extern bool GetCursorPos(out POINT point);
 
+    public const int VK_CAPITAL = 0x14;
+    public const int VK_NUMLOCK = 0x90;
+
+    [DllImport("user32.dll")]
+    public static extern short GetKeyState(int virtualKey);
+
     [DllImport("user32.dll")]
     public static extern nint GetForegroundWindow();
 

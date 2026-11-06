@@ -14,8 +14,11 @@ public enum ActivityPriority
 /// One thing the island can show. <see cref="Content"/> is a view model; the island picks its
 /// look from DataTemplates keyed "{TypeName}.Compact", ".Peek", ".Mini" (see Shell/Templates).
 /// </summary>
-public sealed class Activity(string id, string moduleId, object content, ActivityPriority priority, TimeSpan? duration = null)
+public sealed class Activity(string id, string moduleId, object content, ActivityPriority priority, TimeSpan? duration = null, bool alert = false)
 {
+    /// <summary>When it becomes primary, the island opens to its peek view without being hovered.</summary>
+    public bool Alert { get; } = alert;
+
     public string Id { get; } = id;
     public string ModuleId { get; } = moduleId;
     public object Content { get; } = content;

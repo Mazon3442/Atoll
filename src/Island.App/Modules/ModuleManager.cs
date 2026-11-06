@@ -2,6 +2,8 @@ using System.Collections.ObjectModel;
 using System.Windows.Threading;
 using Island.Activities;
 using Island.Modules.Clock;
+using Island.Modules.Indicators;
+using Island.Modules.Media;
 using Island.Settings;
 
 namespace Island.Modules;
@@ -10,7 +12,9 @@ public static class ModuleCatalog
 {
     public static IReadOnlyList<ModuleDescriptor> All { get; } =
     [
-        new("clock", "Clock", "", () => new ClockModule()),
+        new("media", "Media", "", () => new MediaModule()),
+        new("clock", "Clock & timer", "", () => new ClockModule()),
+        new("system", "System", "", () => new IndicatorsModule()),
     ];
 }
 

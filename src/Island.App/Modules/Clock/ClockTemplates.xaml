@@ -1,6 +1,8 @@
 <ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:sys="clr-namespace:System;assembly=System.Runtime">
 
+    <!-- Clock -->
     <DataTemplate x:Key="ClockViewModel.Compact">
         <TextBlock Text="{Binding Time}" FontSize="13" FontWeight="SemiBold" />
     </DataTemplate>
@@ -13,12 +15,119 @@
         </StackPanel>
     </DataTemplate>
 
-    <DataTemplate x:Key="ClockViewModel.Panel">
-        <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
-            <TextBlock Text="{Binding Time}" FontSize="48" FontWeight="Light" HorizontalAlignment="Center" />
-            <TextBlock Text="{Binding Date}" FontSize="15" HorizontalAlignment="Center"
-                       Foreground="{DynamicResource Island.Subtle}" />
+    <!-- Timer as a live activity -->
+    <DataTemplate x:Key="TimerViewModel.Compact">
+        <StackPanel Orientation="Horizontal">
+            <TextBlock Text="&#xE916;" FontFamily="{StaticResource Island.IconFont}" FontSize="13"
+                       Foreground="{DynamicResource Island.Accent}" VerticalAlignment="Center" />
+            <TextBlock Text="{Binding Display}" FontSize="13" FontWeight="SemiBold" Margin="8,0,0,0"
+                       Foreground="{DynamicResource Island.Accent}" VerticalAlignment="Center" />
         </StackPanel>
+    </DataTemplate>
+
+    <DataTemplate x:Key="TimerViewModel.Peek">
+        <StackPanel Orientation="Horizontal">
+            <TextBlock Text="&#xE916;" FontFamily="{StaticResource Island.IconFont}" FontSize="20"
+                       Foreground="{DynamicResource Island.Accent}" VerticalAlignment="Center" />
+            <StackPanel Margin="12,0,0,0" VerticalAlignment="Center">
+                <TextBlock Text="{Binding Label}" FontSize="12" Foreground="{DynamicResource Island.Subtle}" />
+                <TextBlock Text="{Binding Display}" FontSize="22" FontWeight="SemiBold" />
+            </StackPanel>
+            <Button Style="{StaticResource Island.IconButton}" Margin="16,0,0,0" Command="{Binding PauseResumeCommand}"
+                    AutomationProperties.Name="Pause or resume timer">
+                <Button.Content>
+                    <TextBlock>
+                        <TextBlock.Style>
+                            <Style TargetType="TextBlock">
+                                <Setter Property="Text" Value="&#xE769;" />
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding IsRunning}" Value="False">
+                                        <Setter Property="Text" Value="&#xE768;" />
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </TextBlock.Style>
+                    </TextBlock>
+                </Button.Content>
+            </Button>
+        </StackPanel>
+    </DataTemplate>
+
+    <DataTemplate x:Key="TimerViewModel.Mini">
+        <TextBlock Text="{Binding Display}" FontSize="11" FontWeight="SemiBold" Foreground="{DynamicResource Island.Accent}" />
+    </DataTemplate>
+
+    <!-- Expanded tab -->
+    <DataTemplate x:Key="ClockPanelViewModel.Panel">
+        <Grid>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="1.3*" />
+            </Grid.ColumnDefinitions>
+
+            <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
+                <TextBlock Text="{Binding Clock.Time}" FontSize="40" FontWeight="Light" HorizontalAlignment="Center" />
+                <TextBlock Text="{Binding Clock.Date}" FontSize="14" HorizontalAlignment="Center"
+                           Foreground="{DynamicResource Island.Subtle}" />
+            </StackPanel>
+
+            <!-- Timer idle: presets -->
+            <StackPanel Grid.Column="1" VerticalAlignment="Center" DataContext="{Binding Timer}"
+                        Visibility="{Binding IsActive, Converter={StaticResource Island.InverseBoolToVisibility}}">
+                <TextBlock Text="Timer" FontSize="12" Foreground="{DynamicResource Island.Subtle}" Margin="0,0,0,6" />
+                <WrapPanel>
+                    <Button Style="{StaticResource Island.ChipButton}" Content="1 min" Command="{Binding StartCountdownCommand}">
+                        <Button.CommandParameter><sys:Double>1</sys:Double></Button.CommandParameter>
+                    </Button>
+                    <Button Style="{StaticResource Island.ChipButton}" Content="5 min" Command="{Binding StartCountdownCommand}">
+                        <Button.CommandParameter><sys:Double>5</sys:Double></Button.CommandParameter>
+                    </Button>
+                    <Button Style="{StaticResource Island.ChipButton}" Content="10 min" Command="{Binding StartCountdownCommand}">
+                        <Button.CommandParameter><sys:Double>10</sys:Double></Button.CommandParameter>
+                    </Button>
+                    <Button Style="{StaticResource Island.ChipButton}" Content="30 min" Command="{Binding StartCountdownCommand}">
+                        <Button.CommandParameter><sys:Double>30</sys:Double></Button.CommandParameter>
+                    </Button>
+                </WrapPanel>
+                <WrapPanel Margin="0,4,0,0">
+                    <Button Style="{StaticResource Island.ChipButton}" Content="Stopwatch" Command="{Binding StartStopwatchCommand}" />
+                    <Button Style="{StaticResource Island.ChipButton}" Content="Pomodoro 25/5" Command="{Binding StartPomodoroCommand}" />
+                </WrapPanel>
+            </StackPanel>
+
+            <!-- Timer running -->
+            <StackPanel Grid.Column="1" VerticalAlignment="Center" DataContext="{Binding Timer}"
+                        Visibility="{Binding IsActive, Converter={StaticResource Island.BoolToVisibility}}">
+                <TextBlock Text="{Binding Label}" FontSize="12" Foreground="{DynamicResource Island.Subtle}" />
+                <TextBlock Text="{Binding Display}" FontSize="36" FontWeight="SemiBold" Foreground="{DynamicResource Island.Accent}" />
+                <Grid Height="4" Margin="0,4,0,10"
+                      Visibility="{Binding IsCountingDown, Converter={StaticResource Island.BoolToVisibility}}">
+                    <Border CornerRadius="2" Background="{DynamicResource Island.Hover}" />
+                    <Border CornerRadius="2" Background="{DynamicResource Island.Accent}" RenderTransformOrigin="0,0.5">
+                        <Border.RenderTransform>
+                            <ScaleTransform ScaleX="{Binding Progress}" />
+                        </Border.RenderTransform>
+                    </Border>
+                </Grid>
+                <WrapPanel>
+                    <Button Command="{Binding PauseResumeCommand}">
+                        <Button.Style>
+                            <Style TargetType="Button" BasedOn="{StaticResource Island.ChipButton}">
+                                <Setter Property="Content" Value="Pause" />
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding IsRunning}" Value="False">
+                                        <Setter Property="Content" Value="Resume" />
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Button.Style>
+                    </Button>
+                    <Button Style="{StaticResource Island.ChipButton}" Content="+1 min" Command="{Binding AddMinuteCommand}"
+                            Visibility="{Binding IsCountingDown, Converter={StaticResource Island.BoolToVisibility}}" />
+                    <Button Style="{StaticResource Island.ChipButton}" Content="Stop" Command="{Binding ResetCommand}" />
+                </WrapPanel>
+            </StackPanel>
+        </Grid>
     </DataTemplate>
 
 </ResourceDictionary>
