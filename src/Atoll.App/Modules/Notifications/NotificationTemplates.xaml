@@ -1,0 +1,112 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <!-- App icon, or the Claude spark for messages from the Claude desktop app. -->
+    <DataTemplate x:Key="Notification.Icon">
+        <Grid>
+            <Border CornerRadius="5" Background="{DynamicResource Island.Hover}">
+                <TextBlock Text="&#xEA8F;" FontFamily="{StaticResource Island.IconFont}" FontSize="11"
+                           HorizontalAlignment="Center" VerticalAlignment="Center" Foreground="{DynamicResource Island.Subtle}" />
+            </Border>
+            <Image Source="{Binding Icon}" Stretch="Uniform" />
+            <Border x:Name="Claude" Background="{DynamicResource Island.Background}" Visibility="Collapsed">
+                <ContentPresenter Content="{Binding}" ContentTemplate="{StaticResource Claude.StaticSpark}"
+                                  HorizontalAlignment="Center" VerticalAlignment="Center" />
+            </Border>
+        </Grid>
+        <DataTemplate.Triggers>
+            <DataTrigger Binding="{Binding IsClaude}" Value="True">
+                <Setter TargetName="Claude" Property="Visibility" Value="Visible" />
+            </DataTrigger>
+        </DataTemplate.Triggers>
+    </DataTemplate>
+
+    <DataTemplate x:Key="NotificationItemViewModel.Compact">
+        <StackPanel Orientation="Horizontal">
+            <ContentPresenter Content="{Binding}" ContentTemplate="{StaticResource Notification.Icon}"
+                              Width="18" Height="18" VerticalAlignment="Center" />
+            <TextBlock Text="{Binding Title}" FontSize="12" FontWeight="SemiBold" Margin="8,0,0,0"
+                       MaxWidth="240" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
+        </StackPanel>
+    </DataTemplate>
+
+    <DataTemplate x:Key="NotificationItemViewModel.Peek">
+        <StackPanel Orientation="Horizontal">
+            <ContentPresenter Content="{Binding}" ContentTemplate="{StaticResource Notification.Icon}"
+                              Width="34" Height="34" VerticalAlignment="Top" Margin="0,2,0,0" />
+            <StackPanel Margin="12,0,4,0" Width="320">
+                <TextBlock FontSize="11" Foreground="{DynamicResource Island.Subtle}">
+                    <Run Text="{Binding AppName, Mode=OneWay}" /><Run Text="  ·  " /><Run Text="{Binding TimeText, Mode=OneWay}" />
+                </TextBlock>
+                <TextBlock Text="{Binding Title}" FontSize="14" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
+                <TextBlock Text="{Binding Body}" FontSize="12" Foreground="{DynamicResource Island.Subtle}"
+                           TextWrapping="Wrap" TextTrimming="CharacterEllipsis" MaxHeight="34"
+                           Visibility="{Binding HasBody, Converter={StaticResource Island.BoolToVisibility}}" />
+            </StackPanel>
+        </StackPanel>
+    </DataTemplate>
+
+    <DataTemplate x:Key="NotificationItemViewModel.Mini">
+        <ContentPresenter Content="{Binding}" ContentTemplate="{StaticResource Notification.Icon}" Width="18" Height="18" />
+    </DataTemplate>
+
+    <DataTemplate x:Key="NotificationsViewModel.Panel">
+        <Grid>
+            <!-- Setup / permission state -->
+            <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center" MaxWidth="400"
+                        Visibility="{Binding IsAllowed, Converter={StaticResource Island.InverseBoolToVisibility}}">
+                <TextBlock Text="{Binding StatusText}" TextWrapping="Wrap" TextAlignment="Center" FontSize="13" />
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,12,0,0">
+                    <Button Style="{StaticResource Island.ChipButton}" Content="Allow access" Command="{Binding AllowAccessCommand}"
+                            Visibility="{Binding CanRequest, Converter={StaticResource Island.BoolToVisibility}}" />
+                    <Button Style="{StaticResource Island.ChipButton}" Content="Windows settings" Command="{Binding OpenWindowsSettingsCommand}" />
+                </StackPanel>
+            </StackPanel>
+
+            <!-- History -->
+            <DockPanel Visibility="{Binding IsAllowed, Converter={StaticResource Island.BoolToVisibility}}">
+                <DockPanel DockPanel.Dock="Top" Margin="0,0,0,6">
+                    <Button DockPanel.Dock="Right" Style="{StaticResource Island.ChipButton}" Content="Clear" Margin="0"
+                            Command="{Binding ClearCommand}" />
+                    <TextBlock Text="Recent" FontSize="12" Foreground="{DynamicResource Island.Subtle}" VerticalAlignment="Center" />
+                </DockPanel>
+                <Grid>
+                    <TextBlock Text="No notifications yet" HorizontalAlignment="Center" VerticalAlignment="Center"
+                               Foreground="{DynamicResource Island.Subtle}"
+                               Visibility="{Binding IsEmpty, Converter={StaticResource Island.BoolToVisibility}}" />
+                    <ScrollViewer VerticalScrollBarVisibility="Auto">
+                        <ItemsControl ItemsSource="{Binding Items}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Border CornerRadius="10" Padding="10,6" Margin="0,0,0,4" Background="{DynamicResource Island.Hover}">
+                                        <DockPanel>
+                                            <Button DockPanel.Dock="Right" Style="{StaticResource Island.IconButton}" Content="&#xE711;"
+                                                    Width="24" Height="24" FontSize="10" ToolTip="Dismiss"
+                                                    Command="{Binding DismissCommand}" AutomationProperties.Name="Dismiss" />
+                                            <Button DockPanel.Dock="Right" Style="{StaticResource Island.IconButton}" Content="&#xE7ED;"
+                                                    Width="24" Height="24" FontSize="11" ToolTip="Mute this app"
+                                                    Command="{Binding MuteCommand}"
+                                                    AutomationProperties.Name="{Binding AppName, StringFormat=Mute {0}}" />
+                                            <ContentPresenter DockPanel.Dock="Left" Content="{Binding}" ContentTemplate="{StaticResource Notification.Icon}"
+                                                              Width="24" Height="24" VerticalAlignment="Top" Margin="0,2,10,0" />
+                                            <StackPanel>
+                                                <TextBlock FontSize="11" Foreground="{DynamicResource Island.Subtle}">
+                                                    <Run Text="{Binding AppName, Mode=OneWay}" /><Run Text="  ·  " /><Run Text="{Binding TimeText, Mode=OneWay}" />
+                                                </TextBlock>
+                                                <TextBlock Text="{Binding Title}" FontSize="13" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
+                                                <TextBlock Text="{Binding Body}" FontSize="12" Foreground="{DynamicResource Island.Subtle}"
+                                                           TextTrimming="CharacterEllipsis"
+                                                           Visibility="{Binding HasBody, Converter={StaticResource Island.BoolToVisibility}}" />
+                                            </StackPanel>
+                                        </DockPanel>
+                                    </Border>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </ScrollViewer>
+                </Grid>
+            </DockPanel>
+        </Grid>
+    </DataTemplate>
+
+</ResourceDictionary>

@@ -120,6 +120,41 @@
                         Value="{Binding ExpandedHeight}" />
             </DockPanel>
 
+            <!-- Notifications -->
+            <TextBlock Style="{StaticResource Section}" Text="Notifications" />
+            <TextBlock Text="{Binding NotificationStatus}" TextWrapping="Wrap" Margin="0,0,0,8" />
+            <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                <Button Content="Allow access" Command="{Binding AllowNotificationsCommand}" Margin="0,0,8,0" Padding="14,6"
+                        Visibility="{Binding CanRequestNotifications, Converter={StaticResource BoolToVisibility}}" />
+                <Button Content="Windows notification settings" Command="{Binding OpenNotificationSettingsCommand}" Padding="14,6" />
+            </StackPanel>
+            <CheckBox Content="Show message text (turn off while screen sharing)" IsChecked="{Binding ShowNotificationContent}" Margin="0,4" />
+            <TextBlock Text="Muted apps" Opacity="0.7" Margin="0,10,0,4" />
+            <TextBlock Text="None. Mute an app from the Notifications tab in the island." Opacity="0.7">
+                <TextBlock.Style>
+                    <Style TargetType="TextBlock">
+                        <Setter Property="Visibility" Value="Collapsed" />
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding MutedApps.Count}" Value="0">
+                                <Setter Property="Visibility" Value="Visible" />
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </TextBlock.Style>
+            </TextBlock>
+            <ItemsControl x:Name="MutedList" ItemsSource="{Binding MutedApps}">
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                        <DockPanel Margin="0,2">
+                            <Button DockPanel.Dock="Right" Content="Unmute" Padding="10,3"
+                                    Command="{Binding DataContext.UnmuteCommand, ElementName=MutedList}" CommandParameter="{Binding}"
+                                    AutomationProperties.Name="{Binding StringFormat=Unmute {0}}" />
+                            <TextBlock Text="{Binding}" VerticalAlignment="Center" />
+                        </DockPanel>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+
             <!-- Claude Code -->
             <TextBlock Style="{StaticResource Section}" Text="Claude Code" />
             <TextBlock Text="{Binding HookStatus}" TextWrapping="Wrap" Margin="0,0,0,8" />

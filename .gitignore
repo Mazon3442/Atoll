@@ -480,3 +480,6 @@ $RECYCLE.BIN/
 
 # Vim temporary swap files
 *.swp
+
+# Built identity package and exported certificate (packaging/build-identity.ps1)
+packaging/out/

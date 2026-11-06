@@ -83,6 +83,12 @@ internal static class Native
     [DllImport("user32.dll")]
     public static extern short GetKeyState(int virtualKey);
 
+    /// <summary>QUNS_ACCEPTS_NOTIFICATIONS: not in Do Not Disturb, fullscreen, presentation or locked.</summary>
+    public const int QUNS_ACCEPTS_NOTIFICATIONS = 5;
+
+    [DllImport("shell32.dll")]
+    public static extern int SHQueryUserNotificationState(out int state);
+
     [DllImport("user32.dll")]
     [return: MarshalAs(UnmanagedType.Bool)]
     public static extern bool IsWindow(nint hwnd);

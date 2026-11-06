@@ -1,10 +1,8 @@
-using System.Windows.Media;
-using System.Windows.Media.Imaging;
 using System.Windows.Threading;
 using Atoll.Activities;
 using Atoll.Modules.Clock;
+using Atoll.Shell;
 using Windows.Media.Control;
-using Windows.Storage.Streams;
 using Session = Windows.Media.Control.GlobalSystemMediaTransportControlsSession;
 using SessionManager = Windows.Media.Control.GlobalSystemMediaTransportControlsSessionManager;
 
@@ -115,7 +113,7 @@ public sealed class MediaModule : IIslandModule
         try
         {
             var props = await session.TryGetMediaPropertiesAsync();
-            var art = await LoadArtAsync(props.Thumbnail);
+            var art = await ImageLoader.LoadAsync(props.Thumbnail, 240);
             if (_disposed || !ReferenceEquals(session, _session)) return; // a newer session took over meanwhile
 
             _vm.Title = props.Title ?? "";
@@ -205,24 +203,6 @@ public sealed class MediaModule : IIslandModule
         if (_session is null) return;
         try { await action(_session); }
         catch (Exception ex) { Log.Error("Media control command failed", ex); }
-    }
-
-    private static async Task<ImageSource?> LoadArtAsync(IRandomAccessStreamReference? reference)
-    {
-        if (reference is null) return null;
-        using var winrtStream = await reference.OpenReadAsync();
-        using var stream = winrtStream.AsStreamForRead();
-        var buffer = new MemoryStream();
-        await stream.CopyToAsync(buffer);
-        buffer.Position = 0;
-        var bitmap = new BitmapImage();
-        bitmap.BeginInit();
-        bitmap.CacheOption = BitmapCacheOption.OnLoad;
-        bitmap.DecodePixelWidth = 240;
-        bitmap.StreamSource = buffer;
-        bitmap.EndInit();
-        bitmap.Freeze();
-        return bitmap;
     }
 
     /// <summary>"SpotifyAB.SpotifyMusic_zpdnekdrzrea0!Spotify" → "Spotify", "chrome.exe" → "chrome".</summary>

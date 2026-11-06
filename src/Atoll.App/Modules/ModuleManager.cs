@@ -5,6 +5,7 @@ using Atoll.Modules.Claude;
 using Atoll.Modules.Clock;
 using Atoll.Modules.Indicators;
 using Atoll.Modules.Media;
+using Atoll.Modules.Notifications;
 using Atoll.Settings;
 
 namespace Atoll.Modules;
@@ -15,6 +16,7 @@ public static class ModuleCatalog
     [
         new("claude", "Claude", "", () => new ClaudeModule()),
         new("media", "Media", "", () => new MediaModule()),
+        new("notifications", "Notifications", "", () => new NotificationsModule()),
         new("clock", "Clock & timer", "", () => new ClockModule()),
         new("system", "System", "", () => new IndicatorsModule()),
     ];

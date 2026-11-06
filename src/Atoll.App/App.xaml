@@ -10,6 +10,7 @@
                 <ResourceDictionary Source="Modules/Claude/ClaudeTemplates.xaml" />
                 <ResourceDictionary Source="Modules/Clock/ClockTemplates.xaml" />
                 <ResourceDictionary Source="Modules/Media/MediaTemplates.xaml" />
+                <ResourceDictionary Source="Modules/Notifications/NotificationTemplates.xaml" />
                 <ResourceDictionary Source="Modules/Indicators/IndicatorsTemplates.xaml" />
             </ResourceDictionary.MergedDictionaries>
         </ResourceDictionary>

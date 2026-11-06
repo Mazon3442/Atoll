@@ -25,6 +25,8 @@ public sealed class AppSettings
 
     public ClaudeSettings Claude { get; set; } = new();
 
+    public NotificationSettings Notifications { get; set; } = new();
+
     /// <summary>List order = tab order in the expanded panel.</summary>
     public List<ModuleEntry> Modules { get; set; } = [];
 }
@@ -51,6 +53,15 @@ public sealed class ClaudeSettings
 {
     public bool SoundOnDone { get; set; } = true;
     public bool SoundOnAttention { get; set; } = true;
+}
+
+public sealed class NotificationSettings
+{
+    /// <summary>False shows only the app name, for privacy (e.g. while screen sharing).</summary>
+    public bool ShowContent { get; set; } = true;
+
+    /// <summary>App display names whose notifications are ignored.</summary>
+    public List<string> MutedApps { get; set; } = [];
 }
 
 public sealed class ModuleEntry

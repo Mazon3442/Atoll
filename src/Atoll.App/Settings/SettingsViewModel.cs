@@ -4,6 +4,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Atoll.Modules;
 using Atoll.Modules.Claude;
+using Atoll.Modules.Notifications;
 using Atoll.Shell;
 using Atoll.Theme;
 
@@ -84,6 +85,38 @@ public sealed partial class SettingsViewModel : ObservableObject
     public double Roundness { get => T.Roundness; set => Set(T.Roundness, value, v => T.Roundness = v); }
     public double ExpandedWidth { get => T.ExpandedWidth; set => Set(T.ExpandedWidth, value, v => T.ExpandedWidth = v); }
     public double ExpandedHeight { get => T.ExpandedHeight; set => Set(T.ExpandedHeight, value, v => T.ExpandedHeight = v); }
+
+    // ---------- Notifications ----------
+
+    public string NotificationStatus => NotificationAccessInfo.Describe(NotificationAccessInfo.Get());
+    public bool CanRequestNotifications => NotificationAccessInfo.Get() == NotificationAccess.NeedsPermission;
+
+    public bool ShowNotificationContent
+    {
+        get => S.Notifications.ShowContent;
+        set => Set(S.Notifications.ShowContent, value, v => S.Notifications.ShowContent = v);
+    }
+
+    public ObservableCollection<string> MutedApps => new(S.Notifications.MutedApps);
+
+    [RelayCommand]
+    private async Task AllowNotifications()
+    {
+        await NotificationAccessInfo.RequestAsync();
+        OnPropertyChanged(nameof(NotificationStatus));
+        OnPropertyChanged(nameof(CanRequestNotifications));
+    }
+
+    [RelayCommand]
+    private void OpenNotificationSettings() => NotificationAccessInfo.OpenWindowsSettings();
+
+    [RelayCommand]
+    private void Unmute(string app)
+    {
+        S.Notifications.MutedApps.RemoveAll(a => string.Equals(a, app, StringComparison.OrdinalIgnoreCase));
+        OnPropertyChanged(nameof(MutedApps));
+        Save();
+    }
 
     // ---------- Claude Code ----------
 
