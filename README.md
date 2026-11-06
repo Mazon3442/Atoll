@@ -1,152 +1,273 @@
-# ATOLL
+<div align="center">
 
-A desktop island for coding agents, music, timers, calendars, weather and files.
-ATOLL uses .NET 10 and Avalonia on Windows, macOS, Ubuntu and Arch Linux.
-No account is required.
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/assets/brand/banner-dark.svg">
+  <source media="(prefers-color-scheme: light)" srcset="docs/assets/brand/banner-light.svg">
+  <img alt="ATOLL: a desktop island for Windows, macOS and Linux" src="docs/assets/brand/banner-dark.svg" width="100%">
+</picture>
 
-[Releases](https://github.com/Mazon3442/Atoll/releases) · [Builds](https://github.com/Mazon3442/Atoll/actions/workflows/release.yml)
+**Coding agents, music, timers, calendars, weather and files, in a pill at the top of your screen.<br>Click it to open a panel. ATOLL runs on your own computer, with no account and no telemetry.**
+
+[![Release](https://img.shields.io/github/v/release/Mazon3442/Atoll?style=flat-square&color=2FD3E6&label=release)](https://github.com/Mazon3442/Atoll/releases/latest)
+[![Platforms: Windows, macOS and Linux](https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-555?style=flat-square)](#install)
+[![Built with .NET 10 and Avalonia](https://img.shields.io/badge/built%20with-.NET%2010%20%2B%20Avalonia-512BD4?style=flat-square&logo=dotnet&logoColor=white)](https://avaloniaui.net)
+[![Desktop releases](https://img.shields.io/github/actions/workflow/status/Mazon3442/Atoll/release.yml?style=flat-square&label=builds)](https://github.com/Mazon3442/Atoll/actions/workflows/release.yml)
+[![Downloads](https://img.shields.io/github/downloads/Mazon3442/Atoll/total?style=flat-square&color=555&label=downloads)](https://github.com/Mazon3442/Atoll/releases)
+
+[Features](#features) · [Install](#install) · [Quick start](#quick-start) · [Using ATOLL](#using-atoll) · [Privacy](#privacy) · [Build from source](#build-from-source) · [Releases](#releases) · [Troubleshooting](#troubleshooting)
+
+</div>
+
+## Features
+
+ATOLL sits at the top of your primary display as a **compact** pill that shows the most important
+thing happening. Hover over it or click it to **expand** it into grouped tabs, and press Escape to
+collapse it again. Each module can be turned on or off in Settings.
+
+| Feature | What it does |
+| --- | --- |
+| **Agents** | Activity from Claude Code, Codex, OpenCode and Hermes, with completion and attention alerts. Codex also reads recent local session events, including sessions already running when hooks were installed. Claude Code token and cost totals come from local transcripts and are estimates at API list prices. |
+| **API providers** | An optional local gateway for OpenAI-compatible Chat Completions/Responses and official Anthropic Messages. It shows requests in progress and local token totals. OpenAI organization usage and costs are available with an optional admin key, and DeepSeek balance with a normal key. |
+| **Media** | Pick a player in the source dropdown. Five bars take their color from its cover, adjusted for your theme. Play/pause, skip and seek when the player supports it. |
+| **Clock & timers** | Clock, countdown presets, stopwatch and Pomodoro. |
+| **Calendar** | Upcoming events from private HTTPS ICS links (Google, Outlook / Microsoft 365, ...), with pin and dismiss controls and alerts before events start. |
+| **Weather** | Open-Meteo city search, current conditions and a seven-day forecast. Hourly wind, rain and temperature charts work with the pointer and the keyboard. |
+| **Files** | A file shelf and clipboard history. History stays in memory, and private or password formats are skipped. |
+| **System** | CPU, memory and network readings, volume and battery, and quick actions: screenshot, microphone mute, lock, display off and Downloads. |
+| **Notifications** | Windows notifications mirrored into the island once you set up the package identity and allow access. |
+| **Updates** | Windows installer copies download published releases in the background and apply them on restart. |
+
+### Platform support
+
+|  | Windows | macOS | Linux |
+| --- | :---: | :---: | :---: |
+| Agents, API gateway, clock, calendar, weather, file shelf | ✅ | ✅ | ✅ |
+| Clipboard history | ✅ | ✅ | ✅ ¹ |
+| Media sources | Any player | Music, Spotify ² | MPRIS via `playerctl` |
+| Live audio bars | ✅ ³ | Cover color only | Cover color only |
+| Volume and battery | ✅ | ✅ | PulseAudio / PipeWire |
+| Quick actions | ✅ | ✅ | ✅ ⁴ |
+| Notification mirroring | ✅ | ➖ | ➖ |
+| Fullscreen/game handling, click-through | ✅ | Window manager | Window manager |
+| Automatic updates | Installer copies | Download again | Package manager |
+
+<sub>¹ Some desktops restrict clipboard access. ² macOS may ask for Automation permission.
+³ Captures the selected app's audio where Windows can match its process; otherwise it falls back to a labeled system output.
+⁴ Screenshot and display-off need desktop tools such as `gnome-screenshot` and `xset` (X11 only).</sub>
+
+ATOLL's own agent, calendar and timer alerts work everywhere. Audio-only sources such as Discord can
+appear on Windows and Linux without track details or playback controls.
+
+> [!NOTE]
+> Release packages run the new Avalonia shell on every platform. It doesn't yet have the old WPF
+> side bubbles, the animated peek view, GPU graphs or screenshot exclusion. The WPF project stays in
+> the repository so its regression tests keep running.
 
 ## Install
 
-Download the package for your computer from GitHub Releases. Each package includes
-the .NET runtime and the agent hook executable.
+Download the package for your computer from the [latest release](https://github.com/Mazon3442/Atoll/releases/latest).
+Every package includes the .NET runtime and the agent hook executable.
 
 | System | Package | Install |
 | --- | --- | --- |
-| Windows 10 (2004+) / 11, x64 | `Atoll-win-Setup.exe` | Run the installer; installs to your user folder. |
-| Windows portable | `Atoll-win-Portable.zip` | Extract the whole ZIP and run `Atoll.exe`. |
-| macOS 14+, Apple silicon | `Atoll-X.Y.Z-osx-arm64.dmg` | Open the disk image and drag ATOLL to Applications. |
-| macOS 14+, Intel | `Atoll-X.Y.Z-osx-x64.dmg` | Open the disk image and drag ATOLL to Applications. |
-| Ubuntu 22.04 / 24.04, x64 | `atoll_X.Y.Z_amd64.deb` | `sudo apt install ./atoll_X.Y.Z_amd64.deb` |
-| Arch Linux, x64 | `atoll-X.Y.Z-1-x86_64.pkg.tar.zst` | `sudo pacman -U ./atoll-X.Y.Z-1-x86_64.pkg.tar.zst` |
-| Linux portable, x64 | `Atoll-X.Y.Z-linux-x64.tar.gz` | Extract and run `./Atoll`; install the native dependencies listed below. |
+| **Windows** 10 (2004+) / 11, x64 | `Atoll-win-Setup.exe` | Run the installer. It installs to your user folder, so no admin prompt. |
+| **Windows** portable | `Atoll-win-Portable.zip` | Extract the whole ZIP and run `Atoll.exe`. |
+| **macOS** 14+, Apple silicon | `Atoll-X.Y.Z-osx-arm64.dmg` | Open the disk image and drag ATOLL to Applications. |
+| **macOS** 14+, Intel | `Atoll-X.Y.Z-osx-x64.dmg` | Open the disk image and drag ATOLL to Applications. |
+| **Ubuntu** 22.04 / 24.04, x64 | `atoll_X.Y.Z_amd64.deb` | `sudo apt install ./atoll_X.Y.Z_amd64.deb` |
+| **Arch Linux**, x64 | `atoll-X.Y.Z-1-x86_64.pkg.tar.zst` | `sudo pacman -U ./atoll-X.Y.Z-1-x86_64.pkg.tar.zst` |
+| **Linux** portable, x64 | `Atoll-X.Y.Z-linux-x64.tar.gz` | Extract it and run `./Atoll`. Install the native dependencies first (see *Linux notes* below). |
 
-Windows installers are currently unsigned. macOS bundles have an ad-hoc signature,
-not an Apple Developer ID signature or notarization. Downloaded builds may need
-approval in the operating system's security settings before they open.
+> [!WARNING]
+> The Windows installer isn't code-signed, and macOS bundles have only an ad-hoc signature: no
+> Developer ID or notarization. Your operating system may ask you to approve the app in its
+> security settings the first time it opens. On Windows, click **More info › Run anyway**.
 
-Each platform's `SHA256SUMS-*.txt` lists its package hashes. On Linux/macOS, use
-`sha256sum -c SHA256SUMS-linux-x64.txt` or `shasum -a 256` respectively; on Windows,
-use `Get-FileHash -Algorithm SHA256` and compare the result.
+<details>
+<summary><b>Verify a download</b></summary>
 
-Linux uses X11 or XWayland. Overlay placement, tray icons and global clipboard access
-depend on your desktop/compositor. Install XWayland when using a Wayland session.
-The `.deb` and Arch package declare their required libraries, `playerctl` for MPRIS
-media controls, `gdbus` for player capabilities, and PulseAudio-compatible tools for volume controls. A portable
-copy needs the same libraries; see `packaging/package-linux.sh` for the full list.
+<br>
 
-## Use ATOLL
+Each platform's `SHA256SUMS-*.txt` lists its package hashes.
+
+- **Linux**: `sha256sum -c SHA256SUMS-linux-x64.txt`
+- **macOS**: `shasum -a 256 <file>` and compare the result
+- **Windows**: `Get-FileHash -Algorithm SHA256 <file>` and compare the result
+
+</details>
+
+<details>
+<summary><b>Linux notes</b></summary>
+
+<br>
+
+ATOLL uses X11 or XWayland. On a Wayland session, install XWayland. Overlay placement, tray icons
+and global clipboard access depend on your desktop and compositor.
+
+The `.deb` and Arch packages declare everything they need: the native libraries, `playerctl` for
+MPRIS media controls, `gdbus` for player capabilities, and PulseAudio-compatible tools for volume. A
+portable copy needs the same libraries; `packaging/package-linux.sh` has the full list.
+
+</details>
+
+Uninstall from Windows Settings › Apps, by dragging ATOLL to the Trash on macOS, or with your
+package manager on Linux.
+
+## Quick start
 
 1. Launch ATOLL. The compact island appears at the top of your primary display.
-2. Hover over or click the pill to expand it. Press Escape to collapse it.
-3. Open Settings from the island or tray/menu-bar icon. The same menu can pause
-   the island or quit ATOLL. Settings also has a Quit button for desktops without a tray.
-4. Choose your displays, theme and enabled modules. Existing Windows settings,
-   saved themes, calendars and shelf paths are reused.
+2. Hover over the pill or click it to expand it. Press **Escape** to collapse it.
+3. Open **Settings** from the island or the tray/menu-bar icon. The same menu can pause the island or
+   quit ATOLL; Settings also has a **Quit** button for desktops without a tray.
+4. Choose your displays, theme and modules. If you used the Windows WPF version, ATOLL picks up your
+   existing settings, saved themes, calendars and shelf paths.
 
-| Feature | Availability |
+Then set up the parts you want:
+
+- **Coding agents**: Settings › Agents › **Install** next to each agent you use ([details](#coding-agents)).
+- **API providers**: Settings › Agents › add a provider ([details](#api-providers-and-the-local-gateway)).
+- **Calendar**: Settings › Calendar, paste a private ICS link ([details](#calendar)).
+- **Weather**: Settings › Weather, search for a city ([details](#weather)).
+- **Notifications** (Windows): Settings › Notifications › **Set up notifications** ([details](#windows-notifications)).
+
+## Using ATOLL
+
+### Coding agents
+
+Open **Settings › Agents** and click **Install** for each agent you use, then restart its running
+sessions. Existing hooks and settings are kept, and the files ATOLL changes are backed up first.
+Malformed settings files are left alone.
+
+| Agent | Integration |
 | --- | --- |
-| Agents | Claude Code, Codex, OpenCode and Hermes adapters on all platforms. Install or update adapters in Settings > Agents, then restart agent sessions. Codex also reads recent local session events, including sessions already running when hooks were installed. Claude token/cost totals come from local transcripts and are estimates at API list prices. |
-| API providers | Optional local gateway for OpenAI-compatible Chat Completions/Responses and official Anthropic Messages. Live request activity and local token totals; OpenAI organization usage/costs with an optional admin key; DeepSeek balance with a normal key. |
-| Clock and timers | Clock, countdown presets, stopwatch and Pomodoro on all platforms. |
-| Calendar | Private HTTPS ICS links, upcoming events, pin/dismiss controls and pre-event alerts on all platforms. Add links in Settings > Calendar. |
-| Weather | Open-Meteo city search, current conditions and seven-day forecasts on all platforms. Hourly wind, rain and temperature charts support pointer and keyboard selection. |
-| Files | File shelf and clipboard history on all platforms. Clipboard access may be restricted by the desktop. History stays in memory; sensitive/private formats are skipped. |
-| Media | Choose a player in the source dropdown. Five bars take their color from its cover, adjusted for your theme. Windows captures the selected app's audio where process matching is available, with a labeled system-output fallback. Linux MPRIS through `playerctl`; Music/Spotify on macOS through Apple Events. Seeking requires player support. macOS may ask for Automation permission. |
-| Devices | Windows native audio/device events; Linux PulseAudio/PipeWire-compatible volume and battery readings; macOS volume and battery readings. |
-| System stats | CPU, memory and network readings on all platforms. |
-| Quick actions | Screenshot, microphone mute, lock, display off and Downloads. Linux screenshot/display actions require desktop tools such as `gnome-screenshot` and `xset`; `xset` requires X11. |
-| Notification mirroring | Windows only, after package identity setup and permission. Linux desktops differ; macOS has no supported listener for other apps' notifications. ATOLL's own agent, calendar and timer alerts work everywhere. |
-| Fullscreen/game handling and click-through | Windows native handling. Linux/macOS window behavior follows the desktop/window manager. |
-| Updates | Windows installer copies download updates from published GitHub releases and apply them on restart. Linux packages update through reinstall/package management; macOS and portable copies update from release downloads. |
+| **Claude Code** | Command hooks in `~/.claude/settings.json`. |
+| **Codex** | Command hooks in `$CODEX_HOME/hooks.json` (default `~/.codex/hooks.json`). |
+| **OpenCode** | A local plugin at `~/.config/opencode/plugins/atoll.js` (respects `XDG_CONFIG_HOME` and `OPENCODE_CONFIG_DIR`). |
+| **Hermes** | A native `atoll` plugin under `$HERMES_HOME/plugins/atoll` (default `%LocalAppData%\hermes` on Windows, `~/.hermes` elsewhere). |
 
-The Avalonia shell uses compact and expanded views with grouped tabs. It does not
-yet reproduce the old WPF side bubbles, animated peek view, GPU graphs or screenshot
-exclusion. The WPF project remains in the repository for regression coverage; release
-packages launch the Avalonia app on every platform.
+Adapters send short activity summaries to ATOLL over a local named pipe that only your user account
+can open. They never approve, deny or change an agent's tool calls. Agents must run on the same
+computer as ATOLL.
 
-Audio-only sources such as Discord can appear on Windows and Linux without track
-metadata or playback controls. macOS source selection currently supports Music and
-Spotify. Live five-band audio capture is currently Windows-only; Linux/macOS bars
-keep their cover color but do not animate to the audio.
+#### Codex connection
 
-### Provider keys and the local gateway
+The Agents panel shows the last hook or local session event it received. When hooks haven't
+loaded, Codex's recent session files still provide activity, without reading chat text into the
+island. Permission alerts still need hooks:
 
-1. Open Settings > Agents and add a provider. Choose OpenAI, DeepSeek, Anthropic,
-   or a custom **OpenAI-compatible** HTTPS base URL. Save its inference API key.
-2. Enable **Local API gateway**, then copy the gateway token. The token is separate
-   from the upstream key and authorizes local access to your configured providers.
-3. Copy the account's harness base URL (`http://127.0.0.1:47831/providers/<id>/v1`)
-   into the harness's API base URL setting. Use the **gateway token** as its API key.
-   Some Anthropic clients expect the URL without `/v1` and add that segment themselves.
-4. Keep ATOLL running. The Agents panel shows API requests in progress and token
-   totals. A finished API request does not mean the agent has finished its work;
-   use the agent adapters for tool/permission/completion alerts.
+1. Install or update them in Settings › Agents.
+2. Review and trust ATOLL's exact hook definitions in Codex Settings › Hooks (CLI: `/hooks`).
+   ATOLL never edits Codex trust records.
+3. Restart existing sessions.
 
-Model names pass through unchanged. The gateway accepts `/chat/completions`,
-`/responses`, `/messages` and `/models`; it does not implement other vendor protocols,
-uploads, WebSockets or asynchronous Responses polling. For Chat Completions streaming,
-configure the harness to request `stream_options.include_usage` if supported. When
-the upstream omits usage, the request is marked **usage unavailable** rather than
-counted as zero tokens. Local totals persist across restarts and cover only requests
-forwarded through ATOLL.
+Sessions with local history turned off need hooks. The fallback reads Codex's local rollout files
+and may need an update when Codex changes their format.
 
-Provider account metrics refresh when a key is saved and every five minutes. OpenAI
-organization usage and actual costs require an optional, separate **admin API key**;
-ordinary project inference keys cannot read those endpoints. Organization totals
-include traffic outside ATOLL and can arrive late. DeepSeek reports the balance in
-the currency supplied by the provider. Other compatible providers show local totals
-unless an account metrics integration is available. ATOLL does not guess model prices.
+### API providers and the local gateway
 
-The gateway binds IPv4 loopback only, authenticates each request, rejects browser
-origins/unexpected hosts, and does not follow provider redirects. It does not log or
-save prompts, responses or credentials. The upstream provider receives the requests
-you route through it. Keys remain encrypted in ATOLL settings; remove an account to
-remove its saved keys. Never paste your real provider key into an ATOLL gateway URL.
+1. Open **Settings › Agents** and add a provider: OpenAI, DeepSeek, Anthropic, or a custom
+   **OpenAI-compatible** HTTPS base URL. Save its inference API key.
+2. Turn on **Local API gateway** and copy the gateway token. It is separate from the provider key and
+   authorizes local access to the providers you set up.
+3. Paste the account's harness base URL (`http://127.0.0.1:47831/providers/<id>/v1`) into your
+   harness's API base URL setting, with the **gateway token** as its API key. Some Anthropic clients
+   expect the URL without `/v1` and add it themselves.
+4. Keep ATOLL running. The Agents panel shows API requests in progress and token totals.
 
-### Codex connection
+> [!TIP]
+> A finished API request doesn't mean the agent has finished its work. Use the
+> [agent adapters](#coding-agents) for tool, permission and completion alerts.
 
-The Agents panel shows the last received hook or local session event. Codex's recent
-session files provide activity when hooks have not loaded, without reading chat text
-into the island. Hooks still provide permission alerts; install/update them, review
-and trust ATOLL's exact hook definitions in Codex Settings > Hooks (CLI: `/hooks`),
-and restart existing sessions. ATOLL never edits Codex trust records. Sessions with
-local history disabled need hooks. The fallback recognizes local rollout events and
-may need updating when Codex changes that file format.
+<details>
+<summary><b>What the gateway supports</b></summary>
 
-### Windows notification setup
+<br>
 
-Open Settings > Notifications and run **Set up notifications**. This explicitly asks
-for administrator permission to trust ATOLL's development signing certificate in
-Local Machine > Trusted People and register a sparse identity package. It does not
-install a root CA. Quit and reopen ATOLL, then allow notification access.
-The installer itself does not need administrator access.
+- Model names pass through unchanged. The gateway accepts `/chat/completions`, `/responses`,
+  `/messages` and `/models`. It doesn't implement other vendor protocols, uploads, WebSockets or
+  asynchronous Responses polling.
+- For Chat Completions streaming, have the harness request `stream_options.include_usage` if it can.
+  When the provider omits usage, the request is marked **usage unavailable** instead of counted as
+  zero tokens.
+- Local totals persist across restarts and cover only requests sent through ATOLL.
+- Provider account metrics refresh when you save a key and every five minutes. OpenAI organization
+  usage and actual costs need a separate, optional **admin API key**; ordinary project keys can't
+  read those endpoints. Organization totals include traffic outside ATOLL and can arrive late.
+- DeepSeek reports its balance in the provider's currency. Other compatible providers show local
+  totals only. ATOLL doesn't guess model prices.
 
-`packaging/remove-identity.ps1` removes the identity and its development certificate.
-Uninstalling the Windows app is otherwise available through Windows Settings > Apps.
+</details>
 
-## Privacy and local data
+> [!IMPORTANT]
+> The gateway listens only on IPv4 loopback, authenticates every request, rejects browser origins and
+> unexpected hosts, and doesn't follow provider redirects. It never logs or saves prompts, responses
+> or credentials. Never paste your real provider key into an ATOLL gateway URL.
 
-- Settings, shelf paths and logs live under the current user's application-data
-  folder: `%AppData%/Atoll` on Windows, `~/.config/Atoll` on Linux (or the .NET
-  application-data location), and `~/Library/Application Support/Atoll` on macOS.
-- Calendar links and provider keys retain Windows DPAPI encryption. Linux/macOS use AES-GCM with a
-  random key in `secrets.key`, readable only by the user. Back up that key with your
-  settings; losing it means saving your calendar links again. This protects stored
-  links from other accounts, not from programs running as you.
-- Clipboard history is not saved. Private/concealed/password formats are ignored.
-- Agent adapters send short summaries over a current-user-only local named pipe.
-  Existing hooks are preserved and backed up; malformed settings are left unchanged.
-- Codex fallback monitoring reads bounded recent local event records; prompts and
-  replies are not displayed, retained or uploaded. Gateway storage contains only
-  request/failure counts and token totals. Optional metrics requests go to OpenAI or DeepSeek.
-- Weather requests send the search text or selected coordinates to Open-Meteo.
-  Calendar requests go to the ICS providers you add. Update checks go to GitHub.
+### Calendar
+
+Add each calendar's private ICS link in **Settings › Calendar**, with a name and color.
+
+- **Google**: Calendar settings › the calendar › *Secret address in iCal format*.
+- **Outlook / Microsoft 365**: Settings › Calendar › Shared calendars › *Publish a calendar* › copy
+  the ICS link. Some Microsoft 365 admins turn publishing off for work accounts.
+
+Pin an event to keep it in the island, or dismiss one occurrence; it stays in the list. The calendar
+is read-only: ATOLL can't create, accept or edit events. Google's links can lag by hours, and that
+delay is on Google's side.
+
+### Weather
+
+Open **Settings › Weather** and search for a city, then pick the right region. Choose a forecast day
+and switch between rain, wind and temperature. Point at the chart, or focus it and use the arrow keys
+to step through the hours. Rain timing is a forecast, not an alert service.
+
+### Windows notifications
+
+Windows lets an app read notifications only when it has a *package identity*. Open
+**Settings › Notifications** and run **Set up notifications**. It asks for administrator permission
+once to trust ATOLL's development signing certificate (in Local Machine › Trusted People) and to
+register a sparse identity package. It doesn't install a root certificate. Quit and reopen ATOLL,
+then allow notification access.
+
+The installer itself never needs administrator access. To undo the setup, run
+`packaging/remove-identity.ps1`, which removes the identity and its certificate.
+
+### Launch options
+
+| Option | Effect |
+| --- | --- |
+| `--settings` | Open Settings on launch. |
+| `--open=<tab>` | Open the island expanded on a tab, for example `--open=weather`. |
+
+## Privacy
+
+ATOLL runs locally and has no account or telemetry.
+
+- **Network.** Weather sends your search text or chosen coordinates to [Open-Meteo](https://open-meteo.com).
+  Calendars are downloaded from the ICS links you add. Update checks go to GitHub. Optional account
+  metrics go to OpenAI or DeepSeek, and the gateway forwards only the requests you route through it.
+- **Secrets.** Calendar links and provider keys are encrypted: with DPAPI on Windows, and with
+  AES-GCM using a random key in `secrets.key` (readable only by you) on macOS and Linux. Back that key
+  up with your settings, or you'll need to enter your calendar links again. Encryption protects them
+  from other accounts, not from programs running as you.
+- **Clipboard history** is never saved. Private, concealed and password formats are ignored.
+- **Agent adapters** send short summaries over a local pipe that only your account can open.
+- **Codex fallback monitoring** reads a limited set of recent local events. Prompts and replies are
+  never displayed, kept or uploaded.
+- **Gateway storage** holds only request and failure counts and token totals.
+
+Settings, shelf paths and logs live in your user's app-data folder:
+
+| System | Folder |
+| --- | --- |
+| Windows | `%AppData%\Atoll` |
+| macOS | `~/Library/Application Support/Atoll` |
+| Linux | `~/.config/Atoll` (or .NET's application-data location) |
 
 ## Build from source
 
-Install the [.NET 10 SDK](https://dotnet.microsoft.com/download). These commands work
-on all supported systems:
+Install the [.NET 10 SDK](https://dotnet.microsoft.com/download). These commands work on every
+supported system:
 
 ```sh
 dotnet run --project src/Atoll.Desktop/Atoll.Desktop.csproj
@@ -159,34 +280,63 @@ On Windows, also run the WPF regression suite:
 dotnet test tests/Atoll.Tests/Atoll.Tests.csproj -c Release
 ```
 
-Do not build the entire solution on Linux/macOS: it includes the legacy WPF project.
-Use a separate `--artifacts-path` when a development copy is running.
+> [!CAUTION]
+> Don't build the whole solution on macOS or Linux: it includes the legacy WPF project. Use a
+> separate `--artifacts-path` while a development copy of ATOLL is running.
 
-For Windows notification setup in a source build, install the Windows SDK
-(`makeappx.exe`, `signtool.exe`), run `packaging/build-identity.ps1`, rebuild the
-desktop project, then run setup from the Notifications settings page.
+For notifications in a Windows source build, install the Windows SDK (`makeappx.exe`,
+`signtool.exe`), run `packaging/build-identity.ps1`, rebuild the desktop project, then run setup from
+Settings › Notifications.
+
+<details>
+<summary><b>Source layout</b></summary>
+
+<br>
+
+```text
+src/
+  Atoll.Core/            shared settings, activity arbitration, parsers and agent logic
+  Atoll.Desktop/         Avalonia shell, views, platform adapters and startup
+  Atoll.App/             legacy WPF shell, plus module sources shared with Avalonia
+  Atoll.ClaudeHook/      self-contained agent bridge, built for each release runtime
+  Shared/                hook protocol shared with the bridge
+packaging/               native packages, notification identity and brand assets
+tests/
+  Atoll.Desktop.Tests/   portable logic and rendered Avalonia tests
+  Atoll.Tests/           Windows/WPF regressions
+```
+
+</details>
 
 ## Releases
 
-The **Desktop releases** GitHub Actions workflow tests and packages all four targets:
-Windows x64, Linux x64, macOS Intel and macOS Apple silicon. Pull requests build the
-same packages as releases and upload installers, checksums and rendered UI evidence
-as workflow artifacts. A manual workflow run accepts `X.Y.Z` and builds artifacts
-without publishing or creating a tag.
+Versions follow [semantic versioning](https://semver.org), and each release is a `vX.Y.Z` tag on
+`main`. The [**Desktop releases**](https://github.com/Mazon3442/Atoll/actions/workflows/release.yml)
+workflow tests and packages all four targets: Windows x64, Linux x64, macOS Intel and macOS Apple
+silicon.
 
-After merging to `main`, tag the intended release commit:
+- **Pull requests** build the same packages as a release and upload the installers, checksums and
+  rendered UI evidence as workflow artifacts.
+- **A manual run** takes an `X.Y.Z` version and builds artifacts without tagging or publishing.
+- **A tag** builds every platform and, if they all succeed, creates a **draft** GitHub release with
+  every download attached.
+
+To cut a release, tag the release commit after merging to `main`:
 
 ```sh
 git tag v0.10.0
 git push origin v0.10.0
 ```
 
-When every platform succeeds, the workflow creates a **draft** GitHub release with
-all platform downloads attached. Review its notes and publish it from GitHub.
-Windows auto-updates only see published releases. Existing release assets are never
-silently overwritten.
+Review the draft's notes and publish it from GitHub. Windows auto-update sees only published
+releases, and existing release assets are never silently overwritten.
 
-For a local package, use PowerShell 7 (`pwsh`) on the target OS:
+<details>
+<summary><b>Build a package locally</b></summary>
+
+<br>
+
+Use PowerShell 7 (`pwsh`) on the target OS:
 
 ```powershell
 ./packaging/build-release.ps1 -Version 0.10.0 -RuntimeIdentifier win-x64
@@ -194,23 +344,36 @@ For a local package, use PowerShell 7 (`pwsh`) on the target OS:
 ./packaging/build-release.ps1 -Version 0.10.0 -RuntimeIdentifier osx-arm64
 ```
 
-Outputs go to `artifacts/release/<runtime>/<version>/packages`. Use a fresh
-`-OutputRoot` when rebuilding the same version. Windows needs the Windows SDK;
-Linux packaging needs `dpkg-deb`, `tar` and `zstd`; macOS uses `sips`, `iconutil`,
-`codesign`, `ditto` and `hdiutil`. Windows uses a pinned, local Velopack CLI install.
-`-Publish` creates a draft release containing that local build and requires `gh`
-plus `GH_TOKEN` (or the existing `VPK_TOKEN`). Use the workflow to assemble a release
-containing every platform.
+Outputs go to `artifacts/release/<runtime>/<version>/packages`. Use a fresh `-OutputRoot` when
+rebuilding the same version.
 
-## Source layout
+| OS | Needs |
+| --- | --- |
+| Windows | Windows SDK; a pinned local Velopack CLI install |
+| Linux | `dpkg-deb`, `tar`, `zstd` |
+| macOS | `sips`, `iconutil`, `codesign`, `ditto`, `hdiutil` |
 
-```text
-src/Atoll.Core/         shared settings, activity arbitration, parsers and agent logic
-src/Atoll.Desktop/      Avalonia shell, views, platform adapters and startup handling
-src/Atoll.App/          legacy WPF shell and module sources shared with Avalonia
-src/Atoll.ClaudeHook/   self-contained agent bridge, built for each release runtime
-src/Shared/            hook protocol shared with the bridge
-packaging/             native packages, notification identity and existing brand assets
-tests/Atoll.Desktop.Tests/ portable logic and rendered Avalonia tests
-tests/Atoll.Tests/      Windows/WPF regressions
-```
+`-Publish` creates a draft release from that local build and needs `gh` plus `GH_TOKEN` (or the
+existing `VPK_TOKEN`). Use the workflow to build a release that covers every platform.
+
+</details>
+
+## Troubleshooting
+
+- **Something is wrong**: check the log in ATOLL's [app-data folder](#privacy).
+- **Agent sessions don't show up**: install that agent's adapter in Settings › Agents and restart
+  running sessions. For Codex, also review and trust ATOLL's hooks.
+- **Hook debugging**: set `ATOLL_HOOK_DEBUG=1` to make the hook print errors to stderr.
+- **The media bars don't move**: live audio bars are Windows-only; on macOS and Linux they keep the
+  cover color.
+- **Notifications say setup is needed** (Windows): run the setup in Settings › Notifications, then
+  quit and reopen ATOLL.
+- **Nothing appears on Linux under Wayland**: install XWayland.
+- **A calendar is missing events**: Google's ICS links can lag by hours. Check the link in
+  Settings › Calendar, and check that the calendar is published.
+- **I lost my calendar links on macOS or Linux**: `secrets.key` was lost or replaced. Restore it from
+  your backup, or enter the links again.
+
+## License
+
+No license has been chosen yet. Until one is added, all rights are reserved by the author.
