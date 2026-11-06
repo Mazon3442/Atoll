@@ -2,46 +2,54 @@
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
 
     <Style x:Key="Calendar.Action" TargetType="Button" BasedOn="{StaticResource Island.IconButton}">
-        <Setter Property="Width" Value="28" />
-        <Setter Property="Height" Value="28" />
+        <Setter Property="Width" Value="26" />
+        <Setter Property="Height" Value="26" />
+        <Setter Property="FontSize" Value="12" />
         <Style.Triggers>
             <Trigger Property="IsEnabled" Value="False"><Setter Property="Opacity" Value="0.4" /></Trigger>
         </Style.Triggers>
     </Style>
+    <!-- A filled pin: Segoe Fluent's fill layer (E842) under the pin outline (E718). -->
+    <DataTemplate x:Key="Calendar.PinnedGlyph">
+        <Grid>
+            <TextBlock Text="&#xE842;" />
+            <TextBlock Text="&#xE718;" />
+        </Grid>
+    </DataTemplate>
     <Style x:Key="Calendar.PinAction" TargetType="Button" BasedOn="{StaticResource Calendar.Action}">
+        <Setter Property="Content" Value="&#xE718;" />
         <Style.Triggers>
             <DataTrigger Binding="{Binding IsPinned}" Value="True">
+                <Setter Property="ContentTemplate" Value="{StaticResource Calendar.PinnedGlyph}" />
                 <Setter Property="Foreground" Value="{DynamicResource Island.AccentText}" />
             </DataTrigger>
         </Style.Triggers>
     </Style>
 
-    <!-- Next event: pill. -->
+    <!-- Next event: pill. Pin and dismiss live in the peek, where there is room to hit them. -->
     <DataTemplate x:Key="NextEventViewModel.Compact">
         <StackPanel Orientation="Horizontal">
             <Ellipse Width="8" Height="8" Fill="{Binding Color}" VerticalAlignment="Center" />
             <TextBlock Text="{Binding Title}" FontSize="13" FontWeight="SemiBold" Margin="8,0,0,0"
                        VerticalAlignment="Center" TextTrimming="CharacterEllipsis" MaxWidth="220" />
             <TextBlock Text="{Binding When}" FontSize="13" Margin="8,0,0,0" VerticalAlignment="Center"
-                       Foreground="{DynamicResource Island.Subtle}" />
-            <Button Style="{StaticResource Calendar.Action}" Content="&#xE711;" Margin="6,0,0,0"
-                    Command="{Binding DismissCommand}" ToolTip="Dismiss from island" AutomationProperties.Name="Dismiss event from island" />
+                       Foreground="{DynamicResource Island.AccentText}" />
         </StackPanel>
     </DataTemplate>
 
     <DataTemplate x:Key="NextEventViewModel.Peek">
         <StackPanel Orientation="Horizontal">
-            <Ellipse Width="12" Height="12" Fill="{Binding Color}" VerticalAlignment="Center" />
+            <Border Width="4" Height="34" CornerRadius="2" Background="{Binding Color}" VerticalAlignment="Center" />
             <StackPanel Margin="12,0,0,0" VerticalAlignment="Center">
                 <TextBlock Text="{Binding Title}" FontSize="14" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" MaxWidth="260" />
                 <TextBlock Text="{Binding Subtitle}" FontSize="12" Foreground="{DynamicResource Island.Subtle}"
                            TextTrimming="CharacterEllipsis" MaxWidth="260" />
             </StackPanel>
-            <TextBlock Text="{Binding When}" FontSize="13" FontWeight="SemiBold" Margin="16,0,0,0"
+            <TextBlock Text="{Binding When}" FontSize="13" FontWeight="SemiBold" Margin="16,0,6,0"
                        Foreground="{DynamicResource Island.AccentText}" VerticalAlignment="Center" />
-            <Button Style="{StaticResource Calendar.PinAction}" Content="&#xE718;" Margin="8,0,0,0"
-                    Command="{Binding TogglePinCommand}" ToolTip="{Binding PinLabel}" AutomationProperties.Name="{Binding PinLabel}" />
-            <Button Style="{StaticResource Calendar.Action}" Content="&#xE711;"
+            <Button Style="{StaticResource Calendar.PinAction}" Command="{Binding TogglePinCommand}" VerticalAlignment="Center"
+                    ToolTip="{Binding PinLabel}" AutomationProperties.Name="{Binding PinLabel}" />
+            <Button Style="{StaticResource Calendar.Action}" Content="&#xE711;" VerticalAlignment="Center"
                     Command="{Binding DismissCommand}" ToolTip="Dismiss from island" AutomationProperties.Name="Dismiss event from island" />
         </StackPanel>
     </DataTemplate>
@@ -57,15 +65,90 @@
 
     <DataTemplate x:Key="CalendarAlertViewModel.Peek">
         <StackPanel Orientation="Horizontal">
-            <Ellipse Width="12" Height="12" Fill="{Binding Color}" VerticalAlignment="Center" />
+            <Border Width="4" Height="34" CornerRadius="2" Background="{Binding Color}" VerticalAlignment="Center" />
             <StackPanel Margin="12,0,0,0" VerticalAlignment="Center">
                 <TextBlock Text="{Binding Title}" FontSize="14" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" MaxWidth="260" />
-                <TextBlock Text="{Binding Detail}" FontSize="12" Foreground="{DynamicResource Island.Subtle}" />
+                <TextBlock Text="{Binding Detail}" FontSize="12" Foreground="{DynamicResource Island.AccentText}" />
             </StackPanel>
         </StackPanel>
     </DataTemplate>
 
-        <!-- Expanded panel: the next 14 days grouped by day. Settings are the island header's gear, not a second one here. -->
+    <!-- One event. The first day's events are two lines (title over "time · place"); later days are one
+         line with the start time. Pin and dismiss appear on hover or keyboard focus; a pinned event
+         keeps a filled pin, and only now/next carry an accent badge. -->
+    <DataTemplate x:Key="CalendarEventViewModel.Row">
+        <Border x:Name="Row" Background="Transparent" CornerRadius="7" Padding="6,3,4,3" Margin="-6,0,0,0"
+                BorderThickness="1" BorderBrush="Transparent" Focusable="True" FocusVisualStyle="{x:Null}"
+                AutomationProperties.Name="{Binding Event.DisplayTitle}" AutomationProperties.HelpText="{Binding Event.Detail}"
+                ToolTip="{Binding Event.DisplayTitle}" ToolTipService.InitialShowDelay="900">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                <Border x:Name="Bar" Width="3" CornerRadius="1.5" Background="{Binding Event.Color}" Margin="0,1,9,1" />
+                <StackPanel x:Name="Text" Grid.Column="1" VerticalAlignment="Center">
+                    <DockPanel>
+                        <TextBlock x:Name="Badge" DockPanel.Dock="Right" Text="{Binding Badge}" FontSize="11" FontWeight="SemiBold"
+                                   Margin="8,0,0,0" VerticalAlignment="Center" Foreground="{DynamicResource Island.Subtle}" />
+                        <ContentPresenter x:Name="PinMark" DockPanel.Dock="Right" ContentTemplate="{StaticResource Calendar.PinnedGlyph}"
+                                          TextElement.FontFamily="{StaticResource Island.IconFont}" TextElement.FontSize="11"
+                                          TextElement.Foreground="{DynamicResource Island.AccentText}"
+                                          Margin="6,0,0,0" VerticalAlignment="Center" Visibility="Collapsed" />
+                        <TextBlock x:Name="Title" Text="{Binding Event.DisplayTitle}" FontSize="12.5" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
+                    </DockPanel>
+                    <TextBlock x:Name="Detail" Text="{Binding Event.Detail}" FontSize="11" TextTrimming="CharacterEllipsis"
+                               Foreground="{DynamicResource Island.Subtle}" />
+                </StackPanel>
+                <StackPanel x:Name="Actions" Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center"
+                            Margin="4,0,0,0" Visibility="Collapsed">
+                    <Button Style="{StaticResource Calendar.PinAction}" Command="{Binding TogglePinCommand}"
+                            ToolTip="{Binding PinLabel}" AutomationProperties.Name="{Binding PinLabel}" />
+                    <Button Style="{StaticResource Calendar.Action}" Content="&#xE711;" Command="{Binding DismissCommand}"
+                            ToolTip="Dismiss from island" AutomationProperties.Name="Dismiss event from island" />
+                </StackPanel>
+            </Grid>
+        </Border>
+        <DataTemplate.Triggers>
+            <DataTrigger Binding="{Binding IsCompact}" Value="True">
+                <Setter TargetName="Detail" Property="Visibility" Value="Collapsed" />
+                <Setter TargetName="Title" Property="FontSize" Value="12" />
+                <Setter TargetName="Title" Property="FontWeight" Value="Normal" />
+                <Setter TargetName="Row" Property="Padding" Value="6,2,4,2" />
+                <Setter TargetName="Bar" Property="Margin" Value="0,2,9,2" />
+                <!-- The buttons overhang a one-line row so it doesn't grow on hover. -->
+                <Setter TargetName="Actions" Property="Margin" Value="4,-4,0,-4" />
+            </DataTrigger>
+            <DataTrigger Binding="{Binding IsHighlighted}" Value="True">
+                <Setter TargetName="Badge" Property="Foreground" Value="{DynamicResource Island.AccentText}" />
+            </DataTrigger>
+            <DataTrigger Binding="{Binding IsPinned}" Value="True">
+                <Setter TargetName="PinMark" Property="Visibility" Value="Visible" />
+            </DataTrigger>
+            <DataTrigger Binding="{Binding IsDismissed}" Value="True">
+                <Setter TargetName="Text" Property="Opacity" Value="0.5" />
+                <Setter TargetName="Bar" Property="Opacity" Value="0.4" />
+            </DataTrigger>
+            <Trigger SourceName="Row" Property="IsMouseOver" Value="True">
+                <Setter TargetName="Row" Property="Background" Value="{DynamicResource Island.Surface}" />
+                <Setter TargetName="Actions" Property="Visibility" Value="Visible" />
+                <Setter TargetName="Badge" Property="Visibility" Value="Collapsed" />
+                <Setter TargetName="PinMark" Property="Visibility" Value="Collapsed" />
+            </Trigger>
+            <Trigger SourceName="Row" Property="IsKeyboardFocusWithin" Value="True">
+                <Setter TargetName="Row" Property="Background" Value="{DynamicResource Island.Surface}" />
+                <Setter TargetName="Actions" Property="Visibility" Value="Visible" />
+                <Setter TargetName="Badge" Property="Visibility" Value="Collapsed" />
+                <Setter TargetName="PinMark" Property="Visibility" Value="Collapsed" />
+            </Trigger>
+            <Trigger SourceName="Row" Property="IsKeyboardFocused" Value="True">
+                <Setter TargetName="Row" Property="BorderBrush" Value="{DynamicResource Island.Foreground}" />
+            </Trigger>
+        </DataTemplate.Triggers>
+    </DataTemplate>
+
+    <!-- Expanded panel: the next 14 days grouped by day. Settings are the island header's gear. -->
     <DataTemplate x:Key="CalendarViewModel.Panel">
         <Grid>
             <Grid.RowDefinitions>
@@ -73,21 +156,20 @@
                 <RowDefinition Height="*" />
                 <RowDefinition Height="Auto" />
             </Grid.RowDefinitions>
-            <DockPanel Margin="0,0,0,4">
-                <Button DockPanel.Dock="Right" Style="{StaticResource Calendar.Action}" Content="&#xE72C;" ToolTip="Refresh calendars"
-                        Command="{Binding RefreshCommand}" AutomationProperties.Name="Refresh calendars" />
-                <TextBlock DockPanel.Dock="Right" Text="{Binding Updated}" FontSize="10" Margin="0,0,4,0" VerticalAlignment="Center"
-                           Foreground="{DynamicResource Island.Subtle}" />
-                <TextBlock Text="Next 14 days" FontSize="12" FontWeight="SemiBold" VerticalAlignment="Center" />
+            <DockPanel Margin="0,0,0,2">
+                <Button DockPanel.Dock="Right" Style="{StaticResource Calendar.Action}" Content="&#xE72C;"
+                        Foreground="{DynamicResource Island.Subtle}" Command="{Binding RefreshCommand}"
+                        ToolTip="{Binding RefreshLabel}" AutomationProperties.Name="{Binding RefreshLabel}" />
+                <TextBlock Text="Upcoming" FontSize="13" FontWeight="SemiBold" VerticalAlignment="Center" />
             </DockPanel>
 
             <!-- Empty state -->
             <StackPanel Grid.Row="1" HorizontalAlignment="Center" VerticalAlignment="Center"
                         Visibility="{Binding ShowEmpty, Converter={StaticResource Island.BoolToVisibility}}">
-                <TextBlock Text="&#xE787;" FontFamily="{StaticResource Island.IconFont}" FontSize="28"
+                <TextBlock Text="&#xE787;" FontFamily="{StaticResource Island.IconFont}" FontSize="24"
                            HorizontalAlignment="Center" Foreground="{DynamicResource Island.Subtle}" />
-                <TextBlock Text="{Binding EmptyMessage}" FontSize="13" Margin="0,8,0,0" HorizontalAlignment="Center"
-                           TextWrapping="Wrap" TextAlignment="Center" />
+                <TextBlock Text="{Binding EmptyMessage}" FontSize="12" Margin="0,8,0,0" HorizontalAlignment="Center"
+                           TextWrapping="Wrap" TextAlignment="Center" Foreground="{DynamicResource Island.Subtle}" />
                 <Button Style="{StaticResource Island.ChipButton}" Content="Add a calendar" Command="{Binding OpenSettingsCommand}"
                         HorizontalAlignment="Center" Margin="0,10,0,0"
                         Visibility="{Binding HasSources, Converter={StaticResource Island.InverseBoolToVisibility}}" />
@@ -95,44 +177,15 @@
 
             <!-- Event list -->
             <ScrollViewer Grid.Row="1" Visibility="{Binding HasEvents, Converter={StaticResource Island.BoolToVisibility}}"
-                          VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
-                <ItemsControl ItemsSource="{Binding Days}" Margin="0,0,4,0">
+                          VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Focusable="False">
+                <ItemsControl ItemsSource="{Binding Days}" Margin="0,0,8,0" Focusable="False">
                     <ItemsControl.ItemTemplate>
                         <DataTemplate>
                             <StackPanel>
-                                <TextBlock Text="{Binding Label}" FontSize="11" FontWeight="SemiBold" Margin="0,8,0,4"
+                                <TextBlock Text="{Binding Label}" FontSize="11" FontWeight="SemiBold" Margin="0,6,0,1"
                                            Foreground="{DynamicResource Island.Subtle}" />
-                                <ItemsControl ItemsSource="{Binding Events}">
-                                    <ItemsControl.ItemTemplate>
-                                        <DataTemplate>
-                                            <Grid Margin="0,0,0,8">
-                                                <Grid.ColumnDefinitions>
-                                                    <ColumnDefinition Width="Auto" />
-                                                    <ColumnDefinition Width="*" />
-                                                    <ColumnDefinition Width="Auto" />
-                                                </Grid.ColumnDefinitions>
-                                                <Border Width="3" CornerRadius="1.5" Background="{Binding Event.Color}" Margin="0,2,9,2" />
-                                                <StackPanel Grid.Column="1" Margin="0,0,2,0">
-                                                    <TextBlock Text="{Binding Event.DisplayTitle}" FontSize="12.5" FontWeight="SemiBold"
-                                                               TextTrimming="CharacterEllipsis" ToolTip="{Binding Event.DisplayTitle}" />
-                                                    <TextBlock FontSize="11" Foreground="{DynamicResource Island.Subtle}">
-                                                        <Run Text="{Binding Event.StartText, Mode=OneWay}" /><Run Text="{Binding Event.EndText, Mode=OneWay}" />
-                                                    </TextBlock>
-                                                    <TextBlock Text="{Binding Event.Subtitle}" FontSize="11"
-                                                               Foreground="{DynamicResource Island.Subtle}" TextTrimming="CharacterEllipsis" ToolTip="{Binding Event.Subtitle}" />
-                                                    <TextBlock Text="{Binding IslandStatus}" FontSize="10" Foreground="{DynamicResource Island.Subtle}"
-                                                               Visibility="{Binding IsDismissed, Converter={StaticResource Island.BoolToVisibility}}" />
-                                                </StackPanel>
-                                                <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Top">
-                                                    <Button Style="{StaticResource Calendar.PinAction}" Content="&#xE718;" Command="{Binding TogglePinCommand}"
-                                                            ToolTip="{Binding PinLabel}" AutomationProperties.Name="{Binding PinLabel}" />
-                                                    <Button Style="{StaticResource Calendar.Action}" Content="&#xE711;" Command="{Binding DismissCommand}"
-                                                            ToolTip="Dismiss from island" AutomationProperties.Name="Dismiss event from island" />
-                                                </StackPanel>
-                                            </Grid>
-                                        </DataTemplate>
-                                    </ItemsControl.ItemTemplate>
-                                </ItemsControl>
+                                <ItemsControl ItemsSource="{Binding Events}" Focusable="False"
+                                              ItemTemplate="{StaticResource CalendarEventViewModel.Row}" />
                             </StackPanel>
                         </DataTemplate>
                     </ItemsControl.ItemTemplate>

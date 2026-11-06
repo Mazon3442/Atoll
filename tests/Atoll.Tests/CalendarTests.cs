@@ -1,3 +1,4 @@
+using System.Globalization;
 using Atoll.Modules.Calendar;
 using Atoll.Settings;
 
@@ -171,8 +172,20 @@ public class CalendarParsingTests
     public void Relative_uses_tomorrow_and_weekday_for_later_events()
     {
         var now = new DateTimeOffset(2026, 11, 10, 10, 0, 0, TimeSpan.Zero);
-        Assert.Equal("tomorrow 09:00", IcsCalendar.Relative(new DateTimeOffset(2026, 11, 11, 9, 0, 0, TimeSpan.Zero), now));
-        Assert.Equal("Sun 09:00", IcsCalendar.Relative(new DateTimeOffset(2026, 11, 15, 9, 0, 0, TimeSpan.Zero), now));
+        var tomorrow = new DateTimeOffset(2026, 11, 11, 9, 0, 0, TimeSpan.Zero);
+        var sunday = new DateTimeOffset(2026, 11, 15, 9, 0, 0, TimeSpan.Zero);
+        Assert.Equal($"tomorrow {tomorrow:t}", IcsCalendar.Relative(tomorrow, now));
+        Assert.Equal($"Sun {sunday:t}", IcsCalendar.Relative(sunday, now));
+    }
+
+    [Fact]
+    public void Time_range_follows_the_culture_and_writes_a_shared_designator_once()
+    {
+        var us = CultureInfo.GetCultureInfo("en-US");
+        var start = new DateTimeOffset(2026, 11, 10, 10, 0, 0, TimeSpan.Zero);
+        Assert.Equal("10:00 – 10:30 AM", IcsCalendar.TimeRange(start, start.AddMinutes(30), us));
+        Assert.Equal("11:30 AM – 12:30 PM", IcsCalendar.TimeRange(start.AddMinutes(90), start.AddMinutes(150), us));
+        Assert.Equal("10:00 – 10:30", IcsCalendar.TimeRange(start, start.AddMinutes(30), CultureInfo.GetCultureInfo("de-DE")));
     }
 }
 
