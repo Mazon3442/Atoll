@@ -32,8 +32,8 @@ public sealed class Activity(string id, string moduleId, object content, Activit
 }
 
 /// <summary>
-/// Thread-safe store of live activities. Picks the primary (highest priority, newest first) and an
-/// optional secondary from a different module. <see cref="Changed"/> may fire on any thread.
+/// Thread-safe store of live activities. Picks the primary (highest priority, newest first) and
+/// up to two side activities from different modules. <see cref="Changed"/> may fire on any thread.
 /// </summary>
 public sealed class ActivityHost : IDisposable
 {
@@ -88,7 +88,7 @@ public sealed class ActivityHost : IDisposable
         if (removed > 0) Changed?.Invoke(this, EventArgs.Empty);
     }
 
-    public (Activity? Primary, Activity? Secondary) Current
+    public (Activity? Primary, Activity? Secondary, Activity? Tertiary) Current
     {
         get
         {
@@ -99,10 +99,9 @@ public sealed class ActivityHost : IDisposable
                     .ThenByDescending(a => a.Sequence)
                     .ToList();
                 var primary = ordered.FirstOrDefault();
-                var secondary = primary is null
-                    ? null
-                    : ordered.FirstOrDefault(a => a.ModuleId != primary.ModuleId && a.Priority > ActivityPriority.Idle);
-                return (primary, secondary);
+                var sides = ordered.Where(a => a.ModuleId != primary?.ModuleId && a.Priority > ActivityPriority.Idle)
+                    .DistinctBy(a => a.ModuleId).Take(2).ToList();
+                return (primary, sides.ElementAtOrDefault(0), sides.ElementAtOrDefault(1));
             }
         }
     }

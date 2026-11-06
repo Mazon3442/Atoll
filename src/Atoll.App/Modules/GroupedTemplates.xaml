@@ -22,22 +22,26 @@
     <DataTemplate x:Key="TimePanelViewModel.Panel">
         <Grid>
             <Grid.ColumnDefinitions>
-                <ColumnDefinition x:Name="ClockColumn" Width="1.15*" />
+                <ColumnDefinition x:Name="ClockColumn" Width="1.05*" />
+                <ColumnDefinition Width="Auto" />
                 <ColumnDefinition x:Name="CalendarColumn" Width="*" />
             </Grid.ColumnDefinitions>
-            <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Margin="0,0,14,0">
+            <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
                 <ContentControl Style="{StaticResource Group.Panel}" Content="{Binding Clock}"
                                 ContentTemplate="{StaticResource ClockPanelViewModel.Panel}" />
             </ScrollViewer>
-            <ContentControl Grid.Column="1" Style="{StaticResource Group.Panel}" Content="{Binding Calendar}"
+            <Border x:Name="Divider" Grid.Column="1" Width="1" Margin="14,2" Background="{DynamicResource Island.Hover}" />
+            <ContentControl Grid.Column="2" Style="{StaticResource Group.Panel}" Content="{Binding Calendar}"
                             ContentTemplate="{StaticResource CalendarViewModel.Panel}" />
         </Grid>
         <DataTemplate.Triggers>
             <DataTrigger Binding="{Binding Clock}" Value="{x:Null}">
                 <Setter TargetName="ClockColumn" Property="Width" Value="0" />
+                <Setter TargetName="Divider" Property="Visibility" Value="Collapsed" />
             </DataTrigger>
             <DataTrigger Binding="{Binding Calendar}" Value="{x:Null}">
                 <Setter TargetName="CalendarColumn" Property="Width" Value="0" />
+                <Setter TargetName="Divider" Property="Visibility" Value="Collapsed" />
             </DataTrigger>
         </DataTemplate.Triggers>
     </DataTemplate>

@@ -19,10 +19,11 @@ public class ActivityHostTests
         host.Post(Make("b", "claude", ActivityPriority.Normal));
         host.Post(Make("low", "stats", ActivityPriority.Ambient));
 
-        var (primary, secondary) = host.Current;
+        var (primary, secondary, tertiary) = host.Current;
 
         Assert.Equal("b", primary?.Id);
         Assert.Equal("a", secondary?.Id);
+        Assert.Equal("low", tertiary?.Id);
     }
 
     [Fact]
@@ -33,10 +34,32 @@ public class ActivityHostTests
         host.Post(Make("m1", "media", ActivityPriority.High));
         host.Post(Make("m2", "media", ActivityPriority.Normal));
 
-        var (primary, secondary) = host.Current;
+        var (primary, secondary, tertiary) = host.Current;
 
         Assert.Equal("m1", primary?.Id);
         Assert.Null(secondary);
+        Assert.Null(tertiary);
+    }
+
+    [Fact]
+    public void Side_activities_use_distinct_modules_and_promote_when_removed()
+    {
+        using var host = new ActivityHost(_time);
+        host.Post(Make("clock", "clock", ActivityPriority.Idle));
+        host.Post(Make("meeting", "calendar", ActivityPriority.Ambient));
+        host.Post(Make("song", "media", ActivityPriority.Normal));
+        host.Post(Make("volume", "system", ActivityPriority.High, TimeSpan.FromSeconds(2)));
+        host.Post(Make("battery", "system", ActivityPriority.Normal));
+        var current = host.Current;
+        Assert.Equal("volume", current.Primary?.Id);
+        Assert.Equal("song", current.Secondary?.Id);
+        Assert.Equal("meeting", current.Tertiary?.Id);
+        _time.Advance(TimeSpan.FromSeconds(3));
+        Assert.Equal("battery", host.Current.Primary?.Id);
+        host.RemoveModule("system");
+        Assert.Equal("song", host.Current.Primary?.Id);
+        Assert.Equal("meeting", host.Current.Secondary?.Id);
+        Assert.Null(host.Current.Tertiary);
     }
 
     [Fact]

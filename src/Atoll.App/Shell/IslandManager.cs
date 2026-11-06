@@ -1,4 +1,6 @@
 using System.Windows.Threading;
+using System.Windows;
+using System.Diagnostics;
 using Atoll.Activities;
 using Atoll.Modules;
 using Atoll.Settings;
@@ -12,14 +14,14 @@ public sealed class IslandManager : IDisposable
     private readonly SettingsService _settings;
     private readonly ActivityHost _activities;
     private readonly ModuleManager _modules;
-    private readonly Action _openSettings;
+    private readonly Action<int> _openSettings;
     private readonly Dispatcher _dispatcher;
     private readonly FullscreenWatcher _fullscreen = new();
     private readonly List<IslandWindow> _windows = [];
     private string _monitorSignature = "";
     private bool _paused;
 
-    public IslandManager(SettingsService settings, ActivityHost activities, ModuleManager modules, Action openSettings, Dispatcher dispatcher)
+    public IslandManager(SettingsService settings, ActivityHost activities, ModuleManager modules, Action<int> openSettings, Dispatcher dispatcher)
     {
         _settings = settings;
         _activities = activities;
@@ -61,11 +63,11 @@ public sealed class IslandManager : IDisposable
         if (chosen.Count == 0) chosen = all.Where(m => m.IsPrimary).Take(1).ToList();
         if (chosen.Count == 0) chosen = all.Take(1).ToList();
 
-        var (primary, secondary) = _activities.Current;
+        var (primary, secondary, tertiary) = _activities.Current;
         foreach (var monitor in chosen)
         {
             var window = new IslandWindow(monitor, _settings, _modules, _openSettings);
-            window.SetActivities(primary, secondary);
+            window.SetActivities(primary, secondary, tertiary);
             _windows.Add(window);
         }
         UpdateVisibility();
@@ -77,17 +79,20 @@ public sealed class IslandManager : IDisposable
 
     private void UpdateVisibility()
     {
+        var hasCursor = Native.GetCursorPos(out var cursor);
+        var now = Stopwatch.GetElapsedTime(0);
         foreach (var w in _windows)
         {
             w.SetEnvironment(_paused, FullscreenWatcher.Classify(w.Monitor));
+            if (hasCursor) w.CheckFullscreenEdge(new Point(cursor.X, cursor.Y), now);
             if (w.IsVisible) w.EnsureTopmost(); // other topmost apps can push us down
         }
     }
 
     private void OnActivitiesChanged(object? sender, EventArgs e) => _dispatcher.BeginInvoke(() =>
     {
-        var (primary, secondary) = _activities.Current;
-        foreach (var w in _windows) w.SetActivities(primary, secondary);
+        var (primary, secondary, tertiary) = _activities.Current;
+        foreach (var w in _windows) w.SetActivities(primary, secondary, tertiary);
     });
 
     private void OnSettingsChanged()

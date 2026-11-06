@@ -27,6 +27,8 @@ public sealed record CalendarEventItem(
     public string Subtitle => string.IsNullOrWhiteSpace(Location) ? CalendarName : Location;
 
     public string DisplayTitle => string.IsNullOrWhiteSpace(Title) ? "(No title)" : Title;
+
+    public string OccurrenceKey => $"{Uid}|{Start.UtcTicks}";
 }
 
 /// <summary>
@@ -39,10 +41,18 @@ public static class IcsCalendar
     public static IReadOnlyList<CalendarEventItem> Parse(
         string ics, string sourceName, string color, DateTimeOffset windowStart, DateTimeOffset windowEnd)
     {
-        if (string.IsNullOrWhiteSpace(ics)) return [];
+        TryParse(ics, sourceName, color, windowStart, windowEnd, out var events);
+        return events;
+    }
+
+    internal static bool TryParse(string ics, string sourceName, string color,
+        DateTimeOffset windowStart, DateTimeOffset windowEnd, out IReadOnlyList<CalendarEventItem> events)
+    {
+        events = [];
+        if (string.IsNullOrWhiteSpace(ics) || !ics.TrimStart().StartsWith("BEGIN:VCALENDAR", StringComparison.OrdinalIgnoreCase)) return false;
         try
         {
-            if (IcalCalendar.Load(ics) is not { } calendar) return [];
+            if (IcalCalendar.Load(ics) is not { } calendar) return false;
 
             var results = new List<CalendarEventItem>();
             foreach (var occurrence in calendar.GetOccurrences(ToUtc(windowStart)).TakeWhileBefore(ToUtc(windowEnd)))
@@ -62,12 +72,13 @@ public static class IcsCalendar
                     sourceName,
                     color));
             }
-            return results;
+            events = results;
+            return true;
         }
         catch (Exception ex)
         {
             Log.Info($"Calendar parse failed for \"{sourceName}\": {ex.Message}");
-            return [];
+            return false;
         }
     }
 

@@ -120,6 +120,9 @@ public sealed class CalendarSettings
 
     /// <summary>ICS calendars to merge. The URL is DPAPI-encrypted (see SecretStore).</summary>
     public List<CalendarSource> Sources { get; set; } = [];
+
+    public Dictionary<string, DateTimeOffset> DismissedOccurrences { get; set; } = [];
+    public string? PinnedOccurrence { get; set; }
 }
 
 public sealed class CalendarSource

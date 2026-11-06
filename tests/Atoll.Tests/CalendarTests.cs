@@ -104,6 +104,35 @@ public class CalendarParsingTests
     }
 
     [Fact]
+    public void Includes_events_that_started_before_the_window_but_are_still_running()
+    {
+        var events = IcsCalendar.Parse("""
+            BEGIN:VCALENDAR
+            VERSION:2.0
+            BEGIN:VEVENT
+            UID:overnight
+            DTSTART:20261109T230000Z
+            DTEND:20261110T140000Z
+            END:VEVENT
+            BEGIN:VEVENT
+            UID:multi-day
+            DTSTART;VALUE=DATE:20261109
+            DTEND;VALUE=DATE:20261112
+            END:VEVENT
+            END:VCALENDAR
+            """, "Work", "#007AFF", new DateTimeOffset(2026, 11, 10, 12, 0, 0, TimeSpan.Zero), End);
+        Assert.Equal(2, events.Count);
+    }
+
+    [Fact]
+    public void Distinguishes_an_empty_calendar_from_an_invalid_feed()
+    {
+        Assert.True(IcsCalendar.TryParse("BEGIN:VCALENDAR\r\nVERSION:2.0\r\nEND:VCALENDAR", "Work", "#007AFF", Start, End, out var empty));
+        Assert.Empty(empty);
+        Assert.False(IcsCalendar.TryParse("<html>Sign in</html>", "Work", "#007AFF", Start, End, out _));
+    }
+
+    [Fact]
     public void Missing_titles_fall_back_and_malformed_input_is_empty()
     {
         var events = Parse("""

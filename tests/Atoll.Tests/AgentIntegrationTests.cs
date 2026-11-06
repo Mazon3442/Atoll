@@ -8,6 +8,38 @@ namespace Atoll.Tests;
 public class AgentIntegrationTests
 {
     [Fact]
+    public void Sessions_disappear_when_their_agent_process_exits_without_a_final_event()
+    {
+        var running = new HashSet<int> { 4242 };
+        var tracker = new ClaudeSessionTracker(new FakeTimeProvider(), running.Contains);
+        tracker.Apply(new HookMessage { Agent = "hermes", SessionId = "h", Event = "UserPromptSubmit", AgentPid = 4242 });
+        tracker.Apply(new HookMessage { Agent = "claude", SessionId = "c", Event = "UserPromptSubmit" }); // no pid reported
+        Assert.True(tracker.Sessions.Single(s => s.Agent == "hermes").IsWorking);
+
+        tracker.Tick();
+        Assert.Equal(2, tracker.Sessions.Count);
+
+        running.Clear(); // Hermes is closed mid-turn: no Stop, Interrupt or SessionEnd is ever sent
+        tracker.Tick();
+        Assert.Equal("claude", Assert.Single(tracker.Sessions).Agent);
+        Assert.DoesNotContain(tracker.Sessions, s => s.Agent == "hermes");
+    }
+
+    [Fact]
+    public void Hook_input_carries_the_agent_pid_only_when_it_is_a_positive_number()
+    {
+        static int Pid(string json)
+        {
+            using var doc = JsonDocument.Parse(json);
+            return HookProtocol.FromHookInput(doc.RootElement, 0, "hermes").AgentPid;
+        }
+        Assert.Equal(4242, Pid("""{"hook_event_name":"Stop","session_id":"s","agent_pid":4242}"""));
+        Assert.Equal(0, Pid("""{"hook_event_name":"Stop","session_id":"s"}"""));
+        Assert.Equal(0, Pid("""{"hook_event_name":"Stop","session_id":"s","agent_pid":"4242"}"""));
+        Assert.Equal(0, Pid("""{"hook_event_name":"Stop","session_id":"s","agent_pid":-1}"""));
+    }
+
+    [Fact]
     public void Agents_with_matching_session_ids_stay_independent_and_do_not_report_interruptions_as_success()
     {
         var tracker = new ClaudeSessionTracker(new FakeTimeProvider());

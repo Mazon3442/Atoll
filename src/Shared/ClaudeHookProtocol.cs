@@ -25,6 +25,9 @@ public sealed record HookMessage
 
     /// <summary>Top-level window of the terminal/editor hosting the session (0 if unknown).</summary>
     public long Hwnd { get; init; }
+
+    /// <summary>Process id of the agent itself, when its adapter reports it (0 if unknown).</summary>
+    public int AgentPid { get; init; }
 }
 
 public static class HookProtocol
@@ -61,6 +64,7 @@ public static class HookProtocol
             Message = Truncate(Str(root, "message"), 300),
             NotificationType = Str(root, "notification_type"),
             Hwnd = hwnd,
+            AgentPid = root.ValueKind == JsonValueKind.Object && root.TryGetProperty("agent_pid", out var pid) && pid.ValueKind == JsonValueKind.Number && pid.TryGetInt32(out var p) && p > 0 ? p : 0,
         };
     }
 
