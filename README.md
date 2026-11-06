@@ -26,7 +26,7 @@ The island has three sizes:
 - **Expanded**: click it for seven grouped tabs: Agents, Media, Notifications, Clock & calendar,
   System, Files and Weather. Each module can be turned on or off and reordered in Settings.
 
-Up to two smaller side bubbles keep other active modules within reach. Click either to open its tab.
+Up to two smaller side bubbles keep other active modules within reach, one on each side of the island. Click either to open its tab.
 
 | Feature | What it does |
 | --- | --- |
@@ -132,12 +132,13 @@ Usage totals work without the hooks: ATOLL reads the transcripts Claude Code alr
 
 ### Calendar
 
-The Clock & calendar tab lists events for the next 14 days. All-day events appear in the list and
-reach the island only when pinned. Use the pin button on an event row or preview to pin or unpin
+The Clock & calendar tab shows the clock and timers on the left and the next 14 days of events on
+the right. All-day events appear in the list and reach the island only when pinned. Use the pin button on an event row or preview to pin or unpin
 it, and the close button to dismiss that occurrence from the island; it stays in the list. These
 choices survive refreshes and restarts, and later occurrences of a recurring event stay visible.
 
-Add each calendar's private ICS link in **Settings › Calendar**, with a name and color. ATOLL
+Add each calendar's private ICS link in **Settings › Calendar** (the settings button in the island's
+header opens the page for the tab you are on), with a name and color. ATOLL
 downloads them again every 15 minutes.
 
 - **Google**: Calendar settings › the calendar › *Secret address in iCal format*.

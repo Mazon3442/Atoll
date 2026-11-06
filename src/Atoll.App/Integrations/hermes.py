@@ -14,7 +14,7 @@ def _send(event, session_id="", tool_name=None, args=None, **kwargs):
             if k in ("file_path", "filePath", "path", "command", "cmd", "description", "pattern")
             and isinstance(v, str)}
     payload = {"hook_event_name": event, "session_id": session_id, "cwd": os.getcwd(),
-               "tool_name": tool_name, "tool_input": safe}
+               "tool_name": tool_name, "tool_input": safe, "agent_pid": os.getpid()}
     try:
         subprocess.run([HOOK_EXE, "--agent", "hermes"], input=json.dumps(payload).encode("utf-8"),
                        stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=1,

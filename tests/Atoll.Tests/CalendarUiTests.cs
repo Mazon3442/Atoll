@@ -66,7 +66,7 @@ internal static class CalendarUiTests
         using var manager = new ModuleManager([], host, Application.Current.Dispatcher, service);
         foreach (var tab in PanelGroups.Combine(GroupedPanelsTests.Modules())) manager.Tabs.Add(tab);
         var monitor = Monitors.GetAll()[0];
-        var island = new IslandWindow(monitor, service, manager, () => { });
+        var island = new IslandWindow(monitor, service, manager, _ => { });
         try
         {
             var next = new NextEventViewModel(() => { }, () => { }) { Title = "Calendar interaction fixture", When = "in 10 min", Subtitle = "Test fixture" };
@@ -84,7 +84,9 @@ internal static class CalendarUiTests
             island.UpdateLayout();
             Assert.True(bubble.IsVisible);
             Assert.True(second.IsVisible);
-            Assert.True(second.PointToScreen(new Point()).X > bubble.PointToScreen(new Point(bubble.ActualWidth, 0)).X);
+            // One bubble on each side of the pill.
+            Assert.True(bubble.PointToScreen(new Point()).X >= pill.PointToScreen(new Point(pill.ActualWidth, 0)).X);
+            Assert.True(second.PointToScreen(new Point(second.ActualWidth, 0)).X <= pill.PointToScreen(new Point()).X);
             var pointer = bubble.PointToScreen(new Point(bubble.ActualWidth / 2, bubble.ActualHeight / 2));
             var compactWidth = pill.ActualWidth;
             for (var i = 0; i < 6; i++) island.OnPointerTick(pointer);
@@ -169,6 +171,7 @@ internal static class CalendarUiTests
     private static void RenderIsland(params FrameworkElement[] pieces)
     {
         var dpi = VisualTreeHelper.GetDpi(pieces[0]);
+        pieces = pieces.OrderBy(piece => piece.PointToScreen(new Point()).X).ToArray(); // left to right on screen
         var positions = pieces.Select(piece => piece.PointToScreen(new Point())).ToArray();
         var width = (positions[^1].X - positions[0].X) / dpi.DpiScaleX + pieces[^1].ActualWidth;
         var strip = new DrawingVisual();

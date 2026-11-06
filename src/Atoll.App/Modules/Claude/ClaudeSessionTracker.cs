@@ -44,6 +44,9 @@ public sealed partial class ClaudeSessionViewModel(string sessionId) : Observabl
     [NotifyPropertyChangedFor(nameof(CanFocus))]
     private long _hwnd;
 
+    /// <summary>The agent's process id when its adapter reports one; lets the island notice it was closed.</summary>
+    public int AgentPid { get; set; }
+
     public DateTimeOffset TurnStarted { get; set; }
     public DateTimeOffset LastEvent { get; set; }
 
@@ -57,9 +60,10 @@ public sealed partial class ClaudeSessionViewModel(string sessionId) : Observabl
 }
 
 /// <summary>Turns the stream of hook events into per-session state. UI thread only.</summary>
-public sealed class ClaudeSessionTracker(TimeProvider time)
+public sealed class ClaudeSessionTracker(TimeProvider time, Func<int, bool>? isProcessRunning = null)
 {
     private static readonly TimeSpan ForgetIdleAfter = TimeSpan.FromHours(3);
+    private readonly Func<int, bool> _isProcessRunning = isProcessRunning ?? ProcessRunning;
 
     public ObservableCollection<ClaudeSessionViewModel> Sessions { get; } = [];
 
@@ -88,6 +92,7 @@ public sealed class ClaudeSessionTracker(TimeProvider time)
         }
         if (!string.IsNullOrEmpty(m.Cwd)) s.Project = ProjectName(m.Cwd);
         if (m.Hwnd != 0) s.Hwnd = m.Hwnd;
+        if (m.AgentPid != 0) s.AgentPid = m.AgentPid;
         s.LastEvent = now;
 
         switch (m.Event)
@@ -135,15 +140,31 @@ public sealed class ClaudeSessionTracker(TimeProvider time)
         return (s, ClaudeTransition.None);
     }
 
-    /// <summary>Refreshes elapsed times and forgets long-idle sessions. Call about once a second.</summary>
+    /// <summary>
+    /// Refreshes elapsed times, drops sessions whose agent process has exited (closing an agent sends no
+    /// final event) and forgets long-idle sessions. Call about once a second.
+    /// </summary>
     public void Tick()
     {
         var now = time.GetUtcNow();
         foreach (var s in Sessions.ToList())
         {
-            if (s.IsActive) s.Elapsed = FormatDuration(now - s.TurnStarted);
+            if (s.AgentPid != 0 && !_isProcessRunning(s.AgentPid)) Sessions.Remove(s);
+            else if (s.IsActive) s.Elapsed = FormatDuration(now - s.TurnStarted);
             else if (now - s.LastEvent > ForgetIdleAfter) Sessions.Remove(s);
         }
+    }
+
+    private static bool ProcessRunning(int pid)
+    {
+        try
+        {
+            using var process = System.Diagnostics.Process.GetProcessById(pid);
+            return !process.HasExited;
+        }
+        catch (ArgumentException) { return false; }          // no such process
+        catch (InvalidOperationException) { return false; }  // exited while we looked
+        catch (System.ComponentModel.Win32Exception) { return true; } // access denied: it exists
     }
 
     private static void StartTurnIfNeeded(ClaudeSessionViewModel s, DateTimeOffset now)
