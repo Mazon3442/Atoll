@@ -37,6 +37,20 @@ public class MediaSeekTests
         Assert.Equal(expected, MediaModule.ShouldFollow(candidate, playing, followed, showing));
 
     [Fact]
+    public void A_player_that_briefly_closes_its_session_stays_listed()
+    {
+        var recent = new RecentSources(TimeSpan.FromSeconds(5));
+        var start = DateTimeOffset.UnixEpoch;
+        recent.Update([new("media:sidra", "Sidra"), new("media:firefox", "Firefox")], start);
+        // Track change: Sidra's session is gone for a moment.
+        Assert.Equal(["media:sidra", "media:firefox"], recent.Update([new("media:firefox", "Firefox")], start.AddSeconds(1)).Select(s => s.Id));
+        Assert.True(recent.Contains("media:sidra"));
+        // Still gone after the grace period: dropped.
+        Assert.Equal(["media:firefox"], recent.Update([new("media:firefox", "Firefox")], start.AddSeconds(7)).Select(s => s.Id));
+        Assert.False(recent.Contains("media:sidra"));
+    }
+
+    [Fact]
     public void Players_with_unspecified_seek_bounds_use_the_track_timeline()
     {
         Assert.Equal(TimeSpan.FromSeconds(120), MediaModule.SeekPosition(.5, TimeSpan.FromSeconds(20), TimeSpan.FromSeconds(220), TimeSpan.Zero, TimeSpan.Zero));

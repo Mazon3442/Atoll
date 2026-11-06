@@ -144,7 +144,7 @@ public sealed class IslandWindow : Window, IDisposable
         if (++_environmentTick % 16 == 0)
         {
             var native = Atoll.Shell.Monitors.GetAll().FirstOrDefault(m => m.Handle == Atoll.Shell.Native.MonitorFromWindow(handle, 0));
-            if (native is not null) _foreground = Atoll.Shell.FullscreenWatcher.Classify(native);
+            if (native is not null) _foreground = Atoll.Shell.FullscreenWatcher.Classify(native) ?? _foreground;
         }
         var now = DateTimeOffset.UtcNow;
         var overlay = _foreground is Atoll.Shell.ForegroundKind.Fullscreen or Atoll.Shell.ForegroundKind.Game;

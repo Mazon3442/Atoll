@@ -52,5 +52,9 @@ public class IslandVisibilityTests
         Assert.False(IslandWindow.ShownWithoutReveal(FullscreenMode.Stay, true, null, false));
         Assert.True(IslandWindow.ShownWithoutReveal(FullscreenMode.Stay, true, steady, false));
         Assert.True(IslandWindow.ShownWithoutReveal(FullscreenMode.Stay, true, null, open: true));
+        // The clock is always posted at idle priority; on its own it counts as nothing to show.
+        var clock = new Activity("time", "clock", new object(), ActivityPriority.Idle);
+        Assert.False(IslandWindow.ShownWithoutReveal(FullscreenMode.Stay, true, clock, false));
+        Assert.True(IslandWindow.ShownWithoutReveal(FullscreenMode.Stay, false, clock, false));
     }
 }

@@ -8,7 +8,7 @@
         UseLayoutRounding="True" TextOptions.TextFormattingMode="Display"
         Background="{DynamicResource SolidBackgroundFillColorBaseBrush}"
         Foreground="{DynamicResource TextFillColorPrimaryBrush}"
-        WindowStartupLocation="CenterScreen"
+        WindowStartupLocation="CenterScreen" Icon="/Atoll;component/Assets/Atoll.ico"
         ThemeMode="System">
 
     <Window.Resources>
