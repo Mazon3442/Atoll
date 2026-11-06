@@ -59,12 +59,26 @@ public static class ThemeService
         {
             GlassTint = null;
             res["Island.Background"] = Frozen(new SolidColorBrush(bg) { Opacity = opacity });
-            res["Island.Rim"] = Frozen(new SolidColorBrush(Colors.Transparent));
+            res["Island.Rim"] = Frozen(new SolidColorBrush(fg) { Opacity = 0.12 });
         }
         res["Island.Foreground"] = Frozen(new SolidColorBrush(fg));
         res["Island.Subtle"] = Frozen(new SolidColorBrush(fg) { Opacity = 0.6 });
         res["Island.Hover"] = Frozen(new SolidColorBrush(fg) { Opacity = 0.12 });
         res["Island.Accent"] = Frozen(new SolidColorBrush(accent));
+        res["Island.AccentText"] = Frozen(new SolidColorBrush(AccentTextColor(accent, bg, fg)));
+        res["Island.Surface"] = Frozen(new SolidColorBrush(fg) { Opacity = 0.07 });
+        res["Island.SelectedBackground"] = Frozen(new SolidColorBrush(Color.FromRgb(fg.R, fg.G, fg.B)));
+        res["Island.SelectedForeground"] = Frozen(new SolidColorBrush(Color.FromRgb(bg.R, bg.G, bg.B)));
+    }
+
+    internal static Color AccentTextColor(Color accent, Color background, Color foreground) =>
+        accent.A == 255 && background.A == 255 && Contrast(accent, background) >= 4.5 ? accent : foreground;
+
+    internal static double Contrast(Color a, Color b)
+    {
+        static double Luminance(Color c) => 0.2126 * c.ScR + 0.7152 * c.ScG + 0.0722 * c.ScB;
+        var first = Luminance(a); var second = Luminance(b);
+        return (Math.Max(first, second) + 0.05) / (Math.Min(first, second) + 0.05);
     }
 
     public static bool TryParseColor(string? text, out Color color)

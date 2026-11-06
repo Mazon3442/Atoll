@@ -9,8 +9,16 @@ using CommunityToolkit.Mvvm.Input;
 
 namespace Atoll.Modules.Weather;
 
-public sealed record WeatherDay(ForecastDay Forecast, string Name, string Symbol, string High, string Low);
-public sealed record WeatherHourRow(string Time, string Symbol, string Condition, string Temperature, string Chance, string Precipitation, string Wind);
+public sealed record WeatherDay(ForecastDay Forecast, string Name, string Symbol, string High, string Low)
+{
+    public string Condition => WeatherCodes.Describe(Forecast.Code).Text;
+    public string Range => $"{High} / {Low}";
+}
+public enum WeatherMetric { Precipitation, Wind, Temperature }
+public sealed record WeatherChartPoint(DateTime Time, double? Value, string Detail)
+{
+    public string Label => Time.ToString("htt", CultureInfo.CurrentCulture);
+}
 
 public sealed partial class WeatherViewModel(SettingsService settings) : ObservableObject, IDisposable
 {
@@ -21,6 +29,8 @@ public sealed partial class WeatherViewModel(SettingsService settings) : Observa
     private bool _fahrenheit;
     private bool _started;
     private bool _disposed;
+    internal event Action? Disposed;
+    private IReadOnlyList<WeatherHour> _chartHours = [];
 
     [ObservableProperty] private bool _hasCity;
     [ObservableProperty] private bool _hasReport;
@@ -36,9 +46,26 @@ public sealed partial class WeatherViewModel(SettingsService settings) : Observa
     [ObservableProperty] private string _updated = "";
     [ObservableProperty] private string _daySummary = "";
     [ObservableProperty] private WeatherDay? _selectedDay;
+    [ObservableProperty] private WeatherMetric _selectedMetric = WeatherMetric.Wind;
+    [ObservableProperty] private int _selectedChartIndex;
+    [ObservableProperty] private int _conditionCode;
+    [ObservableProperty] private bool _isDay = true;
+    [ObservableProperty] private string _temperatureReading = "";
+    [ObservableProperty] private string _conditionSummary = "";
+    public string PlaceLabel => Place.StartsWith("Current area (", StringComparison.Ordinal) ? "Current location" : Place.Split(',')[0];
+    public string MetricTitle => (SelectedMetric switch { WeatherMetric.Precipitation => "Precipitation chance", WeatherMetric.Wind => "Wind", _ => "Temperature" })
+        + (SelectedDay is { Name: not "Today" } day ? $" · {day.Name}" : "");
+    public string ChartReadout => SelectedChartIndex >= 0 && SelectedChartIndex < ChartPoints.Count
+        ? ChartPoints[SelectedChartIndex].Detail : "Hourly data unavailable";
+    public IReadOnlyList<Choice<WeatherMetric>> Metrics { get; } =
+    [new(WeatherMetric.Precipitation, "Precipitation"), new(WeatherMetric.Wind, "Wind"), new(WeatherMetric.Temperature, "Temperature")];
+    public ObservableCollection<WeatherChartPoint> ChartPoints { get; } = [];
     public ObservableCollection<WeatherDay> Days { get; } = [];
-    public ObservableCollection<WeatherHourRow> Hours { get; } = [];
+    public IReadOnlyList<WeatherHour> Hours => _chartHours;
     public bool HasHours => Hours.Count > 0;
+    partial void OnPlaceChanged(string value) => OnPropertyChanged(nameof(PlaceLabel));
+    partial void OnSelectedMetricChanged(WeatherMetric value) => RebuildChart();
+    partial void OnSelectedChartIndexChanged(int value) => OnPropertyChanged(nameof(ChartReadout));
 
     [RelayCommand]
     private void OpenSettings()
@@ -78,7 +105,7 @@ public sealed partial class WeatherViewModel(SettingsService settings) : Observa
         if (locationChanged)
         {
             HasReport = false; Place = snapshot.Item1; SelectedDay = null;
-            Days.Clear(); Hours.Clear(); _report = null;
+            Days.Clear(); _report = null;
         }
         if (!HasCity) { Status = "Choose a location in Settings › Weather."; IsLoading = false; _cts = null; cts.Dispose(); return; }
         Status = "Updating forecast…";
@@ -97,7 +124,7 @@ public sealed partial class WeatherViewModel(SettingsService settings) : Observa
         catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException or JsonException or KeyNotFoundException or InvalidOperationException or FormatException)
         {
             if (cts.IsCancellationRequested) return;
-            Status = HasReport ? "Could not refresh. Showing the previous forecast; try Refresh." : "Could not load the forecast. Check your connection and try Refresh.";
+            Status = HasReport ? "Could not update. Showing the previous forecast." : "Could not load the forecast. Check your connection or try again in Settings › Weather.";
             Log.Info($"Weather refresh failed: {ex.Message}");
         }
         finally
@@ -116,6 +143,10 @@ public sealed partial class WeatherViewModel(SettingsService settings) : Observa
         var (text, symbol) = WeatherCodes.Describe(report.Code, report.IsDay);
         Place = place.Name;
         Temperature = $"{Math.Round(report.Temperature)}°{(fahrenheit ? "F" : "C")}";
+        TemperatureReading = $"{Math.Round(report.Temperature)}°";
+        ConditionCode = report.Code; IsDay = report.IsDay;
+        var today = report.Days.FirstOrDefault(d => d.Date.Date == report.LocalTime.Date);
+        ConditionSummary = text + (today is null ? "" : $" · H {today.High:0}° L {today.Low:0}°");
         Symbol = symbol; Description = text;
         Details = $"Feels like {Math.Round(report.FeelsLike)}°";
         Wind = $"{Math.Round(report.Wind)} {WindUnit}" + (report.WindDirection is { } direction ? $" {Compass(direction)}" : "")
@@ -134,8 +165,10 @@ public sealed partial class WeatherViewModel(SettingsService settings) : Observa
     partial void OnSelectedDayChanged(WeatherDay? value) => UpdateHours();
     private void UpdateHours()
     {
-        Hours.Clear();
-        if (SelectedDay is not { } day || _report is null) return;
+        if (SelectedDay is not { } day || _report is null)
+        {
+            _chartHours = []; RebuildChart(); OnPropertyChanged(nameof(Hours)); OnPropertyChanged(nameof(HasHours)); return;
+        }
         var forecast = day.Forecast;
         var metrics = new List<string>();
         if (forecast.RainChance is { } chance) metrics.Add($"{chance:0}% precip. chance");
@@ -143,15 +176,28 @@ public sealed partial class WeatherViewModel(SettingsService settings) : Observa
         if (forecast.Wind is { } wind) metrics.Add($"Peak wind {wind:0} {WindUnit}");
         DaySummary = $"{forecast.Date:dddd, MMM d} · {WeatherCodes.Describe(forecast.Code).Text}"
             + (metrics.Count > 0 ? "\n" + string.Join(" · ", metrics) : "");
-        foreach (var hour in _report.Hours.Where(h => h.Time.Date == forecast.Date.Date && h.Time.AddHours(1) > _report.LocalTime).OrderBy(h => h.Time))
-        {
-            var (condition, symbol) = WeatherCodes.Describe(hour.Code, hour.IsDay);
-            Hours.Add(new WeatherHourRow(hour.Time.ToString("t", CultureInfo.CurrentCulture), symbol, condition,
-                $"{hour.Temperature:0}°", hour.RainChance is { } p ? $"{p:0}%" : "—",
-                hour.Precipitation is { } a ? $"{a:0.###} {PrecipUnit}" : "Unavailable",
-                hour.Wind is { } w ? $"{w:0} {WindUnit}" : "—"));
-        }
+        _chartHours = _report.Hours.Where(h => h.Time.Date == forecast.Date.Date && h.Time.AddHours(1) > _report.LocalTime).OrderBy(h => h.Time).ToList();
+        OnPropertyChanged(nameof(Hours));
         OnPropertyChanged(nameof(HasHours));
+        SelectedChartIndex = 0;
+        RebuildChart();
+    }
+
+    private void RebuildChart()
+    {
+        ChartPoints.Clear();
+        foreach (var hour in _chartHours)
+        {
+            double? value = SelectedMetric switch { WeatherMetric.Precipitation => hour.RainChance, WeatherMetric.Wind => hour.Wind, _ => hour.Temperature };
+            var reading = value is null ? "Unavailable" : SelectedMetric switch
+            {
+                WeatherMetric.Precipitation => $"{value:0}%" + (hour.Precipitation is { } amount ? $" · {amount:0.###} {PrecipUnit}" : ""),
+                WeatherMetric.Wind => $"{value:0} {WindUnit}" + (hour.Gusts is { } gust ? $" · gusts {gust:0} {WindUnit}" : ""),
+                _ => $"{value:0}°{(_fahrenheit ? "F" : "C")}",
+            };
+            ChartPoints.Add(new WeatherChartPoint(hour.Time, value, $"{reading} · {hour.Time:t}"));
+        }
+        OnPropertyChanged(nameof(MetricTitle)); OnPropertyChanged(nameof(ChartReadout));
     }
 
     private string WindUnit => _fahrenheit ? "mph" : "km/h";
@@ -178,9 +224,12 @@ public sealed partial class WeatherViewModel(SettingsService settings) : Observa
 
     public void Dispose()
     {
+        if (_disposed) return;
         _disposed = true;
         settings.Changed -= OnSettingsChanged;
         _timer?.Stop();
         _cts?.Cancel();
+        Disposed?.Invoke();
+        Disposed = null;
     }
 }

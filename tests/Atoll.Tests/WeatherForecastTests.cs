@@ -35,7 +35,7 @@ public class WeatherForecastTests
         using var json = JsonDocument.Parse("""
             {"current":{"time":"2026-11-06T10:30","temperature_2m":17,"apparent_temperature":15,"weather_code":61,"is_day":1,"wind_speed_10m":18,"rain":0.2,"showers":0.1,"wind_gusts_10m":28,"wind_direction_10m":225},
              "daily":{"time":["2026-11-06","2026-11-07"],"weather_code":[61,2],"temperature_2m_max":[20,18],"temperature_2m_min":[10,8],"precipitation_probability_max":[70,null]},
-             "hourly":{"time":["2026-11-06T11:00","2026-11-06T12:00","2026-11-06T13:00"],"temperature_2m":[17,18,19],"weather_code":[61,2,2],"precipitation_probability":[70,null],"rain":[0.2,0,null],"showers":[0.1,0,0],"precipitation":[0.3,0,null],"wind_speed_10m":[18,null]}}
+             "hourly":{"time":["2026-11-06T11:00","2026-11-06T12:00","2026-11-06T13:00"],"temperature_2m":[17,18,null],"weather_code":[61,2,2],"precipitation_probability":[70,null],"rain":[0.2,0,null],"showers":[0.1,0,0],"precipitation":[0.3,0,null],"wind_speed_10m":[18,null]}}
             """);
         var forecast = OpenMeteo.ParseForecast(json.RootElement);
         Assert.Equal(new DateTime(2026, 11, 6, 10, 30, 0), forecast.LocalTime);
@@ -45,6 +45,7 @@ public class WeatherForecastTests
         Assert.Null(forecast.Hours[1].RainChance);
         Assert.Null(forecast.Hours[1].Wind);
         Assert.Null(forecast.Hours[2].Rain);
+        Assert.Null(forecast.Hours[2].Temperature);
         Assert.Null(forecast.Days[1].RainChance);
     }
 
@@ -74,7 +75,7 @@ public class WeatherForecastTests
         Assert.Equal(24, vm.Hours.Count);
         Assert.Contains("Nov 7", vm.DaySummary);
         vm.Show(Example(), new Place("Chicago", 41.85, -87.65), true);
-        Assert.All(vm.Hours, h => Assert.Contains("mph", h.Wind));
+        Assert.All(vm.ChartPoints, h => Assert.Contains("mph", h.Detail));
         Assert.Contains("in total", vm.DaySummary);
     }
 

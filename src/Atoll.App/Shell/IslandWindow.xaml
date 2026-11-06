@@ -32,13 +32,16 @@
 
                     <DockPanel>
                         <Button DockPanel.Dock="Right" Style="{StaticResource Island.IconButton}"
+                                Margin="6,0,0,0"
                                 Content="&#xE713;" ToolTip="Settings"
                                 AutomationProperties.Name="Settings"
                                 Click="OnSettingsClick" />
+                        <Border Background="{DynamicResource Island.Surface}" CornerRadius="15" Padding="3" HorizontalAlignment="Left">
                         <ListBox x:Name="Tabs"
                                  Background="Transparent" BorderThickness="0"
                                  ItemContainerStyle="{StaticResource Island.TabItem}"
                                  ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                                 ScrollViewer.VerticalScrollBarVisibility="Disabled"
                                  AutomationProperties.Name="ATOLL sections">
                             <ListBox.ItemsPanel>
                                 <ItemsPanelTemplate>
@@ -51,12 +54,12 @@
                                                 AutomationProperties.Name="{Binding Descriptor.Name}">
                                         <TextBlock Text="{Binding Descriptor.Glyph}" FontSize="13"
                                                    FontFamily="{StaticResource Island.IconFont}"
-                                                   Foreground="{DynamicResource Island.Foreground}"
                                                    VerticalAlignment="Center" />
                                     </StackPanel>
                                 </DataTemplate>
                             </ListBox.ItemTemplate>
                         </ListBox>
+                        </Border>
                     </DockPanel>
 
                     <ContentPresenter x:Name="PanelBody" Grid.Row="1" Margin="4,10,4,0" />

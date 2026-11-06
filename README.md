@@ -111,8 +111,9 @@ Then restart ATOLL and click **Allow access** in Settings › Notifications. To 
 
 ### Coding agents
 
-Open Settings › Agents and click **Install / update** for each agent you use, then restart its
-running sessions. Existing hooks and settings are kept, and changed files are backed up.
+Open Settings › Agents and click **Install** for an agent you use. An older adapter shows
+**Update**; a current adapter shows **Installed**. Restart running sessions after changes.
+Existing hooks and settings are kept, and changed files are backed up.
 
 | Agent | Integration |
 | --- | --- |
@@ -140,10 +141,22 @@ or search for a city and choose the correct region from the results. Windows coo
 rounded to two decimal places before being stored or sent to Open-Meteo; ATOLL does not track
 your location in the background. If Windows location is unavailable, city search still works.
 
-Select a forecast day to see hourly conditions, precipitation chances and amounts, and wind.
+Select a forecast day and switch between **Precipitation**, **Wind**, and **Temperature**.
+Point at the chart, click a reading, or focus it and use Left/Right to inspect hours.
+Home and End select the first and last hour. Missing readings stay empty instead of showing zero.
 Forecast times use the selected place's local time. Celsius uses km/h and millimeters;
-Fahrenheit uses mph and inches. Forecasts refresh every 20 minutes or when you click **Refresh**.
+Fahrenheit uses mph and inches. Forecasts refresh every 20 minutes; manual **Refresh** and
+location controls are in Settings › Weather › Location and units. The weather panel opens
+taller than other island tabs, bounded by the display's available height.
 Rain timing is a forecast, not an alert service.
+
+### Resource use
+
+The hourly chart uses native WPF drawing and redraws when data, selection, or size changes.
+System stats sample only while at least one stats view is visible; GPU counters open on first use.
+Settings reuse the running weather forecast, and agent adapter status is cached until a refresh.
+Glass samples the visible island and bubble area, including their animation destination, instead
+of the transparent canvas around them. Solid themes do not capture the screen.
 
 ### Calendar
 

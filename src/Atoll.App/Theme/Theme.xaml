@@ -18,7 +18,17 @@
     <SolidColorBrush x:Key="Island.Subtle" Color="White" Opacity="0.6" />
     <SolidColorBrush x:Key="Island.Hover" Color="White" Opacity="0.12" />
     <SolidColorBrush x:Key="Island.Accent" Color="#0A84FF" />
+    <SolidColorBrush x:Key="Island.AccentText" Color="#0A84FF" />
     <SolidColorBrush x:Key="Island.Rim" Color="Transparent" />
+    <SolidColorBrush x:Key="Island.Surface" Color="White" Opacity="0.07" />
+    <SolidColorBrush x:Key="Island.SelectedBackground" Color="#F2F2F7" />
+    <SolidColorBrush x:Key="Island.SelectedForeground" Color="#0B0B0D" />
+
+    <Style x:Key="Island.FocusVisual" TargetType="Control">
+        <Setter Property="Template"><Setter.Value><ControlTemplate>
+            <Border BorderBrush="{DynamicResource Island.Foreground}" BorderThickness="1" CornerRadius="6" Margin="-2" />
+        </ControlTemplate></Setter.Value></Setter>
+    </Style>
 
     <FontFamily x:Key="Island.Font">Segoe UI Variable Text, Segoe UI</FontFamily>
     <FontFamily x:Key="Island.IconFont">Segoe Fluent Icons, Segoe MDL2 Assets</FontFamily>
@@ -27,14 +37,14 @@
         <Setter Property="Foreground" Value="{DynamicResource Island.Foreground}" />
         <Setter Property="FontFamily" Value="{StaticResource Island.IconFont}" />
         <Setter Property="FontSize" Value="14" />
-        <Setter Property="Width" Value="30" />
-        <Setter Property="Height" Value="30" />
+        <Setter Property="Width" Value="32" />
+        <Setter Property="Height" Value="32" />
         <Setter Property="Cursor" Value="Hand" />
-        <Setter Property="Focusable" Value="False" />
+        <Setter Property="FocusVisualStyle" Value="{StaticResource Island.FocusVisual}" />
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="Button">
-                    <Border x:Name="Bg" Background="Transparent" CornerRadius="15">
+                    <Border x:Name="Bg" Background="Transparent" CornerRadius="10">
                         <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
                     </Border>
                     <ControlTemplate.Triggers>
@@ -50,22 +60,23 @@
         </Setter>
     </Style>
 
-    <!-- Pill-shaped text button used in panels. -->
+    <!-- Shared text actions sit inside the enclosing island surface. -->
     <Style x:Key="Island.ChipButton" TargetType="Button">
         <Setter Property="Foreground" Value="{DynamicResource Island.Foreground}" />
         <Setter Property="FontSize" Value="12" />
+        <Setter Property="MinHeight" Value="30" />
         <Setter Property="Margin" Value="0,0,6,6" />
         <Setter Property="Cursor" Value="Hand" />
-        <Setter Property="Focusable" Value="False" />
+        <Setter Property="FocusVisualStyle" Value="{StaticResource Island.FocusVisual}" />
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="Button">
-                    <Border x:Name="Bg" Background="{DynamicResource Island.Hover}" CornerRadius="12" Padding="12,5">
+                    <Border x:Name="Bg" Background="{DynamicResource Island.Surface}" CornerRadius="9" Padding="12,6">
                         <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
                     </Border>
                     <ControlTemplate.Triggers>
                         <Trigger Property="IsMouseOver" Value="True">
-                            <Setter TargetName="Bg" Property="Background" Value="{DynamicResource Island.Accent}" />
+                            <Setter TargetName="Bg" Property="Background" Value="{DynamicResource Island.Hover}" />
                         </Trigger>
                         <Trigger Property="IsPressed" Value="True">
                             <Setter TargetName="Bg" Property="Opacity" Value="0.7" />
@@ -124,13 +135,14 @@
     <!-- Tab strip of the expanded panel: one round glyph per module. -->
     <!-- Must stay focusable: ListBoxItem only selects on click when it can take focus. -->
     <Style x:Key="Island.TabItem" TargetType="ListBoxItem">
-        <Setter Property="FocusVisualStyle" Value="{x:Null}" />
+        <Setter Property="FocusVisualStyle" Value="{StaticResource Island.FocusVisual}" />
+        <Setter Property="Foreground" Value="{DynamicResource Island.Foreground}" />
         <Setter Property="Cursor" Value="Hand" />
-        <Setter Property="Margin" Value="0,0,4,0" />
+        <Setter Property="Margin" Value="0,0,2,0" />
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="ListBoxItem">
-                    <Border x:Name="Bg" Background="Transparent" CornerRadius="14" Padding="10,5">
+                    <Border x:Name="Bg" Background="Transparent" CornerRadius="11" Padding="8,7">
                         <ContentPresenter />
                     </Border>
                     <ControlTemplate.Triggers>
@@ -138,7 +150,8 @@
                             <Setter TargetName="Bg" Property="Background" Value="{DynamicResource Island.Hover}" />
                         </Trigger>
                         <Trigger Property="IsSelected" Value="True">
-                            <Setter TargetName="Bg" Property="Background" Value="{DynamicResource Island.Hover}" />
+                            <Setter TargetName="Bg" Property="Background" Value="{DynamicResource Island.SelectedBackground}" />
+                            <Setter Property="Foreground" Value="{DynamicResource Island.SelectedForeground}" />
                         </Trigger>
                     </ControlTemplate.Triggers>
                 </ControlTemplate>

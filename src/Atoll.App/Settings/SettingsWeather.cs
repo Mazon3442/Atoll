@@ -20,13 +20,23 @@ public sealed partial class SettingsViewModel : IDisposable
     public bool CanChooseWeatherLocation => !WeatherLocationBusy;
     partial void OnWeatherLocationBusyChanged(bool value) => OnPropertyChanged(nameof(CanChooseWeatherLocation));
     public ObservableCollection<Place> WeatherResults { get; } = [];
-    public WeatherViewModel Weather { get; }
+    public WeatherViewModel Weather { get; private set; }
     public string WeatherLocation => S.Weather.City.Length == 0 ? "No location selected" : S.Weather.City;
+
+    private void OnSharedWeatherDisposed()
+    {
+        Weather.Disposed -= OnSharedWeatherDisposed;
+        Weather = new WeatherViewModel(_service) { SelectedMetric = Weather.SelectedMetric };
+        _ownsWeather = true;
+        OnPropertyChanged(nameof(Weather));
+        if (PageIndex == 6) Weather.Start();
+    }
 
     partial void OnPageIndexChanged(int value)
     {
         if (value == 6) Weather.Start();
         if (value == 3) RefreshNotificationAccess();
+        if (value == 4) foreach (var agent in AgentIntegrations) agent.Refresh();
     }
 
     [RelayCommand]
@@ -97,6 +107,7 @@ public sealed partial class SettingsViewModel : IDisposable
     public void Dispose()
     {
         _locationCts?.Cancel();
-        Weather.Dispose();
+        if (_ownsWeather) Weather.Dispose();
+        else Weather.Disposed -= OnSharedWeatherDisposed;
     }
 }

@@ -23,11 +23,14 @@ public sealed record SettingsPage(string Title, string Glyph);
 public sealed partial class SettingsViewModel : ObservableObject
 {
     private readonly SettingsService _service;
+    private bool _ownsWeather;
 
-    public SettingsViewModel(SettingsService service, IReadOnlyList<ModuleDescriptor> catalog)
+    public SettingsViewModel(SettingsService service, IReadOnlyList<ModuleDescriptor> catalog, Atoll.Modules.Weather.WeatherViewModel? weather = null)
     {
         _service = service;
-        Weather = new Atoll.Modules.Weather.WeatherViewModel(service);
+        _ownsWeather = weather is null;
+        Weather = weather ?? new Atoll.Modules.Weather.WeatherViewModel(service);
+        if (!_ownsWeather) Weather.Disposed += OnSharedWeatherDisposed;
         WeatherLocationExpanded = S.Weather.City.Length == 0;
         Modules = new(S.Modules
             .Select(e => (Entry: e, Descriptor: catalog.FirstOrDefault(d => d.Id == e.Id)))
