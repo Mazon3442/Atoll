@@ -1,224 +1,493 @@
 <Window x:Class="Atoll.Settings.SettingsWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:s="clr-namespace:Atoll.Settings"
         Title="ATOLL settings"
-        Width="560" Height="720" MinWidth="440" MinHeight="420"
+        Width="980" Height="720" MinWidth="760" MinHeight="480"
         WindowStartupLocation="CenterScreen"
         ThemeMode="System">
 
     <Window.Resources>
         <BooleanToVisibilityConverter x:Key="BoolToVisibility" />
-        <Style x:Key="Section" TargetType="TextBlock">
-            <Setter Property="FontSize" Value="18" />
+        <s:PageVisibilityConverter x:Key="PageVisible" />
+        <s:EmptyToCollapsedConverter x:Key="EmptyToCollapsed" />
+
+        <Style x:Key="SectionHeader" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="14" />
             <Setter Property="FontWeight" Value="SemiBold" />
-            <Setter Property="Margin" Value="0,24,0,8" />
+            <Setter Property="Margin" Value="2,22,0,8" />
         </Style>
-        <Style x:Key="Row" TargetType="DockPanel">
-            <Setter Property="Margin" Value="0,6" />
-            <Setter Property="LastChildFill" Value="True" />
+
+        <Style x:Key="Hint" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="TextWrapping" Value="Wrap" />
+            <Setter Property="Foreground" Value="{DynamicResource TextFillColorSecondaryBrush}" />
         </Style>
-        <Style x:Key="RowLabel" TargetType="Label">
-            <Setter Property="Width" Value="150" />
-            <Setter Property="Padding" Value="0" />
+
+        <!-- Settings row: icon, title + description, control on the right (Windows 11 Settings layout). -->
+        <Style TargetType="s:SettingCard">
+            <Setter Property="Margin" Value="0,0,0,4" />
+            <Setter Property="Focusable" Value="False" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="s:SettingCard">
+                        <Border Background="{DynamicResource CardBackgroundFillColorDefaultBrush}"
+                                BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}" BorderThickness="1"
+                                CornerRadius="6" Padding="16,12" MinHeight="68">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Text="{TemplateBinding Glyph}" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets"
+                                           FontSize="18" VerticalAlignment="Center" Margin="2,0,18,0" />
+                                <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="0,0,20,0">
+                                    <TextBlock Text="{TemplateBinding Header}" FontSize="14" TextWrapping="Wrap" />
+                                    <TextBlock Text="{TemplateBinding Description}" Style="{StaticResource Hint}" Margin="0,2,0,0"
+                                               Visibility="{Binding Description, RelativeSource={RelativeSource TemplatedParent}, Converter={StaticResource EmptyToCollapsed}}" />
+                                </StackPanel>
+                                <ContentPresenter Grid.Column="2" VerticalAlignment="Center" />
+                            </Grid>
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- On/off switch for CheckBox (WPF has no ToggleSwitch). -->
+        <Style x:Key="Toggle" TargetType="CheckBox">
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="CheckBox">
+                        <StackPanel Orientation="Horizontal" Background="Transparent">
+                            <TextBlock x:Name="State" Text="Off" VerticalAlignment="Center" Margin="0,0,12,0" MinWidth="22" />
+                            <Border x:Name="Track" Width="40" Height="20" CornerRadius="10" BorderThickness="1"
+                                    BorderBrush="{DynamicResource TextFillColorSecondaryBrush}" Background="Transparent">
+                                <Ellipse x:Name="Knob" Width="12" Height="12" HorizontalAlignment="Left" Margin="4,0"
+                                         Fill="{DynamicResource TextFillColorSecondaryBrush}" />
+                            </Border>
+                        </StackPanel>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsChecked" Value="True">
+                                <Setter TargetName="State" Property="Text" Value="On" />
+                                <Setter TargetName="Track" Property="Background" Value="{DynamicResource AccentFillColorDefaultBrush}" />
+                                <Setter TargetName="Track" Property="BorderBrush" Value="{DynamicResource AccentFillColorDefaultBrush}" />
+                                <Setter TargetName="Knob" Property="HorizontalAlignment" Value="Right" />
+                                <Setter TargetName="Knob" Property="Fill" Value="{DynamicResource TextOnAccentFillColorPrimaryBrush}" />
+                            </Trigger>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Knob" Property="Width" Value="14" />
+                                <Setter TargetName="Knob" Property="Height" Value="14" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- Slider + live value on the right of a card. -->
+        <Style x:Key="ValueText" TargetType="TextBlock">
+            <Setter Property="Width" Value="56" />
+            <Setter Property="TextAlignment" Value="Right" />
             <Setter Property="VerticalAlignment" Value="Center" />
+        </Style>
+
+        <!-- Sidebar entries. -->
+        <Style x:Key="NavItem" TargetType="ListBoxItem">
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Margin" Value="0,1" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ListBoxItem">
+                        <Grid>
+                            <Border x:Name="Bg" CornerRadius="5" Padding="12,9" Background="Transparent">
+                                <ContentPresenter />
+                            </Border>
+                            <Border x:Name="Bar" Width="3" Height="16" CornerRadius="1.5" HorizontalAlignment="Left"
+                                    Background="{DynamicResource AccentFillColorDefaultBrush}" Visibility="Collapsed" />
+                        </Grid>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Bg" Property="Background" Value="{DynamicResource SubtleFillColorSecondaryBrush}" />
+                            </Trigger>
+                            <Trigger Property="IsSelected" Value="True">
+                                <Setter TargetName="Bg" Property="Background" Value="{DynamicResource SubtleFillColorSecondaryBrush}" />
+                                <Setter TargetName="Bar" Property="Visibility" Value="Visible" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- Theme gallery tile. -->
+        <Style x:Key="ThemeTile" TargetType="Button">
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Margin" Value="0,0,8,8" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="Frame" Width="150" CornerRadius="8" BorderThickness="2" Padding="6"
+                                BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
+                                Background="{DynamicResource CardBackgroundFillColorDefaultBrush}">
+                            <ContentPresenter />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Frame" Property="BorderBrush" Value="{DynamicResource TextFillColorSecondaryBrush}" />
+                            </Trigger>
+                            <DataTrigger Binding="{Binding IsSelected}" Value="True">
+                                <Setter TargetName="Frame" Property="BorderBrush" Value="{DynamicResource AccentFillColorDefaultBrush}" />
+                            </DataTrigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
         </Style>
     </Window.Resources>
 
-    <ScrollViewer VerticalScrollBarVisibility="Auto">
-        <StackPanel Margin="24,0,24,24">
+    <Grid>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="232" />
+            <ColumnDefinition Width="*" />
+        </Grid.ColumnDefinitions>
 
-            <!-- General -->
-            <TextBlock Style="{StaticResource Section}" Text="General" />
-            <CheckBox Content="Start with Windows" IsChecked="{Binding StartWithWindows}" Margin="0,4" />
-            <DockPanel Style="{StaticResource Row}">
-                <Label Style="{StaticResource RowLabel}" Content="_Fullscreen apps" Target="{Binding ElementName=FullscreenBox}" />
-                <ComboBox x:Name="FullscreenBox" ItemsSource="{Binding FullscreenModes}" DisplayMemberPath="Label"
-                          SelectedValuePath="Value" SelectedValue="{Binding FullscreenMode}" />
-            </DockPanel>
-            <CheckBox IsChecked="{Binding ClickThrough}" Margin="0,4">
-                <TextBlock TextWrapping="Wrap">
-                    Let clicks pass through the island to the app behind it (it fades as you pass over).
-                    Rest the pointer on it to use it.
-                </TextBlock>
-            </CheckBox>
-            <DockPanel Style="{StaticResource Row}">
-                <Label Style="{StaticResource RowLabel}" Content="_Hover delay" Target="{Binding ElementName=HoverDelay}" />
-                <TextBlock DockPanel.Dock="Right" Width="56" TextAlignment="Right" VerticalAlignment="Center"
-                           Text="{Binding HoverDelayMs, StringFormat={}{0} ms}" />
-                <Slider x:Name="HoverDelay" Minimum="0" Maximum="1000" TickFrequency="50" IsSnapToTickEnabled="True"
-                        Value="{Binding HoverDelayMs}" />
-            </DockPanel>
-
-            <!-- Display -->
-            <TextBlock Style="{StaticResource Section}" Text="Display" />
-            <DockPanel Style="{StaticResource Row}">
-                <Label Style="{StaticResource RowLabel}" Content="_Show on" Target="{Binding ElementName=MonitorModeBox}" />
-                <ComboBox x:Name="MonitorModeBox" ItemsSource="{Binding MonitorModes}" SelectedItem="{Binding MonitorMode}" />
-            </DockPanel>
-            <ItemsControl ItemsSource="{Binding Displays}" Margin="150,0,0,0"
-                          Visibility="{Binding IsSelectedMode, Converter={StaticResource BoolToVisibility}}">
-                <ItemsControl.ItemTemplate>
+        <!-- Sidebar -->
+        <DockPanel Margin="12,16,8,16">
+            <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="10,4,0,22">
+                <Border Width="30" Height="30" CornerRadius="9" Background="Black">
+                    <TextBlock Text="A" Foreground="White" FontWeight="Bold" FontSize="15"
+                               HorizontalAlignment="Center" VerticalAlignment="Center" />
+                </Border>
+                <TextBlock Text="ATOLL" FontSize="17" FontWeight="SemiBold" Margin="12,0,0,0" VerticalAlignment="Center" />
+            </StackPanel>
+            <ListBox ItemsSource="{Binding Pages}" SelectedIndex="{Binding PageIndex}" ItemContainerStyle="{StaticResource NavItem}"
+                     BorderThickness="0" Background="Transparent" AutomationProperties.Name="Settings sections">
+                <ListBox.ItemTemplate>
                     <DataTemplate>
-                        <CheckBox Content="{Binding Label}" IsChecked="{Binding IsSelected}" Margin="0,2" />
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="{Binding Glyph}" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" FontSize="16"
+                                       VerticalAlignment="Center" Margin="0,0,14,0" />
+                            <TextBlock Text="{Binding Title}" FontSize="14" VerticalAlignment="Center" />
+                        </StackPanel>
                     </DataTemplate>
-                </ItemsControl.ItemTemplate>
-            </ItemsControl>
-            <DockPanel Style="{StaticResource Row}">
-                <Label Style="{StaticResource RowLabel}" Content="_Top gap" Target="{Binding ElementName=TopOffset}" />
-                <TextBlock DockPanel.Dock="Right" Width="56" TextAlignment="Right" VerticalAlignment="Center"
-                           Text="{Binding TopOffset, StringFormat={}{0:0} px}" />
-                <Slider x:Name="TopOffset" Minimum="0" Maximum="40" TickFrequency="1" IsSnapToTickEnabled="True"
-                        Value="{Binding TopOffset}" />
-            </DockPanel>
+                </ListBox.ItemTemplate>
+            </ListBox>
+        </DockPanel>
 
-            <!-- Theme -->
-            <TextBlock Style="{StaticResource Section}" Text="Theme" />
-            <DockPanel Style="{StaticResource Row}">
-                <Label Style="{StaticResource RowLabel}" Content="_Preset" Target="{Binding ElementName=Preset}" />
-                <ComboBox x:Name="Preset" ItemsSource="{Binding Presets}" SelectedItem="{Binding SelectedPreset}">
-                    <ComboBox.ItemTemplate>
-                        <DataTemplate>
+        <!-- Page -->
+        <DockPanel Grid.Column="1">
+            <TextBlock DockPanel.Dock="Top" Text="{Binding PageTitle}" FontSize="28" FontWeight="SemiBold" Margin="28,22,28,6" />
+            <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                <Grid Margin="28,0,28,28" MaxWidth="860" HorizontalAlignment="Stretch">
+
+                    <!-- ===================== General ===================== -->
+                    <StackPanel Visibility="{Binding PageIndex, Converter={StaticResource PageVisible}, ConverterParameter=0}">
+                        <TextBlock Style="{StaticResource SectionHeader}" Text="Behavior" />
+                        <s:SettingCard Glyph="&#xE7E8;" Header="Start with Windows" Description="Open ATOLL automatically when you sign in.">
+                            <CheckBox Style="{StaticResource Toggle}" IsChecked="{Binding StartWithWindows}" AutomationProperties.Name="Start with Windows" />
+                        </s:SettingCard>
+                        <s:SettingCard Glyph="&#xE740;" Header="Fullscreen apps"
+                                       Description="Videos, presentations and F11 browsers. Games always hide ATOLL completely.">
+                            <ComboBox Width="250" ItemsSource="{Binding FullscreenModes}" DisplayMemberPath="Label"
+                                      SelectedValuePath="Value" SelectedValue="{Binding FullscreenMode}" AutomationProperties.Name="Fullscreen apps" />
+                        </s:SettingCard>
+                        <s:SettingCard Glyph="&#xE8B0;" Header="Click through over maximized windows"
+                                       Description="When a maximized or fullscreen app is behind ATOLL, clicks reach that app (like browser tabs). Rest the pointer on ATOLL to use it.">
+                            <CheckBox Style="{StaticResource Toggle}" IsChecked="{Binding ClickThrough}" AutomationProperties.Name="Click through over maximized windows" />
+                        </s:SettingCard>
+                        <s:SettingCard Glyph="&#xE916;" Header="Hover delay" Description="How long to rest the pointer before ATOLL shows more.">
                             <StackPanel Orientation="Horizontal">
-                                <Border Width="30" Height="16" CornerRadius="8" Background="{Binding Background}"
-                                        BorderBrush="Gray" BorderThickness="1" VerticalAlignment="Center">
-                                    <Ellipse Width="6" Height="6" Fill="{Binding Accent}" HorizontalAlignment="Right" Margin="0,0,4,0" />
-                                </Border>
-                                <TextBlock Text="{Binding Name}" Margin="10,0,0,0" VerticalAlignment="Center" />
+                                <Slider Width="200" Minimum="0" Maximum="1000" TickFrequency="50" IsSnapToTickEnabled="True"
+                                        Value="{Binding HoverDelayMs}" AutomationProperties.Name="Hover delay" />
+                                <TextBlock Style="{StaticResource ValueText}" Text="{Binding HoverDelayMs, StringFormat={}{0} ms}" />
                             </StackPanel>
-                        </DataTemplate>
-                    </ComboBox.ItemTemplate>
-                </ComboBox>
-            </DockPanel>
-            <CheckBox Content="Frosted glass (blur what is behind the island)" IsChecked="{Binding Glass}" Margin="150,4,0,4" />
-            <DockPanel Style="{StaticResource Row}">
-                <Label Style="{StaticResource RowLabel}" Content="_Background" Target="{Binding ElementName=BgColor}" />
-                <Border DockPanel.Dock="Right" Width="28" Height="28" CornerRadius="6" Margin="8,0,0,0"
-                        BorderBrush="Gray" BorderThickness="1" Background="{Binding Background}" />
-                <TextBox x:Name="BgColor" Text="{Binding Background, UpdateSourceTrigger=PropertyChanged}" />
-            </DockPanel>
-            <DockPanel Style="{StaticResource Row}">
-                <Label Style="{StaticResource RowLabel}" Content="_Text" Target="{Binding ElementName=FgColor}" />
-                <Border DockPanel.Dock="Right" Width="28" Height="28" CornerRadius="6" Margin="8,0,0,0"
-                        BorderBrush="Gray" BorderThickness="1" Background="{Binding Foreground}" />
-                <TextBox x:Name="FgColor" Text="{Binding Foreground, UpdateSourceTrigger=PropertyChanged}" />
-            </DockPanel>
-            <DockPanel Style="{StaticResource Row}">
-                <Label Style="{StaticResource RowLabel}" Content="_Accent" Target="{Binding ElementName=AccentColor}" />
-                <Border DockPanel.Dock="Right" Width="28" Height="28" CornerRadius="6" Margin="8,0,0,0"
-                        BorderBrush="Gray" BorderThickness="1" Background="{Binding Accent}" />
-                <TextBox x:Name="AccentColor" Text="{Binding Accent, UpdateSourceTrigger=PropertyChanged}" />
-            </DockPanel>
-            <DockPanel Style="{StaticResource Row}">
-                <Label Style="{StaticResource RowLabel}" Content="_Opacity" Target="{Binding ElementName=OpacitySlider}" />
-                <TextBlock DockPanel.Dock="Right" Width="56" TextAlignment="Right" VerticalAlignment="Center"
-                           Text="{Binding Opacity, StringFormat={}{0:P0}}" />
-                <Slider x:Name="OpacitySlider" Minimum="0.3" Maximum="1" Value="{Binding Opacity}" />
-            </DockPanel>
-            <DockPanel Style="{StaticResource Row}">
-                <Label Style="{StaticResource RowLabel}" Content="_Island height" Target="{Binding ElementName=CompactHeight}" />
-                <TextBlock DockPanel.Dock="Right" Width="56" TextAlignment="Right" VerticalAlignment="Center"
-                           Text="{Binding CompactHeight, StringFormat={}{0:0} px}" />
-                <Slider x:Name="CompactHeight" Minimum="24" Maximum="60" TickFrequency="1" IsSnapToTickEnabled="True"
-                        Value="{Binding CompactHeight}" />
-            </DockPanel>
-            <DockPanel Style="{StaticResource Row}">
-                <Label Style="{StaticResource RowLabel}" Content="_Roundness" Target="{Binding ElementName=Roundness}" />
-                <TextBlock DockPanel.Dock="Right" Width="56" TextAlignment="Right" VerticalAlignment="Center"
-                           Text="{Binding Roundness, StringFormat={}{0:P0}}" />
-                <Slider x:Name="Roundness" Minimum="0" Maximum="1" Value="{Binding Roundness}" />
-            </DockPanel>
-            <DockPanel Style="{StaticResource Row}">
-                <Label Style="{StaticResource RowLabel}" Content="Expanded _width" Target="{Binding ElementName=ExpandedWidth}" />
-                <TextBlock DockPanel.Dock="Right" Width="56" TextAlignment="Right" VerticalAlignment="Center"
-                           Text="{Binding ExpandedWidth, StringFormat={}{0:0} px}" />
-                <Slider x:Name="ExpandedWidth" Minimum="320" Maximum="900" TickFrequency="10" IsSnapToTickEnabled="True"
-                        Value="{Binding ExpandedWidth}" />
-            </DockPanel>
-            <DockPanel Style="{StaticResource Row}">
-                <Label Style="{StaticResource RowLabel}" Content="Expanded h_eight" Target="{Binding ElementName=ExpandedHeight}" />
-                <TextBlock DockPanel.Dock="Right" Width="56" TextAlignment="Right" VerticalAlignment="Center"
-                           Text="{Binding ExpandedHeight, StringFormat={}{0:0} px}" />
-                <Slider x:Name="ExpandedHeight" Minimum="140" Maximum="600" TickFrequency="10" IsSnapToTickEnabled="True"
-                        Value="{Binding ExpandedHeight}" />
-            </DockPanel>
+                        </s:SettingCard>
 
-            <!-- Notifications -->
-            <TextBlock Style="{StaticResource Section}" Text="Notifications" />
-            <TextBlock Text="{Binding NotificationStatus}" TextWrapping="Wrap" Margin="0,0,0,8" />
-            <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
-                <Button Content="Allow access" Command="{Binding AllowNotificationsCommand}" Margin="0,0,8,0" Padding="14,6"
-                        Visibility="{Binding CanRequestNotifications, Converter={StaticResource BoolToVisibility}}" />
-                <Button Content="Windows notification settings" Command="{Binding OpenNotificationSettingsCommand}" Padding="14,6" />
-            </StackPanel>
-            <CheckBox Content="Show message text (turn off while screen sharing)" IsChecked="{Binding ShowNotificationContent}" Margin="0,4" />
-            <TextBlock Text="Muted apps" Opacity="0.7" Margin="0,10,0,4" />
-            <TextBlock Text="None. Mute an app from the Notifications tab in the island." Opacity="0.7">
-                <TextBlock.Style>
-                    <Style TargetType="TextBlock">
-                        <Setter Property="Visibility" Value="Collapsed" />
-                        <Style.Triggers>
-                            <DataTrigger Binding="{Binding MutedApps.Count}" Value="0">
-                                <Setter Property="Visibility" Value="Visible" />
-                            </DataTrigger>
-                        </Style.Triggers>
-                    </Style>
-                </TextBlock.Style>
-            </TextBlock>
-            <ItemsControl x:Name="MutedList" ItemsSource="{Binding MutedApps}">
-                <ItemsControl.ItemTemplate>
-                    <DataTemplate>
-                        <DockPanel Margin="0,2">
-                            <Button DockPanel.Dock="Right" Content="Unmute" Padding="10,3"
-                                    Command="{Binding DataContext.UnmuteCommand, ElementName=MutedList}" CommandParameter="{Binding}"
-                                    AutomationProperties.Name="{Binding StringFormat=Unmute {0}}" />
-                            <TextBlock Text="{Binding}" VerticalAlignment="Center" />
-                        </DockPanel>
-                    </DataTemplate>
-                </ItemsControl.ItemTemplate>
-            </ItemsControl>
+                        <TextBlock Style="{StaticResource SectionHeader}" Text="Position" />
+                        <s:SettingCard Glyph="&#xE7F4;" Header="Show on" Description="Which displays get an island.">
+                            <ComboBox Width="250" ItemsSource="{Binding MonitorModes}" DisplayMemberPath="Label"
+                                      SelectedValuePath="Value" SelectedValue="{Binding MonitorMode}" AutomationProperties.Name="Show on" />
+                        </s:SettingCard>
+                        <Border Visibility="{Binding IsSelectedMode, Converter={StaticResource BoolToVisibility}}" Margin="0,0,0,4"
+                                Background="{DynamicResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
+                                BorderThickness="1" CornerRadius="6" Padding="52,10,16,10">
+                            <ItemsControl ItemsSource="{Binding Displays}">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <CheckBox Content="{Binding Label}" IsChecked="{Binding IsSelected}" Margin="0,3" />
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </Border>
+                        <s:SettingCard Glyph="&#xE74A;" Header="Gap from the top of the screen">
+                            <StackPanel Orientation="Horizontal">
+                                <Slider Width="200" Minimum="0" Maximum="40" TickFrequency="1" IsSnapToTickEnabled="True"
+                                        Value="{Binding TopOffset}" AutomationProperties.Name="Gap from the top of the screen" />
+                                <TextBlock Style="{StaticResource ValueText}" Text="{Binding TopOffset, StringFormat={}{0:0} px}" />
+                            </StackPanel>
+                        </s:SettingCard>
+                    </StackPanel>
 
-            <!-- Claude Code -->
-            <TextBlock Style="{StaticResource Section}" Text="Claude Code" />
-            <TextBlock Text="{Binding HookStatus}" TextWrapping="Wrap" Margin="0,0,0,8" />
-            <TextBlock TextWrapping="Wrap" Opacity="0.7" Margin="0,0,0,8">
-                Live activity comes from Claude Code hooks. Installing adds entries to
-                <Run Text="{Binding HookSettingsPath, Mode=OneWay}" />; your other settings and hooks are kept.
-            </TextBlock>
-            <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
-                <Button Content="Install hooks" Command="{Binding InstallHooksCommand}" Margin="0,0,8,0" Padding="14,6" />
-                <Button Content="Remove hooks" Command="{Binding RemoveHooksCommand}" Padding="14,6" />
-            </StackPanel>
-            <TextBlock Text="{Binding HookMessage}" TextWrapping="Wrap" Opacity="0.8" Margin="0,0,0,8" />
-            <CheckBox Content="Play a sound when a session finishes" IsChecked="{Binding SoundOnDone}" Margin="0,4" />
-            <CheckBox Content="Play a sound when a session needs permission" IsChecked="{Binding SoundOnAttention}" Margin="0,4" />
-
-            <!-- Modules -->
-            <TextBlock Style="{StaticResource Section}" Text="Modules" />
-            <TextBlock Text="Order here is the tab order in the expanded island." Opacity="0.7" Margin="0,0,0,8" />
-            <ItemsControl x:Name="ModuleList" ItemsSource="{Binding Modules}">
-                <ItemsControl.ItemTemplate>
-                    <DataTemplate>
-                        <DockPanel Margin="0,3">
-                            <Button DockPanel.Dock="Right" Content="&#xE70D;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets"
-                                    ToolTip="Move down" AutomationProperties.Name="{Binding Name, StringFormat=Move {0} down}"
-                                    Command="{Binding DataContext.MoveDownCommand, ElementName=ModuleList}"
-                                    CommandParameter="{Binding}" Margin="4,0,0,0" />
-                            <Button DockPanel.Dock="Right" Content="&#xE70E;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets"
-                                    ToolTip="Move up" AutomationProperties.Name="{Binding Name, StringFormat=Move {0} up}"
-                                    Command="{Binding DataContext.MoveUpCommand, ElementName=ModuleList}"
-                                    CommandParameter="{Binding}" Margin="8,0,0,0" />
-                            <CheckBox IsChecked="{Binding Enabled}" VerticalAlignment="Center">
-                                <StackPanel Orientation="Horizontal">
-                                    <TextBlock Text="{Binding Glyph}" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets"
-                                               VerticalAlignment="Center" Margin="0,0,8,0" />
-                                    <TextBlock Text="{Binding Name}" VerticalAlignment="Center" />
+                    <!-- ===================== Appearance ===================== -->
+                    <StackPanel Visibility="{Binding PageIndex, Converter={StaticResource PageVisible}, ConverterParameter=1}">
+                        <!-- Live preview -->
+                        <Border CornerRadius="8" Height="190" Margin="0,8,0,0" ClipToBounds="True" AutomationProperties.Name="Preview">
+                            <Border.Background>
+                                <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                                    <GradientStop Color="#2E6BEF" Offset="0" />
+                                    <GradientStop Color="#8E54E9" Offset="0.5" />
+                                    <GradientStop Color="#F7797D" Offset="1" />
+                                </LinearGradientBrush>
+                            </Border.Background>
+                            <Grid>
+                                <Ellipse Width="220" Height="220" Fill="#55FFD159" HorizontalAlignment="Left" Margin="60,-60,0,0" />
+                                <Ellipse Width="160" Height="160" Fill="#5530D158" HorizontalAlignment="Right" Margin="0,40,90,-40" />
+                                <StackPanel HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,14,0,0">
+                                    <!-- Compact -->
+                                    <Border Background="{Binding PreviewFill}" CornerRadius="{Binding PreviewCorner}" Height="{Binding PreviewHeight}"
+                                            BorderBrush="#33FFFFFF" BorderThickness="1" Padding="16,0" HorizontalAlignment="Center">
+                                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                            <TextBlock Text="&#x273B;" FontFamily="Segoe UI Symbol" Foreground="#D97757" FontSize="14" VerticalAlignment="Center" />
+                                            <TextBlock Text="Editing App.xaml" Foreground="{Binding PreviewText}" FontSize="12" FontWeight="SemiBold"
+                                                       Margin="8,0,0,0" VerticalAlignment="Center" />
+                                        </StackPanel>
+                                    </Border>
+                                    <!-- Peek -->
+                                    <Border Background="{Binding PreviewFill}" CornerRadius="{Binding PreviewPeekCorner}" BorderBrush="#33FFFFFF"
+                                            BorderThickness="1" Padding="14,10" Margin="0,14,0,0" HorizontalAlignment="Center">
+                                        <StackPanel Orientation="Horizontal">
+                                            <Border Width="40" Height="40" CornerRadius="8" Background="{Binding PreviewAccent}" />
+                                            <StackPanel Margin="12,0,18,0" VerticalAlignment="Center">
+                                                <TextBlock Text="Midnight City" Foreground="{Binding PreviewText}" FontSize="14" FontWeight="SemiBold" />
+                                                <TextBlock Text="M83" Foreground="{Binding PreviewSubtle}" FontSize="12" />
+                                            </StackPanel>
+                                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                                <Rectangle Width="3" Height="8" RadiusX="1.5" RadiusY="1.5" Margin="1,0" Fill="{Binding PreviewAccent}" />
+                                                <Rectangle Width="3" Height="14" RadiusX="1.5" RadiusY="1.5" Margin="1,0" Fill="{Binding PreviewAccent}" />
+                                                <Rectangle Width="3" Height="10" RadiusX="1.5" RadiusY="1.5" Margin="1,0" Fill="{Binding PreviewAccent}" />
+                                                <Rectangle Width="3" Height="16" RadiusX="1.5" RadiusY="1.5" Margin="1,0" Fill="{Binding PreviewAccent}" />
+                                                <Rectangle Width="3" Height="6" RadiusX="1.5" RadiusY="1.5" Margin="1,0" Fill="{Binding PreviewAccent}" />
+                                            </StackPanel>
+                                        </StackPanel>
+                                    </Border>
                                 </StackPanel>
-                            </CheckBox>
-                        </DockPanel>
-                    </DataTemplate>
-                </ItemsControl.ItemTemplate>
-            </ItemsControl>
+                            </Grid>
+                        </Border>
 
-        </StackPanel>
-    </ScrollViewer>
+                        <TextBlock Style="{StaticResource SectionHeader}" Text="Themes" />
+                        <ItemsControl x:Name="ThemeGallery" ItemsSource="{Binding Themes}">
+                            <ItemsControl.ItemsPanel>
+                                <ItemsPanelTemplate>
+                                    <WrapPanel />
+                                </ItemsPanelTemplate>
+                            </ItemsControl.ItemsPanel>
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Button Style="{StaticResource ThemeTile}" Command="{Binding DataContext.ApplyThemeCommand, ElementName=ThemeGallery}"
+                                            CommandParameter="{Binding}" AutomationProperties.Name="{Binding Preset.Name, StringFormat=Use theme {0}}">
+                                        <StackPanel>
+                                            <Border Height="44" CornerRadius="5" Background="{Binding Preset.Background}"
+                                                    BorderBrush="#22808080" BorderThickness="1">
+                                                <Grid Margin="10,0">
+                                                    <TextBlock Text="Aa" Foreground="{Binding Preset.Foreground}" FontWeight="SemiBold"
+                                                               FontSize="15" VerticalAlignment="Center" />
+                                                    <Ellipse Width="12" Height="12" Fill="{Binding Preset.Accent}" HorizontalAlignment="Right" />
+                                                </Grid>
+                                            </Border>
+                                            <DockPanel Margin="2,6,0,0">
+                                                <Button DockPanel.Dock="Right" Content="&#xE74D;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets"
+                                                        FontSize="11" Padding="4" Margin="4,0,0,0" ToolTip="Delete this theme"
+                                                        Command="{Binding DataContext.DeleteThemeCommand, ElementName=ThemeGallery}" CommandParameter="{Binding}"
+                                                        Visibility="{Binding IsCustom, Converter={StaticResource BoolToVisibility}}"
+                                                        AutomationProperties.Name="{Binding Preset.Name, StringFormat=Delete theme {0}}" />
+                                                <TextBlock DockPanel.Dock="Right" Text="Glass" FontSize="10" VerticalAlignment="Center"
+                                                           Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                                           Visibility="{Binding Preset.Glass, Converter={StaticResource BoolToVisibility}}" />
+                                                <TextBlock Text="{Binding Preset.Name}" FontSize="12" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"
+                                                           Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
+                                            </DockPanel>
+                                        </StackPanel>
+                                    </Button>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+
+                        <s:SettingCard Glyph="&#xE74E;" Header="Save the current look as a theme"
+                                       Description="Saves colors and frosted glass. Using an existing name updates that theme.">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBox Width="180" Text="{Binding NewThemeName, UpdateSourceTrigger=PropertyChanged}"
+                                         AutomationProperties.Name="New theme name" />
+                                <Button Content="Save" Margin="8,0,0,0" Padding="16,5" Command="{Binding SaveThemeCommand}" IsDefault="False" />
+                            </StackPanel>
+                        </s:SettingCard>
+                        <TextBlock Text="{Binding ThemeMessage}" Style="{StaticResource Hint}" Margin="4,2,0,0"
+                                   Visibility="{Binding ThemeMessage, Converter={StaticResource EmptyToCollapsed}}" />
+
+                        <TextBlock Style="{StaticResource SectionHeader}" Text="Colors" />
+                        <s:SettingCard Glyph="&#xE790;" Header="Background" Description="Hex color. #AARRGGBB adds transparency.">
+                            <StackPanel Orientation="Horizontal">
+                                <Border Width="28" Height="28" CornerRadius="6" BorderBrush="#40808080" BorderThickness="1" Background="{Binding Background}" Margin="0,0,10,0" />
+                                <TextBox Width="120" Text="{Binding Background, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Background color" />
+                            </StackPanel>
+                        </s:SettingCard>
+                        <s:SettingCard Glyph="&#xE8D2;" Header="Text">
+                            <StackPanel Orientation="Horizontal">
+                                <Border Width="28" Height="28" CornerRadius="6" BorderBrush="#40808080" BorderThickness="1" Background="{Binding Foreground}" Margin="0,0,10,0" />
+                                <TextBox Width="120" Text="{Binding Foreground, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Text color" />
+                            </StackPanel>
+                        </s:SettingCard>
+                        <s:SettingCard Glyph="&#xE771;" Header="Accent" Description="Highlights: timers, visualizer, buttons.">
+                            <StackPanel Orientation="Horizontal">
+                                <Border Width="28" Height="28" CornerRadius="6" BorderBrush="#40808080" BorderThickness="1" Background="{Binding Accent}" Margin="0,0,10,0" />
+                                <TextBox Width="120" Text="{Binding Accent, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Accent color" />
+                            </StackPanel>
+                        </s:SettingCard>
+                        <s:SettingCard Glyph="&#xF5EF;" Header="Frosted glass"
+                                       Description="Blurs what is behind ATOLL, tinted with the background color. While on, ATOLL is hidden from screenshots and screen recordings.">
+                            <CheckBox Style="{StaticResource Toggle}" IsChecked="{Binding Glass}" AutomationProperties.Name="Frosted glass" />
+                        </s:SettingCard>
+                        <s:SettingCard Glyph="&#xE706;" Header="Opacity">
+                            <StackPanel Orientation="Horizontal">
+                                <Slider Width="200" Minimum="0.3" Maximum="1" Value="{Binding Opacity}" AutomationProperties.Name="Opacity" />
+                                <TextBlock Style="{StaticResource ValueText}" Text="{Binding Opacity, StringFormat={}{0:P0}}" />
+                            </StackPanel>
+                        </s:SettingCard>
+
+                        <TextBlock Style="{StaticResource SectionHeader}" Text="Size" />
+                        <s:SettingCard Glyph="&#xE740;" Header="Island height">
+                            <StackPanel Orientation="Horizontal">
+                                <Slider Width="200" Minimum="24" Maximum="60" TickFrequency="1" IsSnapToTickEnabled="True"
+                                        Value="{Binding CompactHeight}" AutomationProperties.Name="Island height" />
+                                <TextBlock Style="{StaticResource ValueText}" Text="{Binding CompactHeight, StringFormat={}{0:0} px}" />
+                            </StackPanel>
+                        </s:SettingCard>
+                        <s:SettingCard Glyph="&#xE91F;" Header="Roundness" Description="0% gives square corners, 100% a full pill.">
+                            <StackPanel Orientation="Horizontal">
+                                <Slider Width="200" Minimum="0" Maximum="1" Value="{Binding Roundness}" AutomationProperties.Name="Roundness" />
+                                <TextBlock Style="{StaticResource ValueText}" Text="{Binding Roundness, StringFormat={}{0:P0}}" />
+                            </StackPanel>
+                        </s:SettingCard>
+                        <s:SettingCard Glyph="&#xE9A6;" Header="Expanded width" Description="Size of the panel when you click ATOLL.">
+                            <StackPanel Orientation="Horizontal">
+                                <Slider Width="200" Minimum="320" Maximum="900" TickFrequency="10" IsSnapToTickEnabled="True"
+                                        Value="{Binding ExpandedWidth}" AutomationProperties.Name="Expanded width" />
+                                <TextBlock Style="{StaticResource ValueText}" Text="{Binding ExpandedWidth, StringFormat={}{0:0} px}" />
+                            </StackPanel>
+                        </s:SettingCard>
+                        <s:SettingCard Glyph="&#xE9A6;" Header="Expanded height">
+                            <StackPanel Orientation="Horizontal">
+                                <Slider Width="200" Minimum="140" Maximum="600" TickFrequency="10" IsSnapToTickEnabled="True"
+                                        Value="{Binding ExpandedHeight}" AutomationProperties.Name="Expanded height" />
+                                <TextBlock Style="{StaticResource ValueText}" Text="{Binding ExpandedHeight, StringFormat={}{0:0} px}" />
+                            </StackPanel>
+                        </s:SettingCard>
+                    </StackPanel>
+
+                    <!-- ===================== Modules ===================== -->
+                    <StackPanel Visibility="{Binding PageIndex, Converter={StaticResource PageVisible}, ConverterParameter=2}">
+                        <TextBlock Style="{StaticResource Hint}" Margin="2,8,0,14"
+                                   Text="Turn features on or off. The order here is the tab order when ATOLL is expanded." />
+                        <ItemsControl x:Name="ModuleList" ItemsSource="{Binding Modules}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <s:SettingCard Glyph="{Binding Glyph}" Header="{Binding Name}">
+                                        <StackPanel Orientation="Horizontal">
+                                            <Button Content="&#xE70E;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" Padding="8,5"
+                                                    ToolTip="Move up" Command="{Binding DataContext.MoveUpCommand, ElementName=ModuleList}" CommandParameter="{Binding}"
+                                                    AutomationProperties.Name="{Binding Name, StringFormat=Move {0} up}" />
+                                            <Button Content="&#xE70D;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" Padding="8,5" Margin="4,0,20,0"
+                                                    ToolTip="Move down" Command="{Binding DataContext.MoveDownCommand, ElementName=ModuleList}" CommandParameter="{Binding}"
+                                                    AutomationProperties.Name="{Binding Name, StringFormat=Move {0} down}" />
+                                            <CheckBox Style="{StaticResource Toggle}" IsChecked="{Binding Enabled}"
+                                                      AutomationProperties.Name="{Binding Name, StringFormat=Turn {0} on or off}" />
+                                        </StackPanel>
+                                    </s:SettingCard>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </StackPanel>
+
+                    <!-- ===================== Notifications ===================== -->
+                    <StackPanel Visibility="{Binding PageIndex, Converter={StaticResource PageVisible}, ConverterParameter=3}">
+                        <TextBlock Style="{StaticResource SectionHeader}" Text="Access" />
+                        <s:SettingCard Glyph="&#xEA8F;" Header="Notification access" Description="{Binding NotificationStatus}">
+                            <StackPanel Orientation="Horizontal">
+                                <Button Content="Allow access" Padding="14,5" Margin="0,0,8,0" Command="{Binding AllowNotificationsCommand}"
+                                        Visibility="{Binding CanRequestNotifications, Converter={StaticResource BoolToVisibility}}" />
+                                <Button Content="Windows settings" Padding="14,5" Command="{Binding OpenNotificationSettingsCommand}" />
+                            </StackPanel>
+                        </s:SettingCard>
+
+                        <TextBlock Style="{StaticResource SectionHeader}" Text="Privacy" />
+                        <s:SettingCard Glyph="&#xE890;" Header="Show message text"
+                                       Description="Turn off while screen sharing so ATOLL shows only the app name.">
+                            <CheckBox Style="{StaticResource Toggle}" IsChecked="{Binding ShowNotificationContent}" AutomationProperties.Name="Show message text" />
+                        </s:SettingCard>
+
+                        <TextBlock Style="{StaticResource SectionHeader}" Text="Muted apps" />
+                        <TextBlock Style="{StaticResource Hint}" Margin="2,0,0,0"
+                                   Text="None yet. Mute an app with the bell button on its notification in ATOLL."
+                                   Visibility="{Binding HasMutedApps, Converter={StaticResource Island.InverseBoolToVisibility}}" />
+                        <ItemsControl x:Name="MutedList" ItemsSource="{Binding MutedApps}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <s:SettingCard Glyph="&#xE7ED;" Header="{Binding}">
+                                        <Button Content="Unmute" Padding="14,5" Command="{Binding DataContext.UnmuteCommand, ElementName=MutedList}"
+                                                CommandParameter="{Binding}" AutomationProperties.Name="{Binding StringFormat=Unmute {0}}" />
+                                    </s:SettingCard>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </StackPanel>
+
+                    <!-- ===================== Claude Code ===================== -->
+                    <StackPanel Visibility="{Binding PageIndex, Converter={StaticResource PageVisible}, ConverterParameter=4}">
+                        <TextBlock Style="{StaticResource SectionHeader}" Text="Live activity" />
+                        <s:SettingCard Glyph="&#xE99A;" Header="Claude Code hooks" Description="{Binding HookStatus}">
+                            <StackPanel Orientation="Horizontal">
+                                <Button Content="Install" Padding="14,5" Margin="0,0,8,0" Command="{Binding InstallHooksCommand}" />
+                                <Button Content="Remove" Padding="14,5" Command="{Binding RemoveHooksCommand}"
+                                        Visibility="{Binding HooksInstalled, Converter={StaticResource BoolToVisibility}}" />
+                            </StackPanel>
+                        </s:SettingCard>
+                        <TextBlock Text="{Binding HookMessage}" Style="{StaticResource Hint}" Margin="4,2,0,4"
+                                   Visibility="{Binding HookMessage, Converter={StaticResource EmptyToCollapsed}}" />
+                        <TextBlock Style="{StaticResource Hint}" Margin="4,2,0,0">
+                            Adds entries to <Run Text="{Binding HookSettingsPath, Mode=OneWay}" />. Your other settings and hooks are kept.
+                        </TextBlock>
+
+                        <TextBlock Style="{StaticResource SectionHeader}" Text="Sounds" />
+                        <s:SettingCard Glyph="&#xE73E;" Header="When a session finishes">
+                            <CheckBox Style="{StaticResource Toggle}" IsChecked="{Binding SoundOnDone}" AutomationProperties.Name="Sound when a session finishes" />
+                        </s:SettingCard>
+                        <s:SettingCard Glyph="&#xE7BA;" Header="When a session needs permission">
+                            <CheckBox Style="{StaticResource Toggle}" IsChecked="{Binding SoundOnAttention}" AutomationProperties.Name="Sound when a session needs permission" />
+                        </s:SettingCard>
+                    </StackPanel>
+
+                    <!-- ===================== About ===================== -->
+                    <StackPanel Visibility="{Binding PageIndex, Converter={StaticResource PageVisible}, ConverterParameter=5}">
+                        <StackPanel Orientation="Horizontal" Margin="2,12,0,18">
+                            <Border Width="56" Height="56" CornerRadius="16" Background="Black">
+                                <TextBlock Text="A" Foreground="White" FontWeight="Bold" FontSize="28"
+                                           HorizontalAlignment="Center" VerticalAlignment="Center" />
+                            </Border>
+                            <StackPanel Margin="16,0,0,0" VerticalAlignment="Center">
+                                <TextBlock Text="ATOLL" FontSize="20" FontWeight="SemiBold" />
+                                <TextBlock Style="{StaticResource Hint}">
+                                    <Run Text="A dynamic island for Windows · version " /><Run Text="{Binding Version, Mode=OneWay}" />
+                                </TextBlock>
+                            </StackPanel>
+                        </StackPanel>
+                        <s:SettingCard Glyph="&#xE8B7;" Header="Settings and logs" Description="{Binding DataFolder}">
+                            <Button Content="Open folder" Padding="14,5" Command="{Binding OpenDataFolderCommand}" />
+                        </s:SettingCard>
+                    </StackPanel>
+                </Grid>
+            </ScrollViewer>
+        </DockPanel>
+    </Grid>
 </Window>

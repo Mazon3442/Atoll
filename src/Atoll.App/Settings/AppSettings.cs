@@ -41,6 +41,9 @@ public sealed class AppSettings
 
     public ThemeSettings Theme { get; set; } = new();
 
+    /// <summary>Themes the user saved from the Appearance page.</summary>
+    public List<Atoll.Theme.ThemePreset> CustomThemes { get; set; } = [];
+
     public ClaudeSettings Claude { get; set; } = new();
 
     public NotificationSettings Notifications { get; set; } = new();

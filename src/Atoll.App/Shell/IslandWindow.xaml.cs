@@ -2,7 +2,9 @@ using System.ComponentModel;
 using System.Windows;
 using System.Windows.Input;
 using System.Windows.Interop;
+using System.Windows.Media;
 using System.Windows.Media.Animation;
+using System.Windows.Media.Imaging;
 using System.Windows.Threading;
 using Atoll.Activities;
 using Atoll.Modules;
@@ -56,9 +58,13 @@ public partial class IslandWindow : Window
     private (double W, double H, double R) _target = (-1, -1, -1);
 
     private bool _paused;
-    private bool _fullscreen;
+    private ForegroundKind _foreground;
     private bool? _clickThroughApplied;
-    private BackdropWindow? _backdrop;
+
+    // Frosted glass: the screen behind the window, blurred, painted as the pill/bubble background.
+    private readonly DispatcherTimer _glassTimer;
+    private bool _glassActive;
+    private BitmapSource? _glassImage;
 
     public IslandWindow(MonitorInfo monitor, SettingsService settings, ModuleManager modules, Action openSettings)
     {
@@ -75,6 +81,8 @@ public partial class IslandWindow : Window
 
         _pointer = new DispatcherTimer(DispatcherPriority.Input) { Interval = TimeSpan.FromMilliseconds(PointerTickMs) };
         _pointer.Tick += (_, _) => OnPointerTick();
+        _glassTimer = new DispatcherTimer(DispatcherPriority.Background) { Interval = TimeSpan.FromMilliseconds(120) };
+        _glassTimer.Tick += (_, _) => SampleGlass();
 
         Tabs.ItemsSource = modules.Tabs;
         Tabs.SelectionChanged += (_, _) => ShowSelectedTab();
@@ -91,7 +99,7 @@ public partial class IslandWindow : Window
             e.Handled = true;
         };
         Pill.SizeChanged += (_, _) => UpdateBubbleOffset();
-        LayoutUpdated += (_, _) => UpdateBackdrop(); // follows the pill through every animation frame
+        LayoutUpdated += (_, _) => ApplyGlassBrushes(); // follows the pill through every animation frame
 
         SourceInitialized += (_, _) =>
         {
@@ -115,13 +123,13 @@ public partial class IslandWindow : Window
         {
             if (IsVisible) _pointer.Start();
             else _pointer.Stop();
-            UpdateBackdrop();
+            UpdateGlass();
         };
         Closed += (_, _) =>
         {
             Watch(null);
             _pointer.Stop();
-            _backdrop?.Close();
+            _glassTimer.Stop();
         };
     }
 
@@ -131,7 +139,9 @@ public partial class IslandWindow : Window
 
     private double Roundness => Math.Clamp(_settings.Current.Theme.Roundness, 0, 1);
 
-    private bool ClickThrough => _settings.Current.ClickThrough;
+    /// <summary>Pass clicks through only when a maximized or fullscreen app sits behind the island (tabs, toolbars).</summary>
+    private bool ClickThrough =>
+        _settings.Current.ClickThrough && _foreground is ForegroundKind.Maximized or ForegroundKind.Fullscreen;
 
     public void SetActivities(Activity? primary, Activity? secondary)
     {
@@ -168,14 +178,15 @@ public partial class IslandWindow : Window
         _shownContent = null; // template choice may depend on size; rebuild
         Place();
         UpdatePresence();
+        UpdateGlass();
         Render();
     }
 
-    /// <summary>Called by the manager whenever pause or fullscreen state may have changed.</summary>
-    public void SetEnvironment(bool paused, bool fullscreen)
+    /// <summary>Called by the manager whenever pause or the foreground app's state may have changed.</summary>
+    public void SetEnvironment(bool paused, ForegroundKind foreground)
     {
         _paused = paused;
-        _fullscreen = fullscreen;
+        _foreground = foreground;
         UpdatePresence();
     }
 
@@ -188,7 +199,12 @@ public partial class IslandWindow : Window
     /// <summary>Shows, hides or dims the window for pause and the fullscreen setting.</summary>
     private void UpdatePresence()
     {
-        var mode = _fullscreen ? _settings.Current.FullscreenMode : FullscreenMode.Stay;
+        var mode = _foreground switch
+        {
+            ForegroundKind.Game => FullscreenMode.Hide, // games never show the island
+            ForegroundKind.Fullscreen => _settings.Current.FullscreenMode,
+            _ => FullscreenMode.Stay,
+        };
         var shown = !_paused && mode switch
         {
             FullscreenMode.Hide => false,
@@ -307,7 +323,6 @@ public partial class IslandWindow : Window
         var to = faded ? PassThroughOpacity : 1;
         Pill.BeginAnimation(OpacityProperty, new DoubleAnimation(to, FadeDuration));
         Bubble.BeginAnimation(OpacityProperty, new DoubleAnimation(to, FadeDuration));
-        UpdateBackdrop();
     }
 
     private bool IsCursorOverIsland()
@@ -325,40 +340,59 @@ public partial class IslandWindow : Window
 
     // ---------- frosted glass ----------
 
-    private void UpdateBackdrop()
+    /// <summary>Starts or stops glass sampling to match the theme and visibility.</summary>
+    private void UpdateGlass()
     {
-        var tint = ThemeService.GlassTint;
-        var wanted = tint is not null && IsVisible && !_faded && _hwnd != 0;
-        if (!wanted)
+        var wanted = ThemeService.GlassTint is not null && IsVisible && _hwnd != 0;
+        if (wanted == _glassActive) return;
+        _glassActive = wanted;
+        if (wanted)
         {
-            _backdrop?.Hide();
-            return;
+            if (!GlassSampler.ExcludeFromCapture(_hwnd, true))
+                Log.Info("Frosted glass: this Windows build cannot exclude the island from capture; the glass may show the island itself");
+            SampleGlass();
+            _glassTimer.Start();
         }
-        if (_backdrop is null)
+        else
         {
-            _backdrop = new BackdropWindow();
-            _backdrop.Show();
+            _glassTimer.Stop();
+            if (_hwnd != 0) GlassSampler.ExcludeFromCapture(_hwnd, false);
+            _glassImage = null;
+            Pill.SetResourceReference(BackgroundProperty, "Island.Background");
+            Bubble.SetResourceReference(BackgroundProperty, "Island.Background");
         }
-        else if (!_backdrop.IsVisible)
-        {
-            _backdrop.Show();
-        }
-        _backdrop.SetTint(tint!.Value);
-
-        var shapes = new List<(Int32Rect, int)> { Shape(Pill, Pill.Radius) };
-        if (Bubble.IsVisible) shapes.Add(Shape(Bubble, Bubble.Radius));
-        _backdrop.Follow(_hwnd, shapes);
     }
 
-    private (Int32Rect, int) Shape(FrameworkElement e, double radius)
+    private void SampleGlass()
     {
-        // Includes the bubble's slide-out transform; PointToScreen returns physical pixels.
-        var topLeft = e.PointToScreen(new Point(0, 0));
-        var bottomRight = e.PointToScreen(new Point(e.ActualWidth, e.ActualHeight));
-        var scale = (bottomRight.X - topLeft.X) / Math.Max(1, e.ActualWidth);
-        return (new Int32Rect((int)Math.Round(topLeft.X), (int)Math.Round(topLeft.Y),
-                    (int)Math.Round(bottomRight.X - topLeft.X), (int)Math.Round(bottomRight.Y - topLeft.Y)),
-                (int)Math.Round(radius * scale));
+        if (!_glassActive || ThemeService.GlassTint is not { } tint || !Native.GetWindowRect(_hwnd, out var r)) return;
+        _glassImage = GlassSampler.Capture(new Int32Rect(r.Left, r.Top, r.Right - r.Left, r.Bottom - r.Top), tint);
+        ApplyGlassBrushes();
+    }
+
+    /// <summary>Paints the part of the sampled image that lies under the pill and bubble (Border clips it to the rounded shape).</summary>
+    private void ApplyGlassBrushes()
+    {
+        if (!_glassActive || _glassImage is null || ActualWidth <= 0) return;
+        Pill.Background = GlassBrush(Pill);
+        if (Bubble.IsVisible) Bubble.Background = GlassBrush(Bubble);
+    }
+
+    private ImageBrush GlassBrush(FrameworkElement e)
+    {
+        // Image pixels per DIP; the sample covers this whole window. TransformToAncestor includes the bubble's slide.
+        var sx = _glassImage!.PixelWidth / ActualWidth;
+        var sy = _glassImage.PixelHeight / ActualHeight;
+        var origin = e.TransformToAncestor(this).Transform(new Point(0, 0));
+        var brush = new ImageBrush(_glassImage)
+        {
+            ViewboxUnits = BrushMappingMode.Absolute,
+            Viewbox = new Rect(origin.X * sx, origin.Y * sy, Math.Max(1, e.ActualWidth * sx), Math.Max(1, e.ActualHeight * sy)),
+            Stretch = Stretch.Fill,
+        };
+        RenderOptions.SetBitmapScalingMode(brush, BitmapScalingMode.HighQuality); // smooth upscale = extra blur
+        brush.Freeze();
+        return brush;
     }
 
     // ---------- rendering ----------

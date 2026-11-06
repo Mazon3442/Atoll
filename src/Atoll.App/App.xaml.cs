@@ -46,9 +46,15 @@ public partial class App : Application
 
         _islands = new IslandManager(_settings, _activities, _modules, OpenSettings, Dispatcher);
         _tray = new TrayIcon(OpenSettings, paused => _islands.Paused = paused, Shutdown);
+
+        // "--settings" or "--settings=<page number>" opens settings on launch.
+        if (e.Args.FirstOrDefault(a => a.StartsWith("--settings", StringComparison.OrdinalIgnoreCase)) is { } arg)
+            OpenSettings(int.TryParse(arg.Split('=', 2).ElementAtOrDefault(1), out var page) ? page : 0);
     }
 
-    private void OpenSettings()
+    private void OpenSettings() => OpenSettings(0);
+
+    private void OpenSettings(int page)
     {
         if (_settings is null || _modules is null) return;
         if (_settingsWindow is { IsLoaded: true })
@@ -56,7 +62,8 @@ public partial class App : Application
             _settingsWindow.Activate();
             return;
         }
-        _settingsWindow = new SettingsWindow(new SettingsViewModel(_settings, _modules.Catalog));
+        var vm = new SettingsViewModel(_settings, _modules.Catalog) { PageIndex = Math.Clamp(page, 0, 5) };
+        _settingsWindow = new SettingsWindow(vm);
         _settingsWindow.Closed += (_, _) => _settingsWindow = null;
         _settingsWindow.Show();
         _settingsWindow.Activate();

@@ -11,55 +11,6 @@ internal static class Native
     public const long WS_EX_APPWINDOW = 0x00040000;
     public const long WS_EX_NOACTIVATE = 0x08000000;
     public const long WS_EX_TRANSPARENT = 0x00000020;
-    public const int RGN_OR = 2;
-
-    [DllImport("gdi32.dll")]
-    public static extern nint CreateRoundRectRgn(int left, int top, int right, int bottom, int widthEllipse, int heightEllipse);
-
-    [DllImport("gdi32.dll")]
-    public static extern int CombineRgn(nint dest, nint src1, nint src2, int mode);
-
-    [DllImport("gdi32.dll")]
-    [return: MarshalAs(UnmanagedType.Bool)]
-    public static extern bool DeleteObject(nint obj);
-
-    /// <summary>On success the system owns the region; do not delete it.</summary>
-    [DllImport("user32.dll")]
-    public static extern int SetWindowRgn(nint hwnd, nint region, [MarshalAs(UnmanagedType.Bool)] bool redraw);
-
-    [StructLayout(LayoutKind.Sequential)]
-    public struct MARGINS
-    {
-        public int Left, Right, Top, Bottom;
-    }
-
-    [DllImport("dwmapi.dll")]
-    public static extern int DwmExtendFrameIntoClientArea(nint hwnd, ref MARGINS margins);
-
-    public const int ACCENT_ENABLE_ACRYLICBLURBEHIND = 4;
-    public const int WCA_ACCENT_POLICY = 19;
-
-    [StructLayout(LayoutKind.Sequential)]
-    public struct AccentPolicy
-    {
-        public int AccentState;
-        public int AccentFlags;
-        public uint GradientColor; // AABBGGRR
-        public int AnimationId;
-    }
-
-    [StructLayout(LayoutKind.Sequential)]
-    public struct WindowCompositionAttributeData
-    {
-        public int Attribute;
-        public nint Data;
-        public int SizeOfData;
-    }
-
-    /// <summary>Undocumented but long-stable (Windows 10 1803+); used for the acrylic blur.</summary>
-    [DllImport("user32.dll")]
-    public static extern int SetWindowCompositionAttribute(nint hwnd, ref WindowCompositionAttributeData data);
-
     public static readonly nint HWND_TOPMOST = -1;
     public const uint SWP_NOSIZE = 0x0001;
     public const uint SWP_NOMOVE = 0x0002;
@@ -134,6 +85,37 @@ internal static class Native
 
     /// <summary>QUNS_ACCEPTS_NOTIFICATIONS: not in Do Not Disturb, fullscreen, presentation or locked.</summary>
     public const int QUNS_ACCEPTS_NOTIFICATIONS = 5;
+    public const int QUNS_RUNNING_D3D_FULL_SCREEN = 3;
+
+    private const uint PROCESS_QUERY_LIMITED_INFORMATION = 0x1000;
+
+    [DllImport("kernel32.dll", SetLastError = true)]
+    private static extern nint OpenProcess(uint access, [MarshalAs(UnmanagedType.Bool)] bool inherit, uint processId);
+
+    [DllImport("kernel32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static extern bool QueryFullProcessImageName(nint process, uint flags, StringBuilder name, ref int size);
+
+    [DllImport("kernel32.dll")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static extern bool CloseHandle(nint handle);
+
+    /// <summary>Full exe path of a process, or null if it cannot be opened (e.g. elevated or protected).</summary>
+    public static string? GetProcessPath(uint pid)
+    {
+        var h = OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, false, pid);
+        if (h == 0) return null;
+        try
+        {
+            var sb = new StringBuilder(1024);
+            var size = sb.Capacity;
+            return QueryFullProcessImageName(h, 0, sb, ref size) ? sb.ToString() : null;
+        }
+        finally
+        {
+            CloseHandle(h);
+        }
+    }
 
     [DllImport("shell32.dll")]
     public static extern int SHQueryUserNotificationState(out int state);
