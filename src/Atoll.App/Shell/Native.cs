@@ -43,6 +43,11 @@ internal static class Native
 
     public delegate void WinEventProc(nint hook, uint eventType, nint hwnd, int idObject, int idChild, uint thread, uint time);
 
+    public const int SM_CXSMICON = 49;
+
+    [DllImport("user32.dll")]
+    public static extern int GetSystemMetrics(int index);
+
     [DllImport("user32.dll", EntryPoint = "GetWindowLongPtrW")]
     public static extern nint GetWindowLongPtr(nint hwnd, int index);
 
