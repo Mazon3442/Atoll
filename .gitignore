@@ -483,3 +483,7 @@ $RECYCLE.BIN/
 
 # Built identity package and exported certificate (packaging/build-identity.ps1)
 packaging/out/
+
+# Release build output (packaging/build-release.ps1)
+/publish-hook/
+/releases/
