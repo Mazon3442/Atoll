@@ -193,6 +193,24 @@ public class SettingsUiTests
             Assert.Equal(viewport, clockScroll.ViewportHeight);
             Assert.Equal(expected, panel.ActualHeight);
 
+            // Media needs more room than the default height; the song title must not be clipped at the top.
+            island.OpenModule("media");
+            island.UpdateLayout();
+            Assert.True(panel.ActualHeight > expected); // grew past the default height to fit
+            var panelBody = (FrameworkElement)island.FindName("PanelBody");
+            var title = Descendants<TextBlock>(panelBody).Single(t => t.Text == "A song with a longer title");
+            Assert.InRange(title.TranslatePoint(new Point(), panelBody).Y, 0, panelBody.ActualHeight - title.ActualHeight);
+            Assert.InRange(panelBody.DesiredSize.Height - panelBody.Margin.Top - panelBody.Margin.Bottom, 0, panelBody.ActualHeight); // desired size includes the margin
+
+            // The hardware view grows until everything is visible without scrolling.
+            island.OpenModule("system");
+            island.UpdateLayout();
+            var systemScroll = Descendants<ScrollViewer>(panelBody).First();
+            Assert.True(systemScroll.ExtentHeight > 0);
+            Assert.Equal(0, systemScroll.ScrollableHeight);
+            island.OpenModule("clock");
+            island.UpdateLayout();
+
             var notifications = new Atoll.Modules.Notifications.NotificationsViewModel(() => { }) { Access = Atoll.Modules.Notifications.NotificationAccess.Allowed };
             notifications.Items.Add(new Atoll.Modules.Notifications.NotificationItemViewModel(_ => { }, _ => { })
             { Id = 1, AppName = "Claude", IsClaude = true, Title = "Rendering regression test", Body = "Notification history opens", Time = DateTimeOffset.Now });

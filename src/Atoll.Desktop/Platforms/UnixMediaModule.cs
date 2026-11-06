@@ -71,16 +71,18 @@ public sealed partial class MediaModule : IIslandModule
             }
             if (_disposed || revision != _revision) return;
             _vm.SetSources(choices);
-            // Always follow the playing player; a pick from the list holds until another player takes over.
-            var active = players.FirstOrDefault();
+            // Follow the playing player; a pick from the list holds until another player starts playing.
+            // A player that is merely paused never takes over, so a track change cannot flash other media.
+            string? playing = null;
             foreach (var candidate in players.Take(12))
             {
                 var state = OperatingSystem.IsMacOS() ? await Optional(() => Commands.RunAsync("osascript", "-e", MacScript(candidate, "return player state as text")))
                     : await Optional(() => Commands.RunAsync("playerctl", "--player", candidate, "status"));
-                if (state.Equals("playing", StringComparison.OrdinalIgnoreCase)) { active = candidate; break; }
+                if (state.Equals("playing", StringComparison.OrdinalIgnoreCase)) { playing = candidate; break; }
             }
             if (_disposed || revision != _revision) return;
-            if (active != _active || _vm.SelectedSource is null) { _active = active; _vm.Follow(active); }
+            if (_vm.SelectedSource is null) { _active = playing ?? players.FirstOrDefault(); _vm.Follow(_active); }
+            else if (MediaModule.ShouldFollow(playing, playing is not null, _active, true)) { _active = playing; _vm.Follow(playing); }
             var selection = _vm.SelectedSource?.Id;
             if (selection is not null && _audioOnly.TryGetValue(selection, out var audioName))
             {

@@ -37,9 +37,6 @@ public sealed partial class SettingsViewModel
 
     public ObservableCollection<ModuleTabRow> ModuleTabs { get; } = [];
 
-    /// <summary>The tab strip as the island will show it: tabs with at least one feature on, in order.</summary>
-    public IReadOnlyList<TabChip> TabPreview => ModuleTabs.Where(t => t.IsShown).Select((t, i) => new TabChip(t.Name, i == 0)).ToList();
-
     private void BuildModuleTabs(IReadOnlyList<ModuleDescriptor> catalog)
     {
         // Every catalog feature gets an entry; ModuleManager adds missing ones the same way at startup.
@@ -89,14 +86,12 @@ public sealed partial class SettingsViewModel
     private void OnFeatureToggled()
     {
         foreach (var tab in ModuleTabs) tab.Refresh();
-        OnPropertyChanged(nameof(TabPreview));
         Save();
     }
 
     private void RefreshTabPositions()
     {
         for (var i = 0; i < ModuleTabs.Count; i++) ModuleTabs[i].SetPosition(i, ModuleTabs.Count);
-        OnPropertyChanged(nameof(TabPreview));
     }
 
     /// <summary>Writes the settings list tab by tab, keeping entries for modules this build doesn't know at the end.</summary>
@@ -149,4 +144,3 @@ public sealed partial class ModuleTabRow(string id, string name, string descript
 }
 
 /// <summary>One tab in the Modules page's preview of the island's tab strip.</summary>
-public sealed record TabChip(string Name, bool IsFirst);

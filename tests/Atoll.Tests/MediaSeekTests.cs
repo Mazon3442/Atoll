@@ -23,6 +23,19 @@ public class MediaSeekTests
         Assert.Equal(TimeSpan.FromSeconds(expected), target);
     }
 
+    [Theory]
+    // Nothing shown yet: show whatever is current.
+    [InlineData("media:firefox", false, null, false, true)]
+    // A track change briefly makes a paused YouTube tab current: keep the music.
+    [InlineData("media:firefox", false, "media:sidra", true, false)]
+    // Another app starts playing: follow it.
+    [InlineData("media:firefox", true, "media:sidra", true, true)]
+    // The followed app is current again, or still current after the user picked another source: no change.
+    [InlineData("media:sidra", true, "media:sidra", true, false)]
+    [InlineData(null, false, "media:sidra", true, false)]
+    public void Media_follows_only_a_newly_playing_player(string? candidate, bool playing, string? followed, bool showing, bool expected) =>
+        Assert.Equal(expected, MediaModule.ShouldFollow(candidate, playing, followed, showing));
+
     [Fact]
     public void Players_with_unspecified_seek_bounds_use_the_track_timeline()
     {
@@ -117,6 +130,7 @@ public class MediaSeekTests
             finally { Application.Current?.Shutdown(); }
         });
         thread.SetApartmentState(ApartmentState.STA);
+        thread.IsBackground = true; // a hung test fails at its timeout instead of keeping the test host alive
         thread.Start();
         thread.Join();
         if (failure is not null) ExceptionDispatchInfo.Capture(failure).Throw();
