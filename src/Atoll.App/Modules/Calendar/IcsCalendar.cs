@@ -1,3 +1,4 @@
+using System.Globalization;
 using Ical.Net;
 using Ical.Net.CalendarComponents;
 using Ical.Net.DataTypes;
@@ -17,14 +18,17 @@ public sealed record CalendarEventItem(
     string CalendarName,
     string Color)
 {
-    /// <summary>"10:30" or "All day".</summary>
-    public string StartText => AllDay ? "All day" : Start.ToString("HH:mm");
+    /// <summary>"10:30 AM" in the user's time format, or "All day".</summary>
+    public string StartText => AllDay ? "All day" : IcsCalendar.ShortTime(Start);
 
-    /// <summary>"–11:30", empty for all-day.</summary>
-    public string EndText => AllDay ? "" : "\u2013" + End.ToString("HH:mm");
+    /// <summary>"10:00 – 10:30 AM", or "All day".</summary>
+    public string TimeRange => AllDay ? "All day" : IcsCalendar.TimeRange(Start, End);
 
     /// <summary>The location when present, otherwise the calendar's name.</summary>
     public string Subtitle => string.IsNullOrWhiteSpace(Location) ? CalendarName : Location;
+
+    /// <summary>"10:00 – 10:30 AM · Room 4B": the second line of a row.</summary>
+    public string Detail => $"{TimeRange} · {Subtitle}";
 
     public string DisplayTitle => string.IsNullOrWhiteSpace(Title) ? "(No title)" : Title;
 
@@ -104,7 +108,22 @@ public static class IcsCalendar
         if (d < TimeSpan.FromMinutes(1)) return "now";
         if (d < TimeSpan.FromHours(1)) return $"in {(int)Math.Round(d.TotalMinutes)} min";
         if (d < TimeSpan.FromHours(24) && start.Date == now.Date) return $"in {d.Hours} h";
-        if (start.Date == now.Date.AddDays(1)) return $"tomorrow {start:HH:mm}";
-        return $"{start:ddd} {start:HH:mm}";
+        if (start.Date == now.Date.AddDays(1)) return $"tomorrow {ShortTime(start)}";
+        return $"{start:ddd} {ShortTime(start)}";
+    }
+
+    /// <summary>The user's short time format ("9:40 AM" or "09:40").</summary>
+    internal static string ShortTime(DateTimeOffset time, CultureInfo? culture = null) =>
+        time.ToString("t", culture ?? CultureInfo.CurrentCulture);
+
+    /// <summary>"10:00 – 10:30 AM": the AM/PM designator is written once when both ends share it.</summary>
+    internal static string TimeRange(DateTimeOffset start, DateTimeOffset end, CultureInfo? culture = null)
+    {
+        culture ??= CultureInfo.CurrentCulture;
+        var pattern = culture.DateTimeFormat.ShortTimePattern;
+        var first = ShortTime(start, culture);
+        if (pattern.Contains("tt") && start.ToString("tt", culture) == end.ToString("tt", culture))
+            first = start.ToString(pattern.Replace("tt", "").Trim(), culture);
+        return $"{first} – {ShortTime(end, culture)}";
     }
 }

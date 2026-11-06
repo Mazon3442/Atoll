@@ -41,7 +41,9 @@ internal static class CalendarUiTests
                 var surface = new Border { Background = light ? Brushes.WhiteSmoke : Brushes.Black, Child = panel, Padding = new Thickness(10) };
                 panel.SetResourceReference(Control.ForegroundProperty, "Island.Foreground");
                 surface.Measure(new Size(width, 300)); surface.Arrange(new Rect(0, 0, width, 300)); surface.UpdateLayout();
-                var pin = Descendants<Button>(panel).Single(b => ReferenceEquals(b.Command, allDay.TogglePinCommand));
+                // Pin and dismiss stay out of the way until a row is hovered or focused.
+                Assert.All(Descendants<StackPanel>(panel).Where(p => p.Name == "Actions"), a => Assert.Equal(Visibility.Collapsed, a.Visibility));
+                var pin =Descendants<Button>(panel).Single(b => ReferenceEquals(b.Command, allDay.TogglePinCommand));
                 ((IInvokeProvider)new ButtonAutomationPeer(pin).GetPattern(PatternInterface.Invoke)).Invoke();
                 Drain();
                 Assert.True(allDay.IsPinned);

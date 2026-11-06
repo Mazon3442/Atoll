@@ -23,11 +23,13 @@ public sealed partial class CalendarEventViewModel(CalendarEventItem item, Actio
     [NotifyPropertyChangedFor(nameof(PinLabel))]
     private bool _isPinned;
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(IslandStatus))]
     [NotifyCanExecuteChangedFor(nameof(DismissCommand))]
     private bool _isDismissed;
+    /// <summary>"Now", "in 20 min" for the next event, "Hidden" once dismissed from the island, or empty.</summary>
+    [ObservableProperty] private string _badge = "";
+    /// <summary>True when the badge is about time (now or next) and gets the accent color.</summary>
+    [ObservableProperty] private bool _isHighlighted;
     public string PinLabel => IsPinned ? "Unpin from island" : "Pin to island";
-    public string IslandStatus => IsDismissed ? "Hidden from island" : "";
     private bool CanDismiss => !IsDismissed;
     [RelayCommand] private void TogglePin() => pin(Event);
     [RelayCommand(CanExecute = nameof(CanDismiss))] private void Dismiss() => dismiss(Event);
@@ -49,11 +51,18 @@ public sealed partial class CalendarViewModel(Action refresh) : ObservableObject
     [NotifyPropertyChangedFor(nameof(EmptyMessage))]
     private string _status = "";
 
-    [ObservableProperty] private string _updated = "";
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(RefreshLabel))]
+    private string _updated = "";
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(EmptyMessage))]
+    [NotifyPropertyChangedFor(nameof(RefreshLabel))]
     [NotifyCanExecuteChangedFor(nameof(RefreshCommand))]
     private bool _isRefreshing;
+
+    /// <summary>The refresh button's tooltip, which also says when the calendars last updated.</summary>
+    public string RefreshLabel => IsRefreshing ? "Refreshing calendars…"
+        : string.IsNullOrEmpty(Updated) ? "Refresh calendars" : $"Refresh calendars ({Updated})";
 
     public ObservableCollection<CalendarDay> Days { get; } = [];
 
@@ -259,6 +268,8 @@ public sealed class CalendarModule : IIslandModule
         var now = _time.GetLocalNow();
         if (_shownDate != now.Date || _vm.Days.SelectMany(d => d.Events).Any(row => row.Event.End <= now && row.Event.Start < now))
             RebuildDays(now);
+        else
+            UpdateRowStates();
         UpdateNext();
         CheckAlerts();
     }
@@ -279,7 +290,7 @@ public sealed class CalendarModule : IIslandModule
             {
                 _nextEvent = next;
                 _next.Title = next!.DisplayTitle;
-                _next.Subtitle = next.Subtitle;
+                _next.Subtitle = next.Detail;
                 _next.Color = next.Color;
                 _next.HasEvent = true;
             }
@@ -346,10 +357,20 @@ public sealed class CalendarModule : IIslandModule
     {
         if (_context is null) return;
         var settings = _context.Settings.Current.Calendar;
-        foreach (var row in _vm.Days.SelectMany(d => d.Events))
+        var now = _time.GetLocalNow();
+        var rows = _vm.Days.SelectMany(d => d.Events).ToList();
+        foreach (var row in rows)
         {
             row.IsPinned = row.Event.OccurrenceKey == settings.PinnedOccurrence;
             row.IsDismissed = settings.DismissedOccurrences.ContainsKey(row.Event.OccurrenceKey);
+        }
+        // Only what is on now and the one event after it get a time badge, so the eye lands there.
+        var next = rows.FirstOrDefault(r => !r.Event.AllDay && !r.IsDismissed && r.Event.Start > now && r.Event.Start - now < PillHorizon);
+        foreach (var row in rows)
+        {
+            var isNow = !row.Event.AllDay && row.Event.Start <= now && row.Event.End > now;
+            row.IsHighlighted = !row.IsDismissed && (isNow || ReferenceEquals(row, next));
+            row.Badge = row.IsDismissed ? "Hidden" : isNow ? "Now" : ReferenceEquals(row, next) ? IcsCalendar.Relative(row.Event.Start, now) : "";
         }
     }
 

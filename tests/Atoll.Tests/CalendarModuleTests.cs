@@ -75,6 +75,13 @@ public class CalendarModuleTests
             Assert.Equal(5, vm.Days.Sum(d => d.Events.Count));
             Assert.False(vm.IsRefreshing);
             Assert.Equal("Meeting in progress", Next(host).Title);
+            // Only what is on now and the event after it carry a time badge.
+            var rows = vm.Days.SelectMany(d => d.Events).ToList();
+            Assert.Equal("Now", rows.Single(r => r.Event.Title == "Meeting in progress").Badge);
+            var upNext = rows.Single(r => r.Event.Title == "Next meeting");
+            Assert.Equal("in 1 h", upNext.Badge);
+            Assert.True(upNext.IsHighlighted);
+            Assert.All(rows.Where(r => r.Event.AllDay || r.Event.Title == "Daily meeting"), r => Assert.Equal("", r.Badge));
 
             var allDay = vm.Days.SelectMany(d => d.Events).Single(e => e.Event.AllDay);
             Next(host).DismissCommand.Execute(null);
