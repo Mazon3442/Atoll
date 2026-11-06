@@ -1,0 +1,24 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <DataTemplate x:Key="ClockViewModel.Compact">
+        <TextBlock Text="{Binding Time}" FontSize="13" FontWeight="SemiBold" />
+    </DataTemplate>
+
+    <DataTemplate x:Key="ClockViewModel.Peek">
+        <StackPanel Orientation="Horizontal">
+            <TextBlock Text="{Binding Time}" FontSize="18" FontWeight="SemiBold" VerticalAlignment="Center" />
+            <TextBlock Text="{Binding Date}" FontSize="13" Margin="10,0,0,0" VerticalAlignment="Center"
+                       Foreground="{DynamicResource Island.Subtle}" />
+        </StackPanel>
+    </DataTemplate>
+
+    <DataTemplate x:Key="ClockViewModel.Panel">
+        <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
+            <TextBlock Text="{Binding Time}" FontSize="48" FontWeight="Light" HorizontalAlignment="Center" />
+            <TextBlock Text="{Binding Date}" FontSize="15" HorizontalAlignment="Center"
+                       Foreground="{DynamicResource Island.Subtle}" />
+        </StackPanel>
+    </DataTemplate>
+
+</ResourceDictionary>

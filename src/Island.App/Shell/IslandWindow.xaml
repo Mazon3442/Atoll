@@ -1,0 +1,77 @@
+<Window x:Class="Island.Shell.IslandWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:shell="clr-namespace:Island.Shell"
+        Title="Island"
+        Width="760" Height="320"
+        WindowStyle="None" AllowsTransparency="True" Background="Transparent"
+        ResizeMode="NoResize" ShowInTaskbar="False" Topmost="True" ShowActivated="False"
+        WindowStartupLocation="Manual"
+        FontFamily="{StaticResource Island.Font}"
+        Foreground="{DynamicResource Island.Foreground}"
+        UseLayoutRounding="True" TextOptions.TextFormattingMode="Display">
+
+    <!-- Transparent pixels pass mouse input through to whatever is underneath. -->
+    <Grid x:Name="Stage" VerticalAlignment="Top" HorizontalAlignment="Center">
+
+        <shell:PillBorder x:Name="Pill"
+                          Background="{DynamicResource Island.Background}"
+                          HorizontalAlignment="Center" VerticalAlignment="Top"
+                          ClipToBounds="True"
+                          AutomationProperties.Name="Island">
+            <Grid>
+                <ContentPresenter x:Name="PillContent"
+                                  HorizontalAlignment="Center" VerticalAlignment="Center" />
+
+                <Grid x:Name="PanelRoot" Visibility="Collapsed" Margin="14,10,14,14">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="*" />
+                    </Grid.RowDefinitions>
+
+                    <DockPanel>
+                        <Button DockPanel.Dock="Right" Style="{StaticResource Island.IconButton}"
+                                Content="&#xE713;" ToolTip="Settings"
+                                AutomationProperties.Name="Settings"
+                                Click="OnSettingsClick" />
+                        <ListBox x:Name="Tabs"
+                                 Background="Transparent" BorderThickness="0"
+                                 ItemContainerStyle="{StaticResource Island.TabItem}"
+                                 ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                                 AutomationProperties.Name="Island sections">
+                            <ListBox.ItemsPanel>
+                                <ItemsPanelTemplate>
+                                    <StackPanel Orientation="Horizontal" />
+                                </ItemsPanelTemplate>
+                            </ListBox.ItemsPanel>
+                            <ListBox.ItemTemplate>
+                                <DataTemplate>
+                                    <StackPanel Orientation="Horizontal" ToolTip="{Binding Descriptor.Name}"
+                                                AutomationProperties.Name="{Binding Descriptor.Name}">
+                                        <TextBlock Text="{Binding Descriptor.Glyph}" FontSize="13"
+                                                   FontFamily="{StaticResource Island.IconFont}"
+                                                   Foreground="{DynamicResource Island.Foreground}"
+                                                   VerticalAlignment="Center" />
+                                    </StackPanel>
+                                </DataTemplate>
+                            </ListBox.ItemTemplate>
+                        </ListBox>
+                    </DockPanel>
+
+                    <ContentPresenter x:Name="PanelBody" Grid.Row="1" Margin="4,10,4,0" />
+                </Grid>
+            </Grid>
+        </shell:PillBorder>
+
+        <shell:PillBorder x:Name="Bubble"
+                          Background="{DynamicResource Island.Background}"
+                          HorizontalAlignment="Center" VerticalAlignment="Top"
+                          Visibility="Collapsed" Cursor="Hand"
+                          AutomationProperties.Name="Secondary activity">
+            <shell:PillBorder.RenderTransform>
+                <TranslateTransform x:Name="BubbleShift" />
+            </shell:PillBorder.RenderTransform>
+            <ContentPresenter x:Name="BubbleContent" HorizontalAlignment="Center" VerticalAlignment="Center" />
+        </shell:PillBorder>
+    </Grid>
+</Window>
