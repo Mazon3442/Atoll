@@ -1,7 +1,12 @@
 using System.Collections.ObjectModel;
 using System.Windows.Threading;
 using Atoll.Activities;
+using Atoll.Modules.Actions;
 using Atoll.Modules.Claude;
+using Atoll.Modules.Clipboard;
+using Atoll.Modules.Shelf;
+using Atoll.Modules.Stats;
+using Atoll.Modules.Weather;
 using Atoll.Modules.Clock;
 using Atoll.Modules.Indicators;
 using Atoll.Modules.Media;
@@ -19,6 +24,11 @@ public static class ModuleCatalog
         new("notifications", "Notifications", "", () => new NotificationsModule()),
         new("clock", "Clock & timer", "", () => new ClockModule()),
         new("system", "System", "", () => new IndicatorsModule()),
+        new("shelf", "File shelf", "", () => new ShelfModule()),
+        new("clipboard", "Clipboard history", "", () => new ClipboardModule()),
+        new("stats", "System stats", "", () => new StatsModule()),
+        new("weather", "Weather", "", () => new WeatherModule()),
+        new("actions", "Quick actions", "", () => new QuickActionsModule()),
     ];
 }
 

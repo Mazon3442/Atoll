@@ -235,6 +235,19 @@ public sealed partial class SettingsViewModel : ObservableObject
         Save();
     }
 
+    // ---------- Weather (on the Modules page) ----------
+
+    public string WeatherCity { get => S.Weather.City; set => Set(S.Weather.City, value.Trim(), v => S.Weather.City = v); }
+
+    public IReadOnlyList<Choice<TemperatureUnits>> TemperatureUnitChoices { get; } =
+    [
+        new(TemperatureUnits.Auto, "Match my region"),
+        new(TemperatureUnits.Celsius, "Celsius (°C)"),
+        new(TemperatureUnits.Fahrenheit, "Fahrenheit (°F)"),
+    ];
+
+    public TemperatureUnits TemperatureUnits { get => S.Weather.Units; set => Set(S.Weather.Units, value, v => S.Weather.Units = v); }
+
     // ---------- Notifications ----------
 
     public string NotificationStatus => NotificationAccessInfo.Describe(NotificationAccessInfo.Get());

@@ -45,6 +45,7 @@ public partial class IslandWindow : Window
     private int _dwellMs;
     private int _outsideMs;
     private bool _alertPeek;
+    private bool _heldOpen;
     private bool _faded;
 
     private nint _hwnd;
@@ -99,6 +100,15 @@ public partial class IslandWindow : Window
             e.Handled = true;
         };
         Pill.SizeChanged += (_, _) => UpdateBubbleOffset();
+
+        // Dragging files onto the island opens the shelf so they can be dropped there.
+        Pill.AllowDrop = true;
+        Pill.DragEnter += (_, e) =>
+        {
+            if (e.Data.GetDataPresent(DataFormats.FileDrop) && _mode != IslandMode.Expanded
+                && _modules.Tabs.Any(t => t.Descriptor.Id == "shelf"))
+                SetMode(IslandMode.Expanded, "shelf");
+        };
         LayoutUpdated += (_, _) => ApplyGlassBrushes(); // follows the pill through every animation frame
 
         SourceInitialized += (_, _) =>
@@ -182,6 +192,17 @@ public partial class IslandWindow : Window
         Render();
     }
 
+    /// <summary>
+    /// Opens the expanded panel on a module's tab without the pointer being there (launch option,
+    /// shortcuts). It then stays open until the pointer has visited it once, or Esc / clicking away.
+    /// </summary>
+    public void OpenModule(string moduleId)
+    {
+        if (!IsVisible) return;
+        SetMode(IslandMode.Expanded, moduleId);
+        _heldOpen = true;
+    }
+
     /// <summary>Called by the manager whenever pause or the foreground app's state may have changed.</summary>
     public void SetEnvironment(bool paused, ForegroundKind foreground)
     {
@@ -256,6 +277,7 @@ public partial class IslandWindow : Window
             SetNoActivate(true);
         }
         _alertPeek = false;
+        _heldOpen = false;
         _mode = mode;
         _outsideMs = 0;
         _dwellMs = 0;
@@ -310,8 +332,15 @@ public partial class IslandWindow : Window
                 break;
 
             case IslandMode.Expanded:
-                if (over) _outsideMs = 0;
-                else if ((_outsideMs += PointerTickMs) >= CollapseAfterMs) SetMode(IslandMode.Compact);
+                if (over)
+                {
+                    _outsideMs = 0;
+                    _heldOpen = false;
+                }
+                else if (!_heldOpen && (_outsideMs += PointerTickMs) >= CollapseAfterMs)
+                {
+                    SetMode(IslandMode.Compact);
+                }
                 break;
         }
     }

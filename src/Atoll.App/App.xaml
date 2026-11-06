@@ -11,6 +11,10 @@
                 <ResourceDictionary Source="Modules/Clock/ClockTemplates.xaml" />
                 <ResourceDictionary Source="Modules/Media/MediaTemplates.xaml" />
                 <ResourceDictionary Source="Modules/Notifications/NotificationTemplates.xaml" />
+                <ResourceDictionary Source="Modules/Shelf/ShelfTemplates.xaml" />
+                <ResourceDictionary Source="Modules/Clipboard/ClipboardTemplates.xaml" />
+                <ResourceDictionary Source="Modules/Stats/StatsTemplates.xaml" />
+                <ResourceDictionary Source="Modules/Weather/WeatherTemplates.xaml" />
                 <ResourceDictionary Source="Modules/Indicators/IndicatorsTemplates.xaml" />
             </ResourceDictionary.MergedDictionaries>
         </ResourceDictionary>

@@ -47,6 +47,10 @@ public partial class App : Application
         _islands = new IslandManager(_settings, _activities, _modules, OpenSettings, Dispatcher);
         _tray = new TrayIcon(OpenSettings, paused => _islands.Paused = paused, Shutdown);
 
+        // "--open=<module id>" (e.g. shelf, weather) opens ATOLL expanded on that tab once it is on screen.
+        if (e.Args.FirstOrDefault(a => a.StartsWith("--open=", StringComparison.OrdinalIgnoreCase)) is { } open)
+            Dispatcher.BeginInvoke(DispatcherPriority.ApplicationIdle, () => _islands.OpenModule(open["--open=".Length..]));
+
         // "--settings" or "--settings=<page number>" opens settings on launch.
         if (e.Args.FirstOrDefault(a => a.StartsWith("--settings", StringComparison.OrdinalIgnoreCase)) is { } arg)
             OpenSettings(int.TryParse(arg.Split('=', 2).ElementAtOrDefault(1), out var page) ? page : 0);

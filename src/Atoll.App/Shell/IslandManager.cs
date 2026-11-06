@@ -71,6 +71,10 @@ public sealed class IslandManager : IDisposable
         UpdateVisibility();
     }
 
+    /// <summary>Expands the island on the primary display (or the first one) to a module's tab.</summary>
+    public void OpenModule(string moduleId) =>
+        (_windows.FirstOrDefault(w => w.Monitor.IsPrimary) ?? _windows.FirstOrDefault())?.OpenModule(moduleId);
+
     private void UpdateVisibility()
     {
         foreach (var w in _windows)

@@ -48,6 +48,8 @@ public sealed class AppSettings
 
     public NotificationSettings Notifications { get; set; } = new();
 
+    public WeatherSettings Weather { get; set; } = new();
+
     /// <summary>List order = tab order in the expanded panel.</summary>
     public List<ModuleEntry> Modules { get; set; } = [];
 }
@@ -86,6 +88,21 @@ public sealed class NotificationSettings
 
     /// <summary>App display names whose notifications are ignored.</summary>
     public List<string> MutedApps { get; set; } = [];
+}
+
+public enum TemperatureUnits
+{
+    Auto,
+    Celsius,
+    Fahrenheit,
+}
+
+public sealed class WeatherSettings
+{
+    /// <summary>Place name looked up with Open-Meteo's geocoding (e.g. "Chicago" or "Paris, France").</summary>
+    public string City { get; set; } = "";
+
+    public TemperatureUnits Units { get; set; } = TemperatureUnits.Auto;
 }
 
 public sealed class ModuleEntry

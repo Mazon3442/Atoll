@@ -408,6 +408,20 @@
                                 </DataTemplate>
                             </ItemsControl.ItemTemplate>
                         </ItemsControl>
+
+                        <TextBlock Style="{StaticResource SectionHeader}" Text="Weather" />
+                        <s:SettingCard Glyph="&#xE753;" Header="City"
+                                       Description="For example &quot;Chicago&quot;. Weather comes from Open-Meteo; only this place name and its location are sent.">
+                            <TextBox Width="220" Text="{Binding WeatherCity}" AutomationProperties.Name="Weather city" />
+                        </s:SettingCard>
+                        <s:SettingCard Glyph="&#xE9CA;" Header="Temperature units">
+                            <ComboBox Width="220" ItemsSource="{Binding TemperatureUnitChoices}" DisplayMemberPath="Label"
+                                      SelectedValuePath="Value" SelectedValue="{Binding TemperatureUnits}" AutomationProperties.Name="Temperature units" />
+                        </s:SettingCard>
+
+                        <TextBlock Style="{StaticResource SectionHeader}" Text="Clipboard and shelf" />
+                        <s:SettingCard Glyph="&#xE72E;" Header="Privacy"
+                                       Description="Clipboard history stays in memory and is cleared when ATOLL closes. Copies from password managers are skipped. The shelf stores file locations only, never the files." />
                     </StackPanel>
 
                     <!-- ===================== Notifications ===================== -->
