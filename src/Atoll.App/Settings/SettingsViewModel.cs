@@ -32,11 +32,7 @@ public sealed partial class SettingsViewModel : ObservableObject
         Weather = weather ?? new Atoll.Modules.Weather.WeatherViewModel(service);
         if (!_ownsWeather) Weather.Disposed += OnSharedWeatherDisposed;
         WeatherLocationExpanded = S.Weather.City.Length == 0;
-        Modules = new(S.Modules
-            .Select(e => (Entry: e, Descriptor: catalog.FirstOrDefault(d => d.Id == e.Id)))
-            .Where(x => x.Descriptor is not null)
-            .Select(x => new ModuleRow(x.Entry, x.Descriptor!, Save, MoveModule)));
-        RefreshModulePositions();
+        BuildModuleTabs(catalog);
         Displays = new(Shell.Monitors.GetAll().Select(m => new DisplayRow(m, S, Save)));
         CalendarSources = new(S.Calendar.Sources.Select(s => new CalendarSourceRow(s) { Url = SecretStore.Unprotect(s.EncryptedUrl) ?? "" }));
         RebuildThemes();
@@ -229,39 +225,6 @@ public sealed partial class SettingsViewModel : ObservableObject
             RebuildThemes();
         else
             RefreshThemeSelection();
-    }
-
-    // ---------- Modules ----------
-
-    public ObservableCollection<ModuleRow> Modules { get; }
-    public IReadOnlyList<int> ModulePositions => Enumerable.Range(1, Modules.Count).ToArray();
-
-    [RelayCommand]
-    private void MoveUp(ModuleRow row) => Move(row, -1);
-
-    [RelayCommand]
-    private void MoveDown(ModuleRow row) => Move(row, +1);
-
-    private void Move(ModuleRow row, int delta) => MoveModule(row, Modules.IndexOf(row) + delta);
-
-    public void MoveModule(ModuleRow row, int to)
-    {
-        var from = Modules.IndexOf(row);
-        if (from < 0 || to < 0 || to >= Modules.Count || from == to) return;
-        Modules.Move(from, to);
-        RefreshModulePositions();
-
-        // Rebuild the settings list in the new order, keeping entries for modules this build does not know.
-        var unknown = S.Modules.Where(e => Modules.All(m => m.Entry != e)).ToList();
-        S.Modules.Clear();
-        S.Modules.AddRange(Modules.Select(m => m.Entry));
-        S.Modules.AddRange(unknown);
-        Save();
-    }
-
-    private void RefreshModulePositions()
-    {
-        for (var i = 0; i < Modules.Count; i++) Modules[i].UpdatePosition(i + 1);
     }
 
     // ---------- Weather (on the Modules page) ----------
@@ -466,19 +429,13 @@ public sealed partial class ThemeCard(ThemePreset preset, bool isCustom) : Obser
     [ObservableProperty] private bool _isSelected;
 }
 
-public sealed class ModuleRow(ModuleEntry entry, ModuleDescriptor descriptor, Action save, Action<ModuleRow, int> move) : ObservableObject
+/// <summary>One feature's on/off switch inside a tab card on the Modules page.</summary>
+public sealed class ModuleRow(ModuleEntry entry, string name, string description, string glyph, Action toggled) : ObservableObject
 {
-    private int _position;
     public ModuleEntry Entry { get; } = entry;
-    public string Name => descriptor.Name;
-    public string Glyph => descriptor.Glyph;
-    public string Group => PanelGroups.TabId(Entry.Id) switch
-    {
-        "clock" => "Clock & calendar tab", "media" => "Media tab", "shelf" => "Files tab", "system" => "System tab",
-        "claude" => "Agents tab", "notifications" => "Notifications tab", "weather" => "Weather tab", _ => "",
-    };
-    public int Position { get => _position; set { if (value != _position) move(this, value - 1); } }
-    internal void UpdatePosition(int position) { _position = position; OnPropertyChanged(nameof(Position)); }
+    public string Name { get; } = name;
+    public string Description { get; } = description;
+    public string Glyph { get; } = glyph;
 
     public bool Enabled
     {
@@ -488,7 +445,7 @@ public sealed class ModuleRow(ModuleEntry entry, ModuleDescriptor descriptor, Ac
             if (Entry.Enabled == value) return;
             Entry.Enabled = value;
             OnPropertyChanged();
-            save();
+            toggled();
         }
     }
 }

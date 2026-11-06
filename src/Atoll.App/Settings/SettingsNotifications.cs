@@ -25,7 +25,7 @@ public sealed partial class SettingsViewModel
         get => S.Modules.Any(m => m.Id == "notifications" && m.Enabled);
         set
         {
-            if (Modules.FirstOrDefault(m => m.Entry.Id == "notifications") is { } row) row.Enabled = value;
+            if (ModuleTabs.SelectMany(t => t.Features).FirstOrDefault(m => m.Entry.Id == "notifications") is { } row) row.Enabled = value;
             OnPropertyChanged();
         }
     }
