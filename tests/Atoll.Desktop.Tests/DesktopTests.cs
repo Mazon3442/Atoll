@@ -129,6 +129,27 @@ public sealed class DesktopTests
     }
 
     [Fact]
+    public void Unsupported_session_focus_is_disabled_until_a_window_is_known()
+    {
+        var session = new Atoll.Modules.Claude.ClaudeSessionViewModel("test");
+        var changes = 0; session.FocusCommand.CanExecuteChanged += (_, _) => changes++;
+        Assert.False(session.FocusCommand.CanExecute(null));
+        session.Hwnd = 42;
+        Assert.True(session.FocusCommand.CanExecute(null)); Assert.Equal(1, changes);
+    }
+
+    [Fact]
+    public void Timer_controls_follow_the_active_timer_mode()
+    {
+        var timer = new TimerViewModel(TimeProvider.System);
+        Assert.False(timer.PauseResumeCommand.CanExecute(null)); Assert.False(timer.ResetCommand.CanExecute(null));
+        timer.StartStopwatchCommand.Execute(null);
+        Assert.True(timer.PauseResumeCommand.CanExecute(null)); Assert.False(timer.AddMinuteCommand.CanExecute(null));
+        timer.StartCountdownCommand.Execute("5"); Assert.True(timer.AddMinuteCommand.CanExecute(null));
+        timer.ResetCommand.Execute(null); Assert.False(timer.PauseResumeCommand.CanExecute(null));
+    }
+
+    [Fact]
     public void Encrypted_calendar_links_round_trip_and_reject_corruption()
     {
         var encrypted = SecretStore.Protect("https://example.org/private-calendar.ics");

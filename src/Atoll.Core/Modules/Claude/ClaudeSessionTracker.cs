@@ -41,6 +41,7 @@ public sealed partial class ClaudeSessionViewModel(string sessionId) : Observabl
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(CanFocus))]
+    [NotifyCanExecuteChangedFor(nameof(FocusCommand))]
     private long _hwnd;
 
     /// <summary>The agent's process id when its adapter reports one; lets the island notice it was closed.</summary>
@@ -56,7 +57,7 @@ public sealed partial class ClaudeSessionViewModel(string sessionId) : Observabl
 
     public static Action<nint>? FocusWindow { get; set; }
 
-    [RelayCommand]
+    [RelayCommand(CanExecute = nameof(CanFocus))]
     private void Focus() => FocusWindow?.Invoke((nint)Hwnd);
 }
 

@@ -30,6 +30,7 @@ public sealed partial class TimerViewModel(TimeProvider time) : ObservableObject
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(IsActive), nameof(IsCountingDown))]
+    [NotifyCanExecuteChangedFor(nameof(PauseResumeCommand), nameof(AddMinuteCommand), nameof(ResetCommand))]
     private TimerKind _kind;
 
     [ObservableProperty] private bool _isRunning;
@@ -74,7 +75,7 @@ public sealed partial class TimerViewModel(TimeProvider time) : ObservableObject
         Begin(TimerKind.Pomodoro, FocusLength, "Focus");
     }
 
-    [RelayCommand]
+    [RelayCommand(CanExecute = nameof(IsActive))]
     private void PauseResume()
     {
         if (!IsActive) return;
@@ -92,7 +93,7 @@ public sealed partial class TimerViewModel(TimeProvider time) : ObservableObject
         Refresh();
     }
 
-    [RelayCommand]
+    [RelayCommand(CanExecute = nameof(IsCountingDown))]
     private void AddMinute()
     {
         if (!IsCountingDown) return;
@@ -100,7 +101,7 @@ public sealed partial class TimerViewModel(TimeProvider time) : ObservableObject
         Refresh();
     }
 
-    [RelayCommand]
+    [RelayCommand(CanExecute = nameof(IsActive))]
     private void Reset()
     {
         var wasActive = IsActive;
