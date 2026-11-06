@@ -230,25 +230,46 @@
 
                     <!-- ===================== General ===================== -->
                     <StackPanel Visibility="{Binding PageIndex, Converter={StaticResource PageVisible}, ConverterParameter=0}">
-                        <TextBlock Style="{StaticResource SectionHeader}" Text="Behavior" />
+                        <TextBlock Style="{StaticResource SectionHeader}" Text="Startup" />
                         <s:SettingCard Glyph="&#xE7E8;" Header="Start with Windows" Description="Open ATOLL automatically when you sign in.">
                             <CheckBox Style="{StaticResource Toggle}" IsChecked="{Binding StartWithWindows}" AutomationProperties.Name="Start with Windows" />
                         </s:SettingCard>
-                        <s:SettingCard Glyph="&#xE740;" Header="Fullscreen apps"
-                                       Description="Videos, presentations and F11 browser windows. Games always hide ATOLL completely.">
+
+                        <TextBlock Style="{StaticResource SectionHeader}" Text="When to show ATOLL" />
+                        <s:SettingCard Glyph="&#xE740;" Header="Over fullscreen apps"
+                                       Description="Videos, presentations and F11 browsers. Games always hide ATOLL.">
                             <ComboBox Width="250" ItemsSource="{Binding FullscreenModes}" DisplayMemberPath="Label"
-                                      SelectedValuePath="Value" SelectedValue="{Binding FullscreenMode}" AutomationProperties.Name="Fullscreen apps" />
+                                      SelectedValuePath="Value" SelectedValue="{Binding FullscreenMode}" AutomationProperties.Name="Over fullscreen apps" />
                         </s:SettingCard>
-                        <s:SettingCard Glyph="&#xE8B0;" Header="Click through over maximized windows"
-                                       Description="When a maximized or fullscreen app is behind ATOLL, clicks reach that app (like browser tabs). Rest the pointer on ATOLL to use it.">
-                            <CheckBox Style="{StaticResource Toggle}" IsChecked="{Binding ClickThrough}" AutomationProperties.Name="Click through over maximized windows" />
+                        <s:SettingCard Glyph="&#xE922;" Header="Over maximized windows"
+                                       Description="Any app window that fills the screen above the taskbar.">
+                            <ComboBox Width="250" ItemsSource="{Binding FullscreenModes}" DisplayMemberPath="Label"
+                                      SelectedValuePath="Value" SelectedValue="{Binding MaximizedMode}" AutomationProperties.Name="Over maximized windows" />
                         </s:SettingCard>
-                        <s:SettingCard Glyph="&#xE916;" Header="Hover delay" Description="How long to rest the pointer before ATOLL shows more.">
+                        <s:SettingCard Glyph="&#xE7B3;" Header="Hide when there's nothing to show"
+                                       Description="No music, timers, agents or notifications? ATOLL gets out of the way.">
+                            <CheckBox Style="{StaticResource Toggle}" IsChecked="{Binding HideWhenIdle}" AutomationProperties.Name="Hide when there's nothing to show" />
+                        </s:SettingCard>
+                        <s:SettingCard Glyph="&#xE7C9;" Header="Hold to bring it back"
+                                       Description="While ATOLL is hidden, hold the pointer at the top of the screen, near where it sits.">
+                            <StackPanel Orientation="Horizontal">
+                                <Slider Width="200" Minimum="0.5" Maximum="5" TickFrequency="0.5" IsSnapToTickEnabled="True"
+                                        Value="{Binding RevealHoldSeconds}" AutomationProperties.Name="Hold to bring it back" />
+                                <TextBlock Style="{StaticResource ValueText}" Text="{Binding RevealHoldSeconds, StringFormat={}{0:0.0} s}" />
+                            </StackPanel>
+                        </s:SettingCard>
+
+                        <TextBlock Style="{StaticResource SectionHeader}" Text="Pointer" />
+                        <s:SettingCard Glyph="&#xE916;" Header="Hover delay" Description="How long to rest the pointer on ATOLL before it opens.">
                             <StackPanel Orientation="Horizontal">
                                 <Slider Width="200" Minimum="0" Maximum="1000" TickFrequency="50" IsSnapToTickEnabled="True"
                                         Value="{Binding HoverDelayMs}" AutomationProperties.Name="Hover delay" />
                                 <TextBlock Style="{StaticResource ValueText}" Text="{Binding HoverDelayMs, StringFormat={}{0} ms}" />
                             </StackPanel>
+                        </s:SettingCard>
+                        <s:SettingCard Glyph="&#xE8B0;" Header="Click through over full-size windows"
+                                       Description="Clicks on ATOLL reach the app behind it, like its browser tabs. Rest the pointer on ATOLL to use it.">
+                            <CheckBox Style="{StaticResource Toggle}" IsChecked="{Binding ClickThrough}" AutomationProperties.Name="Click through over full-size windows" />
                         </s:SettingCard>
 
                         <TextBlock Style="{StaticResource SectionHeader}" Text="Position" />
@@ -428,29 +449,7 @@
                     <!-- ===================== Modules ===================== -->
                     <StackPanel Visibility="{Binding PageIndex, Converter={StaticResource PageVisible}, ConverterParameter=2}">
                         <TextBlock Style="{StaticResource Hint}" Margin="2,8,0,10"
-                                   Text="Each card is a tab in the expanded island, in the order below. Move a card to move its tab, and switch off anything you don't use." />
-
-                        <!-- The island's tab strip, as it will look with these settings. -->
-                        <Border Background="#0B0C0E" CornerRadius="20" Padding="5" HorizontalAlignment="Left" Margin="0,0,0,16"
-                                AutomationProperties.Name="Tab order preview">
-                            <ItemsControl ItemsSource="{Binding TabPreview}" Focusable="False">
-                                <ItemsControl.ItemsPanel><ItemsPanelTemplate><WrapPanel /></ItemsPanelTemplate></ItemsControl.ItemsPanel>
-                                <ItemsControl.ItemTemplate>
-                                    <DataTemplate>
-                                        <Border x:Name="Chip" CornerRadius="15" Padding="12,5" Background="Transparent">
-                                            <TextBlock x:Name="Label" Text="{Binding Name}" FontSize="12" Foreground="#B3FFFFFF" />
-                                        </Border>
-                                        <DataTemplate.Triggers>
-                                            <DataTrigger Binding="{Binding IsFirst}" Value="True">
-                                                <Setter TargetName="Chip" Property="Background" Value="White" />
-                                                <Setter TargetName="Label" Property="Foreground" Value="#0B0C0E" />
-                                                <Setter TargetName="Label" Property="FontWeight" Value="SemiBold" />
-                                            </DataTrigger>
-                                        </DataTemplate.Triggers>
-                                    </DataTemplate>
-                                </ItemsControl.ItemTemplate>
-                            </ItemsControl>
-                        </Border>
+                                   Text="Each card is a tab in the open island, shown in this order. Drag a card or use its arrows to reorder, and turn off anything you don't use." />
 
                         <ItemsControl x:Name="ModuleList" ItemsSource="{Binding ModuleTabs}" Focusable="False">
                             <ItemsControl.ItemTemplate>
@@ -585,7 +584,7 @@
                             <ItemsControl.ItemTemplate>
                                 <DataTemplate>
                                     <StackPanel Margin="0,0,0,10">
-                                        <s:SettingCard Glyph="&#xE99A;" Header="{Binding Name}" Description="{Binding Status}">
+                                        <s:SettingCard Glyph="&#xE99A;" Header="{Binding Name}" Description="{Binding Status}" ToolTip="{Binding Path}">
                                             <StackPanel Orientation="Horizontal">
                                                 <Button Content="{Binding ActionLabel}" Padding="14,5" Margin="0,0,8,0"
                                                         Command="{Binding InstallCommand}" AutomationProperties.Name="{Binding ActionAccessibleName}" />
@@ -594,7 +593,6 @@
                                                         AutomationProperties.Name="{Binding Name, StringFormat=Remove {0} integration}" />
                                             </StackPanel>
                                         </s:SettingCard>
-                                        <TextBlock Text="{Binding Path}" Style="{StaticResource Hint}" TextWrapping="Wrap" Margin="4,2,0,0" />
                                         <TextBlock Text="{Binding Message}" Style="{StaticResource Hint}" TextWrapping="Wrap" Margin="4,2,0,0"
                                                    Visibility="{Binding Message, Converter={StaticResource EmptyToCollapsed}}" />
                                     </StackPanel>

@@ -49,9 +49,7 @@ public class SettingsInteractionTests
 
         // One card per tab, placed where the island puts it: at its first switched-on feature.
         Assert.Equal(["System", "Agents", "Media", "Files", "Notifications", "Clock & calendar", "Weather"], vm.ModuleTabs.Select(t => t.Name));
-        Assert.Equal(["System", "Agents", "Media", "Files", "Notifications", "Clock & calendar"], vm.TabPreview.Select(c => c.Name));
-        Assert.True(vm.TabPreview[0].IsFirst);
-        Assert.False(vm.TabPreview[1].IsFirst);
+        Assert.Equal(["System", "Agents", "Media", "Files", "Notifications", "Clock & calendar"], vm.ModuleTabs.Where(t => t.IsShown).Select(t => t.Name));
         Assert.Equal(["Status popups", "Live graphs", "Quick actions"], vm.ModuleTabs[0].Features.Select(f => f.Name));
         Assert.True(vm.ModuleTabs[0].IsFirst);
 
@@ -67,7 +65,7 @@ public class SettingsInteractionTests
         Assert.Same(weather, vm.ModuleTabs[0]);
         Assert.Equal(["weather", "system", "stats", "actions"], service.Current.Modules.Take(4).Select(m => m.Id));
         weather.OnlyFeature.Enabled = true;
-        Assert.Equal("Weather", vm.TabPreview[0].Name);
+        Assert.Equal("Weather", vm.ModuleTabs.First(t => t.IsShown).Name);
 
         var system = vm.ModuleTabs.Single(t => t.Id == "system");
         vm.MoveTabDownCommand.Execute(system);

@@ -89,13 +89,20 @@ public sealed partial class SettingsViewModel : ObservableObject
 
     public IReadOnlyList<Choice<FullscreenMode>> FullscreenModes { get; } =
     [
-        new(FullscreenMode.PopUp, "Pop up for alerts, then hide"),
         new(FullscreenMode.Stay, "Stay visible"),
-        new(FullscreenMode.Dim, "Stay visible, 50% opacity"),
+        new(FullscreenMode.Dim, "Stay visible, dimmed"),
+        new(FullscreenMode.PopUp, "Hide, but show notifications"),
         new(FullscreenMode.Hide, "Hide completely"),
     ];
 
     public FullscreenMode FullscreenMode { get => S.FullscreenMode; set => Set(S.FullscreenMode, value, v => S.FullscreenMode = v); }
+    public FullscreenMode MaximizedMode { get => S.MaximizedMode; set => Set(S.MaximizedMode, value, v => S.MaximizedMode = v); }
+    public bool HideWhenIdle { get => S.HideWhenIdle; set => Set(S.HideWhenIdle, value, v => S.HideWhenIdle = v); }
+    public double RevealHoldSeconds
+    {
+        get => S.RevealHoldMs / 1000.0;
+        set => Set(S.RevealHoldMs, (int)Math.Round(Math.Clamp(value, 0.5, 5) * 1000), v => S.RevealHoldMs = v);
+    }
     public int HoverDelayMs { get => S.HoverDelayMs; set => Set(S.HoverDelayMs, value, v => S.HoverDelayMs = v); }
     public double TopOffset { get => S.TopOffset; set => Set(S.TopOffset, value, v => S.TopOffset = v); }
 
