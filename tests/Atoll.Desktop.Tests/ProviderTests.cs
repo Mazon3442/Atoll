@@ -138,6 +138,7 @@ public sealed class ProviderTests
         Assert.Equal(8, capture.Usage.InputTokens); Assert.Equal(9, capture.Usage.OutputTokens);
         var huge = new UsageCapture(false); huge.Add(new byte[4 * 1024 * 1024 + 1]); huge.Add("{\"usage\":{\"input_tokens\":1}}"u8); huge.Complete(); Assert.Null(huge.Usage.InputTokens);
         var json = new UsageCapture(false); json.Add("{\"response\":{\"model\":\"m\",\"usage\":{\"input_tokens\":2,\"output_tokens\":4}}}"u8); json.Complete(); Assert.Equal(new RequestUsage("m", 2, 4), json.Usage);
+        var error = new UsageCapture(true); error.Add("data: {\"type\":\"response.failed\",\"response\":{\"error\":{\"code\":\"server_error\"}}}\n\n"u8); error.Complete(); Assert.True(error.HasError);
     }
 
     [Fact]
@@ -176,6 +177,8 @@ public sealed class ProviderTests
         File.WriteAllText(path, Event("session_meta", "{\"id\":\"session\",\"cwd\":\"project\",\"instructions\":\"" + new string('x', 24 * 1024) + "\"}")
             + Event("response_item", "{\"type\":\"message\",\"content\":\"" + new string('x', 5 * 1024 * 1024) + "\"}")
             + Event("event_msg", "{\"type\":\"task_started\",\"prompt\":\"private prompt\"}"));
+        // Windows can keep the old modification time while Codex holds its rollout file open.
+        File.SetLastWriteTimeUtc(path, DateTime.UtcNow.AddHours(-2));
         using var monitor = new CodexSessionMonitor(root); var messages = new List<Atoll.Claude.HookMessage>(); monitor.Received += messages.Add; monitor.Poll();
         Assert.Equal("UserPromptSubmit", Assert.Single(messages).Event); Assert.DoesNotContain("private", System.Text.Json.JsonSerializer.Serialize(messages));
         File.AppendAllText(path, Event("response_item", "{\"type\":\"custom_tool_call\",\"name\":\"apply_patch\",\"input\":\"private content\"}")); monitor.Poll(); Assert.Equal("PreToolUse", messages.Last().Event);

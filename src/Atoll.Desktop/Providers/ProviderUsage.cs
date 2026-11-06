@@ -12,6 +12,7 @@ internal sealed class UsageCapture(bool streaming)
     private readonly MemoryStream _buffer = new();
     private bool _overflow;
     public RequestUsage Usage { get; private set; } = new(null, null, null);
+    public bool HasError { get; private set; }
     public void Add(ReadOnlySpan<byte> bytes)
     {
         if (!streaming)
@@ -54,7 +55,10 @@ internal sealed class UsageCapture(bool streaming)
             using var doc = JsonDocument.Parse(bytes.ToArray());
             var root = doc.RootElement;
             if (root.ValueKind != JsonValueKind.Object) return;
+            if (root.TryGetProperty("error", out var error) && error.ValueKind is not (JsonValueKind.Null or JsonValueKind.False)
+                || root.TryGetProperty("type", out var type) && type.ValueKind == JsonValueKind.String && type.GetString() is "error" or "response.failed") HasError = true;
             if (root.TryGetProperty("response", out var response) && response.ValueKind == JsonValueKind.Object) root = response;
+            if (root.TryGetProperty("error", out error) && error.ValueKind is not (JsonValueKind.Null or JsonValueKind.False)) HasError = true;
             if (root.TryGetProperty("message", out var message) && message.ValueKind == JsonValueKind.Object) root = message;
             var model = root.TryGetProperty("model", out var m) && m.ValueKind == JsonValueKind.String ? m.GetString() : Usage.Model;
             if (model?.Length > 200) model = null;

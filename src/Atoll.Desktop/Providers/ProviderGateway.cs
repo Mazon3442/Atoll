@@ -91,9 +91,9 @@ public sealed class ProviderGateway : IAsyncDisposable
             using var upstream = new HttpRequestMessage(new HttpMethod(request.Method), new Uri(provider.BaseUri, parts[4]));
             if (request.Method == "POST")
             {
-                if (request.ContentType?.StartsWith("application/json", StringComparison.OrdinalIgnoreCase) != true) { response.StatusCode = 415; return; }
+                if (!MediaTypeHeaderValue.TryParse(request.ContentType, out var contentType) || !string.Equals(contentType.MediaType, "application/json", StringComparison.OrdinalIgnoreCase)) { response.StatusCode = 415; return; }
                 upstream.Content = new StreamContent(request.Body);
-                upstream.Content.Headers.ContentType = MediaTypeHeaderValue.Parse(request.ContentType);
+                upstream.Content.Headers.ContentType = contentType;
             }
             // Only allow protocol headers. Caller authorization, cookies, routing and forwarding headers never leave loopback.
             upstream.Headers.Accept.ParseAdd("application/json, text/event-stream");
@@ -129,6 +129,7 @@ public sealed class ProviderGateway : IAsyncDisposable
         finally
         {
             capture?.Complete();
+            failed |= capture?.HasError == true;
             if (counted)
             {
                 _ledger.Record(provider.Id, failed, capture?.Usage ?? new(null, null, null));

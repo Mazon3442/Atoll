@@ -18,6 +18,8 @@ public sealed class CodexSessionMonitor(string? root = null) : IDisposable
         public MemoryStream Line { get; } = new();
         public bool SkipLine;
         public bool Ended;
+        public bool Reported;
+        public DateTimeOffset LastActivity;
     }
     public event Action<HookMessage>? Received;
     public void Start() => _ = Task.Run(Run);
@@ -38,18 +40,23 @@ public sealed class CodexSessionMonitor(string? root = null) : IDisposable
             {
                 var directory = Path.Combine(_root, day.ToString("yyyy"), day.ToString("MM"), day.ToString("dd"));
                 return Directory.Exists(directory) ? Directory.EnumerateFiles(directory, "*.jsonl") : [];
-            }).Select(p => new FileInfo(p)).Where(f => f.LastWriteTimeUtc > DateTime.UtcNow.AddMinutes(-10)).OrderByDescending(f => f.LastWriteTimeUtc).Take(16).ToArray();
+            }).Select(p => new FileInfo(p)).OrderByDescending(f => f.CreationTimeUtc).Take(32).ToArray();
             var wanted = paths.Select(p => p.FullName).ToHashSet();
             foreach (var path in _files.Keys.Where(p => !wanted.Contains(p)).ToArray())
             {
                 var cursor = _files[path];
-                if (cursor.Session is { } session) Received?.Invoke(new HookMessage { Agent = "codex", Event = "SessionEnd", SessionId = session });
+                if (cursor.Reported && cursor.Session is { } session) Received?.Invoke(new HookMessage { Agent = "codex", Event = "SessionEnd", SessionId = session });
                 cursor.Line.Dispose(); _files.Remove(path);
             }
             foreach (var file in paths)
             {
                 try { Read(file); }
                 catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) { }
+                if (_files.TryGetValue(file.FullName, out var cursor) && cursor.Reported && cursor.LastActivity < DateTimeOffset.UtcNow.AddMinutes(-10))
+                {
+                    cursor.Reported = false;
+                    Received?.Invoke(new HookMessage { Agent = "codex", Event = "SessionEnd", SessionId = cursor.Session! });
+                }
             }
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) { }
@@ -95,6 +102,7 @@ public sealed class CodexSessionMonitor(string? root = null) : IDisposable
         if (latest is not null)
         {
             if (initial && latest.Event is "Stop" or "Interrupt") latest = latest with { Event = "SessionStart", Detail = null };
+            cursor.Reported = true;
             Received?.Invoke(latest);
         }
     }
@@ -145,6 +153,7 @@ public sealed class CodexSessionMonitor(string? root = null) : IDisposable
                 _ => null,
             };
             if (ev is null) return null;
+            cursor.LastActivity = timestamp;
             var tool = ev == "PreToolUse" ? Str(payload, "name") : null;
             return new HookMessage { Agent = "codex", Event = ev, SessionId = cursor.Session, Cwd = cursor.Cwd, Tool = tool, Detail = tool is null ? null : "Using " + tool[..Math.Min(tool.Length, 100)] };
         }
