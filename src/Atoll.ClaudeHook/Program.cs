@@ -11,6 +11,8 @@ using Atoll.Claude;
 
 try
 {
+    var agent = args.Length == 2 && args[0] == "--agent" ? args[1] : "claude";
+    if (!HookProtocol.Agents.Contains(agent)) return 0;
     using var stdin = Console.OpenStandardInput();
     using var buffer = new MemoryStream();
     stdin.CopyTo(buffer); // drain fully even if the island is closed
@@ -25,7 +27,7 @@ try
     var eventName = doc.RootElement.TryGetProperty("hook_event_name", out var ev) ? ev.GetString() : null;
     var hwnd = eventName is "PreToolUse" or "PostToolUse" ? 0 : HostWindow.Find();
 
-    var message = HookProtocol.FromHookInput(doc.RootElement, hwnd);
+    var message = HookProtocol.FromHookInput(doc.RootElement, hwnd, agent);
     var line = JsonSerializer.SerializeToUtf8Bytes(message, HookProtocol.Json);
     if (line.Length > HookProtocol.MaxMessageBytes) return 0;
 

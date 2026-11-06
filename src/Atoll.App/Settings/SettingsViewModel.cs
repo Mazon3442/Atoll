@@ -47,7 +47,7 @@ public sealed partial class SettingsViewModel : ObservableObject
         new("Appearance", ""),
         new("Modules", ""),
         new("Notifications", ""),
-        new("Claude Code", ""),
+        new("Agents", ""),
         new("Calendar", "\uE787"),
         new("About", ""),
     ];
@@ -287,40 +287,13 @@ public sealed partial class SettingsViewModel : ObservableObject
         Save();
     }
 
-    // ---------- Claude Code ----------
+    // ---------- Agents ----------
+
+    public IReadOnlyList<AgentIntegrationRow> AgentIntegrations { get; } =
+        Atoll.Claude.HookProtocol.Agents.Select(agent => new AgentIntegrationRow(agent, new AgentIntegrationInstaller())).ToList();
 
     public bool SoundOnDone { get => S.Claude.SoundOnDone; set => Set(S.Claude.SoundOnDone, value, v => S.Claude.SoundOnDone = v); }
     public bool SoundOnAttention { get => S.Claude.SoundOnAttention; set => Set(S.Claude.SoundOnAttention, value, v => S.Claude.SoundOnAttention = v); }
-
-    public string HookSettingsPath => ClaudeHookInstaller.SettingsPath;
-    public bool HooksInstalled => ClaudeHookInstaller.GetStatus() == ClaudeHookInstaller.Status.Installed;
-
-    public string HookStatus => ClaudeHookInstaller.GetStatus() switch
-    {
-        ClaudeHookInstaller.Status.Installed => "Installed. New Claude Code sessions show up in ATOLL.",
-        ClaudeHookInstaller.Status.InstalledElsewhere => "Installed for another copy of ATOLL. Install again to point them here.",
-        ClaudeHookInstaller.Status.Unreadable => "Claude Code's settings file could not be read.",
-        _ => "Not installed. Usage still shows; live activity needs the hooks.",
-    };
-
-    [ObservableProperty] private string _hookMessage = "";
-
-    [RelayCommand]
-    private void InstallHooks()
-    {
-        HookMessage = ClaudeHookInstaller.Install()
-            ?? "Done. A backup of your Claude Code settings was saved next to them. Restart running sessions to pick up the hooks.";
-        OnPropertyChanged(nameof(HookStatus));
-        OnPropertyChanged(nameof(HooksInstalled));
-    }
-
-    [RelayCommand]
-    private void RemoveHooks()
-    {
-        HookMessage = ClaudeHookInstaller.Uninstall() ?? "Removed ATOLL's hooks. Your other hooks were left as they were.";
-        OnPropertyChanged(nameof(HookStatus));
-        OnPropertyChanged(nameof(HooksInstalled));
-    }
 
     // ---------- Calendar ----------
 

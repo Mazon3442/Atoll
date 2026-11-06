@@ -31,13 +31,15 @@ public static class ClaudeHookInstaller
         Unreadable,
     }
 
-    public static Status GetStatus()
+    public static Status GetStatus(string? path = null, string? command = null, int? eventCount = null)
     {
-        if (!File.Exists(SettingsPath)) return Status.NotInstalled;
-        if (TryLoad(out var root) is not null) return Status.Unreadable;
+        path ??= SettingsPath;
+        command ??= HookCommand;
+        if (!File.Exists(path)) return Status.NotInstalled;
+        if (TryLoad(out var root, path) is not null) return Status.Unreadable;
         var commands = OurCommands(root!).ToList();
         if (commands.Count == 0) return Status.NotInstalled;
-        return commands.All(c => c == HookCommand) && commands.Count >= Events.Length ? Status.Installed : Status.InstalledElsewhere;
+        return commands.All(c => c == command) && commands.Count >= (eventCount ?? Events.Length) ? Status.Installed : Status.InstalledElsewhere;
     }
 
     /// <returns>Null on success, else an error message for the user.</returns>
@@ -50,15 +52,19 @@ public static class ClaudeHookInstaller
     /// <returns>Null on success, else an error message for the user.</returns>
     public static string? Uninstall() => Update(RemoveHooks);
 
-    internal static void AddHooks(JsonObject root, string command)
+    internal static void AddHooks(JsonObject root, string command, IReadOnlyList<string>? events = null)
     {
+        if (root["hooks"] is not null and not JsonObject)
+            throw new InvalidDataException("The hooks section is not an object; left unchanged.");
         if (root["hooks"] is not JsonObject hooks)
         {
             hooks = new JsonObject();
             root["hooks"] = hooks;
         }
-        foreach (var name in Events)
+        foreach (var name in events ?? Events)
         {
+            if (hooks[name] is not null and not JsonArray)
+                throw new InvalidDataException($"The {name} hooks are not an array; left unchanged.");
             if (hooks[name] is not JsonArray groups)
             {
                 groups = new JsonArray();
@@ -70,10 +76,10 @@ public static class ClaudeHookInstaller
                 {
                     ["type"] = "command",
                     ["command"] = command,
-                    ["timeout"] = 5,
+                    ["timeout"] = name == "Interrupt" ? 1 : 5,
                 }),
             };
-            if (ToolEvents.Contains(name)) group.Insert(0, "matcher", "*");
+            if (ToolEvents.Contains(name) || name == "PermissionRequest") group.Insert(0, "matcher", "*");
             groups.Add(group);
         }
     }
@@ -107,38 +113,43 @@ public static class ClaudeHookInstaller
     private static bool IsOurs(JsonNode? hook) =>
         hook?["command"] is JsonValue v && v.TryGetValue<string>(out var c) && c.Contains(Marker, StringComparison.OrdinalIgnoreCase);
 
-    private static string? Update(Action<JsonObject> change)
+    internal static string? Update(Action<JsonObject> change, string? path = null)
     {
-        var error = TryLoad(out var root);
-        if (error is not null) return error;
-        change(root!);
+        path ??= SettingsPath;
         try
         {
-            Directory.CreateDirectory(Path.GetDirectoryName(SettingsPath)!);
-            if (File.Exists(SettingsPath)) File.Copy(SettingsPath, SettingsPath + ".atoll-backup", overwrite: true);
-            var temp = SettingsPath + ".atoll-tmp";
+            var original = File.Exists(path) ? File.ReadAllText(path) : null;
+            var error = TryLoad(out var root, path);
+            if (error is not null) return error;
+            change(root!);
+            Directory.CreateDirectory(Path.GetDirectoryName(path)!);
+            if ((File.Exists(path) ? File.ReadAllText(path) : null) != original)
+                return $"{path} changed during setup; left unchanged. Try again.";
+            if (File.Exists(path)) File.Copy(path, path + ".atoll-backup", overwrite: true);
+            var temp = path + ".atoll-tmp";
             File.WriteAllText(temp, root!.ToJsonString(new JsonSerializerOptions { WriteIndented = true }));
-            File.Move(temp, SettingsPath, overwrite: true);
+            File.Move(temp, path, overwrite: true);
             return null;
         }
-        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or InvalidDataException)
         {
-            Log.Error("Writing Claude Code settings failed", ex);
-            return $"Could not write {SettingsPath}: {ex.Message}";
+            Log.Error("Writing agent hooks failed", ex);
+            return $"Could not write {path}: {ex.Message}";
         }
     }
 
-    private static string? TryLoad(out JsonObject? root)
+    private static string? TryLoad(out JsonObject? root, string? path = null)
     {
+        path ??= SettingsPath;
         root = null;
         try
         {
-            if (!File.Exists(SettingsPath))
+            if (!File.Exists(path))
             {
                 root = new JsonObject();
                 return null;
             }
-            var node = JsonNode.Parse(File.ReadAllText(SettingsPath), documentOptions: new JsonDocumentOptions
+            var node = JsonNode.Parse(File.ReadAllText(path), documentOptions: new JsonDocumentOptions
             {
                 CommentHandling = JsonCommentHandling.Skip,
                 AllowTrailingCommas = true,
@@ -148,15 +159,15 @@ public static class ClaudeHookInstaller
                 root = obj;
                 return null;
             }
-            return $"{SettingsPath} is not a JSON object; left unchanged.";
+            return $"{path} is not a JSON object; left unchanged.";
         }
         catch (JsonException ex)
         {
-            return $"{SettingsPath} could not be parsed ({ex.Message}); left unchanged.";
+            return $"{path} could not be parsed ({ex.Message}); left unchanged.";
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {
-            return $"Could not read {SettingsPath}: {ex.Message}";
+            return $"Could not read {path}: {ex.Message}";
         }
     }
 }

@@ -59,44 +59,50 @@
 
     <!-- Expanded tab -->
     <DataTemplate x:Key="ClockPanelViewModel.Panel">
+        <DataTemplate.Resources>
+            <Style x:Key="Clock.Button" TargetType="Button" BasedOn="{StaticResource Island.ChipButton}">
+                <Setter Property="FontSize" Value="11" />
+                <Setter Property="Margin" Value="0,0,4,4" />
+            </Style>
+        </DataTemplate.Resources>
         <Grid>
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="*" />
-                <ColumnDefinition Width="1.3*" />
-            </Grid.ColumnDefinitions>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
+            </Grid.RowDefinitions>
 
-            <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
-                <TextBlock Text="{Binding Clock.Time}" FontSize="40" FontWeight="Light" HorizontalAlignment="Center" />
-                <TextBlock Text="{Binding Clock.Date}" FontSize="14" HorizontalAlignment="Center"
+            <StackPanel Margin="0,0,0,8">
+                <TextBlock Text="{Binding Clock.Time}" FontSize="26" FontWeight="Light" />
+                <TextBlock Text="{Binding Clock.Date}" FontSize="12"
                            Foreground="{DynamicResource Island.Subtle}" />
             </StackPanel>
 
             <!-- Timer idle: presets -->
-            <StackPanel Grid.Column="1" VerticalAlignment="Center" DataContext="{Binding Timer}"
+            <StackPanel Grid.Row="1" VerticalAlignment="Center" DataContext="{Binding Timer}"
                         Visibility="{Binding IsActive, Converter={StaticResource Island.InverseBoolToVisibility}}">
                 <TextBlock Text="Timer" FontSize="12" Foreground="{DynamicResource Island.Subtle}" Margin="0,0,0,6" />
                 <WrapPanel>
-                    <Button Style="{StaticResource Island.ChipButton}" Content="1 min" Command="{Binding StartCountdownCommand}">
+                    <Button Style="{StaticResource Clock.Button}" Content="1 min" Command="{Binding StartCountdownCommand}">
                         <Button.CommandParameter><sys:Double>1</sys:Double></Button.CommandParameter>
                     </Button>
-                    <Button Style="{StaticResource Island.ChipButton}" Content="5 min" Command="{Binding StartCountdownCommand}">
+                    <Button Style="{StaticResource Clock.Button}" Content="5 min" Command="{Binding StartCountdownCommand}">
                         <Button.CommandParameter><sys:Double>5</sys:Double></Button.CommandParameter>
                     </Button>
-                    <Button Style="{StaticResource Island.ChipButton}" Content="10 min" Command="{Binding StartCountdownCommand}">
+                    <Button Style="{StaticResource Clock.Button}" Content="10 min" Command="{Binding StartCountdownCommand}">
                         <Button.CommandParameter><sys:Double>10</sys:Double></Button.CommandParameter>
                     </Button>
-                    <Button Style="{StaticResource Island.ChipButton}" Content="30 min" Command="{Binding StartCountdownCommand}">
+                    <Button Style="{StaticResource Clock.Button}" Content="30 min" Command="{Binding StartCountdownCommand}">
                         <Button.CommandParameter><sys:Double>30</sys:Double></Button.CommandParameter>
                     </Button>
                 </WrapPanel>
                 <WrapPanel Margin="0,4,0,0">
-                    <Button Style="{StaticResource Island.ChipButton}" Content="Stopwatch" Command="{Binding StartStopwatchCommand}" />
-                    <Button Style="{StaticResource Island.ChipButton}" Content="Pomodoro 25/5" Command="{Binding StartPomodoroCommand}" />
+                    <Button Style="{StaticResource Clock.Button}" Content="Stopwatch" Command="{Binding StartStopwatchCommand}" />
+                    <Button Style="{StaticResource Clock.Button}" Content="Pomodoro 25/5" Command="{Binding StartPomodoroCommand}" />
                 </WrapPanel>
             </StackPanel>
 
             <!-- Timer running -->
-            <StackPanel Grid.Column="1" VerticalAlignment="Center" DataContext="{Binding Timer}"
+            <StackPanel Grid.Row="1" VerticalAlignment="Center" DataContext="{Binding Timer}"
                         Visibility="{Binding IsActive, Converter={StaticResource Island.BoolToVisibility}}">
                 <TextBlock Text="{Binding Label}" FontSize="12" Foreground="{DynamicResource Island.Subtle}" />
                 <TextBlock Text="{Binding Display}" FontSize="36" FontWeight="SemiBold" Foreground="{DynamicResource Island.Accent}" />

@@ -3,12 +3,12 @@
 
     <DataTemplate x:Key="ClipboardViewModel.Panel">
         <Grid>
-            <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center"
+            <StackPanel HorizontalAlignment="Stretch" VerticalAlignment="Center" Margin="8,0"
                         Visibility="{Binding IsEmpty, Converter={StaticResource Island.BoolToVisibility}}">
                 <TextBlock Text="&#xE77F;" FontFamily="{StaticResource Island.IconFont}" FontSize="24" HorizontalAlignment="Center"
                            Foreground="{DynamicResource Island.Subtle}" />
-                <TextBlock Text="Things you copy show up here" FontSize="13" Margin="0,8,0,0" HorizontalAlignment="Center" />
-                <TextBlock Text="Kept in memory only. Password managers are skipped." FontSize="11" HorizontalAlignment="Center"
+                <TextBlock Text="Things you copy show up here" FontSize="13" Margin="0,8,0,0" TextWrapping="Wrap" TextAlignment="Center" />
+                <TextBlock Text="Kept in memory only. Password managers are skipped." FontSize="11" TextWrapping="Wrap" TextAlignment="Center"
                            Foreground="{DynamicResource Island.Subtle}" />
             </StackPanel>
 

@@ -99,6 +99,7 @@ public class MediaSeekTests
                 slider.GetBindingExpression(Slider.ValueProperty)!.UpdateTarget();
                 Assert.Equal(0.6, slider.Value);
                 Assert.Equal(2, positions.Count);
+                GroupedPanelsTests.VerifyTemplates();
             }
             catch (Exception ex) { failure = ex; }
             finally { Application.Current?.Shutdown(); }

@@ -10,11 +10,11 @@
                 <Grid Margin="2" Visibility="{Binding IsEmpty, Converter={StaticResource Island.BoolToVisibility}}">
                     <Rectangle RadiusX="14" RadiusY="14" StrokeThickness="1.5" StrokeDashArray="4 3"
                                Stroke="{DynamicResource Island.Subtle}" />
-                    <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
+                    <StackPanel HorizontalAlignment="Stretch" VerticalAlignment="Center" Margin="8,0">
                         <TextBlock Text="&#xE7B8;" FontFamily="{StaticResource Island.IconFont}" FontSize="26"
                                    HorizontalAlignment="Center" Foreground="{DynamicResource Island.Subtle}" />
-                        <TextBlock Text="Drop files here to keep them handy" FontSize="13" Margin="0,8,0,0" HorizontalAlignment="Center" />
-                        <TextBlock Text="Drag them back out to any app" FontSize="11" HorizontalAlignment="Center"
+                        <TextBlock Text="Drop files here to keep them handy" FontSize="13" Margin="0,8,0,0" TextWrapping="Wrap" TextAlignment="Center" />
+                        <TextBlock Text="Drag them back out to any app" FontSize="11" TextWrapping="Wrap" TextAlignment="Center"
                                    Foreground="{DynamicResource Island.Subtle}" />
                     </StackPanel>
                 </Grid>

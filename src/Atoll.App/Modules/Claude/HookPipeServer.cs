@@ -38,6 +38,7 @@ public sealed class HookPipeServer : IDisposable
             {
                 return;
             }
+            catch (OperationCanceledException) { } // A stalled sender timed out; keep the listener alive.
             catch (Exception ex) when (ex is IOException or JsonException or UnauthorizedAccessException)
             {
                 Log.Error("Claude hook message dropped", ex);

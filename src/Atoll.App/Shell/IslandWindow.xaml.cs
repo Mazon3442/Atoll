@@ -91,12 +91,12 @@ public partial class IslandWindow : Window
         Pill.MouseLeftButtonUp += (_, e) =>
         {
             if (_mode == IslandMode.Expanded) return;
-            SetMode(IslandMode.Expanded, _primary?.ModuleId);
+            SetMode(IslandMode.Expanded, ActivityTab(_primary));
             e.Handled = true;
         };
         Bubble.MouseLeftButtonUp += (_, e) =>
         {
-            SetMode(IslandMode.Expanded, _secondary?.ModuleId);
+            SetMode(IslandMode.Expanded, ActivityTab(_secondary));
             e.Handled = true;
         };
         Pill.SizeChanged += (_, _) => UpdateBubbleOffset();
@@ -106,7 +106,7 @@ public partial class IslandWindow : Window
         Pill.DragEnter += (_, e) =>
         {
             if (e.Data.GetDataPresent(DataFormats.FileDrop) && _mode != IslandMode.Expanded
-                && _modules.Tabs.Any(t => t.Descriptor.Id == "shelf"))
+                && _modules.Tabs.Any(t => t.Contains("shelf")))
                 SetMode(IslandMode.Expanded, "shelf");
         };
         LayoutUpdated += (_, _) => ApplyGlassBrushes(); // follows the pill through every animation frame
@@ -267,7 +267,7 @@ public partial class IslandWindow : Window
             SetClickThrough(false);
             SetNoActivate(false);
             Activate();
-            var tab = moduleId is null ? null : _modules.Tabs.FirstOrDefault(t => t.Descriptor.Id == moduleId);
+            var tab = moduleId is null ? null : _modules.Tabs.FirstOrDefault(t => t.Contains(moduleId));
             if (tab is not null) Tabs.SelectedItem = tab;
             else if (Tabs.SelectedItem is null && Tabs.Items.Count > 0) Tabs.SelectedIndex = 0;
             ShowSelectedTab();
@@ -540,6 +540,10 @@ public partial class IslandWindow : Window
         PanelBody.ContentTemplate = Templates.Find(this, tab.Panel, "Panel");
         PanelBody.Content = tab.Panel;
     }
+
+    private string? ActivityTab(Activity? activity) =>
+        activity?.Content is IndicatorViewModel { Detail: "Volume" }
+            && _modules.Tabs.Any(t => t.Contains("media")) ? "media" : activity?.ModuleId;
 
     private void OnSettingsClick(object sender, RoutedEventArgs e)
     {

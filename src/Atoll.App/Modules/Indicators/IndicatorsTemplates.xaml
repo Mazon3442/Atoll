@@ -1,8 +1,7 @@
 <ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
 
-    <DataTemplate x:Key="SystemPanelViewModel.Panel">
-        <StackPanel VerticalAlignment="Center" Margin="8,0">
+    <DataTemplate x:Key="SystemPanelViewModel.Volume">
             <DockPanel>
                 <Button DockPanel.Dock="Left" Style="{StaticResource Island.IconButton}" Content="{Binding VolumeGlyph}"
                         Command="{Binding ToggleMuteCommand}" ToolTip="Mute" AutomationProperties.Name="Toggle mute" />
@@ -11,8 +10,10 @@
                 <Slider Style="{StaticResource Island.Slider}" Minimum="0" Maximum="100" Value="{Binding Volume}"
                         Margin="10,0" VerticalAlignment="Center" AutomationProperties.Name="Volume" />
             </DockPanel>
+    </DataTemplate>
 
-            <Grid Margin="4,18,4,0">
+    <DataTemplate x:Key="SystemPanelViewModel.Panel">
+            <Grid Margin="4,0">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="Auto" />
                     <ColumnDefinition Width="*" />
@@ -40,7 +41,6 @@
                 <TextBlock Grid.Row="2" Grid.Column="1" Text="{Binding Battery}"
                            Visibility="{Binding HasBattery, Converter={StaticResource Island.BoolToVisibility}}" />
             </Grid>
-        </StackPanel>
     </DataTemplate>
 
 </ResourceDictionary>

@@ -76,6 +76,8 @@ public sealed class ClaudeModule : IIslandModule
     private ModuleContext? _context;
     private DispatcherTimer? _ticker;
     private bool _workPosted;
+    private bool _disposed;
+    private readonly HashSet<string> _attention = [];
 
     public ClaudeModule() => _vm = new ClaudeViewModel(_tracker);
 
@@ -102,6 +104,7 @@ public sealed class ClaudeModule : IIslandModule
 
     private void OnHook(HookMessage message)
     {
+        if (_disposed) return;
         var (session, transition) = _tracker.Apply(message);
         _vm.Refresh();
         UpdateActivities();
@@ -111,7 +114,9 @@ public sealed class ClaudeModule : IIslandModule
         switch (transition)
         {
             case ClaudeTransition.NeedsYou:
-                _context.Post("attention", new ClaudeAlertViewModel(session, $"{session.Project} needs you", session.Detail),
+                var key = AttentionKey(session);
+                _attention.Add(key);
+                _context.Post(key, new ClaudeAlertViewModel(session, $"{session.Project} needs you", session.Detail),
                     ActivityPriority.Critical, alert: true);
                 if (settings.SoundOnAttention) SystemSounds.Exclamation.Play();
                 break;
@@ -132,11 +137,19 @@ public sealed class ClaudeModule : IIslandModule
         _workPosted = anyWorking;
 
         // The permission popup stays until that session moves on (approved, denied or stopped).
-        if (!_tracker.Sessions.Any(s => s.NeedsYou)) _context.Remove("attention");
+        var waiting = _tracker.Sessions.Where(s => s.NeedsYou).Select(AttentionKey).ToHashSet();
+        foreach (var key in _attention.Where(k => !waiting.Contains(k)).ToList())
+        {
+            _context.Remove(key);
+            _attention.Remove(key);
+        }
     }
+
+    private static string AttentionKey(ClaudeSessionViewModel session) => $"attention.{session.Agent}.{session.SessionId}";
 
     public void Dispose()
     {
+        _disposed = true;
         _ticker?.Stop();
         _server.Dispose();
         _usage.Dispose();

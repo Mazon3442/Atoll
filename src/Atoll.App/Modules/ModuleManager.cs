@@ -20,7 +20,7 @@ public static class ModuleCatalog
 {
     public static IReadOnlyList<ModuleDescriptor> All { get; } =
     [
-        new("claude", "Claude", "", () => new ClaudeModule()),
+        new("claude", "Agents", "", () => new ClaudeModule()),
         new("media", "Media", "", () => new MediaModule()),
         new("notifications", "Notifications", "", () => new NotificationsModule()),
         new("clock", "Clock & timer", "", () => new ClockModule()),
@@ -34,7 +34,10 @@ public static class ModuleCatalog
     ];
 }
 
-public sealed record ModuleTab(ModuleDescriptor Descriptor, object Panel);
+public sealed record ModuleTab(ModuleDescriptor Descriptor, object Panel)
+{
+    public bool Contains(string id) => Descriptor.Id == PanelGroups.TabId(id);
+}
 
 /// <summary>Starts/stops modules to match settings and exposes the expanded-panel tabs. UI thread only.</summary>
 public sealed class ModuleManager(
@@ -84,6 +87,7 @@ public sealed class ModuleManager(
             .Where(d => _running.TryGetValue(d.Id, out var m) && m.Panel is not null)
             .Select(d => new ModuleTab(d, _running[d.Id].Panel!))
             .ToList();
+        tabs = PanelGroups.Combine(tabs);
         if (!tabs.SequenceEqual(Tabs))
         {
             Tabs.Clear();

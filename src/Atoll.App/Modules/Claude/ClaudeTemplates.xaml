@@ -3,36 +3,16 @@
 
     <SolidColorBrush x:Key="Claude.Orange" Color="#D97757" />
 
-    <!-- Claude asterisk; spins slowly while a session is working (15 fps keeps the overlay cheap). -->
-    <DataTemplate x:Key="Claude.Spark">
-        <TextBlock x:Name="Spark" Text="&#x273B;" FontFamily="Segoe UI Symbol" FontSize="15"
-                   Foreground="{StaticResource Claude.Orange}" RenderTransformOrigin="0.5,0.55"
-                   VerticalAlignment="Center">
-            <TextBlock.RenderTransform>
-                <RotateTransform />
-            </TextBlock.RenderTransform>
-            <TextBlock.Triggers>
-                <EventTrigger RoutedEvent="Loaded">
-                    <BeginStoryboard>
-                        <Storyboard Timeline.DesiredFrameRate="15">
-                            <DoubleAnimation Storyboard.TargetProperty="RenderTransform.Angle"
-                                             From="0" To="360" Duration="0:0:2.4" RepeatBehavior="Forever" />
-                        </Storyboard>
-                    </BeginStoryboard>
-                </EventTrigger>
-            </TextBlock.Triggers>
-        </TextBlock>
-    </DataTemplate>
-
-    <DataTemplate x:Key="Claude.StaticSpark">
-        <TextBlock Text="&#x273B;" FontFamily="Segoe UI Symbol" FontSize="15"
-                   Foreground="{StaticResource Claude.Orange}" VerticalAlignment="Center" />
+    <!-- Every session carries its agent name, including in compact and alert views. -->
+    <DataTemplate x:Key="Agent.Label">
+        <TextBlock Text="{Binding AgentName}" FontSize="11" FontWeight="SemiBold"
+                   Foreground="{DynamicResource Island.Accent}" VerticalAlignment="Center" />
     </DataTemplate>
 
     <!-- Work activity -->
     <DataTemplate x:Key="ClaudeViewModel.Compact">
         <StackPanel Orientation="Horizontal">
-            <ContentPresenter Content="{Binding}" ContentTemplate="{StaticResource Claude.Spark}" />
+            <ContentPresenter Content="{Binding Current}" ContentTemplate="{StaticResource Agent.Label}" />
             <TextBlock Text="{Binding Current.Detail}" FontSize="12" FontWeight="SemiBold" Margin="8,0,0,0"
                        MaxWidth="220" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
             <TextBlock Text="{Binding CountBadge}" FontSize="11" Margin="6,0,0,0" VerticalAlignment="Center"
@@ -42,7 +22,7 @@
 
     <DataTemplate x:Key="ClaudeViewModel.Peek">
         <StackPanel Orientation="Horizontal">
-            <ContentPresenter Content="{Binding}" ContentTemplate="{StaticResource Claude.Spark}" VerticalAlignment="Center">
+            <ContentPresenter Content="{Binding Current}" ContentTemplate="{StaticResource Agent.Label}" VerticalAlignment="Center">
                 <ContentPresenter.LayoutTransform>
                     <ScaleTransform ScaleX="1.4" ScaleY="1.4" />
                 </ContentPresenter.LayoutTransform>
@@ -52,29 +32,31 @@
                     <Run Text="{Binding Current.Project, Mode=OneWay}" /><Run Text="  Â·  " /><Run Text="{Binding Current.Elapsed, Mode=OneWay}" />
                 </TextBlock>
                 <TextBlock Text="{Binding Current.Detail}" FontSize="14" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
+                <StackPanel Visibility="{Binding Current.IsClaude, Converter={StaticResource Island.BoolToVisibility}}">
                 <TextBlock FontSize="11" Foreground="{DynamicResource Island.Subtle}" Margin="0,2,0,0"
                            Visibility="{Binding Usage.HasBlock, Converter={StaticResource Island.BoolToVisibility}}">
                     <Run Text="5h block " /><Run Text="{Binding Usage.BlockText, Mode=OneWay}" />
                 </TextBlock>
+                </StackPanel>
             </StackPanel>
         </StackPanel>
     </DataTemplate>
 
     <DataTemplate x:Key="ClaudeViewModel.Mini">
-        <ContentPresenter Content="{Binding}" ContentTemplate="{StaticResource Claude.Spark}" />
+        <ContentPresenter Content="{Binding Current}" ContentTemplate="{StaticResource Agent.Label}" />
     </DataTemplate>
 
     <!-- Done / needs-you alerts -->
     <DataTemplate x:Key="ClaudeAlertViewModel.Compact">
         <StackPanel Orientation="Horizontal">
-            <ContentPresenter Content="{Binding}" ContentTemplate="{StaticResource Claude.StaticSpark}" />
+            <ContentPresenter Content="{Binding Session}" ContentTemplate="{StaticResource Agent.Label}" />
             <TextBlock Text="{Binding Title}" FontSize="12" FontWeight="SemiBold" Margin="8,0,0,0" VerticalAlignment="Center" />
         </StackPanel>
     </DataTemplate>
 
     <DataTemplate x:Key="ClaudeAlertViewModel.Peek">
         <StackPanel Orientation="Horizontal">
-            <ContentPresenter Content="{Binding}" ContentTemplate="{StaticResource Claude.StaticSpark}" VerticalAlignment="Center">
+            <ContentPresenter Content="{Binding Session}" ContentTemplate="{StaticResource Agent.Label}" VerticalAlignment="Center">
                 <ContentPresenter.LayoutTransform>
                     <ScaleTransform ScaleX="1.4" ScaleY="1.4" />
                 </ContentPresenter.LayoutTransform>
@@ -87,12 +69,12 @@
             <Button Style="{StaticResource Island.ChipButton}" Content="Open" Margin="14,0,0,0" VerticalAlignment="Center"
                     Command="{Binding Session.FocusCommand}"
                     Visibility="{Binding Session.CanFocus, Converter={StaticResource Island.BoolToVisibility}}"
-                    AutomationProperties.Name="Open the Claude session" />
+                    AutomationProperties.Name="Open the agent session" />
         </StackPanel>
     </DataTemplate>
 
     <DataTemplate x:Key="ClaudeAlertViewModel.Mini">
-        <ContentPresenter Content="{Binding}" ContentTemplate="{StaticResource Claude.StaticSpark}" />
+        <ContentPresenter Content="{Binding Session}" ContentTemplate="{StaticResource Agent.Label}" />
     </DataTemplate>
 
     <!-- Expanded tab: sessions + usage -->
@@ -111,7 +93,7 @@
                                    Foreground="{DynamicResource Island.Subtle}"
                                    Visibility="{Binding Usage.HasBlock, Converter={StaticResource Island.BoolToVisibility}}" />
                         <TextBlock FontSize="11" Foreground="{DynamicResource Island.Subtle}">
-                            <Run Text="5h block  " /><Run Text="{Binding Usage.BlockText, Mode=OneWay}" Foreground="{DynamicResource Island.Foreground}" />
+                            <Run Text="Claude · 5h block  " /><Run Text="{Binding Usage.BlockText, Mode=OneWay}" Foreground="{DynamicResource Island.Foreground}" />
                         </TextBlock>
                     </DockPanel>
                     <Grid Height="3" Margin="0,4,12,0">
@@ -124,13 +106,14 @@
                     </Grid>
                 </StackPanel>
                 <TextBlock Grid.Column="1" FontSize="11" Foreground="{DynamicResource Island.Subtle}" VerticalAlignment="Top">
-                    <Run Text="Today  " /><Run Text="{Binding Usage.TodayText, Mode=OneWay}" Foreground="{DynamicResource Island.Foreground}" />
+                    <Run Text="Claude today  " /><Run Text="{Binding Usage.TodayText, Mode=OneWay}" Foreground="{DynamicResource Island.Foreground}" />
                 </TextBlock>
             </Grid>
 
             <!-- Sessions -->
             <Grid>
-                <TextBlock Text="No Claude Code sessions yet" HorizontalAlignment="Center" VerticalAlignment="Center"
+                <TextBlock Text="No agent sessions yet. Install integrations in Settings › Agents." HorizontalAlignment="Center" VerticalAlignment="Center"
+                           TextWrapping="Wrap" TextAlignment="Center" MaxWidth="360"
                            Foreground="{DynamicResource Island.Subtle}"
                            Visibility="{Binding HasSessions, Converter={StaticResource Island.InverseBoolToVisibility}}" />
                 <ScrollViewer VerticalScrollBarVisibility="Auto">
@@ -145,7 +128,7 @@
                                                 AutomationProperties.Name="{Binding Project, StringFormat=Open {0}}" />
                                         <TextBlock DockPanel.Dock="Right" Text="{Binding Elapsed}" FontSize="11" VerticalAlignment="Center"
                                                    Foreground="{DynamicResource Island.Subtle}" />
-                                        <ContentPresenter x:Name="Icon" DockPanel.Dock="Left" Content="{Binding}" ContentTemplate="{StaticResource Claude.StaticSpark}"
+                                        <ContentPresenter DockPanel.Dock="Left" Content="{Binding}" ContentTemplate="{StaticResource Agent.Label}"
                                                           Margin="0,0,10,0" />
                                         <StackPanel>
                                             <TextBlock Text="{Binding Project}" FontSize="13" FontWeight="SemiBold" />
@@ -155,9 +138,6 @@
                                     </DockPanel>
                                 </Border>
                                 <DataTemplate.Triggers>
-                                    <DataTrigger Binding="{Binding IsWorking}" Value="True">
-                                        <Setter TargetName="Icon" Property="ContentTemplate" Value="{StaticResource Claude.Spark}" />
-                                    </DataTrigger>
                                     <DataTrigger Binding="{Binding NeedsYou}" Value="True">
                                         <Setter TargetName="Row" Property="BorderBrush" Value="{StaticResource Claude.Orange}" />
                                         <Setter TargetName="Row" Property="BorderThickness" Value="1" />

@@ -1,7 +1,7 @@
 # ATOLL
 
 A Dynamic Island for Windows. ATOLL sits at the top of your screen as a small pill that shows what is
-happening right now (music, timers, Claude Code, notifications, volume) and opens into a panel when
+happening right now (music, timers, coding agents, notifications, volume) and opens into a panel when
 you click it.
 
 Built with C# and WPF on .NET 10 for Windows 10 (2004) and Windows 11.
@@ -12,23 +12,20 @@ The island has three sizes:
 
 - **Compact**: a small pill with the most important thing happening (the clock when nothing is).
 - **Peek**: rest the pointer on it, or let an alert open it, for a bit more detail.
-- **Expanded**: click it for a panel with one tab per feature.
+- **Expanded**: click it for seven grouped tabs: Agents, Media, Notifications, Clock & calendar,
+  System, Files, and Weather. Individual modules can still be enabled, disabled, and reordered in Settings.
 
 When two things happen at once, the second shows in a small bubble next to the pill.
 
 | Feature | What you see |
 | --- | --- |
-| **Media** | Album art and a live audio visualizer for anything using Windows media controls (Spotify, browsers, ...). Play/pause, skip, and click or drag the progress slider to seek when the player supports it. Peeks on track change. |
-| **Clock & timer** | Clock when idle. Countdown timers, stopwatch and Pomodoro (25/5, long break every 4th) with alerts. |
-| **Calendar** | Upcoming events from Google Calendar and Microsoft 365 (private ICS links) merged into one list, a next-event countdown pill, and a popup before events start. |
-| **System** | Popups for volume, output device, battery, network, Bluetooth, brightness (laptops), Caps Lock and Num Lock. Volume slider in the panel. |
-| **Claude** | Live Claude Code activity per session (thinking, editing a file, running a command), a popup when a session needs permission or finishes, and token usage for today and the current 5-hour window. Messages from the Claude desktop app get the Claude look. |
+| **Media** | Album art, live audio visualizer, play/pause, skip, seek, and the system volume slider. Seeking is available when the player supports it. Peeks on track change. |
+| **Clock & calendar** | Clock, countdown timers, stopwatch, Pomodoro, and upcoming Google Calendar/Microsoft 365 events through private ICS links. Timer and event alerts still appear in the island. |
+| **System** | Device status, CPU/GPU/memory/network graphs, and quick actions: screenshot, microphone mute, lock, screen off, Downloads. System popups still report volume, battery, network, Bluetooth, brightness, and lock keys. |
+| **Agents** | Claude Code, Codex, OpenCode, and Hermes activity and completion/attention alerts, labeled by agent and project. Token/cost totals currently cover Claude Code only. |
 | **Notifications** | Windows notifications shown in the island, with history, per-app mute, and a privacy switch that hides message text. |
-| **File shelf** | Drag files onto ATOLL to keep them handy, then drag them out to any app. |
-| **Clipboard history** | Your last 25 copies (text, images, files). Click one to copy it again. |
-| **System stats** | CPU, GPU, memory and network with one-minute graphs. |
+| **Files** | A file shelf for drag-and-drop alongside your last 25 clipboard entries (text, images, files). Click an entry to copy it again. |
 | **Weather** | Current conditions and a 5-day forecast for your city. |
-| **Quick actions** | Screenshot, mute microphone, lock, turn the screen off, open Downloads. |
 
 ### Fits around your work
 
@@ -106,12 +103,26 @@ powershell -ExecutionPolicy Bypass -File packaging\setup-identity.ps1
 Then restart ATOLL and click **Allow access** in Settings › Notifications. To undo everything, run
 `packaging\remove-identity.ps1`.
 
-### Claude Code
+### Coding agents
 
-Open Settings › Claude Code and click **Install**. This adds ATOLL's hooks to
-`~/.claude/settings.json` (your other settings and hooks are kept, and a backup is saved next to the
-file). New Claude Code sessions then report what they are doing. **Remove** takes only ATOLL's
-entries out again.
+Open Settings › Agents and click **Install / update** for each agent you use, then restart its
+running sessions. Existing hooks and settings are kept, and changed files are backed up.
+
+| Agent | Integration |
+| --- | --- |
+| Claude Code | Command hooks in `~/.claude/settings.json`. |
+| Codex | Command hooks in `$CODEX_HOME/hooks.json` (default `~/.codex/hooks.json`). Enable hooks and review/trust the new definitions in Codex Settings › Hooks, the composer's Review hooks control, or `/hooks` in the CLI. ATOLL never bypasses that review. |
+| OpenCode | A local JavaScript plugin in `~/.config/opencode/plugins/atoll.js` (respects `XDG_CONFIG_HOME` and `OPENCODE_CONFIG_DIR`). |
+| Hermes | A native `atoll` plugin under `$HERMES_HOME/plugins/atoll` (default `%LocalAppData%/hermes` on Windows). Setup runs `hermes plugins enable atoll`; if the command cannot run, the settings page shows the manual command. |
+
+**Remove** unregisters only ATOLL's integration. Adapters send short local activity summaries and
+remain silent if ATOLL is closed. They never approve, deny, or alter an agent's tool calls.
+Agent integrations must run on the same Windows machine as ATOLL; remote/WSL agent environments
+are not bridged automatically.
+
+The adapters use the documented [Codex hooks](https://learn.chatgpt.com/docs/hooks),
+[OpenCode plugins](https://opencode.ai/docs/plugins/), and
+[Hermes plugin hooks](https://hermes-agent.nousresearch.com/docs/user-guide/features/hooks).
 
 Usage totals work without the hooks: ATOLL reads the transcripts Claude Code already writes to
 `~/.claude/projects`. Costs are estimates at API list prices, not what a subscription charges.
@@ -134,7 +145,7 @@ publishing, so "Publish a calendar" may be missing for work accounts.
 
 ## Settings
 
-Settings has seven pages: General, Appearance, Modules, Notifications, Claude Code, Calendar and
+Settings has seven pages: General, Appearance, Modules, Notifications, Agents, Calendar and
 About. Every change applies immediately.
 
 Settings, the shelf list and the log live in `%AppData%\Atoll`
@@ -145,7 +156,7 @@ Launch options:
 | Option | Effect |
 | --- | --- |
 | `--settings` or `--settings=<page>` | Open settings (page 0 = General ... 6 = About) |
-| `--open=<module>` | Open ATOLL expanded on a tab: `media`, `clock`, `calendar`, `system`, `claude`, `notifications`, `shelf`, `clipboard`, `stats`, `weather`, `actions` |
+| `--open=<module>` | Open a grouped tab: `agents`, `media`, `notifications`, `clock`, `system`, `files`, `weather`. Existing names (`claude`, `calendar`, `shelf`, `clipboard`, `stats`, `actions`) still open their containing group. |
 
 ## Privacy
 
@@ -161,8 +172,8 @@ ATOLL runs locally and has no account or telemetry.
   password managers are skipped.
 - **The shelf** stores file locations only. ATOLL never copies, moves or deletes your files.
 - **Notifications** are read only after you grant access, and stay on your PC.
-- **Claude Code hooks** send a short summary of each event (session folder, tool name, file name,
-  the first line of a command, Claude's notification text) to ATOLL over a local named pipe that
+- **Agent adapters** send a short summary of each event (agent, session folder, tool name, file name,
+  the first line of a command, or notification text) to ATOLL over a local named pipe that
   only your user account can open. File contents are never sent, and nothing leaves your PC.
 
 ## How it works
@@ -176,7 +187,7 @@ src/
     Settings/         settings model, store, settings window
     Theme/            theme tokens, presets, shared styles
     Updates/          checks GitHub releases and downloads updates in the background
-  Atoll.ClaudeHook/   tiny exe run by Claude Code hooks; forwards events over a named pipe
+  Atoll.ClaudeHook/   shared agent bridge exe (legacy name retained for installed Claude hooks)
   Shared/             hook message format shared by both
 packaging/            notification identity package and scripts
 tests/Atoll.Tests/    xUnit tests
@@ -198,8 +209,8 @@ tests/Atoll.Tests/    xUnit tests
 - **The visualizer doesn't move**: it only runs while media is playing.
 - **Notifications say "one-time setup needed"**: run the two packaging scripts above, then restart
   ATOLL.
-- **Claude sessions don't show up**: install the hooks, then start a new Claude Code session
-  (running sessions keep their old hooks). If ATOLL moved to a new folder, click **Install** again.
+- **Agent sessions don't show up**: install that agent's adapter in Settings › Agents and restart
+  running sessions. For Codex, review/trust ATOLL's hooks as well. If ATOLL moved, use **Install / update** again.
 - **Hook debugging**: set `ATOLL_HOOK_DEBUG=1` to make the hook print errors to stderr.
 - **A calendar is missing events**: Google's ICS links can lag by hours. Check the link in Settings ›
   Calendar, and that the calendar is published (some M365 admins disable it).

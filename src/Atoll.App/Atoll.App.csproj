@@ -27,6 +27,7 @@
 
   <ItemGroup>
     <InternalsVisibleTo Include="Atoll.Tests" />
+    <EmbeddedResource Include="Integrations\*" />
   </ItemGroup>
 
   <ItemGroup>

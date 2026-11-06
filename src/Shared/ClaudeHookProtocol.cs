@@ -9,6 +9,7 @@ namespace Atoll.Claude;
 /// </summary>
 public sealed record HookMessage
 {
+    public string Agent { get; init; } = "claude";
     public string Event { get; init; } = "";
     public string SessionId { get; init; } = "";
     public string? Cwd { get; init; }
@@ -28,17 +29,30 @@ public sealed record HookMessage
 
 public static class HookProtocol
 {
+    public static readonly string[] Agents = ["claude", "codex", "opencode", "hermes"];
+
+    public static string AgentName(string agent) => agent switch
+    {
+        "claude" => "Claude Code",
+        "codex" => "Codex",
+        "opencode" => "OpenCode",
+        "hermes" => "Hermes",
+        _ => agent,
+    };
+
+    // Keep the pipe and exe names compatible with existing Claude Code hook installations.
     public const string PipeName = "atoll-claude";
     public const int MaxMessageBytes = 16 * 1024;
 
     public static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web);
 
-    public static HookMessage FromHookInput(JsonElement root, long hwnd)
+    public static HookMessage FromHookInput(JsonElement root, long hwnd, string agent = "claude")
     {
         var tool = Str(root, "tool_name");
         var input = root.ValueKind == JsonValueKind.Object && root.TryGetProperty("tool_input", out var ti) ? ti : default;
         return new HookMessage
         {
+            Agent = agent,
             Event = Str(root, "hook_event_name") ?? "",
             SessionId = Str(root, "session_id") ?? "",
             Cwd = Str(root, "cwd"),
@@ -56,11 +70,12 @@ public static class HookProtocol
 
         return tool switch
         {
-            "Edit" or "MultiEdit" or "Write" => $"Editing {FileName(Arg("file_path"))}",
+            "Edit" or "MultiEdit" or "Write" or "edit" or "write" or "write_file" => $"Editing {FileName(Arg("file_path") ?? Arg("filePath") ?? Arg("path"))}",
+            "apply_patch" => "Applying a patch",
             "NotebookEdit" => $"Editing {FileName(Arg("notebook_path"))}",
-            "Read" => $"Reading {FileName(Arg("file_path"))}",
-            "Bash" or "PowerShell" => $"Running {Truncate(FirstLine(Arg("description") ?? Arg("command")), 60)}",
-            "Grep" or "Glob" => $"Searching {Truncate(Arg("pattern"), 40)}",
+            "Read" or "read" or "read_file" => $"Reading {FileName(Arg("file_path") ?? Arg("filePath") ?? Arg("path"))}",
+            "Bash" or "PowerShell" or "bash" or "terminal" or "exec_command" or "shell_command" => $"Running {Truncate(FirstLine(Arg("description") ?? Arg("command") ?? Arg("cmd")), 60)}",
+            "Grep" or "Glob" or "grep" or "glob" or "file_search" => $"Searching {Truncate(Arg("pattern"), 40)}",
             "WebFetch" => $"Fetching {Host(Arg("url"))}",
             "WebSearch" => $"Searching the web for {Truncate(Arg("query"), 40)}",
             "Task" or "Agent" => Arg("description") is { Length: > 0 } d ? $"Agent: {Truncate(d, 50)}" : "Running an agent",

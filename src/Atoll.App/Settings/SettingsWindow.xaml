@@ -460,18 +460,28 @@
                     <!-- ===================== Claude Code ===================== -->
                     <StackPanel Visibility="{Binding PageIndex, Converter={StaticResource PageVisible}, ConverterParameter=4}">
                         <TextBlock Style="{StaticResource SectionHeader}" Text="Live activity" />
-                        <s:SettingCard Glyph="&#xE99A;" Header="Claude Code hooks" Description="{Binding HookStatus}">
-                            <StackPanel Orientation="Horizontal">
-                                <Button Content="Install" Padding="14,5" Margin="0,0,8,0" Command="{Binding InstallHooksCommand}" />
-                                <Button Content="Remove" Padding="14,5" Command="{Binding RemoveHooksCommand}"
-                                        Visibility="{Binding HooksInstalled, Converter={StaticResource BoolToVisibility}}" />
-                            </StackPanel>
-                        </s:SettingCard>
-                        <TextBlock Text="{Binding HookMessage}" Style="{StaticResource Hint}" Margin="4,2,0,4"
-                                   Visibility="{Binding HookMessage, Converter={StaticResource EmptyToCollapsed}}" />
-                        <TextBlock Style="{StaticResource Hint}" Margin="4,2,0,0">
-                            Adds entries to <Run Text="{Binding HookSettingsPath, Mode=OneWay}" />. Your other settings and hooks are kept.
-                        </TextBlock>
+                        <TextBlock Text="Track Claude Code, Codex, OpenCode, and Hermes in one place. Each adapter sends local activity summaries; existing hooks and settings are kept."
+                                   Style="{StaticResource Hint}" TextWrapping="Wrap" Margin="4,0,0,12" />
+                        <ItemsControl ItemsSource="{Binding AgentIntegrations}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <StackPanel Margin="0,0,0,10">
+                                        <s:SettingCard Glyph="&#xE99A;" Header="{Binding Name}" Description="{Binding Status}">
+                                            <StackPanel Orientation="Horizontal">
+                                                <Button Content="Install / update" Padding="14,5" Margin="0,0,8,0"
+                                                        Command="{Binding InstallCommand}" AutomationProperties.Name="{Binding Name, StringFormat=Install {0} integration}" />
+                                                <Button Content="Remove" Padding="14,5" Command="{Binding RemoveCommand}"
+                                                        Visibility="{Binding CanRemove, Converter={StaticResource BoolToVisibility}}"
+                                                        AutomationProperties.Name="{Binding Name, StringFormat=Remove {0} integration}" />
+                                            </StackPanel>
+                                        </s:SettingCard>
+                                        <TextBlock Text="{Binding Path}" Style="{StaticResource Hint}" TextWrapping="Wrap" Margin="4,2,0,0" />
+                                        <TextBlock Text="{Binding Message}" Style="{StaticResource Hint}" TextWrapping="Wrap" Margin="4,2,0,0"
+                                                   Visibility="{Binding Message, Converter={StaticResource EmptyToCollapsed}}" />
+                                    </StackPanel>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
 
                         <TextBlock Style="{StaticResource SectionHeader}" Text="Sounds" />
                         <s:SettingCard Glyph="&#xE73E;" Header="When a session finishes">

@@ -13,6 +13,7 @@ public enum ClaudeState
     Working,
     NeedsYou,
     Done,
+    Error,
 }
 
 public enum ClaudeTransition
@@ -26,6 +27,9 @@ public enum ClaudeTransition
 public sealed partial class ClaudeSessionViewModel(string sessionId) : ObservableObject
 {
     public string SessionId { get; } = sessionId;
+    public string Agent { get; init; } = "claude";
+    public string AgentName => HookProtocol.AgentName(Agent);
+    public bool IsClaude => Agent == "claude";
 
     [ObservableProperty] private string _project = "Claude Code";
 
@@ -66,9 +70,9 @@ public sealed class ClaudeSessionTracker(TimeProvider time)
 
     public (ClaudeSessionViewModel? Session, ClaudeTransition Transition) Apply(HookMessage m)
     {
-        if (string.IsNullOrEmpty(m.SessionId)) return (null, ClaudeTransition.None);
+        if (string.IsNullOrEmpty(m.SessionId) || !HookProtocol.Agents.Contains(m.Agent)) return (null, ClaudeTransition.None);
         var now = time.GetUtcNow();
-        var s = Sessions.FirstOrDefault(x => x.SessionId == m.SessionId);
+        var s = Sessions.FirstOrDefault(x => x.SessionId == m.SessionId && x.Agent == m.Agent);
 
         if (m.Event == "SessionEnd")
         {
@@ -78,7 +82,8 @@ public sealed class ClaudeSessionTracker(TimeProvider time)
 
         if (s is null)
         {
-            s = new ClaudeSessionViewModel(m.SessionId) { TurnStarted = now };
+            s = new ClaudeSessionViewModel(m.SessionId)
+            { Agent = m.Agent, Project = HookProtocol.AgentName(m.Agent), TurnStarted = now };
             Sessions.Insert(0, s);
         }
         if (!string.IsNullOrEmpty(m.Cwd)) s.Project = ProjectName(m.Cwd);
@@ -106,6 +111,7 @@ public sealed class ClaudeSessionTracker(TimeProvider time)
                 Set(s, ClaudeState.Thinking, "Thinking");
                 break;
 
+            case "PermissionRequest":
             case "Notification" when IsPermissionRequest(m):
                 var wasWaiting = s.NeedsYou;
                 StartTurnIfNeeded(s, now);
@@ -113,9 +119,18 @@ public sealed class ClaudeSessionTracker(TimeProvider time)
                 return (s, wasWaiting ? ClaudeTransition.None : ClaudeTransition.NeedsYou);
 
             case "Stop":
+                if (s.State == ClaudeState.Done) break;
                 Set(s, ClaudeState.Done, $"Done in {FormatDuration(now - s.TurnStarted)}");
                 s.Elapsed = "";
                 return (s, ClaudeTransition.Finished);
+            case "Interrupt":
+                Set(s, ClaudeState.Idle, "Interrupted");
+                s.Elapsed = "";
+                break;
+            case "Error":
+                Set(s, ClaudeState.Error, "Session failed");
+                s.Elapsed = "";
+                break;
         }
         return (s, ClaudeTransition.None);
     }

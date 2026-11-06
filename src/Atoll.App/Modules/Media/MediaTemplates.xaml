@@ -89,7 +89,7 @@
                                TextTrimming="CharacterEllipsis" />
                     <TextBlock Text="{Binding AppName}" FontSize="11" Foreground="{DynamicResource Island.Subtle}" Margin="0,2,0,0" />
 
-                    <StackPanel Margin="0,10,0,0" Visibility="{Binding HasTimeline, Converter={StaticResource Island.BoolToVisibility}}">
+                    <StackPanel Margin="0,6,0,0" Visibility="{Binding HasTimeline, Converter={StaticResource Island.BoolToVisibility}}">
                         <Slider Minimum="0" Maximum="1"
                                 Value="{Binding Progress, Mode=OneWay}" IsEnabled="{Binding CanSeek}"
                                 SmallChange="0.01" LargeChange="0.1"
@@ -115,10 +115,10 @@
                         </DockPanel>
                     </StackPanel>
 
-                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,6,0,0">
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,4,0,0">
                         <Button Style="{StaticResource Island.IconButton}" Content="&#xE892;" Width="36" Height="36" FontSize="16"
                                 Command="{Binding PreviousCommand}" ToolTip="Previous" AutomationProperties.Name="Previous track" />
-                        <Button Width="40" Height="40" FontSize="20" Margin="10,0"
+                        <Button Width="34" Height="34" FontSize="20" Margin="10,0"
                                 Command="{Binding PlayPauseCommand}" ToolTip="Play or pause" AutomationProperties.Name="Play or pause">
                             <Button.Style>
                                 <Style TargetType="Button" BasedOn="{StaticResource Island.IconButton}">
