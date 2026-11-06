@@ -1,4 +1,9 @@
+#if AVALONIA
+using Avalonia.Threading;
+using Atoll.Desktop;
+#else
 using System.Windows.Threading;
+#endif
 using Atoll.Activities;
 using Atoll.Modules.Clock;
 using Atoll.Shell;
@@ -12,7 +17,7 @@ namespace Atoll.Modules.Media;
 /// Now playing from any app that reports to Windows media controls (Spotify, browsers, ...).
 /// Playing → Normal activity; paused → Ambient for a short while; track change → brief alert peek.
 /// </summary>
-public sealed class MediaModule : IIslandModule
+public sealed partial class MediaModule : IIslandModule
 {
     private static readonly TimeSpan PausedLinger = TimeSpan.FromSeconds(20);
     private static readonly TimeSpan TrackPeek = TimeSpan.FromSeconds(4);
@@ -48,7 +53,7 @@ public sealed class MediaModule : IIslandModule
     public void Start(ModuleContext context)
     {
         _context = context;
-        _progressTimer = new DispatcherTimer(DispatcherPriority.Background, context.Dispatcher) { Interval = TimeSpan.FromMilliseconds(500) };
+        _progressTimer = new DispatcherTimer(DispatcherPriority.Background) { Interval = TimeSpan.FromMilliseconds(500) };
         _progressTimer.Tick += (_, _) => UpdateProgress();
         _ = InitAsync();
     }
@@ -258,15 +263,6 @@ public sealed class MediaModule : IIslandModule
         if (!double.IsFinite(progress) || end <= start || max < min) return null;
         var target = start + (end - start) * Math.Clamp(progress, 0, 1);
         return target < min ? min : target > max ? max : target;
-    }
-
-    /// <summary>"SpotifyAB.SpotifyMusic_zpdnekdrzrea0!Spotify" → "Spotify", "chrome.exe" → "chrome".</summary>
-    internal static string FriendlyAppName(string? aumid)
-    {
-        if (string.IsNullOrEmpty(aumid)) return "";
-        var name = aumid.Contains('!') ? aumid[(aumid.LastIndexOf('!') + 1)..] : aumid;
-        if (name.EndsWith(".exe", StringComparison.OrdinalIgnoreCase)) name = name[..^4];
-        return name;
     }
 
     private void OnUi(Action action) => _context?.Dispatcher.BeginInvoke(action);

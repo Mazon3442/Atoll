@@ -1,4 +1,9 @@
+#if AVALONIA
+using Avalonia.Threading;
+using Atoll.Desktop;
+#else
 using System.Windows.Threading;
+#endif
 using Atoll.Activities;
 using Atoll.Settings;
 

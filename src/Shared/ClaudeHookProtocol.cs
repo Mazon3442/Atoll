@@ -94,7 +94,7 @@ public static class HookProtocol
             ? v.GetString()
             : null;
 
-    private static string FileName(string? path) => string.IsNullOrEmpty(path) ? "a file" : Path.GetFileName(path.TrimEnd('/', '\\'));
+    private static string FileName(string? path) => string.IsNullOrEmpty(path) ? "a file" : path.Replace('\\', '/').TrimEnd('/').Split('/')[^1];
 
     private static string Host(string? url) => Uri.TryCreate(url, UriKind.Absolute, out var u) ? u.Host : "a page";
 

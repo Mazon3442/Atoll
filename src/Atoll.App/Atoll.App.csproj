@@ -29,14 +29,13 @@
 
   <ItemGroup>
     <InternalsVisibleTo Include="Atoll.Tests" />
-    <EmbeddedResource Include="Integrations\*" />
     <Content Include="..\..\packaging\setup-identity.ps1" Link="NotificationSetup\setup-identity.ps1" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
     <Content Include="..\..\packaging\out\AtollDev.cer" Link="NotificationSetup\out\AtollDev.cer" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" Condition="Exists('..\..\packaging\out\AtollDev.cer')" />
     <Content Include="..\..\packaging\out\Atoll.Identity.msix" Link="NotificationSetup\out\Atoll.Identity.msix" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" Condition="Exists('..\..\packaging\out\Atoll.Identity.msix')" />
   </ItemGroup>
 
   <ItemGroup>
-    <Compile Include="..\Shared\ClaudeHookProtocol.cs" Link="Shared\ClaudeHookProtocol.cs" />
+    <ProjectReference Include="..\Atoll.Core\Atoll.Core.csproj" />
     <!-- Builds the hook exe and copies it next to Island.exe; the app does not call its code. -->
     <ProjectReference Include="..\Atoll.ClaudeHook\Atoll.ClaudeHook.csproj" ReferenceOutputAssembly="false" OutputItemType="Content" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>

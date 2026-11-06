@@ -21,11 +21,11 @@ try
     using var doc = JsonDocument.Parse(input);
 
     // Pipe missing = island not running: leave right away instead of waiting out a connect timeout.
-    if (!PipeCheck.Exists()) return 0;
+    if (OperatingSystem.IsWindows() && !PipeCheck.Exists()) return 0;
 
     // Tool events are the most frequent and the island already knows the window from earlier events.
     var eventName = doc.RootElement.TryGetProperty("hook_event_name", out var ev) ? ev.GetString() : null;
-    var hwnd = eventName is "PreToolUse" or "PostToolUse" ? 0 : HostWindow.Find();
+    var hwnd = !OperatingSystem.IsWindows() || eventName is "PreToolUse" or "PostToolUse" ? 0 : HostWindow.Find();
 
     var message = HookProtocol.FromHookInput(doc.RootElement, hwnd, agent);
     var line = JsonSerializer.SerializeToUtf8Bytes(message, HookProtocol.Json);

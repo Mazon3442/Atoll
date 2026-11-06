@@ -1,6 +1,13 @@
 using System.Globalization;
+#if !AVALONIA
 using System.Media;
+#endif
+#if AVALONIA
+using Avalonia.Threading;
+using Atoll.Desktop;
+#else
 using System.Windows.Threading;
+#endif
 using CommunityToolkit.Mvvm.ComponentModel;
 using Atoll.Activities;
 
@@ -43,7 +50,7 @@ public sealed class ClockModule : IIslandModule
         _timer.Completed += OnTimerCompleted;
 
         // 4 Hz keeps the timer display smooth; unchanged clock text raises no change events.
-        _ticker = new DispatcherTimer(DispatcherPriority.Background, context.Dispatcher) { Interval = TimeSpan.FromMilliseconds(250) };
+        _ticker = new DispatcherTimer(DispatcherPriority.Background) { Interval = TimeSpan.FromMilliseconds(250) };
         _ticker.Tick += (_, _) =>
         {
             _clock.Update(DateTime.Now);

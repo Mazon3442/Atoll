@@ -1,4 +1,8 @@
+#if AVALONIA
+using ImageSource = Avalonia.Media.IImage;
+#else
 using System.Windows.Media;
+#endif
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 
@@ -35,6 +39,7 @@ public sealed partial class MediaViewModel(Func<Task> playPause, Func<Task> next
     [ObservableProperty] private string _title = "";
     [ObservableProperty] private string _artist = "";
     [ObservableProperty] private string _appName = "";
+    [ObservableProperty] private string _status = "Play something in a media app to see it here.";
     [ObservableProperty] private ImageSource? _art;
     [ObservableProperty] private bool _isPlaying;
     [ObservableProperty] private bool _hasSession;

@@ -1,5 +1,9 @@
 using System.Text;
+#if AVALONIA
+using Avalonia.Threading;
+#else
 using System.Windows.Threading;
+#endif
 using Microsoft.Win32;
 
 namespace Atoll.Shell;

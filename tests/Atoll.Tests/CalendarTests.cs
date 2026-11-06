@@ -183,8 +183,10 @@ public class CalendarParsingTests
     {
         var us = CultureInfo.GetCultureInfo("en-US");
         var start = new DateTimeOffset(2026, 11, 10, 10, 0, 0, TimeSpan.Zero);
-        Assert.Equal("10:00 – 10:30 AM", IcsCalendar.TimeRange(start, start.AddMinutes(30), us));
-        Assert.Equal("11:30 AM – 12:30 PM", IcsCalendar.TimeRange(start.AddMinutes(90), start.AddMinutes(150), us));
+        // ICU and Windows NLS use different spaces before AM/PM.
+        static string Spaces(string text) => text.Replace('\u202f', ' ').Replace('\u00a0', ' ');
+        Assert.Equal("10:00 – 10:30 AM", Spaces(IcsCalendar.TimeRange(start, start.AddMinutes(30), us)));
+        Assert.Equal("11:30 AM – 12:30 PM", Spaces(IcsCalendar.TimeRange(start.AddMinutes(90), start.AddMinutes(150), us)));
         Assert.Equal("10:00 – 10:30", IcsCalendar.TimeRange(start, start.AddMinutes(30), CultureInfo.GetCultureInfo("de-DE")));
     }
 }

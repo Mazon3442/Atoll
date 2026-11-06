@@ -6,7 +6,7 @@ from unittest.mock import patch
 
 class HermesAdapterTests(unittest.TestCase):
     def setUp(self):
-        source = Path(__file__).resolve().parents[2] / "src/Atoll.App/Integrations/hermes.py"
+        source = Path(__file__).resolve().parents[2] / "src/Atoll.Core/Integrations/hermes.py"
         self.module = {"__ATOLL_HOOK_EXE__": "C:/ATOLL/Atoll.ClaudeHook.exe"}
         exec(compile(source.read_text(encoding="utf-8"), str(source), "exec"), self.module)
         self.hooks = {}

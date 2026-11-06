@@ -2,7 +2,12 @@ using System.Collections.ObjectModel;
 using System.Globalization;
 using System.Net.Http;
 using System.Text.Json;
+#if AVALONIA
+using Avalonia.Threading;
+using Atoll.Desktop;
+#else
 using System.Windows.Threading;
+#endif
 using Atoll.Settings;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -70,7 +75,7 @@ public sealed partial class WeatherViewModel(SettingsService settings) : Observa
     [RelayCommand]
     private void OpenSettings()
     {
-        if (System.Windows.Application.Current is App app) app.OpenSettings(6);
+        Atoll.Navigation.OpenSettings?.Invoke(6);
     }
 
     public void Start()

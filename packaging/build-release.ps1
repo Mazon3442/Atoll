@@ -1,67 +1,63 @@
-# Builds a Velopack release for ATOLL: Setup.exe, the update packages and the releases feed.
-#
-# Usage:
-#   .\build-release.ps1 -Version 1.0.0
-#   .\build-release.ps1 -Version 1.0.1 -Publish        # also tag v1.0.1 and publish the GitHub release
-#
-# Run it from an up-to-date main: -Publish tags the current commit on GitHub as v<Version>.
-# Uploading needs a GitHub personal access token (repo scope) in the VPK_TOKEN environment variable.
+# Run on the target OS. Output is isolated from the running developer app.
 param(
-    [Parameter(Mandatory = $true)][string]$Version,
-    [string]$RepoUrl = "https://github.com/Mazon3442/Atoll",
+    [Parameter(Mandatory = $true)]
+    [ValidatePattern('^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$')]
+    [string]$Version,
+    [ValidateSet('win-x64', 'linux-x64', 'osx-x64', 'osx-arm64')]
+    [string]$RuntimeIdentifier = [System.Runtime.InteropServices.RuntimeInformation]::RuntimeIdentifier,
+    [string]$OutputRoot,
+    [string]$RepoUrl = 'https://github.com/Mazon3442/Atoll',
     [switch]$Publish
 )
-$ErrorActionPreference = "Stop"
-
+$ErrorActionPreference = 'Stop'
 $root = Split-Path $PSScriptRoot -Parent
-$project = Join-Path $root "src\Atoll.App\Atoll.App.csproj"
-$hookProject = Join-Path $root "src\Atoll.ClaudeHook\Atoll.ClaudeHook.csproj"
-$publishDir = Join-Path $root "publish"
-$hookDir = Join-Path $root "publish-hook"
-$releasesDir = Join-Path $root "releases"
-$icon = Join-Path $PSScriptRoot "identity\Assets\Atoll.ico"
-
-# Include the signed notification package so setup can run from Settings after installation.
-& (Join-Path $PSScriptRoot "build-identity.ps1")
-
-"== 1/3 Publish the app (self-contained, win-x64) =="
-dotnet publish $project -c Release -r win-x64 --self-contained -o $publishDir -p:Version=$Version
-if ($LASTEXITCODE -ne 0) { throw "dotnet publish failed ($LASTEXITCODE)" }
-
-"== 2/3 Publish the Claude hook (self-contained, win-x64) and drop it next to Atoll.exe =="
-# The hook runs on every Claude Code event; it must start without a separately installed runtime.
-dotnet publish $hookProject -c Release -r win-x64 --self-contained -o $hookDir -p:Version=$Version
-if ($LASTEXITCODE -ne 0) { throw "dotnet publish (hook) failed ($LASTEXITCODE)" }
-Copy-Item (Join-Path $hookDir "Atoll.ClaudeHook.exe") (Join-Path $publishDir "Atoll.ClaudeHook.exe") -Force
-
-"== 3/3 Package with Velopack =="
-$vpk = (Get-Command vpk -ErrorAction SilentlyContinue).Source
-if (-not $vpk) {
-    "Installing the vpk CLI (pin matches the Velopack package in Atoll.App.csproj)..."
-    dotnet tool install --global vpk --version 1.2.161
-    if ($LASTEXITCODE -ne 0) { throw "vpk install failed ($LASTEXITCODE)" }
-    $vpk = Join-Path $env:USERPROFILE ".dotnet\tools\vpk.exe"
+if (-not $OutputRoot) { $OutputRoot = Join-Path $root "artifacts/release/$RuntimeIdentifier/$Version" }
+$OutputRoot = [IO.Path]::GetFullPath($OutputRoot)
+$hostOs = if ($env:OS -eq 'Windows_NT') { 'win' } elseif ([System.Runtime.InteropServices.RuntimeInformation]::IsOSPlatform([System.Runtime.InteropServices.OSPlatform]::OSX)) { 'osx' } else { 'linux' }
+if ($RuntimeIdentifier.Split('-')[0] -ne $hostOs) { throw "Build $RuntimeIdentifier on its native OS. Cross-publishing alone does not produce a tested installer." }
+if (Test-Path $OutputRoot) { throw "Output already exists: $OutputRoot. Choose a fresh -OutputRoot to avoid packaging stale files." }
+if ($Publish -and -not $env:GH_TOKEN -and -not $env:VPK_TOKEN) { throw 'Set GH_TOKEN (or VPK_TOKEN) before publishing.' }
+New-Item -ItemType Directory -Path $OutputRoot | Out-Null
+$publishDir = Join-Path $OutputRoot 'publish'
+$hookDir = Join-Path $OutputRoot 'hook'
+$packages = Join-Path $OutputRoot 'packages'
+$build = Join-Path $OutputRoot 'build'
+New-Item -ItemType Directory -Path $packages | Out-Null
+if ($hostOs -eq 'win') { & (Join-Path $PSScriptRoot 'build-identity.ps1') }
+dotnet publish (Join-Path $root 'src/Atoll.Desktop/Atoll.Desktop.csproj') -c Release -r $RuntimeIdentifier --self-contained true --artifacts-path $build -o $publishDir "-p:Version=$Version"
+if ($LASTEXITCODE -ne 0) { throw 'App publish failed.' }
+dotnet publish (Join-Path $root 'src/Atoll.ClaudeHook/Atoll.ClaudeHook.csproj') -c Release -r $RuntimeIdentifier --self-contained true --artifacts-path $build -o $hookDir "-p:Version=$Version" -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true
+if ($LASTEXITCODE -ne 0) { throw 'Hook publish failed.' }
+$suffix = if ($hostOs -eq 'win') { '.exe' } else { '' }
+Copy-Item -LiteralPath (Join-Path $hookDir "Atoll.ClaudeHook$suffix") -Destination $publishDir
+switch ($hostOs) {
+    'win' {
+        $tools = Join-Path $OutputRoot 'tools'
+        dotnet tool install vpk --version 1.2.161 --tool-path $tools
+        if ($LASTEXITCODE -ne 0) { throw 'Velopack tool install failed.' }
+        & (Join-Path $tools 'vpk.exe') pack --packId Atoll --packVersion $Version --runtime win-x64 --packDir $publishDir --mainExe Atoll.exe --packTitle ATOLL --packAuthors Mazon3442 --icon (Join-Path $PSScriptRoot 'identity/Assets/Atoll.ico') --outputDir $packages
+        if ($LASTEXITCODE -ne 0) { throw 'Windows packaging failed.' }
+    }
+    'linux' {
+        & bash (Join-Path $PSScriptRoot 'package-linux.sh') $Version $publishDir $packages
+        if ($LASTEXITCODE -ne 0) { throw 'Linux packaging failed.' }
+    }
+    'osx' {
+        & bash (Join-Path $PSScriptRoot 'package-macos.sh') $Version $RuntimeIdentifier $publishDir $packages
+        if ($LASTEXITCODE -ne 0) { throw 'macOS packaging failed.' }
+    }
 }
-
-$iconArg = @()
-if (Test-Path $icon) { $iconArg = @("--icon", $icon) } else { "No icon at $icon; run packaging\make-logos.py to generate one." }
-
-& $vpk pack --packId Atoll --packVersion $Version --packDir $publishDir --mainExe Atoll.exe `
-    --packTitle ATOLL --packAuthors "Mazon3442" @iconArg --outputDir $releasesDir
-if ($LASTEXITCODE -ne 0) { throw "vpk pack failed ($LASTEXITCODE)" }
-
-""
-"Release $Version written to $releasesDir (Setup.exe, nupkg, portable zip, releases.win.json)."
-
+$hashes = Get-ChildItem -LiteralPath $packages -File | Sort-Object Name | ForEach-Object {
+    $hash = (Get-FileHash -LiteralPath $_.FullName -Algorithm SHA256).Hash.ToLowerInvariant()
+    "$hash  $($_.Name)"
+}
+[IO.File]::WriteAllLines((Join-Path $packages "SHA256SUMS-$RuntimeIdentifier.txt"), [string[]]$hashes, [Text.UTF8Encoding]::new($false))
+Write-Output "Release packages: $packages"
 if ($Publish) {
-    if (-not $env:VPK_TOKEN) { throw "Set VPK_TOKEN to a GitHub token with repo scope to publish." }
-    "Uploading to $RepoUrl ..."
+    if (-not $env:GH_TOKEN) { $env:GH_TOKEN = $env:VPK_TOKEN }
     $commit = (git -C $root rev-parse HEAD).Trim()
-    & $vpk upload github --repoUrl $RepoUrl --token $env:VPK_TOKEN --outputDir $releasesDir --publish `
-        --tag "v$Version" --releaseName "ATOLL v$Version" --targetCommitish $commit
-    if ($LASTEXITCODE -ne 0) { throw "vpk upload failed ($LASTEXITCODE)" }
-    "Published release v$Version."
-}
-else {
-    "Run with -Publish to attach these files to a GitHub release (needs VPK_TOKEN)."
+    if ($LASTEXITCODE -ne 0) { throw 'Could not resolve the release commit.' }
+    $files = @(Get-ChildItem -LiteralPath $packages -File | ForEach-Object FullName)
+    gh release create "v$Version" @files --repo $RepoUrl --target $commit --title "ATOLL v$Version" --generate-notes --draft
+    if ($LASTEXITCODE -ne 0) { throw 'Could not create the draft release. No existing assets were overwritten.' }
 }

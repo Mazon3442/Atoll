@@ -4,9 +4,6 @@ using Atoll.Settings;
 
 namespace Atoll.Theme;
 
-/// <param name="Glass">Frosted glass: the desktop behind the island is blurred and tinted with <paramref name="Background"/> (its alpha sets the tint strength).</param>
-public sealed record ThemePreset(string Name, string Background, string Foreground, string Accent, bool Glass = false);
-
 /// <summary>Pushes theme settings into app-level resources that the island uses via DynamicResource.</summary>
 public static class ThemeService
 {

@@ -1,5 +1,9 @@
 using System.Runtime.InteropServices;
+#if AVALONIA
+using Int32Rect = Avalonia.PixelRect;
+#else
 using System.Windows;
+#endif
 
 namespace Atoll.Shell;
 

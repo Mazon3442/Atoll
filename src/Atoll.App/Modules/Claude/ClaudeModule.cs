@@ -1,6 +1,13 @@
 using System.Globalization;
+#if !AVALONIA
 using System.Media;
+#endif
+#if AVALONIA
+using Avalonia.Threading;
+using Atoll.Desktop;
+#else
 using System.Windows.Threading;
+#endif
 using CommunityToolkit.Mvvm.ComponentModel;
 using Atoll.Activities;
 using Atoll.Claude;
@@ -92,7 +99,7 @@ public sealed class ClaudeModule : IIslandModule
         _usage.Updated += s => context.Dispatcher.BeginInvoke(() => _vm.Usage.Update(s, DateTimeOffset.Now));
         _usage.Start();
 
-        _ticker = new DispatcherTimer(DispatcherPriority.Background, context.Dispatcher) { Interval = TimeSpan.FromSeconds(1) };
+        _ticker = new DispatcherTimer(DispatcherPriority.Background) { Interval = TimeSpan.FromSeconds(1) };
         _ticker.Tick += (_, _) =>
         {
             _tracker.Tick();

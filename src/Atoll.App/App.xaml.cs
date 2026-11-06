@@ -31,6 +31,8 @@ public partial class App : Application
         }
 
         base.OnStartup(e);
+        ClaudeSessionViewModel.FocusWindow = handle => WindowFocus.Bring(handle);
+        Navigation.OpenSettings = OpenSettings;
         DispatcherUnhandledException += OnUnhandledException;
 
         _settings = new SettingsService(new SettingsStore(SettingsStore.DefaultPath));

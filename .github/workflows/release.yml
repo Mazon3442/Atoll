@@ -1,0 +1,105 @@
+name: Desktop releases
+on:
+  pull_request:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Package version (X.Y.Z); manual runs only build artifacts
+        required: true
+        type: string
+permissions:
+  contents: read
+concurrency:
+  group: desktop-release-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-2025
+            rid: win-x64
+          - os: ubuntu-24.04
+            rid: linux-x64
+          - os: macos-15-intel
+            rid: osx-x64
+          - os: macos-15
+            rid: osx-arm64
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+      - name: Install Linux packaging and display tools
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y zstd xvfb libice6 libsm6 libfontconfig1 libxrandr2 libxi6 libxcursor1 libxtst6 playerctl pulseaudio-utils
+      - name: Run portable logic and rendered UI tests
+        shell: pwsh
+        run: dotnet test tests/Atoll.Desktop.Tests/Atoll.Desktop.Tests.csproj -c Release --artifacts-path artifacts/tests --logger "trx;LogFileName=desktop.trx"
+        env:
+          ATOLL_TEST_SCREENSHOTS: ${{ github.workspace }}/artifacts/screenshots
+      - name: Run existing Windows regression tests
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: dotnet test tests/Atoll.Tests/Atoll.Tests.csproj -c Release --artifacts-path artifacts/legacy-tests --logger "trx;LogFileName=windows.trx"
+      - name: Resolve package version
+        shell: pwsh
+        env:
+          INPUT_VERSION: ${{ inputs.version }}
+        run: |
+          $version = if ($env:GITHUB_REF_TYPE -eq 'tag') { $env:GITHUB_REF_NAME -replace '^v', '' } elseif ($env:INPUT_VERSION) { $env:INPUT_VERSION } else { '0.10.0' }
+          if ($version -notmatch '^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$') { throw 'Version must be X.Y.Z.' }
+          "ATOLL_RELEASE_VERSION=$version" >> $env:GITHUB_ENV
+      - name: Build self-contained application and packages
+        shell: pwsh
+        run: ./packaging/build-release.ps1 -Version $env:ATOLL_RELEASE_VERSION -RuntimeIdentifier '${{ matrix.rid }}' -OutputRoot "$env:GITHUB_WORKSPACE/artifacts/package"
+      - name: Verify Ubuntu installation and launch
+        if: runner.os == 'Linux'
+        shell: bash
+        run: |
+          sudo apt-get install -y ./artifacts/package/packages/*.deb
+          set +e
+          timeout 12s xvfb-run -a /opt/atoll/Atoll --settings
+          status=$?
+          set -e
+          test "$status" -eq 124
+      - name: Verify Arch package installation
+        if: runner.os == 'Linux'
+        run: |
+          docker run --rm -v "$PWD/artifacts/package/packages:/packages:ro" archlinux:base bash -lc 'pacman -Syu --noconfirm && pacman -U --noconfirm /packages/*.pkg.tar.zst && test -x /opt/atoll/Atoll && test -x /opt/atoll/Atoll.ClaudeHook && pacman -Qkk atoll'
+      - name: Upload installers and checksums
+        uses: actions/upload-artifact@v4
+        with:
+          name: atoll-${{ matrix.rid }}
+          path: artifacts/package/packages/*
+          if-no-files-found: error
+      - name: Upload test evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-evidence-${{ matrix.rid }}
+          path: |
+            artifacts/screenshots/
+            artifacts/**/TestResults/*.trx
+          if-no-files-found: ignore
+  release:
+    if: github.event_name == 'push' && github.ref_type == 'tag'
+    needs: build
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: atoll-*
+          merge-multiple: true
+          path: release-assets
+      - name: Create draft release with all platform packages
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release create "$GITHUB_REF_NAME" release-assets/* --verify-tag --title "ATOLL $GITHUB_REF_NAME" --generate-notes --draft

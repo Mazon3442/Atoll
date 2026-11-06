@@ -1,6 +1,11 @@
 using System.Management;
 using System.Net.NetworkInformation;
+#if AVALONIA
+using Avalonia.Threading;
+using Atoll.Desktop;
+#else
 using System.Windows.Threading;
+#endif
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Atoll.Activities;
@@ -273,7 +278,7 @@ public sealed class IndicatorsModule : IIslandModule
     {
         _caps = IsToggled(Native.VK_CAPITAL);
         _num = IsToggled(Native.VK_NUMLOCK);
-        _keyPoll = new DispatcherTimer(DispatcherPriority.Background, _context!.Dispatcher) { Interval = TimeSpan.FromMilliseconds(150) };
+        _keyPoll = new DispatcherTimer(DispatcherPriority.Background) { Interval = TimeSpan.FromMilliseconds(150) };
         _keyPoll.Tick += (_, _) =>
         {
             var caps = IsToggled(Native.VK_CAPITAL);

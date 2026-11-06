@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=ATOLL
+Comment=Desktop island for coding agents, media and daily tools
+Exec=/opt/atoll/Atoll
+Icon=atoll
+Terminal=false
+Categories=Utility;
+StartupNotify=false
