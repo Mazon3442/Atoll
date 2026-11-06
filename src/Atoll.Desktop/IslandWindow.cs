@@ -20,6 +20,7 @@ public sealed class IslandWindow : Window, IDisposable
     private readonly StackPanel _body;
     private readonly Button _compact;
     private readonly TabControl _tabs;
+    private readonly ScrollViewer _scroll;
     private readonly DispatcherTimer _collapse = new() { Interval = TimeSpan.FromMilliseconds(900) };
     private readonly DispatcherTimer _hover = new();
     private readonly DispatcherTimer _pointer = new() { Interval = TimeSpan.FromMilliseconds(60) };
@@ -57,7 +58,8 @@ public sealed class IslandWindow : Window, IDisposable
             ItemTemplate = new FuncDataTemplate<ModuleTab>((tab, _) => new TextBlock { Text = tab?.Name, FontSize = 12 }),
             ContentTemplate = new FuncDataTemplate<ModuleTab>((tab, _) => tab is null ? null : Views.For(tab.Panel)),
         };
-        _body = new StackPanel { IsVisible = false, Margin = new Thickness(16, 0, 16, 16), Spacing = 4, Children = { header, new ScrollViewer { Content = _tabs, MaxHeight = 580, HorizontalScrollBarVisibility = Avalonia.Controls.Primitives.ScrollBarVisibility.Disabled } } };
+        _scroll = new ScrollViewer { Content = _tabs, MaxHeight = 580, HorizontalScrollBarVisibility = Avalonia.Controls.Primitives.ScrollBarVisibility.Disabled, VerticalScrollBarVisibility = Avalonia.Controls.Primitives.ScrollBarVisibility.Auto };
+        _body = new StackPanel { IsVisible = false, Margin = new Thickness(16, 0, 16, 16), Spacing = 4, Children = { header, _scroll } };
         _surface = new Border { Padding = new Thickness(4), Child = new StackPanel { Children = { _compact, _body } }, BorderThickness = new Thickness(1) };
         Content = _surface;
         _collapse.Tick += (_, _) => { _collapse.Stop(); if (!_pinned && !IsKeyboardFocusWithin) SetExpanded(false); };
@@ -91,7 +93,7 @@ public sealed class IslandWindow : Window, IDisposable
         TransparencyLevelHint = theme.Glass ? [WindowTransparencyLevel.AcrylicBlur, WindowTransparencyLevel.Transparent] : [WindowTransparencyLevel.Transparent];
         Width = _expanded ? Math.Clamp(theme.ExpandedWidth, 420, 900) : 300;
         _compact.MinHeight = Math.Clamp(theme.CompactHeight, 28, 80);
-        _tabs.MaxHeight = Math.Clamp(theme.ExpandedHeight, 200, 720);
+        _scroll.MaxHeight = Math.Clamp(theme.ExpandedHeight, 200, 720);
         PositionAtTop();
     }
 

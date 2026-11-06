@@ -24,7 +24,12 @@ internal static class Views
 {
     internal static StackPanel Stack(params Control[] children) => new StackPanel { Spacing = 12 }.WithChildren(children);
     private static StackPanel WithChildren(this StackPanel panel, IEnumerable<Control> children) { foreach (var c in children) panel.Children.Add(c); return panel; }
-    internal static StackPanel Row(params Control[] children) => new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8 }.WithChildren(children);
+    internal static WrapPanel Row(params Control[] children)
+    {
+        var row = new WrapPanel { Orientation = Orientation.Horizontal, ItemSpacing = 8, LineSpacing = 8 };
+        foreach (var child in children) row.Children.Add(child);
+        return row;
+    }
     internal static TextBlock Label(string text, double size = 14) => new() { Text = text, FontSize = size, TextWrapping = TextWrapping.Wrap };
     internal static TextBlock Text(string path, double size = 14)
     {
@@ -79,12 +84,18 @@ internal static class Views
         pane.DataContext = model; pane.Margin = new Thickness(4, 16, 4, 4); return pane;
     }
 
-    private static Control Clock(ClockPanelViewModel vm) => Stack(
-        Context(Stack(Text("Time", 38), Text("Date")), vm.Clock),
-        Context(Stack(Text("Display", 36), Text("Label"),
+    private static Control Clock(ClockPanelViewModel vm)
+    {
+        var display = Text("Display", 30); display.Bind(Control.IsVisibleProperty, new Binding("IsActive"));
+        var label = Text("Label"); label.Bind(Control.IsVisibleProperty, new Binding("IsActive"));
+        var timer = Context(Stack(display, label,
             Row(Command("5 min", "StartCountdownCommand", "5"), Command("15 min", "StartCountdownCommand", "15"), Command("25 min", "StartCountdownCommand", "25")),
             Row(Command("Stopwatch", "StartStopwatchCommand"), Command("Pomodoro", "StartPomodoroCommand")),
-            Row(Command("Pause / resume", "PauseResumeCommand"), Command("+1 min", "AddMinuteCommand"), Command("Reset", "ResetCommand"))), vm.Timer));
+            Row(Command("Pause / resume", "PauseResumeCommand"), Command("+1 min", "AddMinuteCommand"), Command("Reset", "ResetCommand"))), vm.Timer);
+        var grid = new Grid { ColumnDefinitions = new ColumnDefinitions("150,*"), ColumnSpacing = 12 };
+        grid.Children.Add(Context(Stack(Text("Time", 30), Text("Date", 12)), vm.Clock));
+        Grid.SetColumn(timer, 1); grid.Children.Add(timer); return grid;
+    }
 
     private static Control Calendar(CalendarViewModel vm)
     {

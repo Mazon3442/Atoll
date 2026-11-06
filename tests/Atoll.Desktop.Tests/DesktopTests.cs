@@ -59,16 +59,23 @@ public sealed class DesktopTests
         Assert.Equal(300, island.Width); island.Close();
     }
 
-    [AvaloniaFact]
-    public void Clock_controls_drive_the_shared_timer()
+    [AvaloniaTheory]
+    [InlineData(420)]
+    [InlineData(520)]
+    public void Clock_controls_drive_the_shared_timer(int width)
     {
         var timer = new TimerViewModel(TimeProvider.System);
         var clock = new ClockViewModel(); clock.Update(new DateTime(2026, 11, 6, 12, 30, 0));
-        var window = new Window { Width = 520, Height = 420, Content = Views.For(new ClockPanelViewModel(clock, timer)) };
+        var window = new Window { Width = width, Height = 420, Content = Views.For(new ClockPanelViewModel(clock, timer)) };
         window.Show(); Dispatcher.UIThread.RunJobs();
         var button = window.GetVisualDescendants().OfType<Button>().Single(b => Equals(b.Content, "5 min"));
         Assert.NotNull(button.Command); button.Command.Execute(button.CommandParameter);
         Assert.Equal(TimerKind.Countdown, timer.Kind); Assert.True(timer.IsRunning);
+        foreach (var control in window.GetVisualDescendants().OfType<Button>())
+        {
+            var edge = control.TranslatePoint(new Point(control.Bounds.Width, 0), window);
+            Assert.NotNull(edge); Assert.InRange(edge.Value.X, 0, window.Bounds.Width + 1);
+        }
         window.Close();
     }
 

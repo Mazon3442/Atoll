@@ -11,9 +11,6 @@ on:
         type: string
 permissions:
   contents: read
-concurrency:
-  group: desktop-release-${{ github.ref }}
-  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 jobs:
   build:
     strategy:
