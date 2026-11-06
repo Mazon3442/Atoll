@@ -27,7 +27,7 @@ public enum IslandMode
 public partial class IslandWindow : Window
 {
     private static readonly IEasingFunction Spring = Freeze(new SpringEase());
-    private static readonly Duration MorphDuration = TimeSpan.FromMilliseconds(520);
+    private static readonly Duration MorphDuration = TimeSpan.FromMilliseconds(320);
     private static readonly Duration FadeDuration = TimeSpan.FromMilliseconds(140);
 
     private const int PointerTickMs = 60;
@@ -66,6 +66,9 @@ public partial class IslandWindow : Window
     private readonly DispatcherTimer _glassTimer;
     private bool _glassActive;
     private BitmapSource? _glassImage;
+    private Int32Rect _glassArea;
+    private ImageBrush? _pillGlassBrush;
+    private ImageBrush? _bubbleGlassBrush;
 
     public IslandWindow(MonitorInfo monitor, SettingsService settings, ModuleManager modules, Action openSettings)
     {
@@ -86,7 +89,11 @@ public partial class IslandWindow : Window
         _glassTimer.Tick += (_, _) => SampleGlass();
 
         Tabs.ItemsSource = modules.Tabs;
-        Tabs.SelectionChanged += (_, _) => ShowSelectedTab();
+        Tabs.SelectionChanged += (_, _) =>
+        {
+            ShowSelectedTab();
+            if (_mode == IslandMode.Expanded) Render();
+        };
 
         Pill.MouseLeftButtonUp += (_, e) =>
         {
@@ -148,6 +155,8 @@ public partial class IslandWindow : Window
     private double CompactHeight => Math.Clamp(_settings.Current.Theme.CompactHeight, 24, 60);
 
     private double Roundness => Math.Clamp(_settings.Current.Theme.Roundness, 0, 1);
+    private double AvailablePanelHeight => Math.Max(140, Monitor.WorkArea.Height / Monitor.Scale - Math.Clamp(_settings.Current.TopOffset, 0, 80) - 24);
+    private double WeatherPanelHeight => Math.Min(580, AvailablePanelHeight);
 
     /// <summary>Pass clicks through only when a maximized or fullscreen app sits behind the island (tabs, toolbars).</summary>
     private bool ClickThrough =>
@@ -183,7 +192,7 @@ public partial class IslandWindow : Window
         var offset = Math.Clamp(_settings.Current.TopOffset, 0, 80);
         Stage.Margin = new Thickness(0, offset, 0, 0);
         Width = Math.Max(760, Math.Clamp(t.ExpandedWidth, 320, 900) + 2 * (CompactHeight + 24));
-        Height = Math.Clamp(t.ExpandedHeight, 140, 600) + offset + 24;
+        Height = Math.Min(Math.Max(Math.Clamp(t.ExpandedHeight, 140, 600), WeatherPanelHeight), AvailablePanelHeight) + offset + 24;
         _target = (-1, -1, -1);
         _shownContent = null; // template choice may depend on size; rebuild
         Place();
@@ -387,6 +396,7 @@ public partial class IslandWindow : Window
             _glassTimer.Stop();
             if (_hwnd != 0) GlassSampler.ExcludeFromCapture(_hwnd, false);
             _glassImage = null;
+            _pillGlassBrush = null; _bubbleGlassBrush = null;
             Pill.SetResourceReference(BackgroundProperty, "Island.Background");
             Bubble.SetResourceReference(BackgroundProperty, "Island.Background");
         }
@@ -394,8 +404,26 @@ public partial class IslandWindow : Window
 
     private void SampleGlass()
     {
-        if (!_glassActive || ThemeService.GlassTint is not { } tint || !Native.GetWindowRect(_hwnd, out var r)) return;
-        _glassImage = GlassSampler.Capture(new Int32Rect(r.Left, r.Top, r.Right - r.Left, r.Bottom - r.Top), tint);
+        if (!_glassActive || ThemeService.GlassTint is not { } tint || Pill.ActualWidth <= 0 || Pill.ActualHeight <= 0) return;
+        var dpi = VisualTreeHelper.GetDpi(this);
+        var pill = new Rect(Pill.PointToScreen(new Point()), new Size(Pill.ActualWidth * dpi.DpiScaleX, Pill.ActualHeight * dpi.DpiScaleY));
+        var targetWidth = Math.Max(1, _target.W) * dpi.DpiScaleX;
+        var targetHeight = Math.Max(1, _target.H) * dpi.DpiScaleY;
+        var center = pill.Left + pill.Width / 2;
+        var bounds = Rect.Union(pill, new Rect(center - targetWidth / 2, pill.Top, targetWidth, targetHeight));
+        if (Bubble.IsVisible)
+        {
+            var size = new Size(Bubble.ActualWidth * dpi.DpiScaleX, Bubble.ActualHeight * dpi.DpiScaleY);
+            var bubble = new Rect(Bubble.PointToScreen(new Point()), size);
+            bounds.Union(bubble);
+            bounds.Union(new Rect(new Point(center + targetWidth / 2 + 8 * dpi.DpiScaleX, bubble.Top), size));
+        }
+        var moving = Math.Abs(Pill.ActualWidth - _target.W) > 1 || Math.Abs(Pill.ActualHeight - _target.H) > 1;
+        bounds.Inflate((moving ? 40 : 8) * dpi.DpiScaleX, (moving ? 40 : 8) * dpi.DpiScaleY);
+        var area = GlassSampler.CaptureBounds(bounds);
+        var frame = GlassSampler.Capture(area, tint);
+        if (frame is null) return;
+        _glassArea = area; _glassImage = frame;
         ApplyGlassBrushes();
     }
 
@@ -403,20 +431,23 @@ public partial class IslandWindow : Window
     private void ApplyGlassBrushes()
     {
         if (!_glassActive || _glassImage is null || ActualWidth <= 0) return;
-        Pill.Background = GlassBrush(Pill);
-        if (Bubble.IsVisible) Bubble.Background = GlassBrush(Bubble);
+        Pill.Background = _pillGlassBrush = GlassBrush(Pill, _pillGlassBrush);
+        if (Bubble.IsVisible) Bubble.Background = _bubbleGlassBrush = GlassBrush(Bubble, _bubbleGlassBrush);
     }
 
-    private ImageBrush GlassBrush(FrameworkElement e)
+    private ImageBrush GlassBrush(FrameworkElement e, ImageBrush? previous)
     {
-        // Image pixels per DIP; the sample covers this whole window. TransformToAncestor includes the bubble's slide.
-        var sx = _glassImage!.PixelWidth / ActualWidth;
-        var sy = _glassImage.PixelHeight / ActualHeight;
-        var origin = e.TransformToAncestor(this).Transform(new Point(0, 0));
+        var sx = _glassImage!.PixelWidth / (double)_glassArea.Width;
+        var sy = _glassImage.PixelHeight / (double)_glassArea.Height;
+        var origin = e.PointToScreen(new Point());
+        var dpi = VisualTreeHelper.GetDpi(e);
+        var viewbox = new Rect((origin.X - _glassArea.X) * sx, (origin.Y - _glassArea.Y) * sy,
+            Math.Max(1, e.ActualWidth * dpi.DpiScaleX * sx), Math.Max(1, e.ActualHeight * dpi.DpiScaleY * sy));
+        if (previous is not null && ReferenceEquals(previous.ImageSource, _glassImage) && previous.Viewbox == viewbox) return previous;
         var brush = new ImageBrush(_glassImage)
         {
             ViewboxUnits = BrushMappingMode.Absolute,
-            Viewbox = new Rect(origin.X * sx, origin.Y * sy, Math.Max(1, e.ActualWidth * sx), Math.Max(1, e.ActualHeight * sy)),
+            Viewbox = viewbox,
             Stretch = Stretch.Fill,
         };
         RenderOptions.SetBitmapScalingMode(brush, BitmapScalingMode.HighQuality); // smooth upscale = extra blur
@@ -435,6 +466,9 @@ public partial class IslandWindow : Window
         {
             var expandedWidth = Math.Clamp(t.ExpandedWidth, 320, 900);
             var expandedHeight = Math.Clamp(t.ExpandedHeight, 140, 600);
+            if (Tabs.SelectedItem is ModuleTab { Panel: Atoll.Modules.Weather.WeatherViewModel })
+                expandedHeight = Math.Max(expandedHeight, WeatherPanelHeight);
+            expandedHeight = Math.Min(expandedHeight, AvailablePanelHeight);
             // Lay out at the destination size, so opening the pill cannot create transient overflow.
             PanelRoot.Width = expandedWidth - PanelRoot.Margin.Left - PanelRoot.Margin.Right - Pill.BorderThickness.Left - Pill.BorderThickness.Right;
             PanelRoot.Height = expandedHeight - PanelRoot.Margin.Top - PanelRoot.Margin.Bottom - Pill.BorderThickness.Top - Pill.BorderThickness.Bottom;
@@ -459,7 +493,7 @@ public partial class IslandWindow : Window
             _shownContent = content;
             _shownTemplateMode = templateMode;
             Watch(content);
-            if (isNewContent)
+            if (isNewContent && SystemParameters.ClientAreaAnimation)
                 PillContent.BeginAnimation(OpacityProperty, new DoubleAnimation(0, 1, TimeSpan.FromMilliseconds(200)));
         }
 
@@ -508,6 +542,12 @@ public partial class IslandWindow : Window
     {
         if (Math.Abs(w - _target.W) < 0.5 && Math.Abs(h - _target.H) < 0.5 && Math.Abs(r - _target.R) < 0.5) return;
         _target = (w, h, r);
+        if (!SystemParameters.ClientAreaAnimation)
+        {
+            Pill.BeginAnimation(WidthProperty, null); Pill.BeginAnimation(HeightProperty, null); Pill.BeginAnimation(PillBorder.RadiusProperty, null);
+            Pill.Width = w; Pill.Height = h; Pill.Radius = r;
+            return;
+        }
         Pill.BeginAnimation(WidthProperty, new DoubleAnimation(w, MorphDuration) { EasingFunction = Spring });
         Pill.BeginAnimation(HeightProperty, new DoubleAnimation(h, MorphDuration) { EasingFunction = Spring });
         Pill.BeginAnimation(PillBorder.RadiusProperty, new DoubleAnimation(r, MorphDuration) { EasingFunction = Spring });

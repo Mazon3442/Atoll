@@ -15,7 +15,11 @@ public partial class SettingsWindow : Window
     {
         InitializeComponent();
         SizeChanged += (_, _) => IsNarrow = ActualWidth < 960;
-        Activated += (_, _) => viewModel.RefreshNotificationAccessCommand.Execute(null);
+        Activated += (_, _) =>
+        {
+            viewModel.RefreshNotificationAccessCommand.Execute(null);
+            if (viewModel.PageIndex == 4) foreach (var agent in viewModel.AgentIntegrations) agent.Refresh();
+        };
         Closed += (_, _) => viewModel.Dispose();
         DataContext = viewModel;
     }

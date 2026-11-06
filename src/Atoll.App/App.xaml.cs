@@ -89,7 +89,8 @@ public partial class App : Application
             _settingsWindow.Activate();
             return;
         }
-        var vm = new SettingsViewModel(_settings, _modules.Catalog) { PageIndex = Math.Clamp(page, 0, 7) };
+        var weather = _modules.Tabs.Select(t => t.Panel).OfType<Atoll.Modules.Weather.WeatherViewModel>().FirstOrDefault();
+        var vm = new SettingsViewModel(_settings, _modules.Catalog, weather) { PageIndex = Math.Clamp(page, 0, 7) };
         _settingsWindow = new SettingsWindow(vm);
         _settingsWindow.Closed += (_, _) => _settingsWindow = null;
         _settingsWindow.Show();

@@ -12,6 +12,7 @@ using Atoll.Modules.Indicators;
 using Atoll.Modules.Media;
 using Atoll.Modules.Shelf;
 using Atoll.Modules.Stats;
+using Atoll.Modules.Notifications;
 
 namespace Atoll.Tests;
 
@@ -96,6 +97,18 @@ public class GroupedPanelsTests
             agents.Tracker.Apply(new Atoll.Claude.HookMessage { Agent = agent, SessionId = "s1", Event = "PreToolUse", Cwd = "C:/project", Detail = "Running tests" });
         agents.Refresh();
         panels.Add(("agents-active", agents));
+        var notifications = new NotificationsViewModel(() => { }) { Access = NotificationAccess.Allowed };
+        foreach (var claude in new[] { false, true })
+            notifications.Items.Add(new NotificationItemViewModel(_ => { }, _ => { })
+            { Id = claude ? 2u : 1u, AppName = claude ? "Claude" : "Test app", Title = "Notification rendering test", Body = "Sender icon fallback", Time = DateTimeOffset.Now, IsClaude = claude });
+        notifications.ItemsChanged();
+        panels.Add(("notifications-populated", notifications));
+        foreach (var mode in new[] { "Compact", "Peek", "Mini" })
+        {
+            var icon = (FrameworkElement)((DataTemplate)resources["NotificationItemViewModel." + mode]).LoadContent();
+            icon.DataContext = notifications.Items[0];
+            icon.Measure(new Size(400, 120)); icon.Arrange(new Rect(0, 0, 400, 120)); icon.UpdateLayout();
+        }
         foreach (var panel in panels)
         {
             var presenter = new ContentControl

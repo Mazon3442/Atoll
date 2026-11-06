@@ -25,6 +25,10 @@ public class ThemeAndAudioTests
             Assert.True(ThemeService.TryParseColor(p.Background, out _), p.Name);
             Assert.True(ThemeService.TryParseColor(p.Foreground, out _), p.Name);
             Assert.True(ThemeService.TryParseColor(p.Accent, out _), p.Name);
+            ThemeService.TryParseColor(p.Background, out var bg);
+            ThemeService.TryParseColor(p.Foreground, out var fg);
+            ThemeService.TryParseColor(p.Accent, out var accent);
+            Assert.True(ThemeService.Contrast(ThemeService.AccentTextColor(accent, bg, fg), bg) >= 4.5, p.Name);
         });
         Assert.Contains(presets, p => p.Glass);
     }

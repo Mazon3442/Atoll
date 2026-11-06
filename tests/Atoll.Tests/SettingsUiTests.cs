@@ -122,12 +122,51 @@ public class SettingsUiTests
             var weather = new WeatherDetails { DataContext = forecast, Width = 476, Height = 600, Foreground = Brushes.White };
             var backdrop = new Border { Background = Brushes.Black, Child = weather };
             backdrop.Measure(new Size(476, 600)); backdrop.Arrange(new Rect(0, 0, 476, 600)); backdrop.UpdateLayout();
-            var days = Descendants<ListBox>(weather).Single();
+            var days = Descendants<ListBox>(weather).Single(list => ReferenceEquals(list.ItemsSource, forecast.Days));
             days.SelectedIndex = 1;
             Assert.Same(forecast.Days[1], forecast.SelectedDay);
             Assert.Equal(24, forecast.Hours.Count);
             Drain(); backdrop.UpdateLayout();
             Render(backdrop, "weather-forecast");
+            var chart = Descendants<ForecastChart>(weather).Single();
+            chart.RaiseEvent(new System.Windows.Input.KeyEventArgs(System.Windows.Input.Keyboard.PrimaryDevice,
+                PresentationSource.FromVisual(window)!, 0, System.Windows.Input.Key.Right) { RoutedEvent = System.Windows.Input.Keyboard.KeyDownEvent });
+            Drain();
+            Assert.Equal(1, forecast.SelectedChartIndex);
+            Assert.Contains(forecast.ChartPoints[1].Time.ToString("t"), forecast.ChartReadout);
+            forecast.SelectedMetric = WeatherMetric.Temperature;
+            Drain();
+            Assert.Equal(17, forecast.ChartPoints[0].Value);
+            Assert.Equal(WeatherMetric.Temperature, chart.Metric);
+            weather.Width = 290;
+            backdrop.Measure(new Size(290, 600)); backdrop.Arrange(new Rect(0, 0, 290, 600)); backdrop.UpdateLayout();
+            Render(backdrop, "weather-narrow");
+            ThemeService.Apply(new ThemeSettings { Background = "#F5F5F7", Foreground = "#1C1C1E", Accent = "#007AFF" });
+            // Detached render trees do not receive application resource invalidations.
+            weather = new WeatherDetails { DataContext = forecast, Width = 476, Height = 600, Foreground = Brushes.Black };
+            backdrop.Child = weather; backdrop.Background = Brushes.WhiteSmoke;
+            backdrop.Measure(new Size(476, 600)); backdrop.Arrange(new Rect(0, 0, 476, 600)); Drain(); backdrop.UpdateLayout();
+            var placeLabel = Descendants<TextBlock>(weather).Single(text => text.Text == forecast.PlaceLabel);
+            Assert.True(ThemeService.Contrast(Assert.IsType<SolidColorBrush>(placeLabel.Foreground).Color, Colors.WhiteSmoke) >= 4.5);
+            Render(backdrop, "weather-light");
+            ThemeService.Apply(service.Current.Theme);
+
+            var stats = new Atoll.Modules.Stats.StatsViewModel();
+            var firstObserver = new Border(); var secondObserver = new Border();
+            stats.Observe(firstObserver, true); stats.Observe(secondObserver, true); stats.Observe(firstObserver, false);
+            Assert.True(stats.IsObserved);
+            stats.Observe(secondObserver, false);
+            Assert.False(stats.IsObserved);
+            var statsView = (FrameworkElement)((DataTemplate)Application.Current.Resources["StatsViewModel.Panel"]).LoadContent();
+            statsView.DataContext = stats;
+            var originalContent = window.Content;
+            window.Content = statsView;
+            Drain();
+            Assert.True(stats.IsObserved);
+            statsView.DataContext = null;
+            Drain();
+            Assert.False(stats.IsObserved);
+            window.Content = originalContent;
         }
         finally { window.Close(); }
 
@@ -153,6 +192,28 @@ public class SettingsUiTests
             island.UpdateLayout();
             Assert.Equal(viewport, clockScroll.ViewportHeight);
             Assert.Equal(expected, panel.ActualHeight);
+
+            var notifications = new Atoll.Modules.Notifications.NotificationsViewModel(() => { }) { Access = Atoll.Modules.Notifications.NotificationAccess.Allowed };
+            notifications.Items.Add(new Atoll.Modules.Notifications.NotificationItemViewModel(_ => { }, _ => { })
+            { Id = 1, AppName = "Claude", IsClaude = true, Title = "Rendering regression test", Body = "Notification history opens", Time = DateTimeOffset.Now });
+            notifications.ItemsChanged();
+            var notificationIndex = manager.Tabs.ToList().FindIndex(t => t.Contains("notifications"));
+            manager.Tabs[notificationIndex] = new ModuleTab(ModuleCatalog.All.Single(d => d.Id == "notifications"), notifications);
+            island.OpenModule("notifications");
+            Drain(); island.UpdateLayout();
+            Assert.Same(notifications, ((ContentPresenter)island.FindName("PanelBody")).Content);
+
+            using var weatherVm = new WeatherViewModel(service);
+            weatherVm.Show(WeatherForecastTests.Example(), new Place("Chicago", 41.85, -87.65), false);
+            var weatherIndex = manager.Tabs.ToList().FindIndex(t => t.Contains("weather"));
+            manager.Tabs[weatherIndex] = new ModuleTab(ModuleCatalog.All.Single(d => d.Id == "weather"), weatherVm);
+            island.OpenModule("weather");
+            Drain(); island.UpdateLayout();
+            Assert.True(panel.Height > expected);
+            Assert.True(panel.Height < island.Height);
+            var body = (ContentPresenter)island.FindName("PanelBody");
+            Assert.Single(Descendants<ForecastChart>(body));
+            Assert.DoesNotContain(Descendants<Button>(body), b => b.Content is "Location" or "Refresh");
         }
         finally { island.Close(); }
     }

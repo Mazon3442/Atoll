@@ -6,7 +6,7 @@
     <!-- Every session carries its agent name, including in compact and alert views. -->
     <DataTemplate x:Key="Agent.Label">
         <TextBlock Text="{Binding AgentName}" FontSize="11" FontWeight="SemiBold"
-                   Foreground="{DynamicResource Island.Accent}" VerticalAlignment="Center" />
+                   Foreground="{DynamicResource Island.AccentText}" VerticalAlignment="Center" />
     </DataTemplate>
 
     <!-- Work activity -->

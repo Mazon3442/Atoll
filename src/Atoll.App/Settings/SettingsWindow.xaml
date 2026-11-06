@@ -515,8 +515,8 @@
                                     <StackPanel Margin="0,0,0,10">
                                         <s:SettingCard Glyph="&#xE99A;" Header="{Binding Name}" Description="{Binding Status}">
                                             <StackPanel Orientation="Horizontal">
-                                                <Button Content="Install / update" Padding="14,5" Margin="0,0,8,0"
-                                                        Command="{Binding InstallCommand}" AutomationProperties.Name="{Binding Name, StringFormat=Install {0} integration}" />
+                                                <Button Content="{Binding ActionLabel}" Padding="14,5" Margin="0,0,8,0"
+                                                        Command="{Binding InstallCommand}" AutomationProperties.Name="{Binding ActionAccessibleName}" />
                                                 <Button Content="Remove" Padding="14,5" Command="{Binding RemoveCommand}"
                                                         Visibility="{Binding CanRemove, Converter={StaticResource BoolToVisibility}}"
                                                         AutomationProperties.Name="{Binding Name, StringFormat=Remove {0} integration}" />
@@ -665,6 +665,9 @@
                         <s:SettingCard Glyph="&#xE9CA;" Header="Temperature and wind units">
                             <ComboBox Width="220" ItemsSource="{Binding TemperatureUnitChoices}" DisplayMemberPath="Label"
                                       SelectedValuePath="Value" SelectedValue="{Binding TemperatureUnits}" AutomationProperties.Name="Weather units" />
+                        </s:SettingCard>
+                        <s:SettingCard Glyph="&#xE72C;" Header="Update forecast" Description="Forecasts update automatically every 20 minutes.">
+                            <Button Content="Refresh" Command="{Binding Weather.RefreshCommand}" Padding="14,7" />
                         </s:SettingCard>
                         </StackPanel>
                         </Expander>

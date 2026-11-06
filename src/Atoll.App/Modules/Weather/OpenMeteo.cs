@@ -5,9 +5,10 @@ using System.Text.Json;
 namespace Atoll.Modules.Weather;
 
 public sealed record Place(string Name, double Latitude, double Longitude);
-public sealed record WeatherHour(DateTime Time, int Code, double Temperature, double? RainChance, double? Precipitation, double? Rain, double? Wind)
+public sealed record WeatherHour(DateTime Time, int Code, double? Temperature, double? RainChance, double? Precipitation, double? Rain, double? Wind)
 {
     public bool IsDay { get; init; } = true;
+    public double? Gusts { get; init; }
 }
 public sealed record ForecastDay(DateTime Date, int Code, double High, double Low, double? RainChance, double? Precipitation, double? Wind);
 public sealed record WeatherReport(double Temperature, double FeelsLike, int Code, bool IsDay, double Wind, IReadOnlyList<ForecastDay> Days)
@@ -50,7 +51,7 @@ public static class OpenMeteo
         var url = "https://api.open-meteo.com/v1/forecast"
             + $"?latitude={place.Latitude.ToString(inv)}&longitude={place.Longitude.ToString(inv)}"
             + "&current=temperature_2m,apparent_temperature,weather_code,is_day,wind_speed_10m,wind_direction_10m,wind_gusts_10m,rain,showers"
-            + "&hourly=temperature_2m,weather_code,is_day,precipitation_probability,precipitation,rain,showers,wind_speed_10m"
+            + "&hourly=temperature_2m,weather_code,is_day,precipitation_probability,precipitation,rain,showers,wind_speed_10m,wind_gusts_10m"
             + "&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max,precipitation_sum,wind_speed_10m_max"
             + "&timezone=auto&forecast_days=7"
             + (fahrenheit ? "&temperature_unit=fahrenheit&wind_speed_unit=mph&precipitation_unit=inch" : "&wind_speed_unit=kmh");
@@ -96,13 +97,14 @@ public static class OpenMeteo
         {
             for (var i = 0; i < times.GetArrayLength(); i++)
             {
-                if (!TimeAt(hourly, i, out var time) || NumberAt(hourly, "weather_code", i) is not { } code
-                    || NumberAt(hourly, "temperature_2m", i) is not { } temp) continue;
+                if (!TimeAt(hourly, i, out var time)) continue;
+                var code = NumberAt(hourly, "weather_code", i);
+                var temp = NumberAt(hourly, "temperature_2m", i);
                 var rain = NumberAt(hourly, "rain", i);
                 var showers = NumberAt(hourly, "showers", i);
-                hours.Add(new WeatherHour(time, (int)code, temp, NumberAt(hourly, "precipitation_probability", i),
+                hours.Add(new WeatherHour(time, code is { } knownCode ? (int)knownCode : -1, temp, NumberAt(hourly, "precipitation_probability", i),
                     NumberAt(hourly, "precipitation", i), rain is null ? null : rain + (showers ?? 0), NumberAt(hourly, "wind_speed_10m", i))
-                { IsDay = NumberAt(hourly, "is_day", i) != 0 });
+                { IsDay = NumberAt(hourly, "is_day", i) != 0, Gusts = NumberAt(hourly, "wind_gusts_10m", i) });
             }
         }
         DateTime.TryParse(Str(current, "time"), CultureInfo.InvariantCulture, DateTimeStyles.None, out var localTime);

@@ -17,6 +17,12 @@ internal static class GlassSampler
 {
     public const int Downscale = 8;
 
+    internal static Int32Rect CaptureBounds(Rect bounds)
+    {
+        var x = (int)Math.Floor(bounds.Left); var y = (int)Math.Floor(bounds.Top);
+        return new Int32Rect(x, y, Math.Max(1, (int)Math.Ceiling(bounds.Right) - x), Math.Max(1, (int)Math.Ceiling(bounds.Bottom) - y));
+    }
+
     private const uint WDA_NONE = 0x0;
     private const uint WDA_EXCLUDEFROMCAPTURE = 0x11;
     private const int HALFTONE = 4;

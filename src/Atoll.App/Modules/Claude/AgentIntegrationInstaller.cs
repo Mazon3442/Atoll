@@ -176,11 +176,15 @@ public sealed class AgentIntegrationInstaller(string? userDirectory = null, stri
 
 public sealed partial class AgentIntegrationRow(string agent, AgentIntegrationInstaller installer) : ObservableObject
 {
+    private bool _installed = installer.IsInstalled(agent);
+    private bool _hasAdapter = installer.HasAdapter(agent);
     public string Name => HookProtocol.AgentName(agent);
     public string Path => installer.PathFor(agent);
-    public bool Installed => installer.IsInstalled(agent);
-    public bool CanRemove => installer.HasAdapter(agent);
-    public string Status => (Installed ? "Adapter installed. " : CanRemove ? "Installed for another build. Install / update to reconnect. " : "Not installed. ") + SetupHint;
+    public bool Installed => _installed;
+    public bool CanRemove => _hasAdapter;
+    public string ActionLabel => Installed ? "Installed" : CanRemove ? "Update" : "Install";
+    public string ActionAccessibleName => $"{ActionLabel} {Name} integration";
+    public string Status => (Installed ? "Adapter is up to date. " : CanRemove ? "Adapter needs an update for this build. " : "Not installed. ") + SetupHint;
     public string SetupHint => agent switch
     {
         "codex" => "Review and trust ATOLL's hooks in Codex Settings › Hooks (or /hooks in the CLI), then restart sessions. Hooks must be enabled.",
@@ -192,12 +196,13 @@ public sealed partial class AgentIntegrationRow(string agent, AgentIntegrationIn
     [NotifyCanExecuteChangedFor(nameof(InstallCommand), nameof(RemoveCommand))]
     private bool _isBusy;
     private bool CanChange => !IsBusy;
+    private bool CanInstall => !IsBusy && !Installed;
 
-    [RelayCommand(CanExecute = nameof(CanChange))]
+    [RelayCommand(CanExecute = nameof(CanInstall))]
     private async Task Install()
     {
         IsBusy = true;
-        Message = "Installing adapter…";
+        Message = CanRemove ? "Updating adapter…" : "Installing adapter…";
         try { Message = await installer.InstallAsync(agent) ?? "Installed. " + SetupHint; }
         finally { IsBusy = false; Refresh(); }
     }
@@ -211,10 +216,16 @@ public sealed partial class AgentIntegrationRow(string agent, AgentIntegrationIn
         finally { IsBusy = false; Refresh(); }
     }
 
-    private void Refresh()
+    public void Refresh()
     {
+        _installed = installer.IsInstalled(agent);
+        _hasAdapter = installer.HasAdapter(agent);
         OnPropertyChanged(nameof(Installed));
         OnPropertyChanged(nameof(CanRemove));
         OnPropertyChanged(nameof(Status));
+        OnPropertyChanged(nameof(ActionLabel));
+        OnPropertyChanged(nameof(ActionAccessibleName));
+        InstallCommand.NotifyCanExecuteChanged();
+        RemoveCommand.NotifyCanExecuteChanged();
     }
 }

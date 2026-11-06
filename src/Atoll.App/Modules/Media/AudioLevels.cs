@@ -14,6 +14,8 @@ public sealed class AudioLevels : IDisposable
     public const int Bands = 5;
     private const int FftExponent = 10;
     private const int FftSize = 1 << FftExponent;
+    private static readonly double[] HannWindow = Enumerable.Range(0, FftSize)
+        .Select(i => 0.5 * (1 - Math.Cos(2 * Math.PI * i / (FftSize - 1)))).ToArray();
     private static readonly double[] BandEdgesHz = [60, 150, 400, 1000, 2500, 6000];
     private static readonly long EmitInterval = Stopwatch.Frequency / 20;
 
@@ -99,8 +101,7 @@ public sealed class AudioLevels : IDisposable
     {
         for (var i = 0; i < FftSize; i++)
         {
-            var hann = 0.5 * (1 - Math.Cos(2 * Math.PI * i / (FftSize - 1)));
-            _fft[i].X = (float)(_samples[i] * hann);
+            _fft[i].X = (float)(_samples[i] * HannWindow[i]);
             _fft[i].Y = 0;
         }
         FastFourierTransform.FFT(true, FftExponent, _fft);

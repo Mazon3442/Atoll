@@ -54,6 +54,15 @@ public sealed partial class StatViewModel(string name, string glyph) : Observabl
 
 public sealed class StatsViewModel
 {
+    private readonly HashSet<FrameworkElement> _observers = [];
+    internal event Action<bool>? ObservationChanged;
+    internal bool IsObserved => _observers.Count > 0;
+    internal void Observe(FrameworkElement view, bool visible)
+    {
+        var wasObserved = IsObserved;
+        if (visible) _observers.Add(view); else _observers.Remove(view);
+        if (wasObserved != IsObserved) ObservationChanged?.Invoke(IsObserved);
+    }
     public StatViewModel Cpu { get; } = new("CPU", "");
     public StatViewModel Gpu { get; } = new("GPU", "");
     public StatViewModel Memory { get; } = new("Memory", "");
@@ -69,7 +78,10 @@ public sealed class StatsModule : IIslandModule
 {
     private readonly StatsViewModel _vm = new();
     private readonly CpuSampler _cpu = new();
-    private readonly GpuSampler _gpu = new();
+    private GpuSampler? _gpu;
+    private readonly object _sampleGate = new();
+    private bool _disposed;
+    private bool _sampling;
     private readonly NetworkSampler _net = new();
     private ModuleContext? _context;
     private Timer? _timer;
@@ -80,7 +92,20 @@ public sealed class StatsModule : IIslandModule
     public void Start(ModuleContext context)
     {
         _context = context;
-        _timer = new Timer(_ => Sample(), null, TimeSpan.Zero, TimeSpan.FromSeconds(1));
+        _timer = new Timer(_ => Sample(), null, Timeout.InfiniteTimeSpan, Timeout.InfiniteTimeSpan);
+        _vm.ObservationChanged += OnObservationChanged;
+        OnObservationChanged(_vm.IsObserved);
+    }
+
+    private void OnObservationChanged(bool active)
+    {
+        lock (_sampleGate)
+        {
+            if (_disposed) return;
+            _sampling = active;
+            _timer?.Change(active ? TimeSpan.Zero : Timeout.InfiniteTimeSpan, active ? TimeSpan.FromSeconds(1) : Timeout.InfiniteTimeSpan);
+            if (!active) { _gpu?.Dispose(); _gpu = null; }
+        }
     }
 
     private void Sample()
@@ -88,20 +113,25 @@ public sealed class StatsModule : IIslandModule
         if (Interlocked.Exchange(ref _busy, 1) == 1) return;
         try
         {
-            var cpu = _cpu.Sample();
-            var gpu = _gpu.Sample();
-            var (usedGb, totalGb, memLoad) = MemorySampler.Sample();
-            var (down, up) = _net.Sample();
-            var netScale = _net.Scale(down + up);
-
-            _context?.Dispatcher.BeginInvoke(() =>
+            lock (_sampleGate)
             {
-                if (cpu is { } c) _vm.Cpu.Push(c, $"{c:P0}");
-                if (gpu is { } g) _vm.Gpu.Push(g, $"{g:P0}");
-                else _vm.Gpu.Push(0, "—", "not available");
-                _vm.Memory.Push(memLoad, $"{memLoad:P0}", $"{usedGb:0.0} of {totalGb:0} GB");
-                _vm.Network.Push(netScale, $"↓ {Rate(down)}", $"↑ {Rate(up)}");
-            });
+                if (_disposed || !_sampling) return;
+                var cpu = _cpu.Sample();
+                var gpu = (_gpu ??= new GpuSampler()).Sample();
+                var (usedGb, totalGb, memLoad) = MemorySampler.Sample();
+                var (down, up) = _net.Sample();
+                var netScale = _net.Scale(down + up);
+
+                _context?.Dispatcher.BeginInvoke(() =>
+                {
+                    if (_disposed || !_vm.IsObserved) return;
+                    if (cpu is { } c) _vm.Cpu.Push(c, $"{c:P0}");
+                    if (gpu is { } g) _vm.Gpu.Push(g, $"{g:P0}");
+                    else _vm.Gpu.Push(0, "—", "not available");
+                    _vm.Memory.Push(memLoad, $"{memLoad:P0}", $"{usedGb:0.0} of {totalGb:0} GB");
+                    _vm.Network.Push(netScale, $"↓ {Rate(down)}", $"↑ {Rate(up)}");
+                });
+            }
         }
         catch (Exception ex)
         {
@@ -124,7 +154,8 @@ public sealed class StatsModule : IIslandModule
     public void Dispose()
     {
         _timer?.Dispose();
-        _gpu.Dispose();
+        _vm.ObservationChanged -= OnObservationChanged;
+        lock (_sampleGate) { _disposed = true; _gpu?.Dispose(); }
     }
 }
 
