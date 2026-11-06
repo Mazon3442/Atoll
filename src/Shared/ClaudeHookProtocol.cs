@@ -1,7 +1,7 @@
-// Shared by Island.ClaudeHook (writer) and Island (reader). Keep dependency-free.
+// Shared by Atoll.ClaudeHook (writer) and Atoll (reader). Keep dependency-free.
 using System.Text.Json;
 
-namespace Island.Claude;
+namespace Atoll.Claude;
 
 /// <summary>
 /// Compact summary of one Claude Code hook call. The hook exe sends this instead of the raw hook
@@ -28,7 +28,7 @@ public sealed record HookMessage
 
 public static class HookProtocol
 {
-    public const string PipeName = "island-claude";
+    public const string PipeName = "atoll-claude";
     public const int MaxMessageBytes = 16 * 1024;
 
     public static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web);
