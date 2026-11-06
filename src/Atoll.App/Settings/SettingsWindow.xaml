@@ -482,8 +482,83 @@
                         </s:SettingCard>
                     </StackPanel>
 
-                    <!-- ===================== About ===================== -->
+                    <!-- ===================== Calendar ===================== -->
                     <StackPanel Visibility="{Binding PageIndex, Converter={StaticResource PageVisible}, ConverterParameter=5}">
+                        <TextBlock Style="{StaticResource SectionHeader}" Text="Alerts" />
+                        <s:SettingCard Glyph="&#xE823;" Header="Alert me before an event"
+                                       Description="ATOLL pops up this many minutes before an event starts. Set to 0 to turn alerts off.">
+                            <StackPanel Orientation="Horizontal">
+                                <Slider Width="200" Minimum="0" Maximum="60" TickFrequency="5" IsSnapToTickEnabled="True"
+                                        Value="{Binding CalendarAlertMinutes}" AutomationProperties.Name="Alert me before an event" />
+                                <TextBlock Style="{StaticResource ValueText}" Text="{Binding CalendarAlertMinutes, StringFormat={}{0} min}" />
+                            </StackPanel>
+                        </s:SettingCard>
+                        <s:SettingCard Glyph="&#xE767;" Header="Sound on alert">
+                            <CheckBox Style="{StaticResource Toggle}" IsChecked="{Binding CalendarSoundOnAlert}" AutomationProperties.Name="Sound on alert" />
+                        </s:SettingCard>
+
+                        <TextBlock Style="{StaticResource SectionHeader}" Text="Calendars" />
+                        <TextBlock Style="{StaticResource Hint}" Margin="2,0,0,10"
+                                   Text="Paste each calendar's private ICS link. Google: Calendar settings → the calendar → “Secret address in iCal format”. Outlook / M365: Settings → Calendar → Shared calendars → “Publish a calendar”." />
+
+                        <ItemsControl x:Name="CalendarList" ItemsSource="{Binding CalendarSources}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Border Background="{DynamicResource CardBackgroundFillColorDefaultBrush}"
+                                            BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}" BorderThickness="1"
+                                            CornerRadius="6" Padding="16,12" Margin="0,0,0,8">
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="Auto" />
+                                                <ColumnDefinition Width="150" />
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="Auto" />
+                                            </Grid.ColumnDefinitions>
+
+                                            <StackPanel Grid.Column="0" VerticalAlignment="Bottom" Margin="0,0,12,0">
+                                                <TextBlock Style="{StaticResource Hint}" Text="Color" Margin="0,0,0,4" />
+                                                <StackPanel Orientation="Horizontal">
+                                                    <Border Width="24" Height="24" CornerRadius="5" BorderBrush="#40808080" BorderThickness="1"
+                                                            Background="{Binding Color}" Margin="0,0,8,0" VerticalAlignment="Center" />
+                                                    <TextBox Width="76" Text="{Binding Color, UpdateSourceTrigger=PropertyChanged}" />
+                                                </StackPanel>
+                                            </StackPanel>
+
+                                            <StackPanel Grid.Column="1" Margin="0,0,12,0">
+                                                <TextBlock Style="{StaticResource Hint}" Text="Name" Margin="0,0,0,4" />
+                                                <TextBox Text="{Binding Name, UpdateSourceTrigger=PropertyChanged}" />
+                                            </StackPanel>
+
+                                            <StackPanel Grid.Column="2" Margin="0,0,12,0">
+                                                <TextBlock Style="{StaticResource Hint}" Text="ICS link" Margin="0,0,0,4" />
+                                                <TextBox Text="{Binding Url, UpdateSourceTrigger=PropertyChanged}" />
+                                            </StackPanel>
+
+                                            <StackPanel Grid.Column="3" VerticalAlignment="Bottom">
+                                                <Button Content="Save" Padding="14,5" Margin="0,0,0,4"
+                                                        Command="{Binding DataContext.SaveCalendarCommand, ElementName=CalendarList}" CommandParameter="{Binding}" />
+                                                <Button Content="Remove" Padding="14,5"
+                                                        Command="{Binding DataContext.RemoveCalendarCommand, ElementName=CalendarList}" CommandParameter="{Binding}" />
+                                            </StackPanel>
+                                        </Grid>
+                                    </Border>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+
+                        <StackPanel Orientation="Horizontal" Margin="0,4,0,0">
+                            <Button Content="Add calendar" Padding="14,5" Command="{Binding AddCalendarCommand}" />
+                            <TextBlock Text="{Binding CalendarMessage}" Style="{StaticResource Hint}" Margin="12,0,0,0"
+                                       VerticalAlignment="Center" Visibility="{Binding CalendarMessage, Converter={StaticResource EmptyToCollapsed}}" />
+                        </StackPanel>
+
+                        <TextBlock Style="{StaticResource SectionHeader}" Text="Privacy" />
+                        <TextBlock Style="{StaticResource Hint}" Margin="2,0,0,4"
+                                   Text="ICS links are read-only, and anyone with a link can read that calendar. ATOLL stores them encrypted with your Windows login (DPAPI) so they can't be read from the settings file. ATOLL only downloads them, and only from the servers you add here." />
+                    </StackPanel>
+
+                    <!-- ===================== About ===================== -->
+                    <StackPanel Visibility="{Binding PageIndex, Converter={StaticResource PageVisible}, ConverterParameter=6}">
                         <StackPanel Orientation="Horizontal" Margin="2,12,0,18">
                             <Border Width="56" Height="56" CornerRadius="16" Background="Black">
                                 <TextBlock Text="A" Foreground="White" FontWeight="Bold" FontSize="28"
@@ -499,6 +574,13 @@
                         <s:SettingCard Glyph="&#xE8B7;" Header="Settings and logs" Description="{Binding DataFolder}">
                             <Button Content="Open folder" Padding="14,5" Command="{Binding OpenDataFolderCommand}" />
                         </s:SettingCard>
+
+                        <TextBlock Style="{StaticResource SectionHeader}" Text="Updates" />
+                        <s:SettingCard Glyph="&#xE777;" Header="Check for updates" Description="{Binding UpdateDescription}">
+                            <Button Content="Check now" Padding="14,5" Command="{Binding CheckForUpdatesCommand}" />
+                        </s:SettingCard>
+                        <TextBlock Text="{Binding UpdateMessage}" Style="{StaticResource Hint}" Margin="4,2,0,0"
+                                   Visibility="{Binding UpdateMessage, Converter={StaticResource EmptyToCollapsed}}" />
                     </StackPanel>
                 </Grid>
             </ScrollViewer>

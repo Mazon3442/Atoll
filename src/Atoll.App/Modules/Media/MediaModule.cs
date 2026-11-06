@@ -25,7 +25,9 @@ public sealed class MediaModule : IIslandModule
     private DispatcherTimer? _progressTimer;
     private TimeSpan _position;
     private TimeSpan _duration;
+    private TimeSpan _startTime;
     private DateTimeOffset _positionAt;
+    private bool _seekInProgress;
     private string _postedState = "";
     private string _trackKey = "";
     private bool _disposed;
@@ -35,7 +37,8 @@ public sealed class MediaModule : IIslandModule
         _vm = new MediaViewModel(
             () => Control(s => s.TryTogglePlayPauseAsync().AsTask()),
             () => Control(s => s.TrySkipNextAsync().AsTask()),
-            () => Control(s => s.TrySkipPreviousAsync().AsTask()));
+            () => Control(s => s.TrySkipPreviousAsync().AsTask()),
+            SeekAsync);
         _levels.LevelsAvailable += levels =>
             _context?.Dispatcher.BeginInvoke(DispatcherPriority.Render, () => _vm.Visualizer.Set(levels));
     }
@@ -78,11 +81,13 @@ public sealed class MediaModule : IIslandModule
             _session.TimelinePropertiesChanged -= OnTimelineChanged;
         }
         _session = next;
+        _vm.IsScrubbing = false;
+        _vm.CanSeek = false;
+        _vm.HasTimeline = false;
         if (next is null)
         {
             _vm.HasSession = false;
-            _vm.IsPlaying = false;
-            UpdateActivity();
+            RefreshPlayback();
             return;
         }
         next.MediaPropertiesChanged += OnMediaPropertiesChanged;
@@ -139,8 +144,10 @@ public sealed class MediaModule : IIslandModule
 
     private void RefreshPlayback()
     {
-        var status = _session?.GetPlaybackInfo()?.PlaybackStatus;
-        _vm.IsPlaying = status == GlobalSystemMediaTransportControlsSessionPlaybackStatus.Playing;        if (_vm.IsPlaying)
+        var playback = _session?.GetPlaybackInfo();
+        _vm.CanSeek = _vm.HasTimeline && playback?.Controls.IsPlaybackPositionEnabled == true;
+        _vm.IsPlaying = playback?.PlaybackStatus == GlobalSystemMediaTransportControlsSessionPlaybackStatus.Playing;
+        if (_vm.IsPlaying)
         {
             _levels.Start();
             _progressTimer?.Start();
@@ -158,15 +165,17 @@ public sealed class MediaModule : IIslandModule
         var t = _session?.GetTimelineProperties();
         if (t is null) return;
         _duration = t.EndTime - t.StartTime;
+        _startTime = t.StartTime;
         _position = t.Position - t.StartTime;
         _positionAt = t.LastUpdatedTime;
         _vm.HasTimeline = _duration > TimeSpan.Zero;
+        _vm.CanSeek = _vm.HasTimeline && _session?.GetPlaybackInfo()?.Controls.IsPlaybackPositionEnabled == true;
         UpdateProgress();
     }
 
     private void UpdateProgress()
     {
-        if (!_vm.HasTimeline) return;
+        if (!_vm.HasTimeline || _vm.IsScrubbing || _seekInProgress) return;
         var pos = _position;
         if (_vm.IsPlaying && _positionAt > DateTimeOffset.MinValue)
             pos += DateTimeOffset.Now - _positionAt; // players only report position occasionally
@@ -203,6 +212,52 @@ public sealed class MediaModule : IIslandModule
         if (_session is null) return;
         try { await action(_session); }
         catch (Exception ex) { Log.Error("Media control command failed", ex); }
+    }
+
+    private async Task SeekAsync(double progress)
+    {
+        var session = _session;
+        if (session is null || !_vm.CanSeek || !double.IsFinite(progress)) return;
+        var track = _trackKey;
+        _seekInProgress = true;
+        try
+        {
+            var timeline = session.GetTimelineProperties();
+            var target = SeekPosition(progress, timeline.StartTime, timeline.EndTime,
+                timeline.MinSeekTime, timeline.MaxSeekTime);
+            if (target is null) return;
+            var accepted = await session.TryChangePlaybackPositionAsync(target.Value.Ticks);
+            if (_disposed || !ReferenceEquals(session, _session) || track != _trackKey) return;
+            if (accepted)
+            {
+                _position = target.Value - _startTime;
+                _positionAt = DateTimeOffset.Now;
+            }
+            else
+            {
+                Log.Info("The media player rejected seeking");
+                RefreshTimeline();
+            }
+        }
+        catch (Exception ex)
+        {
+            Log.Error("Seeking media failed", ex);
+        }
+        finally
+        {
+            _seekInProgress = false;
+            if (!_disposed) UpdateProgress();
+        }
+    }
+
+    internal static TimeSpan? SeekPosition(double progress, TimeSpan start, TimeSpan end,
+        TimeSpan minSeek, TimeSpan maxSeek)
+    {
+        var min = start > minSeek ? start : minSeek;
+        var max = end < maxSeek ? end : maxSeek;
+        if (!double.IsFinite(progress) || end <= start || max < min) return null;
+        var target = start + (end - start) * Math.Clamp(progress, 0, 1);
+        return target < min ? min : target > max ? max : target;
     }
 
     /// <summary>"SpotifyAB.SpotifyMusic_zpdnekdrzrea0!Spotify" → "Spotify", "chrome.exe" → "chrome".</summary>

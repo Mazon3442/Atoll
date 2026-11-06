@@ -2,9 +2,11 @@ using System.Windows;
 using System.Windows.Threading;
 using Atoll.Activities;
 using Atoll.Modules;
+using Atoll.Modules.Claude;
 using Atoll.Settings;
 using Atoll.Shell;
 using Atoll.Theme;
+using Atoll.Updates;
 
 namespace Atoll;
 
@@ -34,6 +36,11 @@ public partial class App : Application
         ThemeService.Apply(_settings.Current.Theme);
         if (_settings.Current.StartWithWindows) StartupRegistration.Apply(true); // refresh exe path if the app moved
 
+        // If ATOLL moved (a Velopack update installs to a new folder), point the hooks back at it so
+        // Claude Code keeps reporting to this copy without the user reinstalling them.
+        if (ClaudeHookInstaller.GetStatus() == ClaudeHookInstaller.Status.InstalledElsewhere)
+            ClaudeHookInstaller.Install();
+
         _activities = new ActivityHost();
         _modules = new ModuleManager(ModuleCatalog.All, _activities, Dispatcher, _settings);
         _modules.Apply();
@@ -46,6 +53,8 @@ public partial class App : Application
 
         _islands = new IslandManager(_settings, _activities, _modules, OpenSettings, Dispatcher);
         _tray = new TrayIcon(OpenSettings, paused => _islands.Paused = paused, Shutdown);
+
+        _ = CheckUpdatesLoopAsync();
 
         // "--open=<module id>" (e.g. shelf, weather) opens ATOLL expanded on that tab once it is on screen.
         if (e.Args.FirstOrDefault(a => a.StartsWith("--open=", StringComparison.OrdinalIgnoreCase)) is { } open)
@@ -66,11 +75,28 @@ public partial class App : Application
             _settingsWindow.Activate();
             return;
         }
-        var vm = new SettingsViewModel(_settings, _modules.Catalog) { PageIndex = Math.Clamp(page, 0, 5) };
+        var vm = new SettingsViewModel(_settings, _modules.Catalog) { PageIndex = Math.Clamp(page, 0, 6) };
         _settingsWindow = new SettingsWindow(vm);
         _settingsWindow.Closed += (_, _) => _settingsWindow = null;
         _settingsWindow.Show();
         _settingsWindow.Activate();
+    }
+
+    private static async Task CheckUpdatesLoopAsync()
+    {
+        try
+        {
+            await Task.Delay(TimeSpan.FromSeconds(45)); // let startup settle before any network call
+            while (true)
+            {
+                await UpdateService.CheckAndDownloadAsync();
+                await Task.Delay(TimeSpan.FromHours(1));
+            }
+        }
+        catch (Exception ex)
+        {
+            Log.Error("Background update loop stopped", ex);
+        }
     }
 
     private static void OnUnhandledException(object sender, DispatcherUnhandledExceptionEventArgs e)

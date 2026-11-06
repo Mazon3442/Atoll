@@ -29,7 +29,8 @@ public sealed partial class VisualizerViewModel : ObservableObject
     }
 }
 
-public sealed partial class MediaViewModel(Func<Task> playPause, Func<Task> next, Func<Task> previous) : ObservableObject
+public sealed partial class MediaViewModel(Func<Task> playPause, Func<Task> next, Func<Task> previous,
+    Func<double, Task> seek) : ObservableObject
 {
     [ObservableProperty] private string _title = "";
     [ObservableProperty] private string _artist = "";
@@ -38,11 +39,18 @@ public sealed partial class MediaViewModel(Func<Task> playPause, Func<Task> next
     [ObservableProperty] private bool _isPlaying;
     [ObservableProperty] private bool _hasSession;
     [ObservableProperty] private bool _hasTimeline;
+    [ObservableProperty]
+    [NotifyCanExecuteChangedFor(nameof(SeekCommand))]
+    private bool _canSeek;
     [ObservableProperty] private double _progress;
     [ObservableProperty] private string _positionText = "";
     [ObservableProperty] private string _durationText = "";
 
     public VisualizerViewModel Visualizer { get; } = new();
+    public bool IsScrubbing { get; set; }
+
+    [RelayCommand(CanExecute = nameof(CanSeek))]
+    private Task Seek(double progress) => seek(progress);
 
     [RelayCommand]
     private Task PlayPause() => playPause();

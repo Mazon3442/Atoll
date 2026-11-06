@@ -2,6 +2,7 @@ using System.Collections.ObjectModel;
 using System.Windows.Threading;
 using Atoll.Activities;
 using Atoll.Modules.Actions;
+using Atoll.Modules.Calendar;
 using Atoll.Modules.Claude;
 using Atoll.Modules.Clipboard;
 using Atoll.Modules.Shelf;
@@ -23,6 +24,7 @@ public static class ModuleCatalog
         new("media", "Media", "", () => new MediaModule()),
         new("notifications", "Notifications", "", () => new NotificationsModule()),
         new("clock", "Clock & timer", "", () => new ClockModule()),
+        new("calendar", "Calendar", "\uE787", () => new CalendarModule()),
         new("system", "System", "", () => new IndicatorsModule()),
         new("shelf", "File shelf", "", () => new ShelfModule()),
         new("clipboard", "Clipboard history", "", () => new ClipboardModule()),

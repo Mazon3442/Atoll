@@ -10,12 +10,20 @@
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <AssemblyName>Atoll</AssemblyName>
     <RootNamespace>Atoll</RootNamespace>
+    <!-- Custom entry point (Program.cs) so VelopackApp.Build().Run() runs before WPF starts. -->
+    <StartupObject>Atoll.Program</StartupObject>
     <!-- Display name (Task Manager, file properties). Code and file names use "Atoll". -->
     <Product>ATOLL</Product>
     <AssemblyTitle>ATOLL</AssemblyTitle>
     <!-- WPF0001: Fluent ThemeMode is marked experimental; used only by the settings window. -->
     <NoWarn>$(NoWarn);WPF0001</NoWarn>
   </PropertyGroup>
+
+  <ItemGroup>
+    <!-- App.xaml stays a resource container but must not generate a Main (Program.cs owns it). -->
+    <ApplicationDefinition Remove="App.xaml" />
+    <Page Include="App.xaml" />
+  </ItemGroup>
 
   <ItemGroup>
     <InternalsVisibleTo Include="Atoll.Tests" />
@@ -30,8 +38,10 @@
   <ItemGroup>
     <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.2" />
     <PackageReference Include="H.NotifyIcon.Wpf" Version="2.4.1" />
+    <PackageReference Include="Ical.Net" Version="5.2.4" />
     <PackageReference Include="NAudio.Wasapi" Version="3.3.0" />
     <PackageReference Include="System.Management" Version="10.0.14" />
+    <PackageReference Include="Velopack" Version="1.2.161" />
   </ItemGroup>
 
 </Project>

@@ -11,6 +11,7 @@ using Atoll.Modules.Claude;
 using Atoll.Modules.Notifications;
 using Atoll.Shell;
 using Atoll.Theme;
+using Atoll.Updates;
 
 namespace Atoll.Settings;
 
@@ -31,6 +32,7 @@ public sealed partial class SettingsViewModel : ObservableObject
             .Where(x => x.Descriptor is not null)
             .Select(x => new ModuleRow(x.Entry, x.Descriptor!, Save)));
         Displays = new(Shell.Monitors.GetAll().Select(m => new DisplayRow(m, S, Save)));
+        CalendarSources = new(S.Calendar.Sources.Select(s => new CalendarSourceRow(s) { Url = SecretStore.Unprotect(s.EncryptedUrl) ?? "" }));
         RebuildThemes();
     }
 
@@ -46,6 +48,7 @@ public sealed partial class SettingsViewModel : ObservableObject
         new("Modules", ""),
         new("Notifications", ""),
         new("Claude Code", ""),
+        new("Calendar", "\uE787"),
         new("About", ""),
     ];
 
@@ -319,10 +322,102 @@ public sealed partial class SettingsViewModel : ObservableObject
         OnPropertyChanged(nameof(HooksInstalled));
     }
 
+    // ---------- Calendar ----------
+
+    public ObservableCollection<CalendarSourceRow> CalendarSources { get; }
+
+    private int _colorIndex;
+    private static readonly string[] CalendarPalette =
+        ["#0A84FF", "#30D158", "#FF9F0A", "#FF375F", "#BF5AF2", "#64D2FF", "#FFD60A", "#5E5CE6"];
+
+    [ObservableProperty] private string _calendarMessage = "";
+
+    public int CalendarAlertMinutes
+    {
+        get => S.Calendar.AlertMinutesBefore;
+        set => Set(S.Calendar.AlertMinutesBefore, value, v => S.Calendar.AlertMinutesBefore = v);
+    }
+
+    public bool CalendarSoundOnAlert
+    {
+        get => S.Calendar.SoundOnAlert;
+        set => Set(S.Calendar.SoundOnAlert, value, v => S.Calendar.SoundOnAlert = v);
+    }
+
+    [RelayCommand]
+    private void AddCalendar()
+    {
+        var source = new CalendarSource { Name = "New calendar", Color = CalendarPalette[_colorIndex++ % CalendarPalette.Length] };
+        S.Calendar.Sources.Add(source);
+        CalendarSources.Add(new CalendarSourceRow(source));
+        CalendarMessage = "";
+        Save();
+    }
+
+    [RelayCommand]
+    private void SaveCalendar(CalendarSourceRow row)
+    {
+        var url = row.Url.Trim();
+        if (url.Length == 0)
+        {
+            CalendarMessage = "Paste the calendar's ICS link first.";
+            return;
+        }
+        row.Source.Name = row.Name.Trim().Length == 0 ? "Calendar" : row.Name.Trim();
+        row.Source.Color = row.Color;
+        row.Source.EncryptedUrl = SecretStore.Protect(url);
+        row.Url = url;
+        CalendarMessage = $"Saved \"{row.Source.Name}\". It appears after the next refresh.";
+        Save();
+    }
+
+    [RelayCommand]
+    private void RemoveCalendar(CalendarSourceRow row)
+    {
+        S.Calendar.Sources.Remove(row.Source);
+        CalendarSources.Remove(row);
+        CalendarMessage = "";
+        Save();
+    }
+
     // ---------- About ----------
 
     public string Version => Assembly.GetExecutingAssembly().GetName().Version?.ToString(3) ?? "dev";
     public string DataFolder => Path.GetDirectoryName(SettingsStore.DefaultPath)!;
+
+    public bool IsInstalledApp => UpdateService.IsInstalled;
+    public bool HasPendingUpdate => UpdateService.PendingVersion is not null;
+    public string InstalledVersionText => UpdateService.InstalledVersion ?? "";
+    public string PendingUpdateText => UpdateService.PendingVersion is { } v
+        ? $"Version {v} is downloaded; it installs the next time ATOLL starts."
+        : "";
+
+    public string UpdateDescription => !IsInstalledApp
+        ? "ATOLL checks github.com/Mazon3442/Atoll for new releases once it is installed with Setup.exe."
+        : HasPendingUpdate
+            ? PendingUpdateText
+            : $"Version {InstalledVersionText} · checks github.com/Mazon3442/Atoll for new releases";
+
+    [ObservableProperty] private string _updateMessage = "";
+
+    [RelayCommand]
+    private async Task CheckForUpdates()
+    {
+        UpdateMessage = "Checking for updates…";
+        var result = await UpdateService.CheckAndDownloadAsync();
+        UpdateMessage = result switch
+        {
+            { Installed: false } => "Updates work once ATOLL is installed. Run Setup.exe from a release.",
+            { Error: not null } => $"Update check failed: {result.Error}",
+            { Downloaded: true } => $"Version {result.Version} downloaded; it installs the next time ATOLL starts.",
+            _ => "You're on the latest version.",
+        };
+        OnPropertyChanged(nameof(IsInstalledApp));
+        OnPropertyChanged(nameof(InstalledVersionText));
+        OnPropertyChanged(nameof(HasPendingUpdate));
+        OnPropertyChanged(nameof(PendingUpdateText));
+        OnPropertyChanged(nameof(UpdateDescription));
+    }
 
     [RelayCommand]
     private void OpenDataFolder() => Process.Start(new ProcessStartInfo(DataFolder) { UseShellExecute = true });
@@ -405,4 +500,24 @@ public sealed class DisplayRow(MonitorInfo monitor, AppSettings settings, Action
             save();
         }
     }
+}
+
+/// <summary>Editable row for one ICS calendar. <see cref="Url"/> is plaintext while editing; it is encrypted on save.</summary>
+public sealed class CalendarSourceRow(CalendarSource source) : ObservableObject
+{
+    public CalendarSource Source { get; } = source;
+
+    public string Name
+    {
+        get => Source.Name;
+        set { if (Source.Name != value) { Source.Name = value; OnPropertyChanged(); } }
+    }
+
+    public string Color
+    {
+        get => Source.Color;
+        set { if (Source.Color != value) { Source.Color = value; OnPropertyChanged(); } }
+    }
+
+    public string Url { get; set; } = "";
 }

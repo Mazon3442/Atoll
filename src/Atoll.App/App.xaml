@@ -16,6 +16,7 @@
                 <ResourceDictionary Source="Modules/Stats/StatsTemplates.xaml" />
                 <ResourceDictionary Source="Modules/Weather/WeatherTemplates.xaml" />
                 <ResourceDictionary Source="Modules/Indicators/IndicatorsTemplates.xaml" />
+                <ResourceDictionary Source="Modules/Calendar/CalendarTemplates.xaml" />
             </ResourceDictionary.MergedDictionaries>
         </ResourceDictionary>
     </Application.Resources>

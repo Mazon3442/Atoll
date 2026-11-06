@@ -4,9 +4,19 @@
 #   2. Registers packaging\out\Atoll.Identity.msix with Atoll.exe's folder as its external location.
 # Undo: packaging\remove-identity.ps1
 param(
-    [string]$AppDir = (Join-Path $PSScriptRoot "..\src\Atoll.App\bin\Debug\net10.0-windows10.0.19041.0")
+    # Defaults to the installed copy (Velopack), then falls back to the Debug build folder.
+    [string]$AppDir = $null
 )
 $ErrorActionPreference = "Stop"
+if (-not $AppDir) {
+    $candidates = @(
+        (Join-Path $env:LOCALAPPDATA "Atoll\current"),          # Velopack install root
+        (Join-Path $env:LOCALAPPDATA "Programs\ATOLL"),
+        (Join-Path $PSScriptRoot "..\src\Atoll.App\bin\Debug\net10.0-windows10.0.19041.0")
+    )
+    $AppDir = $candidates | Where-Object { $_ -and (Test-Path (Join-Path $_ "Atoll.exe")) } | Select-Object -First 1
+    if (-not $AppDir) { throw "Could not find Atoll.exe. Pass -AppDir pointing at its folder." }
+}
 $AppDir = (Resolve-Path $AppDir).Path
 $cer = Join-Path $PSScriptRoot "out\AtollDev.cer"
 $msix = Join-Path $PSScriptRoot "out\Atoll.Identity.msix"

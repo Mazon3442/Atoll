@@ -18,8 +18,9 @@ When two things happen at once, the second shows in a small bubble next to the p
 
 | Feature | What you see |
 | --- | --- |
-| **Media** | Album art and a live audio visualizer for anything using Windows media controls (Spotify, browsers, ...). Play/pause, skip, progress. Peeks on track change. |
+| **Media** | Album art and a live audio visualizer for anything using Windows media controls (Spotify, browsers, ...). Play/pause, skip, and click or drag the progress slider to seek when the player supports it. Peeks on track change. |
 | **Clock & timer** | Clock when idle. Countdown timers, stopwatch and Pomodoro (25/5, long break every 4th) with alerts. |
+| **Calendar** | Upcoming events from Google Calendar and Microsoft 365 (private ICS links) merged into one list, a next-event countdown pill, and a popup before events start. |
 | **System** | Popups for volume, output device, battery, network, Bluetooth, brightness (laptops), Caps Lock and Num Lock. Volume slider in the panel. |
 | **Claude** | Live Claude Code activity per session (thinking, editing a file, running a command), a popup when a session needs permission or finishes, and token usage for today and the current 5-hour window. Messages from the Claude desktop app get the Claude look. |
 | **Notifications** | Windows notifications shown in the island, with history, per-app mute, and a privacy switch that hides message text. |
@@ -69,6 +70,24 @@ Left-click the tray icon for settings; right-click it to hide ATOLL or quit.
 
 There is no installer yet; see [Roadmap](#roadmap).
 
+### Install
+
+Download `Atoll-Setup.exe` from the latest [GitHub release](https://github.com/Mazon3442/Atoll/releases)
+and run it. It installs to your user folder with no admin prompt and adds a Start menu entry; uninstall
+from Windows Settings › Apps. ATOLL checks the repo for new releases in the background, downloads only
+the changed parts, and applies the update the next time it restarts.
+
+To build a release yourself:
+
+```powershell
+.\packaging\build-release.ps1 -Version 1.0.0   # produces Setup.exe, update packages and the feed
+.\packaging\build-release.ps1 -Version 1.0.1 -Publish   # also attach them to a GitHub release (needs VPK_TOKEN)
+```
+
+The Setup.exe is not code-signed, so Windows shows "Windows protected your PC" on first run — click
+**More info › Run anyway**. Removing that prompt means buying a code-signing certificate; it is fine
+to skip for personal use.
+
 ### Notifications (one-time setup)
 
 Windows only lets apps with a *package identity* read notifications. ATOLL gets one from a small
@@ -101,10 +120,22 @@ Usage totals work without the hooks: ATOLL reads the transcripts Claude Code alr
 
 Set your city in Settings › Modules › Weather.
 
+### Calendar
+
+Open Settings › Calendar and add each calendar's private ICS link. Google: Calendar settings → the
+calendar → "Secret address in iCal format". Outlook / M365: Settings → Calendar → Shared calendars →
+"Publish a calendar" → copy the ICS link. Give each one a name and color; ATOLL re-downloads them
+every 15 minutes.
+
+Calendar is read-only: ATOLL can't create, accept or edit events. Recurring events (weekly, every 2nd
+Tuesday, ...) are expanded correctly, including skipped and moved occurrences. Google's links can lag
+— changes sometimes take hours to appear, which is on Google's end. Some M365 admins disable calendar
+publishing, so "Publish a calendar" may be missing for work accounts.
+
 ## Settings
 
-Settings has six pages: General, Appearance, Modules, Notifications, Claude Code and About. Every
-change applies immediately.
+Settings has seven pages: General, Appearance, Modules, Notifications, Claude Code, Calendar and
+About. Every change applies immediately.
 
 Settings, the shelf list and the log live in `%AppData%\Atoll`
 (`settings.json`, `shelf.json`, `atoll.log`).
@@ -113,15 +144,19 @@ Launch options:
 
 | Option | Effect |
 | --- | --- |
-| `--settings` or `--settings=<page>` | Open settings (page 0 = General ... 5 = About) |
-| `--open=<module>` | Open ATOLL expanded on a tab: `media`, `clock`, `system`, `claude`, `notifications`, `shelf`, `clipboard`, `stats`, `weather`, `actions` |
+| `--settings` or `--settings=<page>` | Open settings (page 0 = General ... 6 = About) |
+| `--open=<module>` | Open ATOLL expanded on a tab: `media`, `clock`, `calendar`, `system`, `claude`, `notifications`, `shelf`, `clipboard`, `stats`, `weather`, `actions` |
 
 ## Privacy
 
 ATOLL runs locally and has no account or telemetry.
 
-- **Network**: the only outgoing requests are to [Open-Meteo](https://open-meteo.com) for weather,
-  and only when a city is set. They contain that city name and its coordinates.
+- **Network**: the only outgoing requests are to [Open-Meteo](https://open-meteo.com) for weather
+  (only when a city is set) and to the calendar servers you add in Settings › Calendar. Weather
+  requests contain that city name and its coordinates; calendar requests contain only the ICS link
+  itself.
+- **Calendar links** are stored encrypted with your Windows login (DPAPI), so they can't be read from
+  the settings file. Anyone with one of these links can read that calendar, so keep them private.
 - **Clipboard history** stays in memory and is gone when ATOLL closes. Copies marked private by
   password managers are skipped.
 - **The shelf** stores file locations only. ATOLL never copies, moves or deletes your files.
@@ -140,6 +175,7 @@ src/
     Modules/<Name>/   one folder per feature: module, view models, XAML templates
     Settings/         settings model, store, settings window
     Theme/            theme tokens, presets, shared styles
+    Updates/          checks GitHub releases and downloads updates in the background
   Atoll.ClaudeHook/   tiny exe run by Claude Code hooks; forwards events over a named pipe
   Shared/             hook message format shared by both
 packaging/            notification identity package and scripts
@@ -165,11 +201,12 @@ tests/Atoll.Tests/    xUnit tests
 - **Claude sessions don't show up**: install the hooks, then start a new Claude Code session
   (running sessions keep their old hooks). If ATOLL moved to a new folder, click **Install** again.
 - **Hook debugging**: set `ATOLL_HOOK_DEBUG=1` to make the hook print errors to stderr.
+- **A calendar is missing events**: Google's ICS links can lag by hours. Check the link in Settings ›
+  Calendar, and that the calendar is published (some M365 admins disable it).
 
 ## Roadmap
 
-- Calendar: upcoming events from Google Calendar and Microsoft 365 through private ICS links
-- Installer and automatic updates from GitHub releases
+The feature set is complete. Open issues and ideas are tracked on GitHub.
 
 ## License
 

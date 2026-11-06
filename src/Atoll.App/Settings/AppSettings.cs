@@ -50,6 +50,8 @@ public sealed class AppSettings
 
     public WeatherSettings Weather { get; set; } = new();
 
+    public CalendarSettings Calendar { get; set; } = new();
+
     /// <summary>List order = tab order in the expanded panel.</summary>
     public List<ModuleEntry> Modules { get; set; } = [];
 }
@@ -103,6 +105,26 @@ public sealed class WeatherSettings
     public string City { get; set; } = "";
 
     public TemperatureUnits Units { get; set; } = TemperatureUnits.Auto;
+}
+
+public sealed class CalendarSettings
+{
+    /// <summary>How long before an event the island pops up. 0 disables alerts.</summary>
+    public int AlertMinutesBefore { get; set; } = 10;
+
+    public bool SoundOnAlert { get; set; } = true;
+
+    /// <summary>ICS calendars to merge. The URL is DPAPI-encrypted (see SecretStore).</summary>
+    public List<CalendarSource> Sources { get; set; } = [];
+}
+
+public sealed class CalendarSource
+{
+    public string Name { get; set; } = "";
+    public string Color { get; set; } = "#0A84FF";
+
+    /// <summary>DPAPI-protected ICS URL, Base64. Empty until the user saves a URL.</summary>
+    public string EncryptedUrl { get; set; } = "";
 }
 
 public sealed class ModuleEntry
