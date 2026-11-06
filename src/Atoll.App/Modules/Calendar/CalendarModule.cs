@@ -29,6 +29,8 @@ public sealed partial class CalendarEventViewModel(CalendarEventItem item, Actio
     [ObservableProperty] private string _badge = "";
     /// <summary>True when the badge is about time (now or next) and gets the accent color.</summary>
     [ObservableProperty] private bool _isHighlighted;
+    /// <summary>Rows after the first day are one line: title and start time.</summary>
+    public bool IsCompact { get; init; }
     public string PinLabel => IsPinned ? "Unpin from island" : "Pin to island";
     private bool CanDismiss => !IsDismissed;
     [RelayCommand] private void TogglePin() => pin(Event);
@@ -252,10 +254,12 @@ public sealed class CalendarModule : IIslandModule
         _vm.Days.Clear();
         foreach (var group in _events.Where(e => e.End > now || e.Start >= now).GroupBy(e => e.Start.Date < now.Date ? now.Date : e.Start.Date))
         {
+            // The nearest day gets full rows; later days are one line each so more of the fortnight fits.
+            var compact = _vm.Days.Count > 0;
             _vm.Days.Add(new CalendarDay
             {
                 Label = DayLabel(group.Key, now.Date),
-                Events = group.Select(e => new CalendarEventViewModel(e, TogglePin, Dismiss)).ToList(),
+                Events = group.Select(e => new CalendarEventViewModel(e, TogglePin, Dismiss) { IsCompact = compact }).ToList(),
             });
         }
         _vm.HasEvents = _vm.Days.Count > 0;
@@ -365,12 +369,14 @@ public sealed class CalendarModule : IIslandModule
             row.IsDismissed = settings.DismissedOccurrences.ContainsKey(row.Event.OccurrenceKey);
         }
         // Only what is on now and the one event after it get a time badge, so the eye lands there.
-        var next = rows.FirstOrDefault(r => !r.Event.AllDay && !r.IsDismissed && r.Event.Start > now && r.Event.Start - now < PillHorizon);
+        // One-line rows show their start time in the badge's place instead.
+        var next = rows.FirstOrDefault(r => !r.IsCompact && !r.Event.AllDay && !r.IsDismissed && r.Event.Start > now && r.Event.Start - now < PillHorizon);
         foreach (var row in rows)
         {
             var isNow = !row.Event.AllDay && row.Event.Start <= now && row.Event.End > now;
             row.IsHighlighted = !row.IsDismissed && (isNow || ReferenceEquals(row, next));
-            row.Badge = row.IsDismissed ? "Hidden" : isNow ? "Now" : ReferenceEquals(row, next) ? IcsCalendar.Relative(row.Event.Start, now) : "";
+            row.Badge = row.IsDismissed ? "Hidden" : isNow ? "Now" : ReferenceEquals(row, next) ? IcsCalendar.Relative(row.Event.Start, now)
+                : row.IsCompact ? row.Event.StartText : "";
         }
     }
 

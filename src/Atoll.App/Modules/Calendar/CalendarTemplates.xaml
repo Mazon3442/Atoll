@@ -9,11 +9,18 @@
             <Trigger Property="IsEnabled" Value="False"><Setter Property="Opacity" Value="0.4" /></Trigger>
         </Style.Triggers>
     </Style>
+    <!-- A filled pin: Segoe Fluent's fill layer (E842) under the pin outline (E718). -->
+    <DataTemplate x:Key="Calendar.PinnedGlyph">
+        <Grid>
+            <TextBlock Text="&#xE842;" />
+            <TextBlock Text="&#xE718;" />
+        </Grid>
+    </DataTemplate>
     <Style x:Key="Calendar.PinAction" TargetType="Button" BasedOn="{StaticResource Calendar.Action}">
         <Setter Property="Content" Value="&#xE718;" />
         <Style.Triggers>
             <DataTrigger Binding="{Binding IsPinned}" Value="True">
-                <Setter Property="Content" Value="&#xE840;" />
+                <Setter Property="ContentTemplate" Value="{StaticResource Calendar.PinnedGlyph}" />
                 <Setter Property="Foreground" Value="{DynamicResource Island.AccentText}" />
             </DataTrigger>
         </Style.Triggers>
@@ -66,10 +73,11 @@
         </StackPanel>
     </DataTemplate>
 
-    <!-- One event: title over "time · place". Pin and dismiss appear on hover or keyboard focus;
-         a pinned event keeps a small pin, and only now/next carry a time badge. -->
+    <!-- One event. The first day's events are two lines (title over "time · place"); later days are one
+         line with the start time. Pin and dismiss appear on hover or keyboard focus; a pinned event
+         keeps a filled pin, and only now/next carry an accent badge. -->
     <DataTemplate x:Key="CalendarEventViewModel.Row">
-        <Border x:Name="Row" Background="Transparent" CornerRadius="8" Padding="6,5,4,5" Margin="-6,0,0,1"
+        <Border x:Name="Row" Background="Transparent" CornerRadius="7" Padding="6,3,4,3" Margin="-6,0,0,0"
                 BorderThickness="1" BorderBrush="Transparent" Focusable="True" FocusVisualStyle="{x:Null}"
                 AutomationProperties.Name="{Binding Event.DisplayTitle}" AutomationProperties.HelpText="{Binding Event.Detail}"
                 ToolTip="{Binding Event.DisplayTitle}" ToolTipService.InitialShowDelay="900">
@@ -84,12 +92,13 @@
                     <DockPanel>
                         <TextBlock x:Name="Badge" DockPanel.Dock="Right" Text="{Binding Badge}" FontSize="11" FontWeight="SemiBold"
                                    Margin="8,0,0,0" VerticalAlignment="Center" Foreground="{DynamicResource Island.Subtle}" />
-                        <TextBlock x:Name="PinMark" DockPanel.Dock="Right" Text="&#xE840;" FontFamily="{StaticResource Island.IconFont}"
-                                   FontSize="11" Margin="6,0,0,0" VerticalAlignment="Center" Visibility="Collapsed"
-                                   Foreground="{DynamicResource Island.AccentText}" />
-                        <TextBlock Text="{Binding Event.DisplayTitle}" FontSize="12.5" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
+                        <ContentPresenter x:Name="PinMark" DockPanel.Dock="Right" ContentTemplate="{StaticResource Calendar.PinnedGlyph}"
+                                          TextElement.FontFamily="{StaticResource Island.IconFont}" TextElement.FontSize="11"
+                                          TextElement.Foreground="{DynamicResource Island.AccentText}"
+                                          Margin="6,0,0,0" VerticalAlignment="Center" Visibility="Collapsed" />
+                        <TextBlock x:Name="Title" Text="{Binding Event.DisplayTitle}" FontSize="12.5" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
                     </DockPanel>
-                    <TextBlock Text="{Binding Event.Detail}" FontSize="11" Margin="0,1,0,0" TextTrimming="CharacterEllipsis"
+                    <TextBlock x:Name="Detail" Text="{Binding Event.Detail}" FontSize="11" TextTrimming="CharacterEllipsis"
                                Foreground="{DynamicResource Island.Subtle}" />
                 </StackPanel>
                 <StackPanel x:Name="Actions" Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center"
@@ -102,6 +111,15 @@
             </Grid>
         </Border>
         <DataTemplate.Triggers>
+            <DataTrigger Binding="{Binding IsCompact}" Value="True">
+                <Setter TargetName="Detail" Property="Visibility" Value="Collapsed" />
+                <Setter TargetName="Title" Property="FontSize" Value="12" />
+                <Setter TargetName="Title" Property="FontWeight" Value="Normal" />
+                <Setter TargetName="Row" Property="Padding" Value="6,2,4,2" />
+                <Setter TargetName="Bar" Property="Margin" Value="0,2,9,2" />
+                <!-- The buttons overhang a one-line row so it doesn't grow on hover. -->
+                <Setter TargetName="Actions" Property="Margin" Value="4,-4,0,-4" />
+            </DataTrigger>
             <DataTrigger Binding="{Binding IsHighlighted}" Value="True">
                 <Setter TargetName="Badge" Property="Foreground" Value="{DynamicResource Island.AccentText}" />
             </DataTrigger>
@@ -164,7 +182,7 @@
                     <ItemsControl.ItemTemplate>
                         <DataTemplate>
                             <StackPanel>
-                                <TextBlock Text="{Binding Label}" FontSize="11" FontWeight="SemiBold" Margin="0,8,0,3"
+                                <TextBlock Text="{Binding Label}" FontSize="11" FontWeight="SemiBold" Margin="0,6,0,1"
                                            Foreground="{DynamicResource Island.Subtle}" />
                                 <ItemsControl ItemsSource="{Binding Events}" Focusable="False"
                                               ItemTemplate="{StaticResource CalendarEventViewModel.Row}" />

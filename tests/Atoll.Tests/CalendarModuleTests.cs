@@ -81,7 +81,14 @@ public class CalendarModuleTests
             var upNext = rows.Single(r => r.Event.Title == "Next meeting");
             Assert.Equal("in 1 h", upNext.Badge);
             Assert.True(upNext.IsHighlighted);
-            Assert.All(rows.Where(r => r.Event.AllDay || r.Event.Title == "Daily meeting"), r => Assert.Equal("", r.Badge));
+            var daily = rows.Where(r => r.Event.Title == "Daily meeting").OrderBy(r => r.Event.Start).ToList();
+            Assert.Equal("", rows.Single(r => r.Event.AllDay).Badge);
+            Assert.Equal("", daily[0].Badge);
+            // Tomorrow's occurrence is a one-line row showing its start time.
+            Assert.False(daily[0].IsCompact);
+            Assert.True(daily[1].IsCompact);
+            Assert.Equal(daily[1].Event.StartText, daily[1].Badge);
+            Assert.False(daily[1].IsHighlighted);
 
             var allDay = vm.Days.SelectMany(d => d.Events).Single(e => e.Event.AllDay);
             Next(host).DismissCommand.Execute(null);

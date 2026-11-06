@@ -133,10 +133,11 @@ Usage totals work without the hooks: ATOLL reads the transcripts Claude Code alr
 ### Calendar
 
 The Clock & calendar tab shows the clock and timers on the left and the next 14 days of events on
-the right. Each event shows its title, then its time and place in your system's time format; the
-event on now is marked **Now** and the one after it counts down. All-day events appear in the list
+the right. Today's events show their title, then their time and place in your system's time format;
+the event on now is marked **Now** and the one after it counts down. Later days take one line per
+event, with the start time, so more of the fortnight fits. All-day events appear in the list
 and reach the island only when pinned. Point at an event row (or Tab to it) to show its pin and
-close buttons; the island's preview has them too. Pin keeps an event in the island, and close
+close buttons; the island's preview has them too. Pin (filled when pinned) keeps an event in the island, and close
 dismisses that occurrence from the island while it stays in the list, dimmed. These choices survive
 refreshes and restarts, and later occurrences of a recurring event stay visible.
 
