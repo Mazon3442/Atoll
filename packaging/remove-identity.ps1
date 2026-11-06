@@ -9,5 +9,5 @@ if (-not $isAdmin) {
 }
 Get-AppxPackage -Name Atoll | Remove-AppxPackage
 Get-ChildItem Cert:\LocalMachine\TrustedPeople | Where-Object Subject -eq "CN=Atoll Dev" | Remove-Item
-"Removed the Atoll identity package and its certificate trust."
+"Removed the ATOLL identity package and its certificate trust."
 Read-Host "Press Enter to close"

@@ -6,7 +6,7 @@ namespace Atoll.Settings;
 public static class StartupRegistration
 {
     private const string RunKey = @"Software\Microsoft\Windows\CurrentVersion\Run";
-    private const string ValueName = "Atoll";
+    private const string ValueName = "ATOLL"; // value names are case-insensitive, so this replaces "Atoll"
 
     public static void Apply(bool enabled)
     {

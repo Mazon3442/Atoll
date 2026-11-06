@@ -72,11 +72,11 @@ public static class NotificationAccessInfo
     public static string Describe(NotificationAccess access) => access switch
     {
         NotificationAccess.NeedsSetup =>
-            "One-time setup needed: run packaging\\setup-identity.ps1 (asks for admin), then restart Atoll.",
-        NotificationAccess.NeedsPermission => "Atoll needs your permission to read notifications.",
+            "One-time setup needed: run packaging\\setup-identity.ps1 (asks for admin), then restart ATOLL.",
+        NotificationAccess.NeedsPermission => "ATOLL needs your permission to read notifications.",
         NotificationAccess.Denied =>
-            "Notification access is off. Turn it on for Atoll in Windows Settings > Privacy & security > Notifications.",
-        NotificationAccess.Allowed => "Atoll can show your notifications.",
+            "Notification access is off. Turn it on for ATOLL in Windows Settings > Privacy & security > Notifications.",
+        NotificationAccess.Allowed => "ATOLL can show your notifications.",
         _ => "Notifications are not available on this PC.",
     };
 

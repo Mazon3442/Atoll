@@ -73,12 +73,10 @@ public sealed class IslandManager : IDisposable
 
     private void UpdateVisibility()
     {
-        var hideFullscreen = _settings.Current.HideInFullscreen;
         foreach (var w in _windows)
         {
-            var shown = !_paused && !(hideFullscreen && FullscreenWatcher.IsFullscreenOn(w.Monitor));
-            w.SetShown(shown);
-            if (shown) w.EnsureTopmost(); // other topmost apps can push us down
+            w.SetEnvironment(_paused, FullscreenWatcher.IsFullscreenOn(w.Monitor));
+            if (w.IsVisible) w.EnsureTopmost(); // other topmost apps can push us down
         }
     }
 

@@ -11,6 +11,7 @@
     <SolidColorBrush x:Key="Island.Subtle" Color="White" Opacity="0.6" />
     <SolidColorBrush x:Key="Island.Hover" Color="White" Opacity="0.12" />
     <SolidColorBrush x:Key="Island.Accent" Color="#0A84FF" />
+    <SolidColorBrush x:Key="Island.Rim" Color="Transparent" />
 
     <FontFamily x:Key="Island.Font">Segoe UI Variable Text, Segoe UI</FontFamily>
     <FontFamily x:Key="Island.IconFont">Segoe Fluent Icons, Segoe MDL2 Assets</FontFamily>
@@ -114,8 +115,9 @@
     </Style>
 
     <!-- Tab strip of the expanded panel: one round glyph per module. -->
+    <!-- Must stay focusable: ListBoxItem only selects on click when it can take focus. -->
     <Style x:Key="Island.TabItem" TargetType="ListBoxItem">
-        <Setter Property="Focusable" Value="False" />
+        <Setter Property="FocusVisualStyle" Value="{x:Null}" />
         <Setter Property="Cursor" Value="Hand" />
         <Setter Property="Margin" Value="0,0,4,0" />
         <Setter Property="Template">

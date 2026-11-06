@@ -38,6 +38,7 @@ public sealed class AudioLevels : IDisposable
             {
                 _recorder = new WasapiRecorderBuilder().WithLoopbackCapture().Build();
                 _format = _recorder.WaveFormat;
+                if (!IsFloat32(_format)) Log.Info($"Visualizer: unsupported audio format {_format}; bars stay still");
                 _recorder.DataAvailable += (buffer, _, _, _) => OnData(buffer);
                 _recorder.StartRecording();
             }
@@ -66,21 +67,29 @@ public sealed class AudioLevels : IDisposable
         LevelsAvailable?.Invoke((float[])_levels.Clone());
     }
 
+    private static readonly Guid FloatSubFormat = new("00000003-0000-0010-8000-00aa00389b71");
+
+    /// <summary>Shared-mode loopback is 32-bit float, usually wrapped as WAVE_FORMAT_EXTENSIBLE.</summary>
+    internal static bool IsFloat32(WaveFormat? f) => f is { BitsPerSample: 32 } &&
+        (f.Encoding == WaveFormatEncoding.IeeeFloat || (f is WaveFormatExtensible x && x.SubFormat == FloatSubFormat));
+
     private void OnData(ReadOnlySpan<byte> buffer)
     {
-        // Shared-mode loopback delivers float32 on every Windows build this app supports.
-        if (_format is not { Encoding: WaveFormatEncoding.IeeeFloat, BitsPerSample: 32 } format) return;
+        if (!IsFloat32(_format)) return;
 
-        var channels = format.Channels;
+        var channels = _format!.Channels;
+        // Front left/right only: surround layouts (e.g. 7.1) are mostly silent channels that would
+        // dilute the level.
+        var used = Math.Min(channels, 2);
         var frames = MemoryMarshal.Cast<byte, float>(buffer);
         for (var i = 0; i + channels <= frames.Length; i += channels)
         {
             float sum = 0;
-            for (var c = 0; c < channels; c++) sum += frames[i + c];
-            _samples[_filled++] = sum / channels;
+            for (var c = 0; c < used; c++) sum += frames[i + c];
+            _samples[_filled++] = sum / used;
             if (_filled == FftSize)
             {
-                Analyze(format.SampleRate);
+                Analyze(_format.SampleRate);
                 _filled = 0;
             }
         }

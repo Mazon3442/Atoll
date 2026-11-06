@@ -7,6 +7,7 @@ using System.Windows.Threading;
 using Atoll.Activities;
 using Atoll.Modules;
 using Atoll.Settings;
+using Atoll.Theme;
 
 namespace Atoll.Shell;
 
@@ -25,20 +26,24 @@ public partial class IslandWindow : Window
 {
     private static readonly IEasingFunction Spring = Freeze(new SpringEase());
     private static readonly Duration MorphDuration = TimeSpan.FromMilliseconds(520);
+    private static readonly Duration FadeDuration = TimeSpan.FromMilliseconds(140);
+
+    private const int PointerTickMs = 60;
+    private const int CollapseAfterMs = 900;
+    private const int MinClickThroughDwellMs = 350; // short passes (moving to a browser tab) must not open it
+    private const double PassThroughOpacity = 0.25;
 
     private readonly SettingsService _settings;
     private readonly ModuleManager _modules;
     private readonly Action _openSettings;
-    private const int HoverWatchMs = 80;
-    private const int CollapseAfterMs = 900;
 
-    private readonly DispatcherTimer _hoverTimer;
-
-    // Layered WPF windows raise spurious MouseLeave events, so "has the cursor left?" is answered
-    // by polling the real cursor position while the island is hovered or open.
-    private readonly DispatcherTimer _hoverWatch;
+    // The cursor position is polled instead of using MouseEnter/Leave: a click-through window gets
+    // no mouse events, and layered WPF windows raise spurious MouseLeave events anyway.
+    private readonly DispatcherTimer _pointer;
+    private int _dwellMs;
     private int _outsideMs;
     private bool _alertPeek;
+    private bool _faded;
 
     private nint _hwnd;
     private IslandMode _mode = IslandMode.Compact;
@@ -49,6 +54,11 @@ public partial class IslandWindow : Window
     private INotifyPropertyChanged? _watched;
     private bool _renderQueued;
     private (double W, double H, double R) _target = (-1, -1, -1);
+
+    private bool _paused;
+    private bool _fullscreen;
+    private bool? _clickThroughApplied;
+    private BackdropWindow? _backdrop;
 
     public IslandWindow(MonitorInfo monitor, SettingsService settings, ModuleManager modules, Action openSettings)
     {
@@ -63,19 +73,12 @@ public partial class IslandWindow : Window
         Pill.Height = h0;
         Pill.Radius = h0 / 2;
 
-        _hoverTimer = new DispatcherTimer();
-        _hoverTimer.Tick += (_, _) =>
-        {
-            _hoverTimer.Stop();
-            if (_mode == IslandMode.Compact && _primary is not null && IsCursorOverPill()) SetMode(IslandMode.Peek);
-        };
-        _hoverWatch = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(HoverWatchMs) };
-        _hoverWatch.Tick += (_, _) => OnHoverWatch();
+        _pointer = new DispatcherTimer(DispatcherPriority.Input) { Interval = TimeSpan.FromMilliseconds(PointerTickMs) };
+        _pointer.Tick += (_, _) => OnPointerTick();
 
         Tabs.ItemsSource = modules.Tabs;
         Tabs.SelectionChanged += (_, _) => ShowSelectedTab();
 
-        Pill.MouseEnter += OnPillEnter;
         Pill.MouseLeftButtonUp += (_, e) =>
         {
             if (_mode == IslandMode.Expanded) return;
@@ -88,6 +91,7 @@ public partial class IslandWindow : Window
             e.Handled = true;
         };
         Pill.SizeChanged += (_, _) => UpdateBubbleOffset();
+        LayoutUpdated += (_, _) => UpdateBackdrop(); // follows the pill through every animation frame
 
         SourceInitialized += (_, _) =>
         {
@@ -107,11 +111,17 @@ public partial class IslandWindow : Window
         {
             if (e.Key == Key.Escape && _mode == IslandMode.Expanded) SetMode(IslandMode.Compact);
         };
+        IsVisibleChanged += (_, _) =>
+        {
+            if (IsVisible) _pointer.Start();
+            else _pointer.Stop();
+            UpdateBackdrop();
+        };
         Closed += (_, _) =>
         {
             Watch(null);
-            _hoverTimer.Stop();
-            _hoverWatch.Stop();
+            _pointer.Stop();
+            _backdrop?.Close();
         };
     }
 
@@ -121,9 +131,12 @@ public partial class IslandWindow : Window
 
     private double Roundness => Math.Clamp(_settings.Current.Theme.Roundness, 0, 1);
 
+    private bool ClickThrough => _settings.Current.ClickThrough;
+
     public void SetActivities(Activity? primary, Activity? secondary)
     {
-        var isNewPrimary = !ReferenceEquals(primary, _primary);        _primary = primary;
+        var isNewPrimary = !ReferenceEquals(primary, _primary);
+        _primary = primary;
         _secondary = secondary;
 
         if (isNewPrimary && primary is { Alert: true } && _mode == IslandMode.Compact)
@@ -135,10 +148,11 @@ public partial class IslandWindow : Window
         else if (isNewPrimary && _alertPeek)
         {
             _alertPeek = false;
-            if (_mode == IslandMode.Peek && !IsCursorOverPill()) _mode = IslandMode.Compact;
+            if (_mode == IslandMode.Peek && !IsCursorOverIsland()) _mode = IslandMode.Compact;
         }
 
         if (_mode == IslandMode.Peek && primary is null) _mode = IslandMode.Compact;
+        UpdatePresence();
         Render();
     }
 
@@ -150,15 +164,40 @@ public partial class IslandWindow : Window
         Stage.Margin = new Thickness(0, offset, 0, 0);
         Width = Math.Max(760, Math.Clamp(t.ExpandedWidth, 320, 900) + 2 * (CompactHeight + 24));
         Height = Math.Clamp(t.ExpandedHeight, 140, 600) + offset + 24;
-        _hoverTimer.Interval = TimeSpan.FromMilliseconds(Math.Clamp(_settings.Current.HoverDelayMs, 0, 2000));
         _target = (-1, -1, -1);
         _shownContent = null; // template choice may depend on size; rebuild
         Place();
+        UpdatePresence();
         Render();
     }
 
-    public void SetShown(bool shown)
+    /// <summary>Called by the manager whenever pause or fullscreen state may have changed.</summary>
+    public void SetEnvironment(bool paused, bool fullscreen)
     {
+        _paused = paused;
+        _fullscreen = fullscreen;
+        UpdatePresence();
+    }
+
+    public void EnsureTopmost()
+    {
+        if (_hwnd != 0)
+            Native.SetWindowPos(_hwnd, Native.HWND_TOPMOST, 0, 0, 0, 0, Native.SWP_NOMOVE | Native.SWP_NOSIZE | Native.SWP_NOACTIVATE);
+    }
+
+    /// <summary>Shows, hides or dims the window for pause and the fullscreen setting.</summary>
+    private void UpdatePresence()
+    {
+        var mode = _fullscreen ? _settings.Current.FullscreenMode : FullscreenMode.Stay;
+        var shown = !_paused && mode switch
+        {
+            FullscreenMode.Hide => false,
+            // Pop up only for things that end on their own: alerts and short indicators.
+            FullscreenMode.PopUp => _primary is { Alert: true } || _primary?.Duration is not null,
+            _ => true,
+        };
+        Opacity = mode == FullscreenMode.Dim ? 0.5 : 1;
+
         if (shown == IsVisible) return;
         if (shown)
         {
@@ -167,15 +206,9 @@ public partial class IslandWindow : Window
         }
         else
         {
-            if (_mode != IslandMode.Compact) SetMode(IslandMode.Compact);
+            if (_mode == IslandMode.Expanded) SetMode(IslandMode.Compact);
             Hide();
         }
-    }
-
-    public void EnsureTopmost()
-    {
-        if (_hwnd != 0)
-            Native.SetWindowPos(_hwnd, Native.HWND_TOPMOST, 0, 0, 0, 0, Native.SWP_NOMOVE | Native.SWP_NOSIZE | Native.SWP_NOACTIVATE);
     }
 
     /// <summary>Centers the window horizontally at the top of its monitor's work area (physical pixels).</summary>
@@ -194,7 +227,7 @@ public partial class IslandWindow : Window
     {
         if (mode == IslandMode.Expanded)
         {
-            _hoverTimer.Stop();
+            SetClickThrough(false);
             SetNoActivate(false);
             Activate();
             var tab = moduleId is null ? null : _modules.Tabs.FirstOrDefault(t => t.Descriptor.Id == moduleId);
@@ -209,17 +242,126 @@ public partial class IslandWindow : Window
         _alertPeek = false;
         _mode = mode;
         _outsideMs = 0;
-        if (mode != IslandMode.Compact) _hoverWatch.Start();
+        _dwellMs = 0;
+        SetFaded(false);
         Render();
     }
 
-    private void SetNoActivate(bool on)
+    private void SetNoActivate(bool on) => SetExStyle(Native.WS_EX_NOACTIVATE, on);
+
+    /// <summary>WS_EX_TRANSPARENT makes the whole window invisible to the mouse.</summary>
+    private void SetClickThrough(bool on)
+    {
+        if (_clickThroughApplied == on) return;
+        _clickThroughApplied = on;
+        SetExStyle(Native.WS_EX_TRANSPARENT, on);
+    }
+
+    private void SetExStyle(long flag, bool on)
     {
         if (_hwnd == 0) return;
         var ex = (long)Native.GetWindowLongPtr(_hwnd, Native.GWL_EXSTYLE);
-        ex = on ? ex | Native.WS_EX_NOACTIVATE : ex & ~Native.WS_EX_NOACTIVATE;
+        ex = on ? ex | flag : ex & ~flag;
         Native.SetWindowLongPtr(_hwnd, Native.GWL_EXSTYLE, (nint)ex);
     }
+
+    // ---------- pointer ----------
+
+    private void OnPointerTick()
+    {
+        var over = IsCursorOverIsland();
+        switch (_mode)
+        {
+            case IslandMode.Compact:
+                SetClickThrough(ClickThrough);
+                if (!over)
+                {
+                    _dwellMs = 0;
+                    SetFaded(false);
+                    return;
+                }
+                if (ClickThrough) SetFaded(true); // see (and click) what is underneath while passing over
+                _dwellMs += PointerTickMs;
+                var dwell = Math.Clamp(_settings.Current.HoverDelayMs, 0, 2000);
+                if (ClickThrough) dwell = Math.Max(dwell, MinClickThroughDwellMs);
+                if (_dwellMs >= dwell && _primary is not null) SetMode(IslandMode.Peek);
+                break;
+
+            case IslandMode.Peek:
+                SetClickThrough(false);
+                if (over) _outsideMs = 0;
+                else if (!_alertPeek) SetMode(IslandMode.Compact); // alerts close when their activity ends
+                break;
+
+            case IslandMode.Expanded:
+                if (over) _outsideMs = 0;
+                else if ((_outsideMs += PointerTickMs) >= CollapseAfterMs) SetMode(IslandMode.Compact);
+                break;
+        }
+    }
+
+    private void SetFaded(bool faded)
+    {
+        if (_faded == faded) return;
+        _faded = faded;
+        var to = faded ? PassThroughOpacity : 1;
+        Pill.BeginAnimation(OpacityProperty, new DoubleAnimation(to, FadeDuration));
+        Bubble.BeginAnimation(OpacityProperty, new DoubleAnimation(to, FadeDuration));
+        UpdateBackdrop();
+    }
+
+    private bool IsCursorOverIsland()
+    {
+        if (!IsVisible || !Native.GetCursorPos(out var p)) return false;
+        var screen = new Point(p.X, p.Y);
+        return Contains(Pill, screen) || (Bubble.IsVisible && Contains(Bubble, screen));
+    }
+
+    private static bool Contains(FrameworkElement e, Point screen)
+    {
+        var local = e.PointFromScreen(screen);
+        return local.X >= 0 && local.Y >= 0 && local.X <= e.ActualWidth && local.Y <= e.ActualHeight;
+    }
+
+    // ---------- frosted glass ----------
+
+    private void UpdateBackdrop()
+    {
+        var tint = ThemeService.GlassTint;
+        var wanted = tint is not null && IsVisible && !_faded && _hwnd != 0;
+        if (!wanted)
+        {
+            _backdrop?.Hide();
+            return;
+        }
+        if (_backdrop is null)
+        {
+            _backdrop = new BackdropWindow();
+            _backdrop.Show();
+        }
+        else if (!_backdrop.IsVisible)
+        {
+            _backdrop.Show();
+        }
+        _backdrop.SetTint(tint!.Value);
+
+        var shapes = new List<(Int32Rect, int)> { Shape(Pill, Pill.Radius) };
+        if (Bubble.IsVisible) shapes.Add(Shape(Bubble, Bubble.Radius));
+        _backdrop.Follow(_hwnd, shapes);
+    }
+
+    private (Int32Rect, int) Shape(FrameworkElement e, double radius)
+    {
+        // Includes the bubble's slide-out transform; PointToScreen returns physical pixels.
+        var topLeft = e.PointToScreen(new Point(0, 0));
+        var bottomRight = e.PointToScreen(new Point(e.ActualWidth, e.ActualHeight));
+        var scale = (bottomRight.X - topLeft.X) / Math.Max(1, e.ActualWidth);
+        return (new Int32Rect((int)Math.Round(topLeft.X), (int)Math.Round(topLeft.Y),
+                    (int)Math.Round(bottomRight.X - topLeft.X), (int)Math.Round(bottomRight.Y - topLeft.Y)),
+                (int)Math.Round(radius * scale));
+    }
+
+    // ---------- rendering ----------
 
     private void Render()
     {
@@ -334,43 +476,6 @@ public partial class IslandWindow : Window
         PanelBody.Content = null;
         PanelBody.ContentTemplate = Templates.Find(this, tab.Panel, "Panel");
         PanelBody.Content = tab.Panel;
-    }
-
-    private void OnPillEnter(object sender, MouseEventArgs e)
-    {
-        if (_mode == IslandMode.Compact && !_hoverTimer.IsEnabled) _hoverTimer.Start();
-        _hoverWatch.Start();
-    }
-
-    private void OnHoverWatch()
-    {
-        if (IsCursorOverPill())
-        {
-            _outsideMs = 0;
-            return;
-        }
-        _hoverTimer.Stop();
-        switch (_mode)
-        {
-            case IslandMode.Peek when _alertPeek:
-                _hoverWatch.Stop(); // the alert closes itself when its activity ends
-                return;
-            case IslandMode.Peek:
-                SetMode(IslandMode.Compact);
-                break;
-            case IslandMode.Expanded:
-                _outsideMs += HoverWatchMs;
-                if (_outsideMs >= CollapseAfterMs) SetMode(IslandMode.Compact);
-                return;
-        }
-        if (_mode == IslandMode.Compact) _hoverWatch.Stop();
-    }
-
-    private bool IsCursorOverPill()
-    {
-        if (!IsVisible || !Native.GetCursorPos(out var p)) return false;
-        var local = Pill.PointFromScreen(new Point(p.X, p.Y));
-        return local.X >= 0 && local.Y >= 0 && local.X <= Pill.ActualWidth && local.Y <= Pill.ActualHeight;
     }
 
     private void OnSettingsClick(object sender, RoutedEventArgs e)

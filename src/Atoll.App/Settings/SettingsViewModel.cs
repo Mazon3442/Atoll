@@ -43,7 +43,19 @@ public sealed partial class SettingsViewModel : ObservableObject
         });
     }
 
-    public bool HideInFullscreen { get => S.HideInFullscreen; set => Set(S.HideInFullscreen, value, v => S.HideInFullscreen = v); }
+    public bool ClickThrough { get => S.ClickThrough; set => Set(S.ClickThrough, value, v => S.ClickThrough = v); }
+
+    public sealed record Choice<T>(T Value, string Label);
+
+    public IReadOnlyList<Choice<FullscreenMode>> FullscreenModes { get; } =
+    [
+        new(FullscreenMode.PopUp, "Pop up for alerts, then hide"),
+        new(FullscreenMode.Stay, "Stay visible"),
+        new(FullscreenMode.Dim, "Stay visible at 50% opacity"),
+        new(FullscreenMode.Hide, "Hide completely"),
+    ];
+
+    public FullscreenMode FullscreenMode { get => S.FullscreenMode; set => Set(S.FullscreenMode, value, v => S.FullscreenMode = v); }
     public int HoverDelayMs { get => S.HoverDelayMs; set => Set(S.HoverDelayMs, value, v => S.HoverDelayMs = v); }
     public double TopOffset { get => S.TopOffset; set => Set(S.TopOffset, value, v => S.TopOffset = v); }
 
@@ -61,18 +73,31 @@ public sealed partial class SettingsViewModel : ObservableObject
 
     public ThemePreset? SelectedPreset
     {
-        get => Presets.FirstOrDefault(p => Same(p.Background, T.Background) && Same(p.Foreground, T.Foreground) && Same(p.Accent, T.Accent));
+        get => Presets.FirstOrDefault(p => Same(p.Background, T.Background) && Same(p.Foreground, T.Foreground)
+                                           && Same(p.Accent, T.Accent) && p.Glass == T.Glass);
         set
         {
             if (value is null) return;
             T.Background = value.Background;
             T.Foreground = value.Foreground;
             T.Accent = value.Accent;
+            T.Glass = value.Glass;
             OnPropertyChanged(nameof(Background));
             OnPropertyChanged(nameof(Foreground));
             OnPropertyChanged(nameof(Accent));
+            OnPropertyChanged(nameof(Glass));
             OnPropertyChanged();
             Save();
+        }
+    }
+
+    public bool Glass
+    {
+        get => T.Glass;
+        set
+        {
+            Set(T.Glass, value, v => T.Glass = v);
+            OnPropertyChanged(nameof(SelectedPreset));
         }
     }
 
@@ -128,7 +153,7 @@ public sealed partial class SettingsViewModel : ObservableObject
     public string HookStatus => ClaudeHookInstaller.GetStatus() switch
     {
         ClaudeHookInstaller.Status.Installed => "Hooks installed. New Claude Code sessions report to the island.",
-        ClaudeHookInstaller.Status.InstalledElsewhere => "Hooks point to another copy of Atoll. Install again to update them.",
+        ClaudeHookInstaller.Status.InstalledElsewhere => "Hooks point to another copy of ATOLL. Install again to update them.",
         ClaudeHookInstaller.Status.Unreadable => "Claude Code settings could not be read.",
         _ => "Hooks not installed. Usage still shows; live activity needs the hooks.",
     };

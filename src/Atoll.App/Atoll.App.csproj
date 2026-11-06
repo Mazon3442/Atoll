@@ -10,6 +10,9 @@
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <AssemblyName>Atoll</AssemblyName>
     <RootNamespace>Atoll</RootNamespace>
+    <!-- Display name (Task Manager, file properties). Code and file names use "Atoll". -->
+    <Product>ATOLL</Product>
+    <AssemblyTitle>ATOLL</AssemblyTitle>
     <!-- WPF0001: Fluent ThemeMode is marked experimental; used only by the settings window. -->
     <NoWarn>$(NoWarn);WPF0001</NoWarn>
   </PropertyGroup>

@@ -30,5 +30,5 @@ if (-not (Get-ChildItem Cert:\LocalMachine\TrustedPeople | Where-Object Thumbpri
 
 Get-AppxPackage -Name Atoll | Remove-AppxPackage   # replace any earlier registration
 Add-AppxPackage -Path $msix -ExternalLocation $AppDir
-"Registered Atoll identity for $AppDir. Restart Atoll, then allow notification access in its settings."
+"Registered ATOLL identity for $AppDir. Restart ATOLL, then allow notification access in its settings."
 Read-Host "Press Enter to close"

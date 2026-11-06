@@ -11,7 +11,8 @@ public sealed class SettingsStoreTests : IDisposable
     public void Missing_file_gives_defaults()
     {
         var s = new SettingsStore(FilePath).Load();
-        Assert.True(s.HideInFullscreen);
+        Assert.Equal(FullscreenMode.PopUp, s.FullscreenMode);
+        Assert.True(s.ClickThrough);
         Assert.Equal(MonitorMode.Primary, s.MonitorMode);
     }
 

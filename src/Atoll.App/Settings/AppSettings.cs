@@ -7,10 +7,28 @@ public enum MonitorMode
     Selected,
 }
 
+public enum FullscreenMode
+{
+    /// <summary>Hidden, but pops up for alerts and short indicators (volume, notifications), then goes away.</summary>
+    PopUp,
+    Stay,
+    Dim,
+    Hide,
+}
+
 public sealed class AppSettings
 {
     public bool StartWithWindows { get; set; }
-    public bool HideInFullscreen { get; set; } = true;
+
+    /// <summary>What the island does over fullscreen apps (videos, games, F11 browsers).</summary>
+    public FullscreenMode FullscreenMode { get; set; } = FullscreenMode.PopUp;
+
+    /// <summary>
+    /// The compact island lets clicks through to the app behind it (e.g. browser tabs) and fades
+    /// while the cursor passes over; resting on it for the hover delay makes it usable.
+    /// </summary>
+    public bool ClickThrough { get; set; } = true;
+
     public int HoverDelayMs { get; set; } = 200;
 
     public MonitorMode MonitorMode { get; set; } = MonitorMode.Primary;
@@ -36,6 +54,9 @@ public sealed class ThemeSettings
     public string Background { get; set; } = "#000000";
     public string Foreground { get; set; } = "#FFFFFF";
     public string Accent { get; set; } = "#0A84FF";
+
+    /// <summary>Frosted glass: blur what is behind the island, tinted with <see cref="Background"/>.</summary>
+    public bool Glass { get; set; }
 
     /// <summary>Island background opacity, 0.3–1.</summary>
     public double Opacity { get; set; } = 1;

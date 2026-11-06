@@ -27,7 +27,7 @@ public sealed class TrayIcon : IDisposable
 
         _icon = new TaskbarIcon
         {
-            ToolTipText = "Atoll",
+            ToolTipText = "ATOLL",
             IconSource = new GeneratedIconSource
             {
                 Text = "A",
