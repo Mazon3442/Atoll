@@ -118,15 +118,17 @@ internal static class CalendarUiTests
             island.SetEnvironment(false, ForegroundKind.Fullscreen);
             Assert.False(island.IsVisible);
             var edge = new Point(monitor.Bounds.X + monitor.Bounds.Width / 2.0, monitor.Bounds.Y);
+            // Default hold: 1 s. Leaving the edge restarts it.
             island.CheckFullscreenEdge(edge, TimeSpan.Zero);
-            island.CheckFullscreenEdge(edge, TimeSpan.FromSeconds(2.9));
+            island.CheckFullscreenEdge(edge, TimeSpan.FromSeconds(0.9));
             Assert.False(island.IsVisible);
-            island.CheckFullscreenEdge(away, TimeSpan.FromSeconds(3));
-            island.CheckFullscreenEdge(edge, TimeSpan.FromSeconds(4));
-            island.CheckFullscreenEdge(edge, TimeSpan.FromSeconds(7));
+            island.CheckFullscreenEdge(away, TimeSpan.FromSeconds(1.5));
+            island.CheckFullscreenEdge(edge, TimeSpan.FromSeconds(2));
+            island.CheckFullscreenEdge(edge, TimeSpan.FromSeconds(3));
             Assert.True(island.IsVisible);
             Assert.True(island.IsCursorOverIsland(edge));
-            for (var i = 0; i < 9; i++) island.OnPointerTick(away);
+            // It opens fully, so it closes after the open island's delay (900 ms) once the pointer leaves.
+            for (var i = 0; i < 16; i++) island.OnPointerTick(away);
             island.CheckFullscreenEdge(away, TimeSpan.FromSeconds(8));
             Assert.False(island.IsVisible);
             island.SetEnvironment(false, ForegroundKind.Game);

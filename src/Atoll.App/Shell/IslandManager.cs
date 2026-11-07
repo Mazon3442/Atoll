@@ -1,6 +1,5 @@
 using System.Windows.Threading;
 using System.Windows;
-using System.Diagnostics;
 using Atoll.Activities;
 using Atoll.Modules;
 using Atoll.Settings;
@@ -79,12 +78,9 @@ public sealed class IslandManager : IDisposable
 
     private void UpdateVisibility()
     {
-        var hasCursor = Native.GetCursorPos(out var cursor);
-        var now = Stopwatch.GetElapsedTime(0);
         foreach (var w in _windows)
         {
             w.SetEnvironment(_paused, FullscreenWatcher.Classify(w.Monitor));
-            if (hasCursor) w.CheckFullscreenEdge(new Point(cursor.X, cursor.Y), now);
             if (w.IsVisible) w.EnsureTopmost(); // other topmost apps can push us down
         }
     }

@@ -44,6 +44,9 @@ public partial class IslandWindow : Window
     // The cursor position is polled instead of using MouseEnter/Leave: a click-through window gets
     // no mouse events, and layered WPF windows raise spurious MouseLeave events anyway.
     private readonly DispatcherTimer _pointer;
+    // Watches the top edge while the island is hidden (or revealed), often enough to draw the hold line smoothly.
+    private readonly DispatcherTimer _edgeTimer;
+    private RevealHint? _hint;
     private int _dwellMs;
     private int _outsideMs;
     private bool _alertPeek;
@@ -92,6 +95,11 @@ public partial class IslandWindow : Window
 
         _pointer = new DispatcherTimer(DispatcherPriority.Input) { Interval = TimeSpan.FromMilliseconds(PointerTickMs) };
         _pointer.Tick += (_, _) => OnPointerTick();
+        _edgeTimer = new DispatcherTimer(DispatcherPriority.Input) { Interval = TimeSpan.FromMilliseconds(30) };
+        _edgeTimer.Tick += (_, _) =>
+        {
+            if (Native.GetCursorPos(out var p)) CheckFullscreenEdge(new Point(p.X, p.Y), System.Diagnostics.Stopwatch.GetElapsedTime(0));
+        };
         _glassTimer = new DispatcherTimer(DispatcherPriority.Background) { Interval = TimeSpan.FromMilliseconds(120) };
         _glassTimer.Tick += (_, _) => SampleGlass();
 
@@ -158,6 +166,8 @@ public partial class IslandWindow : Window
         {
             Watch(null);
             _pointer.Stop();
+            _edgeTimer.Stop();
+            _hint?.Close();
             _glassTimer.Stop();
         };
     }
@@ -247,7 +257,7 @@ public partial class IslandWindow : Window
     {
         if (_paused || ShownWithoutReveal())
         {
-            _edgeHoverSince = null;
+            ResetHold();
             return;
         }
         if (_revealed)
@@ -255,26 +265,49 @@ public partial class IslandWindow : Window
             if (!IsCursorOverIsland(cursor) && _mode == IslandMode.Compact)
             {
                 _revealed = false;
-                _edgeHoverSince = null;
+                ResetHold();
                 UpdatePresence();
             }
             return;
         }
-        if (!IsTopEdge(cursor)) { _edgeHoverSince = null; return; }
+        if (!IsTopEdge(cursor)) { ResetHold(); return; }
         _edgeHoverSince ??= now;
-        if (now - _edgeHoverSince.Value < TimeSpan.FromMilliseconds(Math.Clamp(_settings.Current.RevealHoldMs, 250, 10000))) return;
+        var hold = TimeSpan.FromMilliseconds(Math.Clamp(_settings.Current.EdgeHoldMs, 250, 10000));
+        var progress = (now - _edgeHoverSince.Value) / hold;
+        if (progress < 1)
+        {
+            // The line spans the whole top of the screen and fills from the center, where the island sits.
+            (_hint ??= new RevealHint()).Update(Monitor.Bounds.X, Monitor.Bounds.Y, Monitor.Bounds.Width, Monitor.Scale, progress);
+            return;
+        }
+        ResetHold();
         _revealed = true;
         UpdatePresence();
         SetClickThrough(false);
-        SetMode(IslandMode.Peek);
+        SetMode(IslandMode.Expanded); // open fully: no click needed after the hold
+    }
+
+    private void ResetHold()
+    {
+        _edgeHoverSince = null;
+        _hint?.Clear();
+    }
+
+    /// <summary>
+    /// Where a hold brings the island back, in physical pixels: wide enough to find without looking (half the open
+    /// island's width either side of center) and the top 12 px of the screen.
+    /// </summary>
+    private (double Left, double Width) HoldZone()
+    {
+        var center = Monitor.Bounds.X + Monitor.Bounds.Width / 2.0;
+        var half = Math.Max(200, Math.Clamp(_settings.Current.Theme.ExpandedWidth, 320, 900) / 2) * Monitor.Scale;
+        return (center - half, 2 * half);
     }
 
     private bool IsTopEdge(Point cursor)
     {
-        // Wide enough to find without looking: half the open island's width either side of center, top 12 px.
-        var center = Monitor.Bounds.X + Monitor.Bounds.Width / 2.0;
-        var halfWidth = Math.Max(200, Math.Clamp(_settings.Current.Theme.ExpandedWidth, 320, 900) / 2);
-        return Math.Abs(cursor.X - center) <= halfWidth * Monitor.Scale
+        var (left, width) = HoldZone();
+        return cursor.X >= left && cursor.X <= left + width
             && cursor.Y >= Monitor.Bounds.Y && cursor.Y <= Monitor.Bounds.Y + 12 * Monitor.Scale;
     }
 
@@ -313,6 +346,10 @@ public partial class IslandWindow : Window
         var mode = ModeFor(_foreground, _settings.Current);
         var shown = !_paused && (_revealed || ShownWithoutReveal());
         Opacity = mode == FullscreenMode.Dim ? 0.5 : 1;
+
+        // Watch the top edge only while there is something to bring back (or a revealed island to put away).
+        if (!_paused && (_revealed || !ShownWithoutReveal())) _edgeTimer.Start();
+        else { _edgeTimer.Stop(); ResetHold(); }
 
         if (shown == IsVisible) return;
         if (shown)

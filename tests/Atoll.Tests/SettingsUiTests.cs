@@ -244,6 +244,30 @@ public class SettingsUiTests
             Assert.DoesNotContain(Descendants<Button>(body), b => b.Content is "Location" or "Refresh");
         }
         finally { island.Close(); }
+
+        // Hidden island: holding at the top edge fills a line, then opens the island fully without a click.
+        service.Current.HideWhenIdle = true;
+        Assert.Equal(1000, service.Current.EdgeHoldMs); // default
+        var hidden = new IslandWindow(Monitors.GetAll()[0], service, manager, _ => { });
+        hidden.Show();
+        try
+        {
+            hidden.SetEnvironment(false, ForegroundKind.Normal);
+            Assert.False(hidden.IsVisible); // nothing to show
+            var bounds = hidden.Monitor.Bounds;
+            var top = new Point(bounds.X + bounds.Width / 2.0, bounds.Y + 2);
+            var start = TimeSpan.FromSeconds(100);
+            hidden.CheckFullscreenEdge(top, start);
+            hidden.CheckFullscreenEdge(top, start + TimeSpan.FromMilliseconds(500));
+            var hint = Application.Current.Windows.OfType<RevealHint>().Single();
+            Assert.True(hint.IsVisible);
+            Assert.False(hidden.IsVisible);
+            hidden.CheckFullscreenEdge(top, start + TimeSpan.FromMilliseconds(1000));
+            Assert.True(hidden.IsVisible);
+            Assert.False(hint.IsVisible);
+            Assert.Equal(Visibility.Visible, ((Grid)hidden.FindName("PanelRoot")).Visibility); // opened, not just peeking
+        }
+        finally { hidden.Close(); service.Current.HideWhenIdle = false; }
     }
 
     private static IEnumerable<T> Descendants<T>(DependencyObject parent) where T : DependencyObject

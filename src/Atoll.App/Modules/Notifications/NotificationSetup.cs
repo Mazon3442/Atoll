@@ -1,5 +1,7 @@
 using System.ComponentModel;
 using System.Diagnostics;
+using System.IO.Compression;
+using System.Xml.Linq;
 
 namespace Atoll.Modules.Notifications;
 
@@ -29,6 +31,43 @@ public static class NotificationSetup
         }
         return null;
     }
+    /// <summary>
+    /// The identity package version this copy ships (from the bundled package's manifest), or null if unreadable.
+    /// Releases stamp it with the app version, so an older registration can be detected and replaced.
+    /// </summary>
+    public static Version? BundledVersion(string directory)
+    {
+        try
+        {
+            using var package = ZipFile.OpenRead(Path.Combine(directory, "out", "Atoll.Identity.msix"));
+            if (package.GetEntry("AppxManifest.xml") is not { } entry) return null;
+            using var stream = entry.Open();
+            var identity = XDocument.Load(stream).Root?.Elements().FirstOrDefault(e => e.Name.LocalName == "Identity");
+            return Version.TryParse(identity?.Attribute("Version")?.Value, out var version) ? version : null;
+        }
+        catch (Exception ex) when (ex is IOException or InvalidDataException or UnauthorizedAccessException or System.Xml.XmlException) { return null; }
+    }
+
+    /// <summary>The registered identity package version, or null when ATOLL runs without one.</summary>
+    public static Version? RegisteredVersion()
+    {
+        if (!NotificationAccessInfo.HasIdentity()) return null;
+        try
+        {
+            var v = Windows.ApplicationModel.Package.Current.Id.Version;
+            return new Version(v.Major, v.Minor, v.Build, v.Revision);
+        }
+        catch (Exception ex) when (ex is InvalidOperationException or System.Runtime.InteropServices.COMException) { return null; }
+    }
+
+    /// <summary>
+    /// The registration came from an older ATOLL. Windows takes the taskbar icon of ATOLL's windows from it, so an old
+    /// registration shows an old icon until it is replaced.
+    /// </summary>
+    public static bool IsOutdated(Version? registered, Version? bundled) => registered is not null && bundled is not null && bundled > registered;
+
+    public static bool RegistrationOutdated() => FindDirectory() is { } directory && IsOutdated(RegisteredVersion(), BundledVersion(directory));
+
     internal static bool Complete(string dir) => new[] { "setup-identity.ps1", "out/AtollDev.cer", "out/Atoll.Identity.msix" }
         .All(file => File.Exists(Path.Combine(dir, file)));
 

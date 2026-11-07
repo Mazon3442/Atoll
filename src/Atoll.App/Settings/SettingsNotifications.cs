@@ -10,14 +10,20 @@ namespace Atoll.Settings;
 public sealed partial class SettingsViewModel
 {
     private NotificationAccess _notificationAccess = NotificationAccessInfo.Get();
+    private bool _registrationOutdated = NotificationSetup.RegistrationOutdated();
+    private static readonly NotificationSetupGuide OutdatedGuide = new("Update ATOLL's Windows registration",
+        "Windows still has the registration from an older ATOLL, so the taskbar shows an old icon for ATOLL's windows. Updating asks for administrator approval once; afterwards, restart ATOLL and allow notification access again if Windows asks.",
+        "Update registration");
+    private NotificationSetupGuide CurrentGuide => _registrationOutdated ? OutdatedGuide
+        : NotificationSetupGuide.For(_notificationAccess, NotificationSetup.FindDirectory() is not null);
     [ObservableProperty] private string _notificationSetupMessage = "";
     [ObservableProperty] private bool _notificationSetupBusy;
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(NotificationActionLabel), nameof(NotificationGuideDescription), nameof(NotificationGuideTitle), nameof(NotificationRegistrationStep))]
     private bool _notificationRestartNeeded;
-    public string NotificationGuideTitle => NotificationRestartNeeded ? "Restart to finish setup" : NotificationSetupGuide.For(_notificationAccess, NotificationSetup.FindDirectory() is not null).Title;
-    public string NotificationGuideDescription => NotificationRestartNeeded ? "Setup finished. Restart ATOLL to activate its Windows registration, then allow access here." : NotificationSetupGuide.For(_notificationAccess, NotificationSetup.FindDirectory() is not null).Description;
-    public string NotificationActionLabel => NotificationRestartNeeded ? "Restart ATOLL" : NotificationSetupGuide.For(_notificationAccess, NotificationSetup.FindDirectory() is not null).Action;
+    public string NotificationGuideTitle => NotificationRestartNeeded ? "Restart to finish setup" : CurrentGuide.Title;
+    public string NotificationGuideDescription => NotificationRestartNeeded ? "Setup finished. Restart ATOLL to activate its Windows registration, then allow access here." : CurrentGuide.Description;
+    public string NotificationActionLabel => NotificationRestartNeeded ? "Restart ATOLL" : CurrentGuide.Action;
     public string NotificationRegistrationStep => _notificationAccess == NotificationAccess.NeedsSetup && !NotificationRestartNeeded ? "1 · Register with Windows" : "1 · Windows registration ready";
     public string NotificationPermissionStep => _notificationAccess == NotificationAccess.Allowed ? "2 · Notification access allowed" : "2 · Allow notification access";
     public bool NotificationModuleEnabled
@@ -34,6 +40,7 @@ public sealed partial class SettingsViewModel
     private void RefreshNotificationAccess()
     {
         _notificationAccess = NotificationAccessInfo.Refresh();
+        _registrationOutdated = NotificationSetup.RegistrationOutdated();
         foreach (var property in new[] { nameof(NotificationStatus), nameof(CanRequestNotifications), nameof(NotificationsAllowed), nameof(NotificationGuideTitle),
             nameof(NotificationGuideDescription), nameof(NotificationActionLabel), nameof(NotificationRegistrationStep), nameof(NotificationPermissionStep), nameof(NotificationModuleEnabled) })
             OnPropertyChanged(property);
@@ -54,6 +61,7 @@ public sealed partial class SettingsViewModel
             return;
         }
         RefreshNotificationAccess();
+        if (_registrationOutdated) { await InstallRegistrationAsync(); return; }
         if (_notificationAccess == NotificationAccess.Allowed)
         {
             if (!NotificationModuleEnabled) { NotificationSetupMessage = "Turn on the Notifications feature below before previewing."; return; }
@@ -63,6 +71,11 @@ public sealed partial class SettingsViewModel
         }
         if (_notificationAccess == NotificationAccess.NeedsPermission) { await AllowNotifications(); return; }
         if (_notificationAccess != NotificationAccess.NeedsSetup) { NotificationAccessInfo.OpenWindowsSettings(); return; }
+        await InstallRegistrationAsync();
+    }
+
+    private async Task InstallRegistrationAsync()
+    {
         var directory = NotificationSetup.FindDirectory();
         if (directory is null)
         {
