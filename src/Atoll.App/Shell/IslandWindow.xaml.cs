@@ -226,10 +226,15 @@ public partial class IslandWindow : Window
     }
 
     /// <summary>Called by the manager whenever pause or the foreground app's state may have changed.</summary>
-    public void SetEnvironment(bool paused, ForegroundKind foreground)
+    /// <param name="foreground">Null while one of ATOLL's own windows is in front: keep the last answer.</param>
+    public void SetEnvironment(bool paused, ForegroundKind? foreground)
     {
         _paused = paused;
-        _foreground = foreground;
+        if (foreground is { } kind && kind != _foreground)
+        {
+            Log.Info($"Foreground on {Monitor.DeviceName}: {kind}");
+            _foreground = kind;
+        }
         if (paused || ShownWithoutReveal())
         {
             _revealed = false;
@@ -266,9 +271,11 @@ public partial class IslandWindow : Window
 
     private bool IsTopEdge(Point cursor)
     {
+        // Wide enough to find without looking: half the open island's width either side of center, top 12 px.
         var center = Monitor.Bounds.X + Monitor.Bounds.Width / 2.0;
-        return Math.Abs(cursor.X - center) <= Math.Max(120, CompactHeight * 3) * Monitor.Scale
-            && cursor.Y >= Monitor.Bounds.Y && cursor.Y <= Monitor.Bounds.Y + 5 * Monitor.Scale;
+        var halfWidth = Math.Max(200, Math.Clamp(_settings.Current.Theme.ExpandedWidth, 320, 900) / 2);
+        return Math.Abs(cursor.X - center) <= halfWidth * Monitor.Scale
+            && cursor.Y >= Monitor.Bounds.Y && cursor.Y <= Monitor.Bounds.Y + 12 * Monitor.Scale;
     }
 
     public void EnsureTopmost()
@@ -288,13 +295,13 @@ public partial class IslandWindow : Window
 
     /// <summary>
     /// Whether the island shows without an edge hold. PopUp shows only things that end on their own (alerts,
-    /// notifications, short indicators). Hide-when-idle hides an empty island unless it is open.
+    /// notifications, short indicators). Hide-when-idle hides an island that only has the clock unless it is open.
     /// </summary>
     internal static bool ShownWithoutReveal(FullscreenMode mode, bool hideWhenIdle, Activity? primary, bool open) => mode switch
     {
         FullscreenMode.Hide => false,
         FullscreenMode.PopUp => primary is { Alert: true } || primary?.Duration is not null,
-        _ => open || !hideWhenIdle || primary is not null,
+        _ => open || !hideWhenIdle || primary is { Priority: > ActivityPriority.Idle },
     };
 
     private bool ShownWithoutReveal() => ShownWithoutReveal(ModeFor(_foreground, _settings.Current),

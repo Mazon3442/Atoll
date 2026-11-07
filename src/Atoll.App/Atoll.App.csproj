@@ -29,6 +29,8 @@
 
   <ItemGroup>
     <InternalsVisibleTo Include="Atoll.Tests" />
+    <!-- Window icon for the settings window's taskbar button. -->
+    <Resource Include="..\..\packaging\identity\Assets\Atoll.ico" Link="Assets\Atoll.ico" />
     <Content Include="..\..\packaging\setup-identity.ps1" Link="NotificationSetup\setup-identity.ps1" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
     <Content Include="..\..\packaging\out\AtollDev.cer" Link="NotificationSetup\out\AtollDev.cer" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" Condition="Exists('..\..\packaging\out\AtollDev.cer')" />
     <Content Include="..\..\packaging\out\Atoll.Identity.msix" Link="NotificationSetup\out\Atoll.Identity.msix" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" Condition="Exists('..\..\packaging\out\Atoll.Identity.msix')" />

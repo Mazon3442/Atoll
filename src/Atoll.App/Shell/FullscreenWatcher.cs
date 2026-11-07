@@ -44,14 +44,21 @@ public sealed class FullscreenWatcher : IDisposable
 
     public event Action? Check;
 
-    public static ForegroundKind Classify(MonitorInfo monitor)
+    /// <summary>
+    /// What the foreground window on <paramref name="monitor"/> is doing, or null while one of ATOLL's own windows
+    /// (the open island, Settings) is in front: the caller keeps its last answer, because opening the island must
+    /// not make it forget the maximized or fullscreen app behind it.
+    /// </summary>
+    public static ForegroundKind? Classify(MonitorInfo monitor)
     {
         var hwnd = Native.GetForegroundWindow();
         if (hwnd == 0 || hwnd == Native.GetShellWindow() || hwnd == Native.GetDesktopWindow()) return ForegroundKind.Normal;
-        if (Native.MonitorFromWindow(hwnd, Native.MONITOR_DEFAULTTONULL) != monitor.Handle) return ForegroundKind.Normal;
 
         Native.GetWindowThreadProcessId(hwnd, out var pid);
-        if (pid == OwnProcessId) return ForegroundKind.Normal;
+        if (pid == OwnProcessId) return null;
+
+        // Monitor handles can change after sleep or a display change; bounds identify the display reliably.
+        if (Monitors.FromWindow(hwnd) is not { } shown || shown.Bounds != monitor.Bounds) return ForegroundKind.Normal;
 
         var cls = new StringBuilder(64);
         Native.GetClassName(hwnd, cls, cls.Capacity);

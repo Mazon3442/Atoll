@@ -38,6 +38,7 @@ public sealed partial class MediaModule : IIslandModule
     private bool _disposed;
     private readonly Dictionary<string, Session> _sessions = [];
     private readonly Dictionary<string, string> _appNames = [];
+    private readonly RecentSources _recent = new(TimeSpan.FromSeconds(5));
     private IReadOnlyList<AudioSource> _audioSources = [];
     private DispatcherTimer? _sourceTimer;
     private DispatcherTimer? _followTimer;
@@ -141,7 +142,7 @@ public sealed partial class MediaModule : IIslandModule
             var choices = _sessions.Select(pair => new MediaSourceChoice(pair.Key, DisplayName(pair.Value.SourceAppUserModelId))).ToList();
             foreach (var source in _audioSources.Where(a => !_sessions.Values.Any(s => Matches(s.SourceAppUserModelId, a.Name))))
                 choices.Add(new MediaSourceChoice("audio:" + source.ProcessId, source.Name + " (audio)"));
-            _vm.SetSources(choices);
+            _vm.SetSources(_recent.Update(choices, DateTimeOffset.UtcNow));
             if (_vm.SelectedSource is null) { FollowSystem(); return; }
             BindCurrentSession();
             // Catches a paused app that starts playing while it is already Windows' current session.
@@ -196,6 +197,9 @@ public sealed partial class MediaModule : IIslandModule
             }
         }
         var next = selected is null ? _manager.GetCurrentSession() : _sessions.GetValueOrDefault(selected);
+        // The selected player closed its session for a moment (a track change): keep showing it until it returns
+        // or its grace period ends, instead of flashing "Nothing playing" or another app.
+        if (next is null && selected is not null && _session is not null && _recent.Contains(selected)) return;
         if (ReferenceEquals(next, _session) && _audioOnlyId is null)
         {
             var pid = next is null ? null : _audioSources.FirstOrDefault(a => Matches(next.SourceAppUserModelId, a.Name))?.ProcessId;

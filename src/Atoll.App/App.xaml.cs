@@ -88,6 +88,7 @@ public partial class App : Application
                 existing.PageIndex = Math.Clamp(page, 0, existing.Pages.Count - 1);
                 if (page == 6) existing.WeatherLocationExpanded = true;
             }
+            if (_settingsWindow.WindowState == WindowState.Minimized) _settingsWindow.WindowState = WindowState.Normal;
             _settingsWindow.Activate();
             return;
         }

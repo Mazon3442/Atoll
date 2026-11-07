@@ -42,6 +42,7 @@ public class SettingsUiTests
         var vm = new SettingsViewModel(service, ModuleCatalog.All) { PageIndex = 1 };
         vm.AddCalendarCommand.Execute(null);
         var window = new SettingsWindow(vm);
+        Assert.NotNull(window.Icon); // its own taskbar icon
         window.Show();
         try
         {
