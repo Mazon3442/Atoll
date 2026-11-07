@@ -47,22 +47,38 @@ public static class SecretStore
         }
     }
 
+    private static readonly object KeyGate = new();
+    private static byte[]? _key;
+
+    /// <summary>The per-user key, read once. Callers on several threads share one load.</summary>
     private static byte[] ReadKey()
+    {
+        lock (KeyGate) return _key ??= LoadOrCreateKey();
+    }
+
+    private static byte[] LoadOrCreateKey()
     {
         var directory = Path.GetDirectoryName(SettingsStore.DefaultPath)!;
         Directory.CreateDirectory(directory);
         var path = Path.Combine(directory, "secrets.key");
         if (!File.Exists(path))
         {
+            // Write the whole key under a temporary name, then move it into place: another thread or process never
+            // sees a locked or half-written key file.
+            var temp = path + "." + Guid.NewGuid().ToString("N") + ".tmp";
             try
             {
                 var options = new FileStreamOptions { Mode = FileMode.CreateNew, Access = FileAccess.Write, Share = FileShare.None };
                 if (!OperatingSystem.IsWindows()) options.UnixCreateMode = UnixFileMode.UserRead | UnixFileMode.UserWrite;
-                using var stream = new FileStream(path, options);
-                stream.Write(RandomNumberGenerator.GetBytes(32));
-                stream.Flush(true);
+                using (var stream = new FileStream(temp, options))
+                {
+                    stream.Write(RandomNumberGenerator.GetBytes(32));
+                    stream.Flush(true);
+                }
+                try { File.Move(temp, path); }
+                catch (IOException) when (File.Exists(path)) { } // another process created it first; use theirs
             }
-            catch (IOException) when (File.Exists(path)) { }
+            finally { if (File.Exists(temp)) File.Delete(temp); }
         }
         if (!OperatingSystem.IsWindows())
             File.SetUnixFileMode(path, UnixFileMode.UserRead | UnixFileMode.UserWrite);

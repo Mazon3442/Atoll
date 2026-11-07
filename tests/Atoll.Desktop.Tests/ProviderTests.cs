@@ -160,6 +160,15 @@ public sealed class ProviderTests
         Assert.Contains("separate admin key", await ProviderMetrics.ReadAsync(openai with { AdminKey = null }, client, default)); Assert.Equal(3, seen.Count);
     }
 
+    [Fact]
+    public void Secrets_encrypt_and_decrypt_safely_from_many_threads_at_once()
+    {
+        // The first use creates the per-user key on Unix; concurrent first uses used to hit a locked or partial file.
+        var results = new string?[64];
+        Parallel.For(0, results.Length, i => results[i] = SecretStore.Unprotect(SecretStore.Protect("secret-" + i)));
+        for (var i = 0; i < results.Length; i++) Assert.Equal("secret-" + i, results[i]);
+    }
+
     [Theory]
     [InlineData("http://provider.example/v1/")]
     [InlineData("https://user:password@provider.example/v1/")]
