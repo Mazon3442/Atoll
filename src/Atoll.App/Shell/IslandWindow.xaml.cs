@@ -276,8 +276,9 @@ public partial class IslandWindow : Window
         var progress = (now - _edgeHoverSince.Value) / hold;
         if (progress < 1)
         {
-            // The line spans the whole top of the screen and fills from the center, where the island sits.
-            (_hint ??= new RevealHint()).Update(Monitor.Bounds.X, Monitor.Bounds.Y, Monitor.Bounds.Width, Monitor.Scale, progress);
+            // The line is as wide as the open island (the hold area) and fills from the center, where the island sits.
+            var (left, width) = HoldZone();
+            (_hint ??= new RevealHint()).Update((int)Math.Round(left), Monitor.Bounds.Y, (int)Math.Round(width), Monitor.Scale, progress);
             return;
         }
         ResetHold();
@@ -294,8 +295,8 @@ public partial class IslandWindow : Window
     }
 
     /// <summary>
-    /// Where a hold brings the island back, in physical pixels: wide enough to find without looking (half the open
-    /// island's width either side of center) and the top 12 px of the screen.
+    /// Where a hold brings the island back, in physical pixels: the open island's width (at least 400 px), centered,
+    /// and the top 12 px of the screen. The hold line covers the same width.
     /// </summary>
     private (double Left, double Width) HoldZone()
     {
