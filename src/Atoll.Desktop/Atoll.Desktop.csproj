@@ -32,6 +32,7 @@
     <Compile Include="../Atoll.App/Modules/Media/MediaNames.cs" Link="Modules/MediaNames.cs" />
     <Compile Include="../Atoll.App/Modules/Media/MediaArtwork.cs" Link="Modules/MediaArtwork.cs" />
     <Compile Include="../Atoll.App/Updates/UpdateService.cs" Link="UpdateService.cs" />
+    <Compile Include="../Atoll.App/Modules/Providers/*.cs" Link="Providers/%(Filename)%(Extension)" />
     <AvaloniaResource Include="../../packaging/identity/Assets/Square150x150Logo.png" Link="Assets/Atoll.png" />
     <InternalsVisibleTo Include="Atoll.Desktop.Tests" />
   </ItemGroup>

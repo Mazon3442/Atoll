@@ -1,7 +1,7 @@
 using System.Net;
 using System.Net.Http.Headers;
 using System.Text;
-using Atoll.Desktop.Providers;
+using Atoll.Modules.Providers;
 using Atoll.Modules.Claude;
 using Atoll.Settings;
 
@@ -158,6 +158,15 @@ public sealed class ProviderTests
         var text = await ProviderMetrics.ReadAsync(openai, client, default); Assert.Contains("organization today", text); Assert.Contains("1.25 usd", text);
         Assert.Equal(["api.deepseek.com Bearer upstream-secret", "api.openai.com Bearer admin-secret", "api.openai.com Bearer admin-secret"], seen);
         Assert.Contains("separate admin key", await ProviderMetrics.ReadAsync(openai with { AdminKey = null }, client, default)); Assert.Equal(3, seen.Count);
+    }
+
+    [Fact]
+    public void Secrets_encrypt_and_decrypt_safely_from_many_threads_at_once()
+    {
+        // The first use creates the per-user key on Unix; concurrent first uses used to hit a locked or partial file.
+        var results = new string?[64];
+        Parallel.For(0, results.Length, i => results[i] = SecretStore.Unprotect(SecretStore.Protect("secret-" + i)));
+        for (var i = 0; i < results.Length; i++) Assert.Equal("secret-" + i, results[i]);
     }
 
     [Theory]

@@ -713,7 +713,7 @@ public partial class IslandWindow : Window
     internal static int SettingsPageFor(string? tabId) => tabId switch
     {
         "notifications" => 3,
-        "claude" => 4,
+        "claude" or "providers" => 4,
         "clock" => 5,
         "weather" => 6,
         _ => 0,

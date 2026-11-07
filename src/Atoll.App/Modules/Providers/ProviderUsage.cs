@@ -1,6 +1,6 @@
 using System.Text.Json;
 
-namespace Atoll.Desktop.Providers;
+namespace Atoll.Modules.Providers;
 
 public sealed record ProviderTotals(long Requests = 0, long Failed = 0, long InputTokens = 0, long OutputTokens = 0, long UnknownUsage = 0);
 public sealed record RequestUsage(string? Model, long? InputTokens, long? OutputTokens);

@@ -37,6 +37,38 @@ public class SettingsInteractionTests
     }
 
     [Fact]
+    public void Adding_an_api_key_validates_and_encrypts_it_and_switches_the_feature_on()
+    {
+        var service = new SettingsService(new SettingsStore(Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".json")));
+        using var vm = new SettingsViewModel(service, ModuleCatalog.All);
+        vm.Weather.Dispose();
+        Assert.False(service.Current.Modules.Single(m => m.Id == "providers").Enabled); // no empty tab for new users
+
+        vm.ProviderPreset = "";
+        vm.NewProviderName = "Local model";
+        vm.NewProviderUrl = "http://localhost:8080/v1/";
+        Assert.False(vm.AddProvider("sk-test", ""));
+        Assert.Contains("HTTPS", vm.ProviderMessage);
+        vm.ProviderPreset = "https://api.anthropic.com/v1/";
+        Assert.Equal(("Anthropic", "https://api.anthropic.com/v1/"), (vm.NewProviderName, vm.NewProviderUrl));
+        Assert.False(vm.AddProvider("", ""));
+        Assert.Empty(service.Current.Providers.Accounts);
+
+        Assert.True(vm.AddProvider("  sk-ant-test  ", ""));
+        var account = Assert.Single(service.Current.Providers.Accounts);
+        Assert.DoesNotContain("sk-ant-test", account.EncryptedKey);
+        Assert.Equal("sk-ant-test", SecretStore.Unprotect(account.EncryptedKey));
+        Assert.True(vm.GatewayEnabled);
+        Assert.True(vm.GatewayToken().Length >= 32);
+        Assert.True(service.Current.Modules.Single(m => m.Id == "providers").Enabled);
+        Assert.Equal($"http://127.0.0.1:47831/providers/{account.Id}/v1", Assert.Single(vm.ProviderAccounts).GatewayUrl);
+
+        vm.RemoveProviderCommand.Execute(vm.ProviderAccounts[0]);
+        Assert.Empty(service.Current.Providers.Accounts);
+        Assert.Empty(vm.ProviderAccounts);
+    }
+
+    [Fact]
     public void Modules_page_orders_whole_tabs_the_way_the_island_shows_them()
     {
         var service = new SettingsService(new SettingsStore(Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".json")));
@@ -48,7 +80,9 @@ public class SettingsInteractionTests
         using var vm = new SettingsViewModel(service, ModuleCatalog.All);
 
         // One card per tab, placed where the island puts it: at its first switched-on feature.
-        Assert.Equal(["System", "Agents", "Media", "Files", "Notifications", "Clock & calendar", "Weather"], vm.ModuleTabs.Select(t => t.Name));
+        // API keys is new to these saved settings, so it is added switched off at the end.
+        Assert.Equal(["System", "Agents", "Media", "Files", "Notifications", "Clock & calendar", "Weather", "API keys"], vm.ModuleTabs.Select(t => t.Name));
+        Assert.False(vm.ModuleTabs.Single(t => t.Id == "providers").IsShown);
         Assert.Equal(["System", "Agents", "Media", "Files", "Notifications", "Clock & calendar"], vm.ModuleTabs.Where(t => t.IsShown).Select(t => t.Name));
         Assert.Equal(["Status popups", "Live graphs", "Quick actions"], vm.ModuleTabs[0].Features.Select(f => f.Name));
         Assert.True(vm.ModuleTabs[0].IsFirst);

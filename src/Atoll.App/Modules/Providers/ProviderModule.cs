@@ -1,12 +1,17 @@
+using System.Net.Http;
 using System.Collections.ObjectModel;
 using System.Security.Cryptography;
 using Atoll.Activities;
 using Atoll.Modules;
 using Atoll.Settings;
+#if AVALONIA
 using Avalonia.Threading;
+#else
+using System.Windows.Threading;
+#endif
 using CommunityToolkit.Mvvm.ComponentModel;
 
-namespace Atoll.Desktop.Providers;
+namespace Atoll.Modules.Providers;
 
 public sealed partial class ProviderRow(string id, string name) : ObservableObject
 {
@@ -89,7 +94,8 @@ public sealed class ProviderModule : IIslandModule
         finally { _lifecycle.Release(); }
         if (!_disposed) RefreshMetrics(null, EventArgs.Empty);
     }
-    private void GatewayChanged() => Dispatcher.UIThread.Post(Update);
+    // The gateway raises Changed on request threads.
+    private void GatewayChanged() => _ = _context?.Dispatcher.InvokeAsync(Update);
     private void Update()
     {
         if (_disposed || _gateway is null || _ledger is null) return;

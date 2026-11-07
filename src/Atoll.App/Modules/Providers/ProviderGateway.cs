@@ -1,3 +1,4 @@
+using System.Net.Http;
 using System.Collections.Concurrent;
 using System.Net;
 using System.Net.Http.Headers;
@@ -12,7 +13,7 @@ using Microsoft.AspNetCore.Hosting.Server.Features;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
-namespace Atoll.Desktop.Providers;
+namespace Atoll.Modules.Providers;
 
 public sealed record ProviderEndpoint(string Id, string Name, Uri BaseUri, string Key, string? AdminKey)
 {

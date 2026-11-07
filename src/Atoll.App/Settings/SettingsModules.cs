@@ -15,6 +15,7 @@ public sealed partial class SettingsViewModel
     private static readonly (string Id, string Name, string Description)[] TabInfo =
     [
         ("claude", "Agents", "Claude Code, Codex, OpenCode and Hermes sessions, with alerts when they finish or need you."),
+        ("providers", "API keys", "Live requests and token totals for your own OpenAI, Anthropic, DeepSeek or compatible API keys."),
         ("media", "Media", "What's playing, with controls, seeking and the volume slider."),
         ("notifications", "Notifications", "Windows notifications, mirrored into the island."),
         ("clock", "Clock & calendar", "The time, timers and your upcoming events."),
@@ -41,7 +42,7 @@ public sealed partial class SettingsViewModel
     {
         // Every catalog feature gets an entry; ModuleManager adds missing ones the same way at startup.
         foreach (var d in catalog.Where(d => S.Modules.All(e => e.Id != d.Id)))
-            S.Modules.Add(new ModuleEntry { Id = d.Id, Enabled = true });
+            S.Modules.Add(new ModuleEntry { Id = d.Id, Enabled = d.EnabledByDefault });
 
         // A tab sits where its first switched-on feature sits; the island orders tabs the same way.
         int Rank(string tab)

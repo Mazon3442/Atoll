@@ -31,7 +31,7 @@ public sealed class DesktopModules : IDisposable
     public static IReadOnlyList<(string Id, string Name, Func<IIslandModule> Create)> Catalog { get; } =
     [
         ("claude", "Agents", () => new ClaudeModule()),
-        ("providers", "API providers", () => new Providers.ProviderModule()),
+        ("providers", "API providers", () => new Atoll.Modules.Providers.ProviderModule()),
         ("media", "Media", () => new MediaModule()),
         ("clock", "Clock & timer", () => new ClockModule()),
         ("calendar", "Calendar", () => new CalendarModule()),

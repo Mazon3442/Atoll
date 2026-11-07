@@ -35,6 +35,7 @@ public sealed partial class SettingsViewModel : ObservableObject
         BuildModuleTabs(catalog);
         Displays = new(Shell.Monitors.GetAll().Select(m => new DisplayRow(m, S, Save)));
         CalendarSources = new(S.Calendar.Sources.Select(s => new CalendarSourceRow(s) { Url = SecretStore.Unprotect(s.EncryptedUrl) ?? "" }));
+        LoadProviderAccounts();
         RebuildThemes();
     }
 
@@ -66,7 +67,7 @@ public sealed partial class SettingsViewModel : ObservableObject
         1 => "Make the island yours. Changes apply automatically.",
         2 => "Choose what appears in your island.",
         3 => "Decide which notifications reach you and what they show.",
-        4 => "Connect your coding agents and choose their alert sounds.",
+        4 => "Connect coding agents or your own API keys, and choose alert sounds.",
         5 => "Connect calendars and set event reminders.",
         6 => "Choose a place and explore its forecast.",
         7 => "Version, updates, and local app data.",

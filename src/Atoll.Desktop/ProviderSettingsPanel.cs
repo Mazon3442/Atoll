@@ -1,5 +1,5 @@
 using System.Security.Cryptography;
-using Atoll.Desktop.Providers;
+using Atoll.Modules.Providers;
 using Atoll.Settings;
 using Avalonia.Automation;
 using Avalonia.Controls;

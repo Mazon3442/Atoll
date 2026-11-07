@@ -105,6 +105,15 @@ public class SettingsUiTests
                         Assert.Equal(0, scroll.HorizontalOffset);
                         Assert.True(scroll.ExtentWidth <= scroll.ViewportWidth + 1);
                         Render(window, $"{mode}-{width}-{page}");
+                        if (page == 4)
+                        {
+                            // The API keys section sits below the agent adapters.
+                            var keys = (FrameworkElement)window.FindName("ProviderList");
+                            scroll.ScrollToVerticalOffset(keys.TranslatePoint(new Point(), (UIElement)scroll.Content).Y - 160);
+                            Drain(); window.UpdateLayout();
+                            Render(window, $"{mode}-{width}-4-api-keys");
+                            scroll.ScrollToVerticalOffset(0);
+                        }
                     }
                 }
             }
