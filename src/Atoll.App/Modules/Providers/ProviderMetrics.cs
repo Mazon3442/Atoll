@@ -1,8 +1,9 @@
+using System.Net.Http;
 using System.Globalization;
 using System.Net.Http.Headers;
 using System.Text.Json;
 
-namespace Atoll.Desktop.Providers;
+namespace Atoll.Modules.Providers;
 
 public static class ProviderMetrics
 {

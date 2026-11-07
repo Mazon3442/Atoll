@@ -14,6 +14,7 @@ using Atoll.Modules.Media;
 using Atoll.Modules.Shelf;
 using Atoll.Modules.Stats;
 using Atoll.Modules.Notifications;
+using Atoll.Modules.Providers;
 
 namespace Atoll.Tests;
 
@@ -32,6 +33,7 @@ public class GroupedPanelsTests
         var panels = new Dictionary<string, object>
         {
             ["claude"] = new ClaudeViewModel(new ClaudeSessionTracker(TimeProvider.System)),
+            ["providers"] = new ProviderViewModel(),
             ["media"] = player,
             ["notifications"] = new object(),
             ["clock"] = new ClockPanelViewModel(clock, new TimerViewModel(TimeProvider.System)),
@@ -47,11 +49,11 @@ public class GroupedPanelsTests
     }
 
     [Fact]
-    public void Eleven_modules_become_seven_tabs_with_stable_identity_and_legacy_routes()
+    public void Twelve_modules_become_eight_tabs_with_stable_identity_and_legacy_routes()
     {
         var modules = Modules();
         var tabs = PanelGroups.Combine(modules);
-        Assert.Equal(["claude", "media", "notifications", "clock", "system", "shelf", "weather"], tabs.Select(t => t.Descriptor.Id));
+        Assert.Equal(["claude", "providers", "media", "notifications", "clock", "system", "shelf", "weather"], tabs.Select(t => t.Descriptor.Id));
         Assert.Equal(tabs, PanelGroups.Combine(modules));
         foreach (var module in modules)
             Assert.Single(tabs, t => t.Contains(module.Descriptor.Id));
@@ -64,6 +66,7 @@ public class GroupedPanelsTests
     [Theory]
     [InlineData("clock", 5)]
     [InlineData("claude", 4)]
+    [InlineData("providers", 4)]
     [InlineData("notifications", 3)]
     [InlineData("weather", 6)]
     [InlineData("media", 0)]
@@ -90,7 +93,7 @@ public class GroupedPanelsTests
     {
         var resources = new ResourceDictionary();
         Application.Current.Resources = resources;
-        foreach (var file in new[] { "Theme/Theme.xaml", "Theme/Indicators.xaml", "Modules/Claude/ClaudeTemplates.xaml",
+        foreach (var file in new[] { "Theme/Theme.xaml", "Theme/Indicators.xaml", "Modules/Claude/ClaudeTemplates.xaml", "Modules/Providers/ProviderTemplates.xaml",
             "Modules/Clock/ClockTemplates.xaml", "Modules/Media/MediaTemplates.xaml", "Modules/Notifications/NotificationTemplates.xaml",
             "Modules/Shelf/ShelfTemplates.xaml", "Modules/Clipboard/ClipboardTemplates.xaml", "Modules/Stats/StatsTemplates.xaml",
             "Modules/Weather/WeatherTemplates.xaml", "Modules/Indicators/IndicatorsTemplates.xaml", "Modules/Calendar/CalendarTemplates.xaml",

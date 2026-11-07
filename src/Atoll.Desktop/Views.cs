@@ -59,7 +59,7 @@ internal static class Views
         var path = content switch
         {
             ClockViewModel => "Time", TimerViewModel => "Display", ClaudeViewModel => "Current.Project",
-            ClaudeAlertViewModel => "Title", Providers.ProviderViewModel => "Activity", MediaViewModel => "Title", NextEventViewModel => "Title",
+            ClaudeAlertViewModel => "Title", Atoll.Modules.Providers.ProviderViewModel => "Activity", MediaViewModel => "Title", NextEventViewModel => "Title",
             CalendarAlertViewModel => "Title", IndicatorViewModel => "Title",
 #if WINDOWS
             Atoll.Modules.Notifications.NotificationItemViewModel => "Title",
@@ -78,7 +78,7 @@ internal static class Views
             PanelGroup group => Stack(group.Modules.Select(m => Views.Stack(Label(m.Name, 18), For(m.Panel))).ToArray()),
             ClockPanelViewModel clock => Clock(clock), CalendarViewModel calendar => Calendar(calendar),
             WeatherViewModel weather => Weather(weather), ClaudeViewModel agents => Agents(agents),
-            Providers.ProviderViewModel providers => Stack(Text("Status", 12), new ItemsControl { ItemsSource = providers.Providers, ItemTemplate = new FuncDataTemplate<Providers.ProviderRow>((row, _) => row is null ? null : Context(Stack(Text("Name", 18), Text("Activity"), Text("Totals", 12), Text("Metrics", 12)), row)) }),
+            Atoll.Modules.Providers.ProviderViewModel providers => Stack(Text("Status", 12), new ItemsControl { ItemsSource = providers.Providers, ItemTemplate = new FuncDataTemplate<Atoll.Modules.Providers.ProviderRow>((row, _) => row is null ? null : Context(Stack(Text("Name", 18), Text("Activity"), Text("Totals", 12), Text("Metrics", 12)), row)) }),
             ShelfViewModel shelf => Shelf(shelf), ClipboardModule clipboard => Clipboard(clipboard),
             MediaViewModel media => Media(media), SystemPanelViewModel devices => Devices(devices),
             StatisticsModule => Stack(Label("System stats", 18), Text("Cpu", 32), Label("CPU"), Text("Memory", 24), Label("Memory in use"), Text("Network", 24), Label("Network traffic"), Text("Status")),

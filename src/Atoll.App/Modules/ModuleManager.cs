@@ -12,6 +12,7 @@ using Atoll.Modules.Clock;
 using Atoll.Modules.Indicators;
 using Atoll.Modules.Media;
 using Atoll.Modules.Notifications;
+using Atoll.Modules.Providers;
 using Atoll.Settings;
 
 namespace Atoll.Modules;
@@ -21,6 +22,8 @@ public static class ModuleCatalog
     public static IReadOnlyList<ModuleDescriptor> All { get; } =
     [
         new("claude", "Agents", "", () => new ClaudeModule()),
+        // Off until the user adds an API key in Settings.
+        new("providers", "API keys", "", () => new ProviderModule(), EnabledByDefault: false),
         new("media", "Media", "", () => new MediaModule()),
         new("notifications", "Notifications", "", () => new NotificationsModule()),
         new("clock", "Clock & timer", "", () => new ClockModule()),
@@ -56,7 +59,7 @@ public sealed class ModuleManager(
     {
         var entries = settings.Current.Modules;
         foreach (var d in catalog.Where(d => entries.All(e => e.Id != d.Id)))
-            entries.Add(new ModuleEntry { Id = d.Id, Enabled = true });
+            entries.Add(new ModuleEntry { Id = d.Id, Enabled = d.EnabledByDefault });
 
         var wanted = entries
             .Where(e => e.Enabled)

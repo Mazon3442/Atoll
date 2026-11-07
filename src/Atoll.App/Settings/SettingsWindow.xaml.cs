@@ -24,6 +24,43 @@ public partial class SettingsWindow : Window
         DataContext = viewModel;
     }
 
+    private SettingsViewModel Vm => (SettingsViewModel)DataContext;
+
+    private void OnAddProvider(object sender, RoutedEventArgs e)
+    {
+        if (!Vm.AddProvider(ProviderKey.Password, ProviderMetricsKey.Password)) return;
+        ProviderKey.Clear();
+        ProviderMetricsKey.Clear();
+    }
+
+    private void OnCopyGatewayToken(object sender, RoutedEventArgs e) =>
+        CopyToClipboard(Vm.GatewayToken(), secret: true, "Gateway token copied. Use it as your app's API key.");
+
+    private void OnCopyProviderAddress(object sender, RoutedEventArgs e) =>
+        CopyToClipboard((string)((FrameworkElement)sender).Tag, secret: false, "Address copied. Use it as your app's API base URL.");
+
+    /// <summary>Secrets are marked so clipboard history, cloud clipboard and ATOLL's own history skip them.</summary>
+    private void CopyToClipboard(string text, bool secret, string done)
+    {
+        try
+        {
+            var data = new DataObject();
+            data.SetText(text);
+            if (secret)
+            {
+                data.SetData("ExcludeClipboardContentFromMonitorProcessing", new MemoryStream([1, 0, 0, 0]));
+                data.SetData("CanIncludeInClipboardHistory", new MemoryStream([0, 0, 0, 0]));
+                data.SetData("CanUploadToCloudClipboard", new MemoryStream([0, 0, 0, 0]));
+            }
+            Clipboard.SetDataObject(data, copy: true);
+            Vm.ReportProviderMessage(done);
+        }
+        catch (System.Runtime.InteropServices.ExternalException)
+        {
+            Vm.ReportProviderMessage("Couldn't copy to the clipboard. Try again.");
+        }
+    }
+
     private Point _moduleDragOrigin;
     private void OnModuleDragStart(object sender, MouseButtonEventArgs e) => _moduleDragOrigin = e.GetPosition(this);
     private void OnModuleDragMove(object sender, MouseEventArgs e)

@@ -1,7 +1,7 @@
 using System.Net;
 using System.Net.Http.Headers;
 using System.Text;
-using Atoll.Desktop.Providers;
+using Atoll.Modules.Providers;
 using Atoll.Modules.Claude;
 using Atoll.Settings;
 
