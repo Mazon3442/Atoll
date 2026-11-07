@@ -49,9 +49,25 @@ switch ($hostOs) {
         if ($LASTEXITCODE -ne 0) { throw 'macOS packaging failed.' }
     }
 }
+# A freshly written package can be held open for a moment by the OS (macOS scans new disk images), so retry briefly.
+function Get-PackageHash([string]$Path) {
+    for ($attempt = 1; ; $attempt++) {
+        try {
+            $stream = [IO.File]::Open($Path, 'Open', 'Read', 'Read')
+            try {
+                $sha = [Security.Cryptography.SHA256]::Create()
+                try { return (($sha.ComputeHash($stream) | ForEach-Object { $_.ToString('x2') }) -join '') } finally { $sha.Dispose() }
+            }
+            finally { $stream.Dispose() }
+        }
+        catch [System.IO.IOException] {
+            if ($attempt -ge 30) { throw }
+            Start-Sleep -Seconds 1
+        }
+    }
+}
 $hashes = Get-ChildItem -LiteralPath $packages -File | Sort-Object Name | ForEach-Object {
-    $hash = (Get-FileHash -LiteralPath $_.FullName -Algorithm SHA256).Hash.ToLowerInvariant()
-    "$hash  $($_.Name)"
+    "$(Get-PackageHash $_.FullName)  $($_.Name)"
 }
 [IO.File]::WriteAllLines((Join-Path $packages "SHA256SUMS-$RuntimeIdentifier.txt"), [string[]]$hashes, [Text.UTF8Encoding]::new($false))
 Write-Output "Release packages: $packages"
