@@ -140,6 +140,11 @@ public class AgentIntegrationTests
             Assert.Contains("ATOLL agent integration", script);
             Assert.DoesNotContain("__ATOLL_HOOK_EXE__", script);
             Assert.Contains("Apps", script);
+            if (agent == "opencode")
+            {
+                Assert.Contains("Plugin.define", script);
+                Assert.Contains("async setup", script);
+            }
         }
     }
 
