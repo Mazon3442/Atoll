@@ -1,6 +1,8 @@
 # Builds and signs packaging\out\Atoll.Identity.msix (developer machine; needs the Windows SDK).
 # Creates the signing certificate "CN=Atoll Dev" in your personal store (Cert:\CurrentUser\My) on
 # first run and exports its public part to packaging\out\AtollDev.cer. Changes no trust settings.
+# -Version X.Y.Z (releases) stamps the package as X.Y.Z.0 so a newer ATOLL can detect and replace an older registration.
+param([string]$Version)
 $ErrorActionPreference = "Stop"
 $root = $PSScriptRoot
 $out = Join-Path $root "out"
@@ -27,6 +29,13 @@ if (-not $cert) {
 if (Test-Path $stage) { Remove-Item $stage -Recurse -Force }
 New-Item -ItemType Directory -Force $stage | Out-Null
 Copy-Item (Join-Path $root "identity\*") $stage -Recurse
+if ($Version) {
+    if ($Version -notmatch '^\d+\.\d+\.\d+$') { throw "Version must be X.Y.Z." }
+    $manifestPath = Join-Path $stage "AppxManifest.xml"
+    $manifest = [xml](Get-Content $manifestPath -Raw)
+    $manifest.Package.Identity.Version = "$Version.0"
+    $manifest.Save($manifestPath)
+}
 Export-Certificate -Cert $cert -FilePath (Join-Path $out "AtollDev.cer") | Out-Null
 
 $msix = Join-Path $out "Atoll.Identity.msix"

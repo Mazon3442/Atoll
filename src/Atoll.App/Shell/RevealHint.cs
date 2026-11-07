@@ -6,12 +6,12 @@ using System.Windows.Media;
 namespace Atoll.Shell;
 
 /// <summary>
-/// A thin line at the top of the screen that fills from the center while the pointer is held there to bring back a
+/// A line across the top of the screen that fills from the center while the pointer is held there to bring back a
 /// hidden island. It is click-through and never activated, so it cannot get in the way of the app underneath.
 /// </summary>
 internal sealed class RevealHint : Window
 {
-    private const double LineHeight = 3;
+    private const double LineHeight = 4;
     private readonly ScaleTransform _fill = new(0, 1);
     private nint _hwnd;
 

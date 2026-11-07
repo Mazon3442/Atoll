@@ -276,8 +276,8 @@ public partial class IslandWindow : Window
         var progress = (now - _edgeHoverSince.Value) / hold;
         if (progress < 1)
         {
-            var (left, width) = HoldZone();
-            (_hint ??= new RevealHint()).Update((int)left, Monitor.Bounds.Y, (int)width, Monitor.Scale, progress);
+            // The line spans the whole top of the screen and fills from the center, where the island sits.
+            (_hint ??= new RevealHint()).Update(Monitor.Bounds.X, Monitor.Bounds.Y, Monitor.Bounds.Width, Monitor.Scale, progress);
             return;
         }
         ResetHold();

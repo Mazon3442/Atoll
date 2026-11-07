@@ -33,7 +33,7 @@ public sealed class AppSettings
     /// How long to hold the pointer at the top edge, near the island, to bring back a hidden island. Replaces
     /// RevealHoldMs (3 s), which v1.0.2 saved for everyone; the old value is ignored so the shorter default applies.
     /// </summary>
-    public int EdgeHoldMs { get; set; } = 1500;
+    public int EdgeHoldMs { get; set; } = 1000;
 
     /// <summary>
     /// The compact island lets clicks through to the app behind it (e.g. browser tabs) and fades
