@@ -101,8 +101,8 @@ public sealed partial class SettingsViewModel : ObservableObject
     public bool HideWhenIdle { get => S.HideWhenIdle; set => Set(S.HideWhenIdle, value, v => S.HideWhenIdle = v); }
     public double RevealHoldSeconds
     {
-        get => S.RevealHoldMs / 1000.0;
-        set => Set(S.RevealHoldMs, (int)Math.Round(Math.Clamp(value, 0.5, 5) * 1000), v => S.RevealHoldMs = v);
+        get => S.EdgeHoldMs / 1000.0;
+        set => Set(S.EdgeHoldMs, (int)Math.Round(Math.Clamp(value, 0.5, 5) * 1000), v => S.EdgeHoldMs = v);
     }
     public int HoverDelayMs { get => S.HoverDelayMs; set => Set(S.HoverDelayMs, value, v => S.HoverDelayMs = v); }
     public double TopOffset { get => S.TopOffset; set => Set(S.TopOffset, value, v => S.TopOffset = v); }
