@@ -261,6 +261,12 @@ public class SettingsUiTests
             hidden.CheckFullscreenEdge(top, start + TimeSpan.FromMilliseconds(500));
             var hint = Application.Current.Windows.OfType<RevealHint>().Single();
             Assert.True(hint.IsVisible);
+            // As wide as the open island, centered, 4 px tall.
+            Assert.True(Native.GetWindowRect(new System.Windows.Interop.WindowInteropHelper(hint).Handle, out var line));
+            var scale = hidden.Monitor.Scale;
+            Assert.InRange(line.Right - line.Left, service.Current.Theme.ExpandedWidth * scale - 2, service.Current.Theme.ExpandedWidth * scale + 2);
+            Assert.InRange((line.Left + line.Right) / 2.0, bounds.X + bounds.Width / 2.0 - 2, bounds.X + bounds.Width / 2.0 + 2);
+            Assert.InRange(line.Bottom - line.Top, 1, Math.Ceiling(4 * scale));
             Assert.False(hidden.IsVisible);
             hidden.CheckFullscreenEdge(top, start + TimeSpan.FromMilliseconds(1000));
             Assert.True(hidden.IsVisible);
