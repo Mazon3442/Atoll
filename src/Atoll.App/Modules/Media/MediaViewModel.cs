@@ -88,6 +88,17 @@ public sealed partial class MediaViewModel(Func<Task> playPause, Func<Task> next
         if (newValue >= 0 && newValue < LyricLines.Count) LyricLines[newValue].IsCurrent = true;
     }
 
+    /// <summary>The Show lyrics setting, switched from the panel's lyrics button.</summary>
+    [ObservableProperty] private bool _showLyrics = true;
+    public event Action<bool>? ShowLyricsToggled;
+
+    [RelayCommand]
+    private void ToggleLyrics()
+    {
+        ShowLyrics = !ShowLyrics;
+        ShowLyricsToggled?.Invoke(ShowLyrics);
+    }
+
     public void SetLyrics(IEnumerable<string> lines)
     {
         LyricIndex = -1;

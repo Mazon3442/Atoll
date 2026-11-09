@@ -177,12 +177,12 @@ internal static class AgentMediaUi
         var media = new MediaViewModel(() => Task.CompletedTask, () => Task.CompletedTask, () => Task.CompletedTask, _ => Task.CompletedTask)
         { HasSession = true, HasTimeline = true, Title = "Song", Artist = "Artist", Lyric = "And the words appear in time", HasLyrics = true, PositionText = "1:02", DurationText = "3:30", Progress = 0.3 };
         media.SetLyrics(["I will fold one more for you", "♪", "And the words appear in time", "two lost waves now one", "keep the light at the top"]);
-        media.LyricIndex = 2;
+        media.LyricIndex = 2; Assert.True(media.ShowLyrics);
         Assert.True(media.LyricLines[2].IsCurrent);
         media.Sources.Add(new("media:spotify", "Spotify")); media.Follow("media:spotify");
         media.SetOutputs([new("a", "Speakers (Realtek Audio)"), new("b", "Headphones (MX Sound)")], "b");
         Assert.True(media.HasOutputs);
-        Render(media, "MediaViewModel.Panel", "media-panel", 680, 200);
+        Render(media, "MediaViewModel.Panel", "media-panel", 600, 180);
 
         var stats = new StatsViewModel();
         stats.Devices.Add(new DeviceBattery("MX Anywhere 2S", 90));

@@ -68,6 +68,7 @@ public sealed partial class MediaModule : IIslandModule
         _levels.Unavailable += () => OnUi(() => _vm.VisualizerNote = "Audio visualization is unavailable for this source on this Windows version.");
         _vm.SourceChanged += _ => BindCurrentSession();
         _vm.OutputChanged += id => _ = SwitchOutputAsync(id);
+        _vm.ShowLyricsToggled += on => { if (_context is { } c) { c.Settings.Current.ShowLyrics = on; c.Settings.NotifyChanged(); } _ = LoadLyricsAsync(_vm.Artist, _vm.Title); };
         _vm.VolumeScopeChanged += app => { if (_context is { } c) { c.Settings.Current.VolumeControlsApp = app; c.Settings.NotifyChanged(); } };
         _vm.AppVolumeChanged += level =>
         {
@@ -83,6 +84,7 @@ public sealed partial class MediaModule : IIslandModule
     {
         _context = context;
         _vm.VolumeControlsApp = context.Settings.Current.VolumeControlsApp;
+        _vm.ShowLyrics = context.Settings.Current.ShowLyrics;
         _vm.ApplyTheme(context.Settings.Current.Theme);
         context.Settings.Changed += OnThemeChanged;
         _progressTimer = new DispatcherTimer(DispatcherPriority.Background) { Interval = TimeSpan.FromMilliseconds(250) }; // lyrics change on time
@@ -142,7 +144,14 @@ public sealed partial class MediaModule : IIslandModule
         BindCurrentSession();
     }
     private void OnSessionsChanged(SessionManager sender, SessionsChangedEventArgs args) => OnUi(RefreshSources);
-    private void OnThemeChanged() => _vm.ApplyTheme(_context!.Settings.Current.Theme);
+    private void OnThemeChanged()
+    {
+        var settings = _context!.Settings.Current;
+        _vm.ApplyTheme(settings.Theme);
+        if (_vm.ShowLyrics == settings.ShowLyrics) return;
+        _vm.ShowLyrics = settings.ShowLyrics; // switched in the panel or in Settings
+        _ = LoadLyricsAsync(_vm.Artist, _vm.Title);
+    }
 
     private void RefreshSources()
     {
@@ -271,13 +280,25 @@ public sealed partial class MediaModule : IIslandModule
         if (ReferenceEquals(sender, _session)) RefreshTimeline();
     });
 
-    private async Task RefreshPropertiesAsync(Session session)
+    private async Task RefreshPropertiesAsync(Session session, int attempt = 0)
     {
         var version = ++_propertiesVersion;
         try
         {
             var props = await session.TryGetMediaPropertiesAsync();
-            var art = await ImageLoader.LoadAsync(props.Thumbnail, 240);
+            var art = await ImageLoader.LoadAsync(props.Thumbnail, 240).ContinueWith(t =>
+            {
+                if (t.IsFaulted) Log.Info($"Album art unreadable ({t.Exception!.InnerException?.GetType().Name})."); // keep the title
+                return t.IsCompletedSuccessfully ? t.Result : null;
+            }, TaskScheduler.Default);
+            if (_disposed || !ReferenceEquals(session, _session) || version != _propertiesVersion) { if (art is IDisposable disposable) disposable.Dispose(); return; }
+
+            // Players often announce a new track before its cover is ready and send no second event: ask again.
+            if (art is null && !string.IsNullOrEmpty(props.Title) && attempt < 3)
+                _ = Task.Delay(TimeSpan.FromSeconds(1 + attempt * 2)).ContinueWith(_ => OnUi(() =>
+                {
+                    if (version == _propertiesVersion && ReferenceEquals(session, _session)) _ = RefreshPropertiesAsync(session, attempt + 1);
+                }), TaskScheduler.Default);
             if (_disposed || !ReferenceEquals(session, _session) || version != _propertiesVersion) { if (art is IDisposable disposable) disposable.Dispose(); return; }
 
             _vm.Title = props.Title ?? "";
