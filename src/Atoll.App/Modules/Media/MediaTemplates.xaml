@@ -89,7 +89,47 @@
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="Auto" />
                     <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
                 </Grid.ColumnDefinitions>
+
+                <!-- Synced lyrics: the song scrolls past, the sung line bright and the rest dimmed, faded at the edges. -->
+                <Border Grid.Column="2" Width="240" Height="150" Margin="22,0,0,0" ClipToBounds="True" Background="Transparent"
+                        VerticalAlignment="Center" Loaded="LyricsLoaded" Unloaded="LyricsUnloaded"
+                        AutomationProperties.Name="{Binding Lyric, StringFormat=Lyrics: {0}}"
+                        Visibility="{Binding HasLyrics, Converter={StaticResource Island.BoolToVisibility}}">
+                    <Border.OpacityMask>
+                        <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                            <GradientStop Color="Transparent" Offset="0" />
+                            <GradientStop Color="Black" Offset="0.28" />
+                            <GradientStop Color="Black" Offset="0.7" />
+                            <GradientStop Color="Transparent" Offset="1" />
+                        </LinearGradientBrush>
+                    </Border.OpacityMask>
+                    <Canvas>
+                        <ItemsControl ItemsSource="{Binding LyricLines}" Width="240" Focusable="False">
+                            <ItemsControl.RenderTransform><TranslateTransform /></ItemsControl.RenderTransform>
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <TextBlock Text="{Binding Text}" FontSize="15" FontWeight="Bold" TextWrapping="Wrap" Margin="0,4">
+                                        <TextBlock.Style>
+                                            <Style TargetType="TextBlock">
+                                                <Setter Property="Foreground" Value="{DynamicResource Island.Subtle}" />
+                                                <Setter Property="Opacity" Value="0.5" />
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding IsCurrent}" Value="True">
+                                                        <Setter Property="Foreground" Value="{DynamicResource Island.Foreground}" />
+                                                        <Setter Property="Opacity" Value="1" />
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </TextBlock.Style>
+                                    </TextBlock>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </Canvas>
+                </Border>
+
                 <ContentPresenter Content="{Binding}" ContentTemplate="{StaticResource Media.Art}" Tag="14"
                                   Width="120" Height="120" VerticalAlignment="Center" />
 
@@ -112,10 +152,6 @@
                             </ComboBox.ItemTemplate>
                         </ComboBox>
                     </StackPanel>
-                    <TextBlock Text="{Binding Lyric}" FontSize="13" FontWeight="SemiBold" Margin="0,4,0,0" MinHeight="17"
-                               Foreground="{Binding Visualizer.Color}" TextTrimming="CharacterEllipsis"
-                               ToolTip="{Binding Lyric}" AutomationProperties.Name="Lyrics"
-                               Visibility="{Binding HasLyrics, Converter={StaticResource Island.BoolToVisibility}}" />
 
                     <StackPanel Margin="0,6,0,0" Visibility="{Binding HasTimeline, Converter={StaticResource Island.BoolToVisibility}}">
                         <Slider Minimum="0" Maximum="1"

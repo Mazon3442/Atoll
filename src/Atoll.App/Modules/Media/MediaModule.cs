@@ -85,7 +85,7 @@ public sealed partial class MediaModule : IIslandModule
         _vm.VolumeControlsApp = context.Settings.Current.VolumeControlsApp;
         _vm.ApplyTheme(context.Settings.Current.Theme);
         context.Settings.Changed += OnThemeChanged;
-        _progressTimer = new DispatcherTimer(DispatcherPriority.Background) { Interval = TimeSpan.FromMilliseconds(500) };
+        _progressTimer = new DispatcherTimer(DispatcherPriority.Background) { Interval = TimeSpan.FromMilliseconds(250) }; // lyrics change on time
         _progressTimer.Tick += (_, _) => UpdateProgress();
         _sourceTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(2) };
         _sourceTimer.Tick += (_, _) => { RefreshSources(); RefreshOutputs(); RefreshAppVolume(); }; _sourceTimer.Start();
@@ -357,7 +357,7 @@ public sealed partial class MediaModule : IIslandModule
     private async Task LoadLyricsAsync(string artist, string title)
     {
         var version = ++_lyricsVersion;
-        _lyrics = []; _vm.Lyric = ""; _vm.HasLyrics = false;
+        _lyrics = []; _vm.Lyric = ""; _vm.SetLyrics([]);
         if (_context?.Settings.Current.ShowLyrics != true || artist.Length == 0 || title.Length == 0) return;
         await Task.Delay(TimeSpan.FromSeconds(1)); // skipping through tracks should not look each one up; the timeline also arrives by then
         if (version != _lyricsVersion || _disposed) return;
@@ -366,7 +366,7 @@ public sealed partial class MediaModule : IIslandModule
             var lines = await Lyrics.FindAsync(LyricsHttp, artist, title, _duration, CancellationToken.None);
             if (version != _lyricsVersion || _disposed) return;
             _lyrics = lines;
-            _vm.HasLyrics = lines.Count > 0;
+            _vm.SetLyrics(lines.Select(Lyrics.Display));
             UpdateProgress();
         }
         catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException or IOException or System.Text.Json.JsonException or UnauthorizedAccessException)
@@ -401,7 +401,11 @@ public sealed partial class MediaModule : IIslandModule
         if (pos < TimeSpan.Zero) pos = TimeSpan.Zero;
         _vm.Progress = pos / _duration;
         _vm.PositionText = TimerViewModel.Format(pos);
-        if (_lyrics.Count > 0) _vm.Lyric = Lyrics.LineAt(_lyrics, pos);
+        if (_lyrics.Count > 0)
+        {
+            _vm.LyricIndex = Lyrics.IndexAt(_lyrics, pos);
+            _vm.Lyric = _vm.LyricIndex >= 0 ? Lyrics.Display(_lyrics[_vm.LyricIndex]) : "";
+        }
         _vm.DurationText = TimerViewModel.Format(_duration);
     }
 

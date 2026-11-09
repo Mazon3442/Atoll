@@ -78,6 +78,24 @@ public sealed partial class MediaViewModel(Func<Task> playPause, Func<Task> next
     [ObservableProperty] private string _lyric = "";
     [ObservableProperty] private bool _hasLyrics;
 
+    /// <summary>Every line of the song for the scrolling lyrics view; <see cref="LyricIndex"/> is the one being sung.</summary>
+    public System.Collections.ObjectModel.ObservableCollection<LyricRow> LyricLines { get; } = [];
+    [ObservableProperty] private int _lyricIndex = -1;
+
+    partial void OnLyricIndexChanged(int oldValue, int newValue)
+    {
+        if (oldValue >= 0 && oldValue < LyricLines.Count) LyricLines[oldValue].IsCurrent = false;
+        if (newValue >= 0 && newValue < LyricLines.Count) LyricLines[newValue].IsCurrent = true;
+    }
+
+    public void SetLyrics(IEnumerable<string> lines)
+    {
+        LyricIndex = -1;
+        LyricLines.Clear();
+        foreach (var line in lines) LyricLines.Add(new LyricRow(line));
+        HasLyrics = LyricLines.Count > 0;
+    }
+
     public VisualizerViewModel Visualizer { get; } = new();
 
     /// <summary>The playing app's own volume (0–100), shown when <see cref="VolumeControlsApp"/> and the app has audio.</summary>
@@ -185,4 +203,10 @@ public sealed partial class MediaViewModel(Func<Task> playPause, Func<Task> next
 
     [RelayCommand(CanExecute = nameof(CanControl))]
     private Task Previous() => previous();
+}
+
+public sealed partial class LyricRow(string text) : ObservableObject
+{
+    public string Text { get; } = text;
+    [ObservableProperty] private bool _isCurrent;
 }

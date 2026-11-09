@@ -37,16 +37,19 @@ public static partial class Lyrics
     }
 
     /// <summary>The line being sung at <paramref name="position"/>: "" before the first line, "♪" for an instrumental gap.</summary>
-    public static string LineAt(IReadOnlyList<LyricLine> lines, TimeSpan position)
+    public static string LineAt(IReadOnlyList<LyricLine> lines, TimeSpan position) =>
+        IndexAt(lines, position) is var i and >= 0 ? Display(lines[i]) : "";
+
+    /// <summary>Index of the line being sung, or -1 before the first line.</summary>
+    public static int IndexAt(IReadOnlyList<LyricLine> lines, TimeSpan position)
     {
-        var current = "";
-        foreach (var line in lines)
-        {
-            if (line.At > position) break;
-            current = line.Text.Length > 0 ? line.Text : "♪";
-        }
-        return current;
+        var i = -1;
+        while (i + 1 < lines.Count && lines[i + 1].At <= position) i++;
+        return i;
     }
+
+    /// <summary>The line's text, or "♪" for an instrumental gap.</summary>
+    public static string Display(LyricLine line) => line.Text.Length > 0 ? line.Text : "♪";
 
     public static async Task<IReadOnlyList<LyricLine>> FindAsync(HttpClient http, string artist, string title, TimeSpan duration, CancellationToken ct)
     {

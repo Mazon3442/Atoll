@@ -11,6 +11,47 @@ public partial class MediaTemplates : ResourceDictionary
     private sealed class Gesture { public int Revision; public bool Active; public bool Dragging; public bool Attached; }
     private readonly ConditionalWeakTable<Slider, Gesture> _gestures = new();
     public MediaTemplates() => InitializeComponent();
+
+    private readonly ConditionalWeakTable<Border, Action> _lyricsDetach = new();
+
+    /// <summary>Keeps the sung line a little above the middle of the lyrics box, sliding to each new line.</summary>
+    private void LyricsLoaded(object sender, RoutedEventArgs e)
+    {
+        var box = (Border)sender;
+        LyricsUnloaded(box, e);
+        if (box.DataContext is not MediaViewModel vm || box.Child is not Canvas { Children: [ItemsControl list] }) return;
+        var shift = (System.Windows.Media.TranslateTransform)list.RenderTransform;
+
+        void Follow(bool animate)
+        {
+            if (list.ItemContainerGenerator.ContainerFromIndex(Math.Max(vm.LyricIndex, 0)) is not FrameworkElement line || !line.IsArrangeValid) return;
+            var target = box.ActualHeight * 0.42 - line.TranslatePoint(default, list).Y - line.ActualHeight / 2;
+            if (animate && SystemParameters.ClientAreaAnimation)
+                shift.BeginAnimation(System.Windows.Media.TranslateTransform.YProperty, new System.Windows.Media.Animation.DoubleAnimation(target, TimeSpan.FromMilliseconds(380))
+                { EasingFunction = new System.Windows.Media.Animation.CubicEase { EasingMode = System.Windows.Media.Animation.EasingMode.EaseOut } });
+            else
+            {
+                shift.BeginAnimation(System.Windows.Media.TranslateTransform.YProperty, null);
+                shift.Y = target;
+            }
+        }
+
+        void Changed(object? s, System.ComponentModel.PropertyChangedEventArgs a)
+        {
+            if (a.PropertyName == nameof(MediaViewModel.LyricIndex))
+                box.Dispatcher.BeginInvoke(() => Follow(true), System.Windows.Threading.DispatcherPriority.Loaded);
+        }
+        void Resized(object s, SizeChangedEventArgs a) => Follow(false); // new song or the box was shown: jump, don't slide
+        vm.PropertyChanged += Changed;
+        list.SizeChanged += Resized;
+        _lyricsDetach.AddOrUpdate(box, () => { vm.PropertyChanged -= Changed; list.SizeChanged -= Resized; });
+        Follow(false);
+    }
+
+    private void LyricsUnloaded(object sender, RoutedEventArgs e)
+    {
+        if (_lyricsDetach.TryGetValue((Border)sender, out var detach)) { detach(); _lyricsDetach.Remove((Border)sender); }
+    }
     private void SeekLoaded(object sender, RoutedEventArgs e)
     {
         var slider = (Slider)sender; var gesture = _gestures.GetOrCreateValue(slider);

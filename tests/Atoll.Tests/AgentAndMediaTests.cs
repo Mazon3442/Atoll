@@ -131,6 +131,8 @@ public class AgentAndMediaTests
         Assert.Equal("Chorus", Lyrics.LineAt(lines, TimeSpan.FromSeconds(12)));
         Assert.Equal("♪", Lyrics.LineAt(lines, TimeSpan.FromSeconds(30)));
         Assert.Equal("Chorus", Lyrics.LineAt(lines, TimeSpan.FromSeconds(61)));
+        Assert.Equal(-1, Lyrics.IndexAt(lines, TimeSpan.FromSeconds(1)));
+        Assert.Equal(1, Lyrics.IndexAt(lines, TimeSpan.FromSeconds(12)));
 
         using var results = JsonDocument.Parse("""[{"duration":250,"syncedLyrics":null},{"duration":300,"syncedLyrics":"[00:01.00]live"},{"duration":201,"syncedLyrics":"[00:01.00]album"}]""");
         Assert.Equal("[00:01.00]album", Lyrics.Pick(results.RootElement, TimeSpan.FromSeconds(200)));
@@ -174,10 +176,13 @@ internal static class AgentMediaUi
 
         var media = new MediaViewModel(() => Task.CompletedTask, () => Task.CompletedTask, () => Task.CompletedTask, _ => Task.CompletedTask)
         { HasSession = true, HasTimeline = true, Title = "Song", Artist = "Artist", Lyric = "And the words appear in time", HasLyrics = true, PositionText = "1:02", DurationText = "3:30", Progress = 0.3 };
+        media.SetLyrics(["I will fold one more for you", "♪", "And the words appear in time", "two lost waves now one", "keep the light at the top"]);
+        media.LyricIndex = 2;
+        Assert.True(media.LyricLines[2].IsCurrent);
         media.Sources.Add(new("media:spotify", "Spotify")); media.Follow("media:spotify");
         media.SetOutputs([new("a", "Speakers (Realtek Audio)"), new("b", "Headphones (MX Sound)")], "b");
         Assert.True(media.HasOutputs);
-        Render(media, "MediaViewModel.Panel", "media-panel", 560, 200);
+        Render(media, "MediaViewModel.Panel", "media-panel", 680, 200);
 
         var stats = new StatsViewModel();
         stats.Devices.Add(new DeviceBattery("MX Anywhere 2S", 90));
