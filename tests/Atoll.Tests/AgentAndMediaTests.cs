@@ -8,6 +8,7 @@ using Atoll.Claude;
 using Atoll.Modules.Claude;
 using Atoll.Modules.Media;
 using Atoll.Modules.Stats;
+using Atoll.Settings;
 using NAudio.Wave;
 
 namespace Atoll.Tests;
@@ -182,6 +183,16 @@ internal static class AgentMediaUi
         stats.Devices.Add(new DeviceBattery("MX Anywhere 2S", 90));
         stats.Devices.Add(new DeviceBattery("Xbox Wireless Controller", 19));
         Render(stats, "StatsViewModel.Panel", "stats-batteries", 560, 200);
+
+        var game = new Atoll.Modules.Games.GameViewModel { IsPlaying = true, GameName = "Minecraft", GameDetail = "1.21.4 · Multiplayer · play.example.net", PlayTime = "1h 05m",
+            Stats = "CPU 34%  GPU 71%  64°C", HasServer = true, ServerAddress = "play.example.net", ServerOnline = true, ServerStatus = "3/20 online · 42 ms · Paper 1.21.4", ServerMotd = "Hello world" };
+        game.Library.Add(new("Minecraft Launcher", "Minecraft", "x")); game.Library.Add(new("Dota 2", "Steam", "x")); game.HasLibrary = true;
+        Render(game, "GameViewModel.Compact", "game-overlay", 420, 24);
+        Render(game, "GameViewModel.Panel", "games-panel", 640, 210);
+        var timer = new Atoll.Modules.Clock.TimerViewModel(TimeProvider.System);
+        var home = new Atoll.Modules.Home.HomeViewModel(media, null, new Atoll.Modules.Clock.ClockPanelViewModel(new Atoll.Modules.Clock.ClockViewModel(), timer),
+            new Atoll.Modules.Calendar.CalendarViewModel(() => { }), game, new HomeSettings());
+        Render(home, "HomeViewModel.Panel", "home-panel", 640, 300);
     }
 
     private static void Render(object vm, string key, string name, double width, double height = 60)
@@ -199,4 +210,91 @@ internal static class AgentMediaUi
         Directory.CreateDirectory(dir);
         using var output = File.Create(Path.Combine(dir, name + ".png")); encoder.Save(output);
     }
+}
+
+public class HomeAndGamesTests
+{
+    [Fact]
+    public void Every_icon_parses() =>
+        Assert.All(Atoll.Shell.Icon.Paths.Keys, kind => Assert.NotNull(Atoll.Shell.Icon.Geometry(kind)));
+
+    [Fact]
+    public void Month_grid_is_six_weeks_with_today_and_event_days()
+    {
+        var cells = Atoll.Modules.Home.HomeViewModel.BuildMonth(new DateTime(2026, 11, 1), new DateTime(2026, 11, 9), new HashSet<DateTime> { new(2026, 11, 12) });
+        Assert.Equal(42, cells.Count);
+        Assert.Single(cells, c => c.IsToday && c.Day == 9);
+        Assert.Single(cells, c => c.HasEvents && c.Day == 12 && c.InMonth);
+        Assert.Equal(30, cells.Count(c => c.InMonth));
+    }
+
+    [Fact]
+    public void Reads_steam_manifests_and_skips_tools()
+    {
+        var game = Atoll.Modules.Games.GameLibrary.ParseAcf("\"AppState\" { \"appid\" \"570\" \"name\" \"Dota 2\" \"installdir\" \"dota 2 beta\" \"LastPlayed\" \"1762600000\" }", @"D:\Steam\steamapps");
+        Assert.Equal("Dota 2", game!.Name);
+        Assert.Equal("steam://rungameid/570", game.Launch);
+        Assert.Equal(@"D:\Steam\steamapps\common\dota 2 beta", game.InstallDir);
+        Assert.Null(Atoll.Modules.Games.GameLibrary.ParseAcf("\"appid\" \"228980\" \"name\" \"Steamworks Common Redistributables\"", "x"));
+    }
+
+    [Fact]
+    public void Reads_a_minecraft_server_status()
+    {
+        Assert.Equal(("play.example.net", 25565), Atoll.Modules.Games.MinecraftServer.ParseAddress(" play.example.net "));
+        Assert.Equal(("10.0.0.5", 25570), Atoll.Modules.Games.MinecraftServer.ParseAddress("10.0.0.5:25570"));
+        var status = Atoll.Modules.Games.MinecraftServer.Parse("""{"version":{"name":"Paper 1.21.4"},"players":{"online":3,"max":20},"description":{"text":"§aHello ","extra":[{"text":"world"}]}}""", 42);
+        Assert.Equal((3, 20, "Paper 1.21.4", "Hello world", 42L), (status.Players, status.MaxPlayers, status.Version, status.Motd, status.PingMs));
+    }
+
+    [Fact]
+    public void Finds_the_last_minecraft_server_in_the_log()
+    {
+        var log = Path.GetTempFileName();
+        try
+        {
+            File.WriteAllLines(log, ["[12:00:01] [Render thread/INFO]: Connecting to old.example.net, 25565", "[12:30:00] [Server Connector #2/INFO]: Connecting to play.example.net, 25565"]);
+            Assert.Equal("play.example.net", Atoll.Modules.Games.GamesModule.LastServer(log));
+        }
+        finally { File.Delete(log); }
+        Assert.Equal("1h 05m", Atoll.Modules.Games.GamesModule.Format(TimeSpan.FromMinutes(65)));
+    }
+
+    [Fact]
+    public void Stats_tiles_fill_in_within_seconds()
+    {
+        string? failure = null;
+        var thread = new Thread(() =>
+        {
+            try
+            {
+                var service = new SettingsService(new SettingsStore(Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".json")));
+                using var host = new Atoll.Activities.ActivityHost();
+                using var module = new StatsModule();
+                module.Start(new Atoll.Modules.ModuleContext("stats", host, System.Windows.Threading.Dispatcher.CurrentDispatcher, service));
+                var vm = (StatsViewModel)module.Panel!;
+                var view = new System.Windows.Controls.Border();
+                vm.Observe(view, true); // as the System tab does when it is on screen
+                var frame = new System.Windows.Threading.DispatcherFrame();
+                var timer = new System.Windows.Threading.DispatcherTimer { Interval = TimeSpan.FromSeconds(3) };
+                timer.Tick += (_, _) => { timer.Stop(); frame.Continue = false; };
+                timer.Start();
+                System.Windows.Threading.Dispatcher.PushFrame(frame);
+                if (vm.Cpu.Value == "—" || vm.Memory.Value == "—") failure = $"CPU {vm.Cpu.Value}, memory {vm.Memory.Value} after 3 s";
+            }
+            catch (Exception ex) { failure = ex.ToString(); }
+        });
+        thread.SetApartmentState(ApartmentState.STA);
+        thread.Start();
+        thread.Join();
+        Assert.Null(failure);
+    }
+}
+
+public class GameDetectionTests
+{
+    [Theory]
+    [InlineData(@"D:\SteamLibrary\steamapps\common\wallpaper_engine\wallpaper32.exe", true)]
+    [InlineData(@"D:\SteamLibrary\steamapps\common\rocketleague\Binaries\Win64\RocketLeague.exe", false)]
+    public void Steam_tools_are_not_games(string path, bool notAGame) => Assert.Equal(notAGame, Atoll.Shell.GameDetector.IsNotAGame(path));
 }

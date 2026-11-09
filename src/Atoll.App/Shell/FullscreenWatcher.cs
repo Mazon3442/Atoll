@@ -108,11 +108,17 @@ internal static class GameDetector
     private static HashSet<string> _gameBarExes = new(StringComparer.OrdinalIgnoreCase);
     private static DateTime _gameBarLoaded = DateTime.MinValue;
 
+    // Apps sold on Steam that are not games (Wallpaper Engine draws the desktop, so it was "playing" all day).
+    private static readonly string[] NotGames = [@"\wallpaper_engine", @"\Steamworks Shared", @"\SteamVR", @"\Soundpad", @"\OVR Toolkit"];
+
+    internal static bool IsNotAGame(string path) => NotGames.Any(f => path.Contains(f, StringComparison.OrdinalIgnoreCase));
+
     public static bool IsGame(uint pid)
     {
         if (Cache.TryGetValue(pid, out var known)) return known;
         var path = Native.GetProcessPath(pid);
-        var isGame = path is not null && (LibraryFolders.Any(f => path.Contains(f, StringComparison.OrdinalIgnoreCase)) || GameBarExes().Contains(path));
+        var isGame = path is not null && !IsNotAGame(path)
+            && (LibraryFolders.Any(f => path.Contains(f, StringComparison.OrdinalIgnoreCase)) || GameBarExes().Contains(path));
         if (Cache.Count > 256) Cache.Clear(); // pids get reused; keep the cache small
         Cache[pid] = isGame;
         return isGame;

@@ -288,6 +288,25 @@ public sealed partial class SettingsViewModel : ObservableObject
     public bool CanRequestNotifications => _notificationAccess == NotificationAccess.NeedsPermission;
     public bool NotificationsAllowed => _notificationAccess == NotificationAccess.Allowed;
 
+    // Home tab cards
+    public bool HomeEnabled { get => S.Home.Enabled; set => Set(S.Home.Enabled, value, v => S.Home.Enabled = v); }
+    public bool HomeMedia { get => S.Home.Media; set => Set(S.Home.Media, value, v => S.Home.Media = v); }
+    public bool HomeWeather { get => S.Home.Weather; set => Set(S.Home.Weather, value, v => S.Home.Weather = v); }
+    public bool HomeTimer { get => S.Home.Timer; set => Set(S.Home.Timer, value, v => S.Home.Timer = v); }
+    public bool HomeCalendar { get => S.Home.Calendar; set => Set(S.Home.Calendar, value, v => S.Home.Calendar = v); }
+    public bool HomeUpNext { get => S.Home.UpNext; set => Set(S.Home.UpNext, value, v => S.Home.UpNext = v); }
+    public bool HomeGame { get => S.Home.Game; set => Set(S.Home.Game, value, v => S.Home.Game = v); }
+
+    // Games
+    public IReadOnlyList<Choice<GameIslandMode>> GameModes { get; } =
+    [
+        new(GameIslandMode.Overlay, "Show a small game overlay"),
+        new(GameIslandMode.Hidden, "Hide the island"),
+    ];
+    public GameIslandMode GameMode { get => S.Games.Mode; set => Set(S.Games.Mode, value, v => S.Games.Mode = v); }
+    public bool GameMuteNotifications { get => S.Games.MuteNotifications; set => Set(S.Games.MuteNotifications, value, v => S.Games.MuteNotifications = v); }
+    public string MinecraftServer { get => S.Games.MinecraftServer; set => Set(S.Games.MinecraftServer, value.Trim(), v => S.Games.MinecraftServer = v); }
+
     public bool ShowLyrics { get => S.ShowLyrics; set => Set(S.ShowLyrics, value, v => S.ShowLyrics = v); }
 
     public bool ShowNotificationContent

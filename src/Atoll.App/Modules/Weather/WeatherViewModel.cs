@@ -186,10 +186,12 @@ public sealed partial class WeatherViewModel(SettingsService settings) : Observa
         if (forecast.Wind is { } wind) metrics.Add($"Peak wind {wind:0} {WindUnit}");
         DaySummary = $"{forecast.Date:dddd, MMM d} · {WeatherCodes.Describe(forecast.Code).Text}"
             + (metrics.Count > 0 ? "\n" + string.Join(" · ", metrics) : "");
-        _chartHours = _report.Hours.Where(h => h.Time.Date == forecast.Date.Date && h.Time.AddHours(1) > _report.LocalTime).OrderBy(h => h.Time).ToList();
+        // The whole day, midnight to midnight; today starts on the current hour so the reading shows now.
+        var hours = _report.Hours.Where(h => h.Time.Date == forecast.Date.Date).OrderBy(h => h.Time).ToList();
+        _chartHours = hours;
         OnPropertyChanged(nameof(Hours));
         OnPropertyChanged(nameof(HasHours));
-        SelectedChartIndex = 0;
+        SelectedChartIndex = Math.Max(0, hours.FindLastIndex(h => h.Time <= _report.LocalTime));
         RebuildChart();
     }
 

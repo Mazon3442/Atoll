@@ -66,10 +66,10 @@ public class AppleIslandTests
         var hours = report.Hours.ToList();
         hours[10] = hours[10] with { Wind = null, RainChance = null, Precipitation = null };
         vm.Show(report with { Hours = hours }, new Place("Chicago", 41.85, -87.65), false);
-        Assert.Null(vm.ChartPoints[0].Value);
+        Assert.Null(vm.ChartPoints.First(p => p.Time == hours[10].Time).Value);
         Assert.Contains("Unavailable", vm.ChartReadout);
         vm.SelectedMetric = WeatherMetric.Precipitation;
-        Assert.Null(vm.ChartPoints[0].Value);
+        Assert.Null(vm.ChartPoints.First(p => p.Time == hours[10].Time).Value);
         vm.SelectedDay = vm.Days[1];
         Assert.Equal(24, vm.ChartPoints.Count);
         Assert.All(vm.ChartPoints, p => Assert.Equal(report.LocalTime.Date.AddDays(1), p.Time.Date));

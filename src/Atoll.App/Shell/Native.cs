@@ -159,6 +159,9 @@ internal static class Native
     public static extern bool IsZoomed(nint hwnd);
 
     [DllImport("user32.dll", CharSet = CharSet.Unicode)]
+    public static extern int GetWindowText(nint hwnd, StringBuilder text, int maxCount);
+
+    [DllImport("user32.dll", CharSet = CharSet.Unicode)]
     public static extern int GetClassName(nint hwnd, StringBuilder name, int maxCount);
 
     [DllImport("user32.dll")]

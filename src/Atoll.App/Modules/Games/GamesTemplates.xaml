@@ -1,0 +1,118 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:shell="clr-namespace:Atoll.Shell">
+
+    <!-- In game: the game, play time and, as an overlay, CPU / GPU / temperature. -->
+    <DataTemplate x:Key="GameViewModel.Compact">
+        <StackPanel Orientation="Horizontal">
+            <shell:Icon Kind="gamepad" Size="15" Foreground="{DynamicResource Island.AccentText}" VerticalAlignment="Center" />
+            <TextBlock Text="{Binding GameName}" FontSize="12" FontWeight="SemiBold" Margin="8,0,0,0" MaxWidth="160"
+                       TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
+            <TextBlock Text="{Binding PlayTime}" FontSize="12" Margin="8,0,0,0" Foreground="{DynamicResource Island.Subtle}" VerticalAlignment="Center" />
+            <TextBlock Text="{Binding Stats}" FontSize="11" Margin="10,0,0,0" Foreground="{DynamicResource Island.Subtle}" VerticalAlignment="Center"
+                       Visibility="{Binding HasStats, Converter={StaticResource Island.BoolToVisibility}}" />
+        </StackPanel>
+    </DataTemplate>
+
+    <DataTemplate x:Key="GameViewModel.Peek">
+        <StackPanel Orientation="Horizontal">
+            <Border Width="40" Height="40" CornerRadius="10" Background="{DynamicResource Island.Surface}">
+                <shell:Icon Kind="gamepad" Size="20" HorizontalAlignment="Center" VerticalAlignment="Center" />
+            </Border>
+            <StackPanel Margin="12,0,0,0" VerticalAlignment="Center" MaxWidth="320">
+                <TextBlock Text="{Binding GameName}" FontSize="14" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
+                <TextBlock FontSize="12" Foreground="{DynamicResource Island.Subtle}" TextTrimming="CharacterEllipsis">
+                    <Run Text="{Binding PlayTime, Mode=OneWay}" /><Run Text="  " /><Run Text="{Binding GameDetail, Mode=OneWay}" />
+                </TextBlock>
+                <TextBlock Text="{Binding Stats}" FontSize="11" Foreground="{DynamicResource Island.Subtle}"
+                           Visibility="{Binding HasStats, Converter={StaticResource Island.BoolToVisibility}}" />
+            </StackPanel>
+        </StackPanel>
+    </DataTemplate>
+
+    <DataTemplate x:Key="GameViewModel.Mini">
+        <shell:Icon Kind="gamepad" Size="14" Foreground="{DynamicResource Island.AccentText}" AutomationProperties.Name="{Binding GameName}" />
+    </DataTemplate>
+
+    <DataTemplate x:Key="GameViewModel.Panel">
+        <Grid>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="20" />
+                <ColumnDefinition Width="1.2*" />
+            </Grid.ColumnDefinitions>
+
+            <StackPanel>
+                <!-- Now playing -->
+                <StackPanel Margin="0,0,0,14">
+                    <StackPanel Orientation="Horizontal">
+                        <shell:Icon Kind="gamepad" Size="14" Foreground="{DynamicResource Island.Subtle}" />
+                        <TextBlock Text="Playing" FontSize="13" FontWeight="SemiBold" Margin="6,0,0,0" />
+                    </StackPanel>
+                    <TextBlock Text="Nothing right now. Start a game and ATOLL keeps time." FontSize="12" Margin="0,6,0,0" TextWrapping="Wrap"
+                               Foreground="{DynamicResource Island.Subtle}" Visibility="{Binding IsPlaying, Converter={StaticResource Island.InverseBoolToVisibility}}" />
+                    <StackPanel Margin="0,6,0,0" Visibility="{Binding IsPlaying, Converter={StaticResource Island.BoolToVisibility}}">
+                        <TextBlock Text="{Binding GameName}" FontSize="16" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
+                        <TextBlock FontSize="12" Foreground="{DynamicResource Island.Subtle}" TextTrimming="CharacterEllipsis">
+                            <Run Text="{Binding PlayTime, Mode=OneWay}" /><Run Text="  " /><Run Text="{Binding GameDetail, Mode=OneWay}" />
+                        </TextBlock>
+                    </StackPanel>
+                </StackPanel>
+
+                <!-- Minecraft server -->
+                <StackPanel>
+                    <StackPanel Orientation="Horizontal">
+                        <shell:Icon Kind="server" Size="14" Foreground="{DynamicResource Island.Subtle}" />
+                        <TextBlock Text="Minecraft server" FontSize="13" FontWeight="SemiBold" Margin="6,0,0,0" />
+                    </StackPanel>
+                    <TextBlock Text="Add a server in Settings › Modules › Games to see who's online." FontSize="12" Margin="0,6,0,0" TextWrapping="Wrap"
+                               Foreground="{DynamicResource Island.Subtle}" Visibility="{Binding HasServer, Converter={StaticResource Island.InverseBoolToVisibility}}" />
+                    <StackPanel Margin="0,6,0,0" Visibility="{Binding HasServer, Converter={StaticResource Island.BoolToVisibility}}">
+                        <StackPanel Orientation="Horizontal">
+                            <Ellipse Width="8" Height="8" VerticalAlignment="Center">
+                                <Ellipse.Style>
+                                    <Style TargetType="Ellipse">
+                                        <Setter Property="Fill" Value="#FF453A" />
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding ServerOnline}" Value="True"><Setter Property="Fill" Value="#30D158" /></DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </Ellipse.Style>
+                            </Ellipse>
+                            <TextBlock Text="{Binding ServerAddress}" FontSize="13" FontWeight="SemiBold" Margin="8,0,0,0" TextTrimming="CharacterEllipsis" />
+                        </StackPanel>
+                        <TextBlock Text="{Binding ServerStatus}" FontSize="12" Foreground="{DynamicResource Island.Subtle}" Margin="16,2,0,0" TextWrapping="Wrap" />
+                        <TextBlock Text="{Binding ServerMotd}" FontSize="11" Foreground="{DynamicResource Island.Subtle}" Margin="16,2,0,0" TextTrimming="CharacterEllipsis" />
+                    </StackPanel>
+                </StackPanel>
+            </StackPanel>
+
+            <!-- Library -->
+            <DockPanel Grid.Column="2">
+                <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="0,0,0,6">
+                    <shell:Icon Kind="rocket" Size="14" Foreground="{DynamicResource Island.Subtle}" />
+                    <TextBlock Text="Your games" FontSize="13" FontWeight="SemiBold" Margin="6,0,0,0" />
+                </StackPanel>
+                <TextBlock DockPanel.Dock="Top" Text="No Steam, Epic or Minecraft games found." FontSize="12" Foreground="{DynamicResource Island.Subtle}"
+                           Visibility="{Binding HasLibrary, Converter={StaticResource Island.InverseBoolToVisibility}}" />
+                <ScrollViewer VerticalScrollBarVisibility="Auto" MaxHeight="190">
+                    <ItemsControl ItemsSource="{Binding Library}" AutomationProperties.Name="Your games">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <Button Command="{Binding DataContext.LaunchCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}" CommandParameter="{Binding}"
+                                        Style="{StaticResource Island.RowButton}" AutomationProperties.Name="{Binding Name, StringFormat=Play {0}}">
+                                    <DockPanel>
+                                        <TextBlock DockPanel.Dock="Right" Text="{Binding Source}" FontSize="11" Foreground="{DynamicResource Island.Subtle}" VerticalAlignment="Center" Margin="8,0,0,0" />
+                                        <shell:Icon DockPanel.Dock="Left" Kind="play" Size="12" Margin="0,0,8,0" VerticalAlignment="Center" />
+                                        <TextBlock Text="{Binding Name}" FontSize="13" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
+                                    </DockPanel>
+                                </Button>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </ScrollViewer>
+            </DockPanel>
+        </Grid>
+    </DataTemplate>
+
+</ResourceDictionary>

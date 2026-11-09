@@ -280,6 +280,7 @@ public sealed class NotificationsModule : IIslandModule
 
         if (Native.SHQueryUserNotificationState(out var state) == 0 && state != Native.QUNS_ACCEPTS_NOTIFICATIONS)
             return; // Do Not Disturb, fullscreen, presentation: history only
+        if (GameState.Playing && _context.Settings.Current.Games.MuteNotifications) return; // game mode: history only
         _context.Post("latest", item, ActivityPriority.High, PopupTime, alert: true);
     }
 

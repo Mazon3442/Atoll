@@ -22,6 +22,7 @@ public sealed partial class SettingsViewModel
         ("system", "System", "Device status, live graphs and quick actions."),
         ("shelf", "Files", "Files you drop on the island and your recent copies."),
         ("weather", "Weather", "Current conditions and a 7-day forecast."),
+        ("games", "Games", "Game mode, play time, your game library and a Minecraft server's status."),
     ];
 
     // Feature id → (name, description) where the catalog name alone doesn't explain it.

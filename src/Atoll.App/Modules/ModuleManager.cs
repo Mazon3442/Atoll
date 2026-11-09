@@ -36,6 +36,7 @@ public static class ModuleCatalog
         new("weather", "Weather", "", () => new WeatherModule()),
         new("actions", "Quick actions", "", () => new QuickActionsModule()),
         new("privacy", "Camera and mic in use", "", () => new PrivacyModule()),
+        new("games", "Games", "", () => new Games.GamesModule()),
     ];
 }
 
@@ -52,6 +53,7 @@ public sealed class ModuleManager(
     SettingsService settings) : IDisposable
 {
     private readonly Dictionary<string, IIslandModule> _running = [];
+    private string _homeKey = "";
 
     public IReadOnlyList<ModuleDescriptor> Catalog => catalog;
 
@@ -92,9 +94,14 @@ public sealed class ModuleManager(
             .Where(d => _running.TryGetValue(d.Id, out var m) && m.Panel is not null)
             .Select(d => new ModuleTab(d, _running[d.Id].Panel!))
             .ToList();
-        tabs = PanelGroups.Combine(tabs);
-        if (!tabs.SequenceEqual(Tabs))
+        var home = settings.Current.Home;
+        tabs = PanelGroups.Combine(tabs, home);
+        // Home is rebuilt each time, so compare the other tabs and Home's card choices instead.
+        var homeKey = $"{home.Enabled}{home.Media}{home.Weather}{home.Timer}{home.Calendar}{home.UpNext}{home.Game}";
+        if (homeKey != _homeKey || tabs.Count != Tabs.Count
+            || !tabs.Where(t => t.Descriptor.Id != "home").SequenceEqual(Tabs.Where(t => t.Descriptor.Id != "home")))
         {
+            _homeKey = homeKey;
             Tabs.Clear();
             tabs.ForEach(Tabs.Add);
         }

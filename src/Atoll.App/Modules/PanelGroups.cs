@@ -6,6 +6,7 @@ using Atoll.Modules.Indicators;
 using Atoll.Modules.Media;
 using Atoll.Modules.Shelf;
 using Atoll.Modules.Stats;
+using Atoll.Settings;
 
 namespace Atoll.Modules;
 
@@ -26,7 +27,7 @@ internal static class PanelGroups
         _ => id,
     };
 
-    public static List<ModuleTab> Combine(IReadOnlyList<ModuleTab> modules)
+    public static List<ModuleTab> Combine(IReadOnlyList<ModuleTab> modules, HomeSettings? home = null)
     {
         T? Panel<T>(string id) where T : class => modules.FirstOrDefault(t => t.Descriptor.Id == id)?.Panel as T;
         var result = new List<ModuleTab>();
@@ -47,6 +48,10 @@ internal static class PanelGroups
             };
             result.Add(new ModuleTab(module.Descriptor with { Id = group, Name = combined.Name }, combined.Panel));
         }
+        if (home is { Enabled: true } && result.Count > 0)
+            result.Insert(0, new ModuleTab(new ModuleDescriptor("home", "Home", "\uE80F", static () => throw new NotSupportedException()),
+                new Home.HomeViewModel(Panel<MediaViewModel>("media"), Panel<Weather.WeatherViewModel>("weather"), Panel<ClockPanelViewModel>("clock"),
+                    Panel<CalendarViewModel>("calendar"), Panel<Games.GameViewModel>("games"), home)));
         return result;
     }
 }

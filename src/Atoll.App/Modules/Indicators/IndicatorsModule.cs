@@ -31,7 +31,10 @@ public sealed partial class SystemPanelViewModel(Action<double> setVolume, Actio
 
     public bool HasBattery => Battery.Length > 0;
 
-    partial void OnBatteryChanged(string value) => OnPropertyChanged(nameof(HasBattery));
+    /// <summary>"80%" for the header chip.</summary>
+    public string BatteryShort => Battery.Split(' ')[0];
+
+    partial void OnBatteryChanged(string value) { OnPropertyChanged(nameof(HasBattery)); OnPropertyChanged(nameof(BatteryShort)); }
 
     partial void OnVolumeChanged(double value)
     {

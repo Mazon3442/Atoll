@@ -100,7 +100,7 @@ public class CalendarModuleTests
             allDay.TogglePinCommand.Execute(null);
             Assert.Equal("Next meeting", Next(host).Title);
             Next(host).DismissCommand.Execute(null);
-            Assert.Equal("Daily meeting", Next(host).Title);
+            Assert.Null(host.Current.Primary); // 3 hours out: unpinned events show from 2 hours before
             allDay.TogglePinCommand.Execute(null);
             settings.Flush();
             Assert.Equal(2, store.Load().Calendar.DismissedOccurrences.Count);
@@ -112,7 +112,7 @@ public class CalendarModuleTests
             Assert.Equal("All-day event", Next(host).Title);
             Assert.Equal(2, vm.Days.SelectMany(d => d.Events).Count(e => e.IsDismissed));
             Next(host).DismissCommand.Execute(null);
-            Assert.Equal("Daily meeting", Next(host).Title);
+            Assert.Null(host.Current.Primary); // 3 hours out: unpinned events show from 2 hours before
             Assert.Equal(5, vm.Days.Sum(d => d.Events.Count));
 
             time.Advance(TimeSpan.FromDays(1));
@@ -120,7 +120,7 @@ public class CalendarModuleTests
             handler.Complete(Feed);
             Pump(refresh);
             Assert.Empty(settings.Current.Calendar.DismissedOccurrences);
-            Assert.Equal("Daily meeting", Next(host).Title);
+            Assert.Null(host.Current.Primary); // 3 hours out: unpinned events show from 2 hours before
             Assert.False(Assert.Single(vm.Days.SelectMany(d => d.Events)).IsDismissed);
 
             refresh = module.RefreshAsync();

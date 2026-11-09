@@ -20,7 +20,8 @@
     <SolidColorBrush x:Key="Island.Accent" Color="#0A84FF" />
     <SolidColorBrush x:Key="Island.AccentText" Color="#0A84FF" />
     <SolidColorBrush x:Key="Island.Rim" Color="Transparent" />
-    <SolidColorBrush x:Key="Island.Surface" Color="White" Opacity="0.07" />
+    <SolidColorBrush x:Key="Island.Surface" Color="White" Opacity="0.08" />
+    <SolidColorBrush x:Key="Island.Raised" Color="White" Opacity="0.16" />
     <SolidColorBrush x:Key="Island.SelectedBackground" Color="#F2F2F7" />
     <SolidColorBrush x:Key="Island.SelectedForeground" Color="#0B0B0D" />
     <!-- Opaque island color for popups; Island.Background is near-transparent in glass mode. -->
@@ -231,24 +232,81 @@
 
     <!-- Tab strip of the expanded panel: one round glyph per module. -->
     <!-- Must stay focusable: ListBoxItem only selects on click when it can take focus. -->
+    <!-- Tabs: round icon chips; the selected one widens into a pill with its name. -->
     <Style x:Key="Island.TabItem" TargetType="ListBoxItem">
         <Setter Property="FocusVisualStyle" Value="{StaticResource Island.FocusVisual}" />
-        <Setter Property="Foreground" Value="{DynamicResource Island.Foreground}" />
+        <Setter Property="Foreground" Value="{DynamicResource Island.Subtle}" />
         <Setter Property="Cursor" Value="Hand" />
         <Setter Property="Margin" Value="0,0,2,0" />
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="ListBoxItem">
-                    <Border x:Name="Bg" Background="Transparent" CornerRadius="11" Padding="8,7">
+                    <Border x:Name="Bg" Background="Transparent" CornerRadius="15" Padding="9,7" MinWidth="32">
+                        <ContentPresenter HorizontalAlignment="Center" />
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="Bg" Property="Background" Value="{DynamicResource Island.Hover}" />
+                            <Setter Property="Foreground" Value="{DynamicResource Island.Foreground}" />
+                        </Trigger>
+                        <Trigger Property="IsSelected" Value="True">
+                            <Setter TargetName="Bg" Property="Background" Value="{DynamicResource Island.Raised}" />
+                            <Setter Property="Foreground" Value="{DynamicResource Island.Foreground}" />
+                            <Setter TargetName="Bg" Property="Padding" Value="12,7,14,7" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- Round icon chip on the island surface: header status chips, play/pause, month arrows. -->
+    <Style x:Key="Island.RoundButton" TargetType="Button">
+        <Setter Property="Foreground" Value="{DynamicResource Island.Foreground}" />
+        <Setter Property="Width" Value="32" />
+        <Setter Property="Height" Value="32" />
+        <Setter Property="Cursor" Value="Hand" />
+        <Setter Property="FocusVisualStyle" Value="{StaticResource Island.FocusVisual}" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Button">
+                    <Border x:Name="Bg" Background="{DynamicResource Island.Surface}" CornerRadius="999">
+                        <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="Bg" Property="Background" Value="{DynamicResource Island.Raised}" />
+                        </Trigger>
+                        <Trigger Property="IsPressed" Value="True">
+                            <Setter TargetName="Bg" Property="Opacity" Value="0.7" />
+                        </Trigger>
+                        <Trigger Property="IsEnabled" Value="False">
+                            <Setter Property="Opacity" Value="0.4" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- A full-width list row that is a button (games). -->
+    <Style x:Key="Island.RowButton" TargetType="Button">
+        <Setter Property="Foreground" Value="{DynamicResource Island.Foreground}" />
+        <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+        <Setter Property="Cursor" Value="Hand" />
+        <Setter Property="FocusVisualStyle" Value="{StaticResource Island.FocusVisual}" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Button">
+                    <Border x:Name="Bg" Background="Transparent" CornerRadius="9" Padding="8,6">
                         <ContentPresenter />
                     </Border>
                     <ControlTemplate.Triggers>
                         <Trigger Property="IsMouseOver" Value="True">
                             <Setter TargetName="Bg" Property="Background" Value="{DynamicResource Island.Hover}" />
                         </Trigger>
-                        <Trigger Property="IsSelected" Value="True">
-                            <Setter TargetName="Bg" Property="Background" Value="{DynamicResource Island.SelectedBackground}" />
-                            <Setter Property="Foreground" Value="{DynamicResource Island.SelectedForeground}" />
+                        <Trigger Property="IsPressed" Value="True">
+                            <Setter TargetName="Bg" Property="Opacity" Value="0.7" />
                         </Trigger>
                     </ControlTemplate.Triggers>
                 </ControlTemplate>

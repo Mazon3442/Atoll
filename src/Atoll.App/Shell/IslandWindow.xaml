@@ -31,16 +31,62 @@
                     </Grid.RowDefinitions>
 
                     <DockPanel Background="Transparent" MouseWheel="OnHeaderWheel">
-                        <Button DockPanel.Dock="Right" Style="{StaticResource Island.IconButton}"
-                                Margin="6,0,0,0"
-                                Content="&#xE713;" ToolTip="Settings"
-                                AutomationProperties.Name="Settings"
-                                Click="OnSettingsClick" />
-                        <Border Background="{DynamicResource Island.Surface}" CornerRadius="15" Padding="3" HorizontalAlignment="Left">
+                        <!-- Status chips: battery, mic, sound, lock, settings. DataContext: the System group (null when it is off). -->
+                        <StackPanel x:Name="StatusChips" DockPanel.Dock="Right" Orientation="Horizontal" Margin="10,0,0,0" VerticalAlignment="Center">
+                            <StackPanel.Resources>
+                                <Style TargetType="Button" BasedOn="{StaticResource Island.RoundButton}">
+                                    <Setter Property="Margin" Value="5,0,0,0" />
+                                    <Setter Property="Width" Value="30" />
+                                    <Setter Property="Height" Value="30" />
+                                </Style>
+                            </StackPanel.Resources>
+                            <Border Height="30" CornerRadius="15" Padding="10,0" Background="{DynamicResource Island.Surface}"
+                                    ToolTip="{Binding Devices.Battery}" AutomationProperties.Name="{Binding Devices.Battery, StringFormat=Battery {0}}"
+                                    Visibility="{Binding Devices.HasBattery, Converter={StaticResource Island.BoolToVisibility}, FallbackValue=Collapsed}">
+                                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                    <shell:Icon Kind="battery" Size="16" VerticalAlignment="Center" />
+                                    <TextBlock Text="{Binding Devices.BatteryShort}" FontSize="12" FontWeight="SemiBold" Margin="6,0,0,0" VerticalAlignment="Center" />
+                                </StackPanel>
+                            </Border>
+                            <Button Command="{Binding Actions.ToggleMicCommand}" ToolTip="{Binding Actions.MicLabel}" AutomationProperties.Name="{Binding Actions.MicLabel}"
+                                    Visibility="{Binding Actions, Converter={x:Static shell:NotNullToVisibility.Instance}, FallbackValue=Collapsed}">
+                                <shell:Icon Size="15">
+                                    <shell:Icon.Style>
+                                        <Style TargetType="shell:Icon">
+                                            <Setter Property="Kind" Value="mic" />
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding Actions.MicMuted}" Value="True"><Setter Property="Kind" Value="mic-off" /></DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </shell:Icon.Style>
+                                </shell:Icon>
+                            </Button>
+                            <Button Command="{Binding Devices.ToggleMuteCommand}" ToolTip="Mute or unmute sound" AutomationProperties.Name="Toggle mute"
+                                    Visibility="{Binding Devices, Converter={x:Static shell:NotNullToVisibility.Instance}, FallbackValue=Collapsed}">
+                                <shell:Icon Size="15">
+                                    <shell:Icon.Style>
+                                        <Style TargetType="shell:Icon">
+                                            <Setter Property="Kind" Value="volume" />
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding Devices.IsMuted}" Value="True"><Setter Property="Kind" Value="volume-off" /></DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </shell:Icon.Style>
+                                </shell:Icon>
+                            </Button>
+                            <Button Command="{Binding Actions.LockCommand}" ToolTip="Lock" AutomationProperties.Name="Lock the PC"
+                                    Visibility="{Binding Actions, Converter={x:Static shell:NotNullToVisibility.Instance}, FallbackValue=Collapsed}">
+                                <shell:Icon Kind="lock" Size="15" />
+                            </Button>
+                            <Button ToolTip="Settings" AutomationProperties.Name="Settings" Click="OnSettingsClick">
+                                <shell:Icon Kind="settings" Size="15" />
+                            </Button>
+                        </StackPanel>
+                        <Border Background="{DynamicResource Island.Surface}" CornerRadius="18" Padding="3" HorizontalAlignment="Left">
                         <ListBox x:Name="Tabs"
                                  Background="Transparent" BorderThickness="0"
                                  ItemContainerStyle="{StaticResource Island.TabItem}"
-                                 ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                                 ScrollViewer.HorizontalScrollBarVisibility="Hidden"
                                  ScrollViewer.VerticalScrollBarVisibility="Disabled"
                                  AutomationProperties.Name="ATOLL sections">
                             <ListBox.ItemsPanel>
@@ -52,9 +98,9 @@
                                 <DataTemplate>
                                     <StackPanel Orientation="Horizontal" ToolTip="{Binding Descriptor.Name}"
                                                 AutomationProperties.Name="{Binding Descriptor.Name}">
-                                        <TextBlock Text="{Binding Descriptor.Glyph}" FontSize="13"
-                                                   FontFamily="{StaticResource Island.IconFont}"
-                                                   VerticalAlignment="Center" />
+                                        <shell:Icon Kind="{Binding Descriptor.Id, Converter={x:Static shell:TabIconConverter.Instance}}" Size="15" VerticalAlignment="Center" />
+                                        <TextBlock Text="{Binding Descriptor.Name}" FontSize="13" FontWeight="SemiBold" Margin="7,0,0,0" VerticalAlignment="Center"
+                                                   Visibility="{Binding IsSelected, RelativeSource={RelativeSource AncestorType=ListBoxItem}, Converter={StaticResource Island.BoolToVisibility}}" />
                                     </StackPanel>
                                 </DataTemplate>
                             </ListBox.ItemTemplate>

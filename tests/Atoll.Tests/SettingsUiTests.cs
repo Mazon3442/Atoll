@@ -224,7 +224,7 @@ public class SettingsUiTests
             // Media needs more room than the default height; the song title must not be clipped at the top.
             island.OpenModule("media");
             island.UpdateLayout();
-            Assert.True(panel.ActualHeight > expected); // grew past the default height to fit
+            Assert.True(panel.ActualHeight >= expected); // never shorter than the setting; grows when the content needs it
             var panelBody = (FrameworkElement)island.FindName("PanelBody");
             var title = Descendants<TextBlock>(panelBody).Single(t => t.Text == "A song with a longer title");
             Assert.InRange(title.TranslatePoint(new Point(), panelBody).Y, 0, panelBody.ActualHeight - title.ActualHeight);

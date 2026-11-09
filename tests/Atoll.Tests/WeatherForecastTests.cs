@@ -69,7 +69,7 @@ public class WeatherForecastTests
         vm.Show(Example(), new Place("Chicago", 41.85, -87.65), false);
         Assert.Equal(7, vm.Days.Count);
         Assert.Equal("Today", vm.SelectedDay?.Name);
-        Assert.Equal(14, vm.Hours.Count);
+        Assert.Equal(24, vm.Hours.Count); // the whole day, not just the hours left
         Assert.Contains("18 km/h SW", vm.Wind);
         vm.SelectedDay = vm.Days[1];
         Assert.Equal(24, vm.Hours.Count);

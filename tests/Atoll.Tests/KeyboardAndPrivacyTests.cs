@@ -111,12 +111,12 @@ internal static class KeyboardIslandUi
     {
         var service = new SettingsService(new SettingsStore(Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".json")));
         service.Current.Theme.Motion = MotionStyle.Off; // sizes apply at once, so renders show the final shape
-        foreach (var dictionary in new[] { "Modules/Privacy/PrivacyTemplates.xaml", "Modules/Clock/ClockTemplates.xaml" })
+        foreach (var dictionary in new[] { "Modules/Privacy/PrivacyTemplates.xaml", "Modules/Clock/ClockTemplates.xaml", "Modules/Weather/WeatherTemplates.xaml", "Modules/Calendar/CalendarTemplates.xaml", "Modules/Games/GamesTemplates.xaml", "Modules/Home/HomeTemplates.xaml" })
             Application.Current.Resources.MergedDictionaries.Add(new ResourceDictionary { Source = new Uri($"/Atoll;component/{dictionary}", UriKind.Relative) });
         ThemeService.Apply(service.Current.Theme);
         using var host = new ActivityHost();
         using var manager = new ModuleManager([], host, Application.Current.Dispatcher, service);
-        foreach (var tab in PanelGroups.Combine(GroupedPanelsTests.Modules())) manager.Tabs.Add(tab);
+        foreach (var tab in PanelGroups.Combine(GroupedPanelsTests.Modules(), service.Current.Home)) manager.Tabs.Add(tab);
         var island = new IslandWindow(Monitors.GetAll()[0], service, manager, _ => { });
         try
         {

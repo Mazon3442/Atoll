@@ -38,6 +38,12 @@ public sealed class AppSettings
     /// <summary>Looks up time-synced lyrics for the playing song on lrclib.net.</summary>
     public bool ShowLyrics { get; set; } = true;
 
+    /// <summary>The media tab's volume slider changes only the playing app (true) or all sound (false).</summary>
+    public bool VolumeControlsApp { get; set; } = true;
+
+    public HomeSettings Home { get; set; } = new();
+    public GameSettings Games { get; set; } = new();
+
     /// <summary>What the island does over fullscreen apps (videos, games, F11 browsers).</summary>
     public FullscreenMode FullscreenMode { get; set; } = FullscreenMode.PopUp;
 
@@ -139,8 +145,31 @@ public sealed class ThemeSettings
     /// <summary>0 = square corners, 1 = fully rounded pill.</summary>
     public double Roundness { get; set; } = 1;
 
-    public double ExpandedWidth { get; set; } = 520;
-    public double ExpandedHeight { get; set; } = 240;
+    public double ExpandedWidth { get; set; } = 640; // room for the Home dashboard's two columns
+    public double ExpandedHeight { get; set; } = 260;
+}
+
+/// <summary>The Home tab: a dashboard of the other features. Each card can be turned off.</summary>
+public sealed class HomeSettings
+{
+    public bool Enabled { get; set; } = true;
+    public bool Media { get; set; } = true;
+    public bool Weather { get; set; } = true;
+    public bool Timer { get; set; } = true;
+    public bool Calendar { get; set; } = true;
+    public bool UpNext { get; set; } = true;
+    public bool Game { get; set; } = true;
+}
+
+public enum GameIslandMode { Overlay, Hidden }
+
+public sealed class GameSettings
+{
+    /// <summary>Overlay: a small pill with the game, play time and CPU/GPU while you play. Hidden: out of the way until the open shortcut.</summary>
+    public GameIslandMode Mode { get; set; } = GameIslandMode.Overlay;
+    public bool MuteNotifications { get; set; } = true;
+    /// <summary>A Minecraft (Java) server to watch, "host" or "host:port". Empty: none.</summary>
+    public string MinecraftServer { get; set; } = "";
 }
 
 public sealed class ClaudeSettings

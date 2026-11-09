@@ -1,0 +1,236 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:shell="clr-namespace:Atoll.Shell"
+                    xmlns:home="clr-namespace:Atoll.Modules.Home"
+                    xmlns:weather="clr-namespace:Atoll.Modules.Weather">
+
+    <!-- Section title: a small line icon and a label, like the tabs. -->
+    <Style x:Key="Home.Title" TargetType="TextBlock">
+        <Setter Property="FontSize" Value="13" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+        <Setter Property="VerticalAlignment" Value="Center" />
+        <Setter Property="Margin" Value="6,0,0,0" />
+    </Style>
+    <Style x:Key="Home.Caps" TargetType="TextBlock">
+        <Setter Property="FontSize" Value="11" />
+        <Setter Property="FontWeight" Value="Bold" />
+        <Setter Property="Foreground" Value="{DynamicResource Island.Subtle}" />
+        <Setter Property="Margin" Value="0,0,0,6" />
+    </Style>
+    <Style x:Key="Home.Card" TargetType="ContentControl">
+        <Setter Property="Margin" Value="0,0,0,14" />
+        <Style.Triggers>
+            <Trigger Property="Content" Value="{x:Null}">
+                <Setter Property="Visibility" Value="Collapsed" />
+            </Trigger>
+        </Style.Triggers>
+    </Style>
+
+    <DataTemplate x:Key="HomeViewModel.Panel">
+        <Grid>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="24" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+
+            <!-- Left: now playing and this month -->
+            <StackPanel>
+                <ContentControl Style="{StaticResource Home.Card}" Content="{Binding Media}">
+                    <ContentControl.ContentTemplate>
+                        <DataTemplate>
+                            <StackPanel>
+                                <DockPanel>
+                                    <ContentPresenter DockPanel.Dock="Left" Content="{Binding}" ContentTemplate="{StaticResource Media.Art}" Tag="8"
+                                                      Width="40" Height="40" VerticalAlignment="Center" />
+                                    <ContentPresenter DockPanel.Dock="Right" Content="{Binding}" ContentTemplate="{StaticResource Media.Bars}" VerticalAlignment="Center" />
+                                    <StackPanel Margin="10,0,8,0" VerticalAlignment="Center">
+                                        <TextBlock Text="{Binding Title}" FontSize="14" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
+                                        <TextBlock Text="{Binding Artist}" FontSize="12" Foreground="{DynamicResource Island.Subtle}" TextTrimming="CharacterEllipsis" />
+                                    </StackPanel>
+                                </DockPanel>
+                                <TextBlock Text="{Binding Status}" FontSize="12" Foreground="{DynamicResource Island.Subtle}" TextWrapping="Wrap" Margin="0,6,0,0"
+                                           Visibility="{Binding HasSession, Converter={StaticResource Island.InverseBoolToVisibility}}" />
+                                <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,8,0,0"
+                                            Visibility="{Binding HasSession, Converter={StaticResource Island.BoolToVisibility}}">
+                                    <Button Style="{StaticResource Island.IconButton}" Command="{Binding PreviousCommand}" ToolTip="Previous" AutomationProperties.Name="Previous track">
+                                        <shell:Icon Kind="skip-back" Size="16" />
+                                    </Button>
+                                    <Button Style="{StaticResource Island.RoundButton}" Width="38" Height="38" Margin="12,0" Command="{Binding PlayPauseCommand}"
+                                            ToolTip="Play or pause" AutomationProperties.Name="Play or pause">
+                                        <shell:Icon Size="17">
+                                            <shell:Icon.Style>
+                                                <Style TargetType="shell:Icon">
+                                                    <Setter Property="Kind" Value="play" />
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding IsPlaying}" Value="True">
+                                                            <Setter Property="Kind" Value="pause" />
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </shell:Icon.Style>
+                                        </shell:Icon>
+                                    </Button>
+                                    <Button Style="{StaticResource Island.IconButton}" Command="{Binding NextCommand}" ToolTip="Next" AutomationProperties.Name="Next track">
+                                        <shell:Icon Kind="skip-forward" Size="16" />
+                                    </Button>
+                                </StackPanel>
+                            </StackPanel>
+                        </DataTemplate>
+                    </ContentControl.ContentTemplate>
+                </ContentControl>
+
+                <!-- This month -->
+                <StackPanel Visibility="{Binding ShowMonth, Converter={StaticResource Island.BoolToVisibility}}">
+                    <DockPanel Margin="0,0,0,6">
+                        <Button DockPanel.Dock="Right" Style="{StaticResource Island.RoundButton}" Width="26" Height="26" Margin="6,0,0,0"
+                                Command="{Binding NextMonthCommand}" ToolTip="Next month" AutomationProperties.Name="Next month">
+                            <shell:Icon Kind="chevron-right" Size="14" />
+                        </Button>
+                        <Button DockPanel.Dock="Right" Style="{StaticResource Island.RoundButton}" Width="26" Height="26"
+                                Command="{Binding PreviousMonthCommand}" ToolTip="Previous month" AutomationProperties.Name="Previous month">
+                            <shell:Icon Kind="chevron-left" Size="14" />
+                        </Button>
+                        <TextBlock Text="{Binding MonthTitle}" FontSize="14" FontWeight="SemiBold" VerticalAlignment="Center" />
+                    </DockPanel>
+                    <ItemsControl ItemsSource="{x:Static home:HomeViewModel.WeekdayInitials}" Focusable="False">
+                        <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate><UniformGrid Columns="7" /></ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <TextBlock Text="{Binding}" FontSize="11" FontWeight="SemiBold" HorizontalAlignment="Center" Foreground="{DynamicResource Island.Subtle}" />
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                    <ItemsControl ItemsSource="{Binding Cells}" Focusable="False" AutomationProperties.Name="{Binding MonthTitle}">
+                        <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate><UniformGrid Columns="7" /></ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <Grid Height="26">
+                                    <Ellipse x:Name="Today" Width="22" Height="22" Fill="{DynamicResource Island.Accent}" Visibility="Collapsed" />
+                                    <TextBlock x:Name="Day" Text="{Binding Text}" FontSize="12" FontWeight="SemiBold"
+                                               HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                    <Ellipse x:Name="Dot" Width="4" Height="4" Fill="{DynamicResource Island.Accent}" VerticalAlignment="Bottom"
+                                             Margin="0,0,0,0" Visibility="Collapsed" />
+                                </Grid>
+                                <DataTemplate.Triggers>
+                                    <DataTrigger Binding="{Binding HasEvents}" Value="True">
+                                        <Setter TargetName="Dot" Property="Visibility" Value="Visible" />
+                                    </DataTrigger>
+                                    <DataTrigger Binding="{Binding InMonth}" Value="False">
+                                        <Setter TargetName="Day" Property="Opacity" Value="0.3" />
+                                    </DataTrigger>
+                                    <DataTrigger Binding="{Binding IsToday}" Value="True">
+                                        <Setter TargetName="Today" Property="Visibility" Value="Visible" />
+                                        <Setter TargetName="Day" Property="Foreground" Value="White" />
+                                        <Setter TargetName="Dot" Property="Visibility" Value="Collapsed" />
+                                    </DataTrigger>
+                                </DataTemplate.Triggers>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </StackPanel>
+            </StackPanel>
+
+            <!-- Right: weather and timer, the game, what's next -->
+            <StackPanel Grid.Column="2">
+                <Grid Margin="0,0,0,14">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <ContentControl Style="{StaticResource Home.Card}" Margin="0" Content="{Binding Weather}">
+                        <ContentControl.ContentTemplate>
+                            <DataTemplate>
+                                <StackPanel>
+                                    <StackPanel Orientation="Horizontal">
+                                        <shell:Icon Kind="cloud" Size="14" Foreground="{DynamicResource Island.Subtle}" />
+                                        <TextBlock Text="Weather" Style="{StaticResource Home.Title}" />
+                                    </StackPanel>
+                                    <StackPanel Orientation="Horizontal" Margin="0,8,0,0" Visibility="{Binding HasReport, Converter={StaticResource Island.BoolToVisibility}}">
+                                        <weather:WeatherSymbol Code="{Binding ConditionCode}" IsDay="{Binding IsDay}" Width="26" Height="26" VerticalAlignment="Center" />
+                                        <TextBlock Text="{Binding TemperatureReading}" FontSize="24" FontWeight="SemiBold" Margin="8,0,0,0" VerticalAlignment="Center" />
+                                    </StackPanel>
+                                    <TextBlock Text="{Binding ConditionSummary}" FontSize="12" FontWeight="SemiBold" Margin="0,6,0,0" TextTrimming="CharacterEllipsis"
+                                               Visibility="{Binding HasReport, Converter={StaticResource Island.BoolToVisibility}}" />
+                                    <TextBlock Text="{Binding Place}" FontSize="11" Foreground="{DynamicResource Island.Subtle}" TextTrimming="CharacterEllipsis" />
+                                    <TextBlock Text="{Binding Status}" FontSize="11" Foreground="{DynamicResource Island.Subtle}" TextWrapping="Wrap"
+                                               Visibility="{Binding HasReport, Converter={StaticResource Island.InverseBoolToVisibility}}" />
+                                </StackPanel>
+                            </DataTemplate>
+                        </ContentControl.ContentTemplate>
+                    </ContentControl>
+                    <ContentControl Grid.Column="1" Style="{StaticResource Home.Card}" Margin="16,0,0,0" MinWidth="110" Content="{Binding Timer}">
+                        <ContentControl.ContentTemplate>
+                            <DataTemplate>
+                                <StackPanel>
+                                    <StackPanel Orientation="Horizontal">
+                                        <shell:Icon Kind="timer" Size="14" Foreground="{DynamicResource Island.Subtle}" />
+                                        <TextBlock Text="Timer" Style="{StaticResource Home.Title}" />
+                                    </StackPanel>
+                                    <TextBlock Text="{Binding Display, TargetNullValue=--:--, FallbackValue=--:--}" FontSize="22" FontWeight="SemiBold" Margin="0,8,0,0"
+                                               Visibility="{Binding IsActive, Converter={StaticResource Island.BoolToVisibility}}" />
+                                    <StackPanel Orientation="Horizontal" Margin="0,8,0,0" Visibility="{Binding IsActive, Converter={StaticResource Island.InverseBoolToVisibility}}">
+                                        <Button Style="{StaticResource Island.ChipButton}" Content="5m" Command="{Binding StartCountdownCommand}" CommandParameter="5" Margin="0,0,4,0" AutomationProperties.Name="Start a 5 minute timer" />
+                                        <Button Style="{StaticResource Island.ChipButton}" Content="25m" Command="{Binding StartPomodoroCommand}" Margin="0" AutomationProperties.Name="Start a Pomodoro" />
+                                    </StackPanel>
+                                    <Button Style="{StaticResource Island.ChipButton}" Margin="0,4,0,0" HorizontalAlignment="Left" Command="{Binding PauseResumeCommand}"
+                                            Content="{Binding IsRunning, Converter={x:Static shell:PauseLabel.Instance}}"
+                                            Visibility="{Binding IsActive, Converter={StaticResource Island.BoolToVisibility}}" />
+                                </StackPanel>
+                            </DataTemplate>
+                        </ContentControl.ContentTemplate>
+                    </ContentControl>
+                </Grid>
+
+                <ContentControl Content="{Binding Game}">
+                    <ContentControl.Style>
+                        <Style TargetType="ContentControl" BasedOn="{StaticResource Home.Card}">
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding Game.IsPlaying, FallbackValue=False}" Value="False">
+                                    <Setter Property="Visibility" Value="Collapsed" />
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </ContentControl.Style>
+                    <ContentControl.ContentTemplate>
+                        <DataTemplate>
+                            <StackPanel>
+                                <StackPanel Orientation="Horizontal">
+                                    <shell:Icon Kind="gamepad" Size="14" Foreground="{DynamicResource Island.Subtle}" />
+                                    <TextBlock Text="{Binding GameName}" Style="{StaticResource Home.Title}" />
+                                </StackPanel>
+                                <TextBlock FontSize="12" Foreground="{DynamicResource Island.Subtle}" Margin="0,4,0,0" TextTrimming="CharacterEllipsis">
+                                    <Run Text="{Binding PlayTime, Mode=OneWay}" /><Run Text="  " /><Run Text="{Binding GameDetail, Mode=OneWay}" />
+                                </TextBlock>
+                            </StackPanel>
+                        </DataTemplate>
+                    </ContentControl.ContentTemplate>
+                </ContentControl>
+
+                <StackPanel Visibility="{Binding ShowUpNext, Converter={StaticResource Island.BoolToVisibility}}">
+                    <TextBlock Text="UP NEXT" Style="{StaticResource Home.Caps}" />
+                    <TextBlock Text="Nothing else today." FontSize="12" Foreground="{DynamicResource Island.Subtle}"
+                               Visibility="{Binding HasUpNext, Converter={StaticResource Island.InverseBoolToVisibility}}" />
+                    <ItemsControl ItemsSource="{Binding UpNext}" Focusable="False">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <DockPanel Margin="0,0,0,8">
+                                    <Border DockPanel.Dock="Left" Width="3" CornerRadius="1.5" Background="{Binding Color}" Margin="0,0,9,0" />
+                                    <StackPanel>
+                                        <TextBlock Text="{Binding Title}" FontSize="13" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
+                                        <TextBlock Text="{Binding When}" FontSize="11" Foreground="{DynamicResource Island.Subtle}" TextTrimming="CharacterEllipsis" />
+                                    </StackPanel>
+                                </DockPanel>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </StackPanel>
+            </StackPanel>
+        </Grid>
+    </DataTemplate>
+
+</ResourceDictionary>

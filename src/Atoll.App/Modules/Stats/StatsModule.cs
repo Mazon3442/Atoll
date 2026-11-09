@@ -126,12 +126,7 @@ public sealed class StatsModule : IIslandModule
                 var (usedGb, totalGb, memLoad) = MemorySampler.Sample();
                 var (down, up) = _net.Sample();
                 var netScale = _net.Scale(down + up);
-                IReadOnlyList<DeviceBattery>? batteries = null;
-                if (_ticks++ % 30 == 0) // battery levels change slowly; enumerating devices is not free
-                {
-                    try { batteries = BluetoothBattery.ReadAsync().GetAwaiter().GetResult(); }
-                    catch (Exception ex) { Log.Info($"Bluetooth battery unavailable: {ex.Message}"); batteries = []; }
-                }
+                if (_ticks++ % 30 == 0) _ = RefreshBatteriesAsync(); // battery levels change slowly; never hold up the tiles
 
                 _context?.Dispatcher.BeginInvoke(() =>
                 {
@@ -141,11 +136,6 @@ public sealed class StatsModule : IIslandModule
                     else _vm.Gpu.Push(0, "—", "not available");
                     _vm.Memory.Push(memLoad, $"{memLoad:P0}", $"{usedGb:0.0} of {totalGb:0} GB");
                     _vm.Network.Push(netScale, $"↓ {Rate(down)}", $"↑ {Rate(up)}");
-                    if (batteries is not null && !batteries.SequenceEqual(_vm.Devices))
-                    {
-                        _vm.Devices.Clear();
-                        foreach (var device in batteries) _vm.Devices.Add(device);
-                    }
                 });
             }
         }
@@ -157,6 +147,19 @@ public sealed class StatsModule : IIslandModule
         {
             Volatile.Write(ref _busy, 0);
         }
+    }
+
+    private async Task RefreshBatteriesAsync()
+    {
+        IReadOnlyList<DeviceBattery> batteries;
+        try { batteries = await BluetoothBattery.ReadAsync().WaitAsync(TimeSpan.FromSeconds(10)); }
+        catch (Exception ex) { Log.Info($"Bluetooth battery unavailable: {ex.Message}"); return; }
+        _context?.Dispatcher.BeginInvoke(() =>
+        {
+            if (_disposed || batteries.SequenceEqual(_vm.Devices)) return;
+            _vm.Devices.Clear();
+            foreach (var device in batteries) _vm.Devices.Add(device);
+        });
     }
 
     internal static string Rate(double bytesPerSecond) => bytesPerSecond switch

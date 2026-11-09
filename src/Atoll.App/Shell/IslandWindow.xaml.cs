@@ -107,8 +107,13 @@ public partial class IslandWindow : Window
         _glassTimer.Tick += (_, _) => SampleGlass();
 
         Tabs.ItemsSource = modules.Tabs;
+        // The header's status chips use the System group's sound, battery and quick actions.
+        void BindStatus() => StatusChips.DataContext = modules.Tabs.Select(t => t.Panel).OfType<SystemGroupViewModel>().FirstOrDefault();
+        modules.Tabs.CollectionChanged += (_, _) => BindStatus();
+        BindStatus();
         Tabs.SelectionChanged += (_, _) =>
         {
+            if (Tabs.SelectedItem is { } selected) Tabs.ScrollIntoView(selected); // a narrow island scrolls the tab bar
             ShowSelectedTab();
             if (_mode == IslandMode.Expanded) Render();
         };
@@ -406,7 +411,8 @@ public partial class IslandWindow : Window
     /// <summary>The visibility setting that applies to what is in front of the island.</summary>
     internal static FullscreenMode ModeFor(ForegroundKind foreground, AppSettings settings) => foreground switch
     {
-        ForegroundKind.Game => FullscreenMode.Hide, // only an intentional edge hold can reveal it
+        // Overlay: the game pill stays up. Hidden: only an intentional edge hold or the open shortcut reveals it.
+        ForegroundKind.Game => settings.Games.Mode == GameIslandMode.Overlay ? FullscreenMode.Stay : FullscreenMode.Hide,
         ForegroundKind.Fullscreen => settings.FullscreenMode,
         ForegroundKind.Maximized => settings.MaximizedMode,
         _ => FullscreenMode.Stay,
@@ -696,7 +702,7 @@ public partial class IslandWindow : Window
         {
             var expandedWidth = Math.Clamp(t.ExpandedWidth, 320, 900);
             var expandedHeight = Math.Clamp(t.ExpandedHeight, 140, 600);
-            if (Tabs.SelectedItem is ModuleTab { Panel: MediaPanelViewModel or SystemGroupViewModel or Atoll.Modules.Weather.WeatherViewModel })
+            if (Tabs.SelectedItem is ModuleTab { Panel: MediaPanelViewModel or SystemGroupViewModel or Atoll.Modules.Weather.WeatherViewModel or Atoll.Modules.Home.HomeViewModel or Atoll.Modules.Games.GameViewModel })
                 expandedHeight = Math.Max(expandedHeight, FittedPanelHeight(expandedWidth)); // show all of it
             expandedHeight = Math.Min(expandedHeight, AvailablePanelHeight);
             // Lay out at the destination size, so opening the pill cannot create transient overflow.

@@ -80,6 +80,42 @@ public sealed partial class MediaViewModel(Func<Task> playPause, Func<Task> next
 
     public VisualizerViewModel Visualizer { get; } = new();
 
+    /// <summary>The playing app's own volume (0–100), shown when <see cref="VolumeControlsApp"/> and the app has audio.</summary>
+    [ObservableProperty] private double _appVolume;
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(ShowsAppVolume))]
+    private bool _hasAppVolume;
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(ShowsAppVolume), nameof(VolumeScopeLabel), nameof(VolumeScopeDescription))]
+    private bool _volumeControlsApp = true;
+    public bool ShowsAppVolume => HasAppVolume && VolumeControlsApp;
+    public string VolumeScopeLabel => VolumeControlsApp ? (AppName.Length > 0 ? AppName : "This app") : "All sound";
+    public string VolumeScopeDescription => VolumeControlsApp
+        ? $"The slider changes {VolumeScopeLabel} only. Switch to all sound."
+        : "The slider changes all sound. Switch to the playing app only.";
+    public event Action<double>? AppVolumeChanged;
+    public event Action<bool>? VolumeScopeChanged;
+    private bool _showingAppVolume;
+    partial void OnAppVolumeChanged(double value) { if (!_showingAppVolume) AppVolumeChanged?.Invoke(value / 100); }
+    partial void OnAppNameChanged(string value) { OnPropertyChanged(nameof(VolumeScopeLabel)); OnPropertyChanged(nameof(VolumeScopeDescription)); }
+    /// <summary>Shows the app's current level without writing it back; null hides the app slider.</summary>
+    public void ShowAppVolume(double? level)
+    {
+        _showingAppVolume = true;
+        try
+        {
+            HasAppVolume = level is not null;
+            if (level is { } l) AppVolume = Math.Round(l * 100);
+        }
+        finally { _showingAppVolume = false; }
+    }
+    [RelayCommand]
+    private void ToggleVolumeScope()
+    {
+        VolumeControlsApp = !VolumeControlsApp;
+        VolumeScopeChanged?.Invoke(VolumeControlsApp);
+    }
+
     /// <summary>Speakers and headphones; picking one makes it the Windows default output.</summary>
     public ObservableCollection<MediaSourceChoice> Outputs { get; } = [];
     [ObservableProperty] private MediaSourceChoice? _selectedOutput;

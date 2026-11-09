@@ -16,6 +16,38 @@ internal static class AudioOutputs
         return (outputs, current.ID);
     }
 
+    /// <summary>
+    /// Volume of the playing app's audio sessions on the default output, or null when it has none.
+    /// Matched by process name too: browsers and Spotify play from child processes.
+    /// </summary>
+    public static float? GetAppVolume(uint processId) => AppSessions(processId, s => s.SimpleAudioVolume.Volume).FirstOrDefault() is var v && v > -1 ? v : null;
+
+    public static void SetAppVolume(uint processId, float level) =>
+        AppSessions(processId, s => { s.SimpleAudioVolume.Volume = Math.Clamp(level, 0, 1); return 0f; }).ToList();
+
+    private static List<float> AppSessions(uint processId, Func<AudioSessionControl, float> use)
+    {
+        var name = ProcessName(processId);
+        using var devices = new MMDeviceEnumerator();
+        if (!devices.HasDefaultAudioEndpoint(DataFlow.Render, Role.Multimedia)) return [-1];
+        using var device = devices.GetDefaultAudioEndpoint(DataFlow.Render, Role.Multimedia);
+        var sessions = device.AudioSessionManager.Sessions;
+        var results = new List<float>();
+        for (var i = 0; i < sessions.Count; i++)
+        {
+            using var session = sessions[i];
+            var pid = session.GetProcessID;
+            if (pid == processId || name is not null && pid != 0 && ProcessName(pid) == name) results.Add(use(session));
+        }
+        return results.Count > 0 ? results : [-1];
+    }
+
+    private static string? ProcessName(uint pid)
+    {
+        try { using var p = System.Diagnostics.Process.GetProcessById((int)pid); return p.ProcessName; }
+        catch (Exception ex) when (ex is ArgumentException or InvalidOperationException) { return null; }
+    }
+
     /// <summary>Makes the device the default for every role (console, multimedia, communications).</summary>
     public static void SetDefault(string id)
     {

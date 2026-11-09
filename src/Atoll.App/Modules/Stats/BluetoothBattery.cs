@@ -11,7 +11,7 @@ public sealed record DeviceBattery(string Name, int Percent)
 
 /// <summary>
 /// Battery of connected Bluetooth devices, read the way Settings › Bluetooth shows it: the device node's battery
-/// property, kept only for devices whose paired endpoint is connected (the property outlives the connection).
+/// property, kept only for devices whose container is connected (the property outlives the connection).
 /// </summary>
 internal static class BluetoothBattery
 {
@@ -21,22 +21,17 @@ internal static class BluetoothBattery
 
     public static async Task<IReadOnlyList<DeviceBattery>> ReadAsync()
     {
-        var endpoints = await DeviceInformation.FindAllAsync("System.Devices.Aep.IsPaired:=System.StructuredQueryType.Boolean#True",
-            ["System.Devices.Aep.IsConnected", "System.Devices.Aep.ContainerId"], DeviceInformationKind.AssociationEndpoint);
-        var connected = endpoints
-            .Where(e => e.Properties.TryGetValue("System.Devices.Aep.IsConnected", out var c) && c is true)
-            .Select(e => (Container: e.Properties.TryGetValue("System.Devices.Aep.ContainerId", out var id) ? id as Guid? : null, e.Name))
-            .Where(e => e.Container is not null)
-            .GroupBy(e => e.Container!.Value).ToDictionary(g => g.Key, g => g.First().Name);
-        if (connected.Count == 0) return [];
-
+        // Containers and device nodes answer in milliseconds; paired-endpoint queries took 30-60 s.
+        var connected = (await DeviceInformation.FindAllAsync("System.Devices.Connected:=System.StructuredQueryType.Boolean#True",
+                ["System.Devices.Connected"], DeviceInformationKind.DeviceContainer))
+            .Select(c => Guid.TryParse(c.Id, out var id) ? id : Guid.Empty).ToHashSet();
         var nodes = await DeviceInformation.FindAllAsync(BluetoothClass, [BatteryKey, ContainerKey], DeviceInformationKind.Device);
         return nodes
-            .Select(n => (Battery: n.Properties.TryGetValue(BatteryKey, out var b) ? b as byte? : null,
+            .Select(n => (n.Name, Battery: n.Properties.TryGetValue(BatteryKey, out var b) ? b as byte? : null,
                 Container: n.Properties.TryGetValue(ContainerKey, out var id) ? id as Guid? : null))
-            .Where(n => n.Battery is not null && n.Container is { } c && connected.ContainsKey(c))
+            .Where(n => n.Battery is not null && n.Container is { } c && connected.Contains(c))
             .GroupBy(n => n.Container!.Value) // a headset has several nodes (hands-free, audio) with the same level
-            .Select(g => new DeviceBattery(connected[g.Key], Math.Clamp((int)g.First().Battery!, 0, 100)))
+            .Select(g => new DeviceBattery(g.First().Name, Math.Clamp((int)g.First().Battery!, 0, 100)))
             .OrderBy(d => d.Name, StringComparer.CurrentCultureIgnoreCase)
             .ToList();
     }

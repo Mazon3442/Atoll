@@ -35,7 +35,9 @@ change both shortcuts in **Settings › General › Keyboard**.
 | **Media** | Pick a player in the source dropdown. Five bars take their color from its cover, adjusted for your theme. Play/pause, skip and seek when the player supports it. Synced lyrics from lrclib.net (turn off in Settings › Modules), and an output picker to switch speakers or headphones (Windows). |
 | **Clock & timers** | Clock, countdown presets, stopwatch and Pomodoro. |
 | **Calendar** | Upcoming events from private HTTPS ICS links (Google, Outlook / Microsoft 365, ...), with pin and dismiss controls and alerts before events start. |
-| **Weather** | Open-Meteo city search, current conditions and a seven-day forecast. Hourly wind, rain and temperature charts work with the pointer and the keyboard. |
+| **Home** | A dashboard: now playing, weather, timer, this month and what's next today. Choose the cards in Settings › Modules › Home. |
+| **Games** | Game mode: while you play, a small overlay with the game, play time, CPU, GPU and GPU temperature (NVIDIA), or the island stays hidden. Notifications go quiet. Starts Steam, Epic and Minecraft games, and shows a Minecraft Java server's players and ping (Windows). |
+| **Weather** | Open-Meteo city search, current conditions and a seven-day forecast. Hourly wind, rain and temperature charts cover the whole day and work with the pointer and the keyboard. |
 | **Files** | A file shelf and clipboard history. History stays in memory, and private or password formats are skipped. |
 | **System** | CPU, memory and network readings, volume and battery, and quick actions: screenshot, microphone mute, lock, display off and Downloads. Battery levels of connected Bluetooth devices (Windows). A green dot shows while an app uses the camera and an orange dot for the microphone (Windows). |
 | **Notifications** | Windows notifications mirrored into the island once you set up the package identity and allow access. |

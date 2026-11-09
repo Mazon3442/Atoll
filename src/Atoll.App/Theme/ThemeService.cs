@@ -41,7 +41,8 @@ public static class ThemeService
         res["Island.Hover"] = Frozen(new SolidColorBrush(fg) { Opacity = 0.12 });
         res["Island.Accent"] = Frozen(new SolidColorBrush(accent));
         res["Island.AccentText"] = Frozen(new SolidColorBrush(AccentTextColor(accent, bg, fg)));
-        res["Island.Surface"] = Frozen(new SolidColorBrush(fg) { Opacity = 0.07 });
+        res["Island.Surface"] = Frozen(new SolidColorBrush(fg) { Opacity = 0.08 });
+        res["Island.Raised"] = Frozen(new SolidColorBrush(fg) { Opacity = 0.16 });
         res["Island.SelectedBackground"] = Frozen(new SolidColorBrush(Color.FromRgb(fg.R, fg.G, fg.B)));
         res["Island.SelectedForeground"] = Frozen(new SolidColorBrush(Color.FromRgb(bg.R, bg.G, bg.B)));
     }

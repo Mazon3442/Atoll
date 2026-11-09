@@ -121,7 +121,7 @@ public sealed class CalendarModule : IIslandModule
 {
     private static readonly TimeSpan RefreshEvery = TimeSpan.FromMinutes(15);
     private static readonly TimeSpan TickEvery = TimeSpan.FromSeconds(30);
-    private static readonly TimeSpan PillHorizon = TimeSpan.FromHours(24);
+    private static readonly TimeSpan PillHorizon = TimeSpan.FromHours(2); // unpinned: only what's coming up soon, never tomorrow night
     private static readonly int WindowDays = 14;
     private static readonly HttpClient Http = CreateClient();
 

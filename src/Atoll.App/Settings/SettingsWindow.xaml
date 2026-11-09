@@ -623,6 +623,34 @@
                             </ItemsControl.ItemTemplate>
                         </ItemsControl>
 
+                        <TextBlock Style="{StaticResource SectionHeader}" Text="Home" />
+                        <s:SettingCard Glyph="&#xE80F;" Header="Home tab" Description="A dashboard of what's playing, the weather, your timer, this month and what's next.">
+                            <CheckBox Style="{StaticResource Toggle}" IsChecked="{Binding HomeEnabled}" AutomationProperties.Name="Show the Home tab" />
+                        </s:SettingCard>
+                        <s:SettingCard Glyph="&#xE71D;" Header="Cards on Home" Description="Cards for features that are off never show."
+                                       IsEnabled="{Binding HomeEnabled}">
+                            <WrapPanel MaxWidth="330">
+                                <CheckBox Content="Now playing" IsChecked="{Binding HomeMedia}" Margin="0,0,14,6" />
+                                <CheckBox Content="Weather" IsChecked="{Binding HomeWeather}" Margin="0,0,14,6" />
+                                <CheckBox Content="Timer" IsChecked="{Binding HomeTimer}" Margin="0,0,14,6" />
+                                <CheckBox Content="Month" IsChecked="{Binding HomeCalendar}" Margin="0,0,14,6" />
+                                <CheckBox Content="Up next" IsChecked="{Binding HomeUpNext}" Margin="0,0,14,6" />
+                                <CheckBox Content="Game" IsChecked="{Binding HomeGame}" Margin="0,0,14,6" />
+                            </WrapPanel>
+                        </s:SettingCard>
+
+                        <TextBlock Style="{StaticResource SectionHeader}" Text="Games" />
+                        <s:SettingCard Glyph="&#xE7FC;" Header="While you play" Description="The overlay shows the game, play time, CPU, GPU and GPU temperature (NVIDIA). The open shortcut still works over games.">
+                            <ComboBox Width="250" ItemsSource="{Binding GameModes}" DisplayMemberPath="Label"
+                                      SelectedValuePath="Value" SelectedValue="{Binding GameMode}" AutomationProperties.Name="While you play" />
+                        </s:SettingCard>
+                        <s:SettingCard Glyph="&#xE708;" Header="Mute notifications while playing" Description="They still go to the notification history. Agent and timer alerts get through.">
+                            <CheckBox Style="{StaticResource Toggle}" IsChecked="{Binding GameMuteNotifications}" AutomationProperties.Name="Mute notifications while playing" />
+                        </s:SettingCard>
+                        <s:SettingCard Glyph="&#xE968;" Header="Minecraft server" Description="Shows players online and ping in the Games tab. Java servers, host or host:port.">
+                            <TextBox Width="250" Text="{Binding MinecraftServer, UpdateSourceTrigger=LostFocus}" AutomationProperties.Name="Minecraft server address" />
+                        </s:SettingCard>
+
                         <TextBlock Style="{StaticResource SectionHeader}" Text="Media" />
                         <s:SettingCard Glyph="&#xE8D6;" Header="Show synced lyrics"
                                        Description="Looks up the playing song's title and artist on lrclib.net and shows the current line in the media tab.">

@@ -45,6 +45,7 @@ public class GroupedPanelsTests
             ["weather"] = new object(),
             ["actions"] = new QuickActionsViewModel(new QuickActionsModule()),
             ["privacy"] = new object(), // no panel of its own; it belongs to the System tab
+            ["games"] = new Atoll.Modules.Games.GameViewModel(),
         };
         return ModuleCatalog.All.Select(d => new ModuleTab(d, panels[d.Id])).ToList();
     }
@@ -54,7 +55,7 @@ public class GroupedPanelsTests
     {
         var modules = Modules();
         var tabs = PanelGroups.Combine(modules);
-        Assert.Equal(["claude", "providers", "media", "notifications", "clock", "system", "shelf", "weather"], tabs.Select(t => t.Descriptor.Id));
+        Assert.Equal(["claude", "providers", "media", "notifications", "clock", "system", "shelf", "weather", "games"], tabs.Select(t => t.Descriptor.Id));
         Assert.Equal(tabs, PanelGroups.Combine(modules));
         foreach (var module in modules)
             Assert.Single(tabs, t => t.Contains(module.Descriptor.Id));

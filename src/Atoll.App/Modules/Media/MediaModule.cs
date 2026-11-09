@@ -68,6 +68,13 @@ public sealed partial class MediaModule : IIslandModule
         _levels.Unavailable += () => OnUi(() => _vm.VisualizerNote = "Audio visualization is unavailable for this source on this Windows version.");
         _vm.SourceChanged += _ => BindCurrentSession();
         _vm.OutputChanged += id => _ = SwitchOutputAsync(id);
+        _vm.VolumeScopeChanged += app => { if (_context is { } c) { c.Settings.Current.VolumeControlsApp = app; c.Settings.NotifyChanged(); } };
+        _vm.AppVolumeChanged += level =>
+        {
+            if (_captureProcess is not { } pid) return;
+            try { AudioOutputs.SetAppVolume(pid, (float)level); }
+            catch (Exception ex) when (ex is COMException or InvalidCastException) { Log.Info($"App volume unavailable: {ex.Message}"); }
+        };
     }
 
     public object? Panel => _vm;
@@ -75,12 +82,13 @@ public sealed partial class MediaModule : IIslandModule
     public void Start(ModuleContext context)
     {
         _context = context;
+        _vm.VolumeControlsApp = context.Settings.Current.VolumeControlsApp;
         _vm.ApplyTheme(context.Settings.Current.Theme);
         context.Settings.Changed += OnThemeChanged;
         _progressTimer = new DispatcherTimer(DispatcherPriority.Background) { Interval = TimeSpan.FromMilliseconds(500) };
         _progressTimer.Tick += (_, _) => UpdateProgress();
         _sourceTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(2) };
-        _sourceTimer.Tick += (_, _) => { RefreshSources(); RefreshOutputs(); }; _sourceTimer.Start();
+        _sourceTimer.Tick += (_, _) => { RefreshSources(); RefreshOutputs(); RefreshAppVolume(); }; _sourceTimer.Start();
         RefreshOutputs();
         _followTimer = new DispatcherTimer { Interval = FollowDelay };
         _followTimer.Tick += (_, _) => { _followTimer.Stop(); FollowSystem(); };
@@ -320,6 +328,13 @@ public sealed partial class MediaModule : IIslandModule
             _vm.SetOutputs(outputs, current);
         }
         catch (Exception ex) when (ex is COMException or InvalidCastException) { Log.Info($"Audio outputs unavailable: {ex.Message}"); }
+    }
+
+    /// <summary>Follows the playing app's volume when it changes elsewhere (the app's own slider, the mixer).</summary>
+    private void RefreshAppVolume()
+    {
+        try { _vm.ShowAppVolume(_captureProcess is { } pid ? AudioOutputs.GetAppVolume(pid) : null); }
+        catch (Exception ex) when (ex is COMException or InvalidCastException) { _vm.ShowAppVolume(null); }
     }
 
     private async Task SwitchOutputAsync(string id)

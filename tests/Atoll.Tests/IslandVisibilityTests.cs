@@ -29,6 +29,8 @@ public class IslandVisibilityTests
         var settings = new AppSettings { FullscreenMode = FullscreenMode.Stay, MaximizedMode = FullscreenMode.PopUp };
         Assert.Equal(FullscreenMode.PopUp, IslandWindow.ModeFor(ForegroundKind.Maximized, settings));
         Assert.Equal(FullscreenMode.Stay, IslandWindow.ModeFor(ForegroundKind.Fullscreen, settings));
+        Assert.Equal(FullscreenMode.Stay, IslandWindow.ModeFor(ForegroundKind.Game, settings)); // game overlay
+        settings.Games.Mode = GameIslandMode.Hidden;
         Assert.Equal(FullscreenMode.Hide, IslandWindow.ModeFor(ForegroundKind.Game, settings));
         Assert.Equal(FullscreenMode.Stay, IslandWindow.ModeFor(ForegroundKind.Normal, settings));
     }
