@@ -70,7 +70,7 @@ public partial class App : Application
         Navigation.OpenModule = _islands.OpenModule;
         Navigation.OpenOnboarding = ShowOnboarding;
         _tray = new TrayIcon(OpenSettings, SetPaused, Shutdown);
-        _hotkeys = new HotkeyService(_settings, _islands.ToggleFromKeyboard, () => SetPaused(!_islands.Paused));
+        _hotkeys = new HotkeyService(_settings, _islands.ToggleFromKeyboard, () => SetPaused(!_islands.Paused), _islands.OpenPalette);
 
         // First run: explain the island and let the user choose the top row. Skipping still marks it done.
         if (!_settings.Current.OnboardingComplete)

@@ -35,8 +35,9 @@ Calendar, Files, Clipboard and Weather; everything else is on and waits in the *
 Skipping keeps those defaults. Open the welcome again from Settings › About › Welcome setup.
 
 From any app, **Ctrl+Alt+Space** opens the island ready for the keyboard and **Ctrl+Alt+H** hides or
-shows it. In the open island, Ctrl+Tab or the mouse wheel over the tabs switches sections. You can
-change both shortcuts in **Settings › General › Keyboard**.
+shows it. **Ctrl+Alt+K** opens the command palette: search tabs, Start Menu apps, quick actions and
+timers. In the open island, **Ctrl+K** opens the same palette, and **Ctrl+1 to 9** jump to a
+bookmarked tab. Change all three shortcuts in **Settings › General › Keyboard**.
 
 | Feature | What it does |
 | --- | --- |
@@ -265,8 +266,8 @@ Use the refresh button in Apps if you install something while ATOLL is open.
 
 The **Notes** tab has three sections. **Notes** keeps quick text notes, **Reminders** sets a one-off
 reminder with 10-minute to 3-hour presets or tomorrow morning, and **To-do** is a simple checklist.
-Reminders pop up in the island when they are due. Notes, reminders and to-dos are stored in ATOLL's
-settings file.
+Press Enter to add a to-do, or Ctrl+Enter to save a note. Reminders pop up in the island when they
+are due. Notes, reminders and to-dos are stored in ATOLL's settings file.
 
 ### Files and clipboard
 

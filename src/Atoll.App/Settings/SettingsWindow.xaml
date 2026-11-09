@@ -348,6 +348,13 @@
                         <TextBlock Text="{Binding HideShortcutStatus}" Style="{StaticResource Hint}" Margin="4,-2,0,8"
                                    Foreground="{DynamicResource SystemFillColorCriticalBrush}" AutomationProperties.LiveSetting="Assertive"
                                    Visibility="{Binding HideShortcutStatus, Converter={StaticResource EmptyToCollapsed}}" />
+                        <s:SettingCard Glyph="&#xE721;" Header="Command palette"
+                                       Description="Search tabs, apps and actions from any app. Ctrl+1 to 9 also jump to a bookmarked tab.">
+                            <s:HotkeyBox Shortcut="{Binding PaletteShortcut}" AutomationProperties.Name="Shortcut for the command palette" />
+                        </s:SettingCard>
+                        <TextBlock Text="{Binding PaletteShortcutStatus}" Style="{StaticResource Hint}" Margin="4,-2,0,8"
+                                   Foreground="{DynamicResource SystemFillColorCriticalBrush}" AutomationProperties.LiveSetting="Assertive"
+                                   Visibility="{Binding PaletteShortcutStatus, Converter={StaticResource EmptyToCollapsed}}" />
                         <TextBlock Text="{Binding ShortcutMessage}" Style="{StaticResource Hint}" Margin="4,-2,0,8" AutomationProperties.LiveSetting="Polite"
                                    Visibility="{Binding ShortcutMessage, Converter={StaticResource EmptyToCollapsed}}" />
                         <TextBlock Style="{StaticResource Hint}" Margin="4,2,0,0"
@@ -678,18 +685,6 @@
                                 <CheckBox Content="Up next" IsChecked="{Binding HomeUpNext}" Margin="0,0,14,6" />
                                 <CheckBox Content="Game" IsChecked="{Binding HomeGame}" Margin="0,0,14,6" />
                             </WrapPanel>
-                        </s:SettingCard>
-
-                        <TextBlock Style="{StaticResource SectionHeader}" Text="Games" />
-                        <s:SettingCard Glyph="&#xE7FC;" Header="While you play" Description="The overlay shows the game, play time, CPU, GPU and GPU temperature (NVIDIA). The open shortcut still works over games.">
-                            <ComboBox Width="250" ItemsSource="{Binding GameModes}" DisplayMemberPath="Label"
-                                      SelectedValuePath="Value" SelectedValue="{Binding GameMode}" AutomationProperties.Name="While you play" />
-                        </s:SettingCard>
-                        <s:SettingCard Glyph="&#xE708;" Header="Mute notifications while playing" Description="They still go to the notification history. Agent and timer alerts get through.">
-                            <CheckBox Style="{StaticResource Toggle}" IsChecked="{Binding GameMuteNotifications}" AutomationProperties.Name="Mute notifications while playing" />
-                        </s:SettingCard>
-                        <s:SettingCard Glyph="&#xE968;" Header="Minecraft server" Description="Shows players online and ping in Launcher › Games. Java servers, host or host:port.">
-                            <TextBox Width="250" Text="{Binding MinecraftServer, UpdateSourceTrigger=LostFocus}" AutomationProperties.Name="Minecraft server address" />
                         </s:SettingCard>
 
                         <TextBlock Style="{StaticResource SectionHeader}" Text="Media" />

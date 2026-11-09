@@ -42,7 +42,11 @@
                             <TextBox Text="{Binding Apps.SearchText, UpdateSourceTrigger=PropertyChanged}"
                                      FontSize="12" Background="Transparent" BorderThickness="0" Padding="0"
                                      Foreground="{DynamicResource Island.Foreground}" CaretBrush="{DynamicResource Island.Foreground}"
-                                     VerticalContentAlignment="Center" AutomationProperties.Name="Search apps" />
+                                     VerticalContentAlignment="Center" AutomationProperties.Name="Search apps">
+                                <TextBox.InputBindings>
+                                    <KeyBinding Key="Enter" Command="{Binding Apps.OpenFirstCommand}" />
+                                </TextBox.InputBindings>
+                            </TextBox>
                         </Grid>
                     </DockPanel>
                 </Border>

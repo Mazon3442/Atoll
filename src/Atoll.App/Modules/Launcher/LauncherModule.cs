@@ -152,6 +152,9 @@ public sealed partial class LauncherViewModel : ObservableObject
             Log.Error($"Could not launch {app.Name}", ex);
         }
     }
+
+    [RelayCommand]
+    private void OpenFirst() => Launch(FilteredApps.FirstOrDefault());
 }
 
 public sealed class LauncherModule : IIslandModule

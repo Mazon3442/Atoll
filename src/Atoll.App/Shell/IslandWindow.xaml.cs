@@ -11,6 +11,8 @@ using System.Windows.Media.Imaging;
 using System.Windows.Threading;
 using Atoll.Activities;
 using Atoll.Modules;
+using Atoll.Modules.Clock;
+using Atoll.Modules.Launcher;
 using Atoll.Settings;
 using Atoll.Theme;
 
@@ -69,6 +71,8 @@ public partial class IslandWindow : Window
     private readonly ObservableCollection<ModuleTab> _menuTabs = [];
     private ModuleTab? _transientTab;
     private bool _refreshingTabs;
+    private readonly CommandPaletteViewModel _palette;
+    private bool _paletteOpen;
     private Rect _peekAnchor = Rect.Empty;
     private object? _shownContent;
     private string? _shownTemplateMode;
@@ -119,12 +123,16 @@ public partial class IslandWindow : Window
 
         Tabs.ItemsSource = _visibleTabs;
         TabMenu.ItemsSource = _menuTabs;
+        _palette = new CommandPaletteViewModel(BuildPaletteCommands);
+        Palette.DataContext = _palette;
+        _palette.CloseRequested += ClosePalette;
         modules.LayoutChanged += OnModulesLayoutChanged;
         modules.Tabs.CollectionChanged += OnTabsChanged;
         BindStatusChips();
         Tabs.SelectionChanged += (_, _) =>
         {
             if (_refreshingTabs) return;
+            if (_paletteOpen) ClosePalette();
             if (Tabs.SelectedItem is { } selected) Tabs.ScrollIntoView(selected); // a narrow island scrolls the tab bar
             // Picking a bookmarked tab leaves a menu tab that was only open for this visit.
             if (_transientTab is not null && !ReferenceEquals(Tabs.SelectedItem, _transientTab))
@@ -175,10 +183,25 @@ public partial class IslandWindow : Window
         };
         PreviewKeyDown += (_, e) =>
         {
-            if (_mode != IslandMode.Expanded) return;
             var ctrl = Keyboard.Modifiers.HasFlag(ModifierKeys.Control);
             var shift = Keyboard.Modifiers.HasFlag(ModifierKeys.Shift);
+            if (_paletteOpen)
+            {
+                if (e.Key == Key.Escape || (ctrl && e.Key == Key.K))
+                {
+                    ClosePalette();
+                    e.Handled = true;
+                }
+                return;
+            }
+            if (_mode != IslandMode.Expanded) return;
             if (e.Key == Key.Escape) SetMode(IslandMode.Compact);
+            else if (ctrl && e.Key == Key.K)
+            {
+                ShowPalette();
+                e.Handled = true;
+                return;
+            }
             else if (ctrl && e.Key == Key.Tab) StepTab(shift ? -1 : 1, wrap: true);
             else if (ctrl && e.Key is Key.PageDown or Key.PageUp) StepTab(e.Key == Key.PageDown ? 1 : -1, wrap: true);
             else if (ctrl && e.Key is >= Key.D1 and <= Key.D9 && e.Key - Key.D1 < Tabs.Items.Count)
@@ -199,6 +222,7 @@ public partial class IslandWindow : Window
         {
             _modules.LayoutChanged -= OnModulesLayoutChanged;
             _modules.Tabs.CollectionChanged -= OnTabsChanged;
+            _palette.CloseRequested -= ClosePalette;
             Watch(null);
             WatchPanel(null);
             _pointer.Stop();
@@ -353,6 +377,100 @@ public partial class IslandWindow : Window
         Tabs.UpdateLayout();
         if (Tabs.ItemContainerGenerator.ContainerFromItem(Tabs.SelectedItem) is ListBoxItem item) Keyboard.Focus(item);
         else Keyboard.Focus(Tabs);
+    }
+
+    /// <summary>Opens the command palette from a shortcut.</summary>
+    public void ShowPalette()
+    {
+        if (_paused) return;
+        if (!IsVisible)
+        {
+            _revealed = true;
+            UpdatePresence();
+            if (!IsVisible) return;
+        }
+        var previous = Native.GetForegroundWindow();
+        SetMode(IslandMode.Expanded);
+        _returnFocusTo = previous == _hwnd ? 0 : previous;
+        _heldOpen = true;
+        _paletteOpen = true;
+        _palette.Refresh();
+        PanelBody.Visibility = Visibility.Collapsed;
+        Palette.Visibility = Visibility.Visible;
+        Palette.FocusSearch();
+    }
+
+    private void ClosePalette()
+    {
+        if (!_paletteOpen) return;
+        _paletteOpen = false;
+        Palette.Visibility = Visibility.Collapsed;
+        PanelBody.Visibility = Visibility.Visible;
+        if (_mode == IslandMode.Expanded) FocusSelectedTab();
+    }
+
+    private void RunAndTuck(Action action)
+    {
+        if (_mode == IslandMode.Expanded) SetMode(IslandMode.Compact);
+        action();
+    }
+
+    private IReadOnlyList<CommandItem> BuildPaletteCommands()
+    {
+        var items = new List<CommandItem>();
+        foreach (var tab in _modules.Tabs)
+        {
+            var target = tab;
+            items.Add(new CommandItem(tab.Descriptor.Name, "Section", tab.Descriptor.Glyph, "", CommandKind.Tab,
+                () => OpenFromMenu(target)));
+        }
+
+        var system = _modules.Tabs.Select(tab => tab.Panel).OfType<SystemGroupViewModel>().FirstOrDefault();
+        if (system?.Actions is { } actions)
+        {
+            items.Add(new CommandItem("Screenshot", "Action", "\uE722", "", CommandKind.Action,
+                () => RunAndTuck(() => actions.ScreenshotCommand.Execute(null))));
+            items.Add(new CommandItem(actions.MicLabel, "Action", "\uE720", "", CommandKind.Action,
+                () => RunAndTuck(() => actions.ToggleMicCommand.Execute(null))));
+            items.Add(new CommandItem("Lock the PC", "Action", "\uE72E", "", CommandKind.Action,
+                () => RunAndTuck(() => actions.LockCommand.Execute(null))));
+            items.Add(new CommandItem("Turn off the display", "Action", "\uE7E8", "", CommandKind.Action,
+                () => RunAndTuck(() => actions.ScreenOffCommand.Execute(null))));
+            items.Add(new CommandItem("Open Downloads", "Action", "\uE896", "", CommandKind.Action,
+                () => RunAndTuck(() => actions.DownloadsCommand.Execute(null))));
+        }
+
+        var clock = _modules.Tabs.Select(tab => tab.Panel).OfType<ClockPanelViewModel>().FirstOrDefault();
+        if (clock is not null)
+        {
+            items.Add(new CommandItem("Start a 5 minute timer", "Timer", "\uE916", "", CommandKind.Timer,
+                () => RunAndTuck(() => clock.Timer.StartCountdownCommand.Execute(5))));
+            items.Add(new CommandItem("Start a 15 minute timer", "Timer", "\uE916", "", CommandKind.Timer,
+                () => RunAndTuck(() => clock.Timer.StartCountdownCommand.Execute(15))));
+            items.Add(new CommandItem("Start a focus session", "Timer", "\uE916", "", CommandKind.Timer,
+                () => RunAndTuck(() => clock.Timer.StartPomodoroCommand.Execute(null))));
+            items.Add(new CommandItem("Start the stopwatch", "Timer", "\uE916", "", CommandKind.Timer,
+                () => RunAndTuck(() => clock.Timer.StartStopwatchCommand.Execute(null))));
+            if (clock.Timer.IsActive)
+                items.Add(new CommandItem("Stop the timer", "Timer", "\uE916", "", CommandKind.Timer,
+                    () => RunAndTuck(() => clock.Timer.ResetCommand.Execute(null))));
+        }
+
+        items.Add(new CommandItem("Open Settings", "Action", "\uE713", "", CommandKind.Action,
+            () => RunAndTuck(() => _openSettings(0))));
+
+        var launcher = _modules.Tabs.Select(tab => tab.Panel).OfType<LauncherPanelViewModel>().FirstOrDefault();
+        if (launcher?.Apps is { } apps)
+        {
+            foreach (var app in apps.Apps)
+            {
+                var target = app;
+                items.Add(new CommandItem(app.Name, app.Source, "", app.Initial, CommandKind.App,
+                    () => RunAndTuck(() => apps.LaunchCommand.Execute(target))));
+            }
+        }
+
+        return items;
     }
 
     /// <summary>
@@ -638,6 +756,12 @@ public partial class IslandWindow : Window
         {
             _transientTab = null;
             RefreshTabStrip();
+        }
+        if (mode != IslandMode.Expanded && _paletteOpen)
+        {
+            _paletteOpen = false;
+            Palette.Visibility = Visibility.Collapsed;
+            PanelBody.Visibility = Visibility.Visible;
         }
         // Keep the original hover region while the pill grows and pushes side activities away.
         _peekAnchor = mode == IslandMode.Peek && _mode != IslandMode.Peek ? IslandBounds() : Rect.Empty;

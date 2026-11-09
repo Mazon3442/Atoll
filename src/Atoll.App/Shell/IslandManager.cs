@@ -81,6 +81,15 @@ public sealed class IslandManager : IDisposable
         (target ?? _windows.FirstOrDefault(w => w.Monitor.IsPrimary) ?? _windows.FirstOrDefault())?.OpenModule(moduleId);
     }
 
+    /// <summary>Opens the command palette on the display under the pointer, else the main one.</summary>
+    public void OpenPalette()
+    {
+        var target = Native.GetCursorPos(out var p)
+            ? _windows.FirstOrDefault(w => p.X >= w.Monitor.Bounds.X && p.X < w.Monitor.Bounds.X + w.Monitor.Bounds.Width
+                && p.Y >= w.Monitor.Bounds.Y && p.Y < w.Monitor.Bounds.Y + w.Monitor.Bounds.Height) : null;
+        (target ?? _windows.FirstOrDefault(w => w.Monitor.IsPrimary) ?? _windows.FirstOrDefault())?.ShowPalette();
+    }
+
     /// <summary>The open shortcut acts on the island of the display the pointer is on, else the main one.</summary>
     public void ToggleFromKeyboard()
     {

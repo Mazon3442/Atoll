@@ -42,7 +42,11 @@
                 <Grid>
                     <TextBox Style="{StaticResource Island.Input}" Text="{Binding NoteDraft, UpdateSourceTrigger=PropertyChanged}"
                              AcceptsReturn="True" TextWrapping="Wrap" MinHeight="68" MaxHeight="92"
-                             VerticalScrollBarVisibility="Auto" AutomationProperties.Name="Note" />
+                             VerticalScrollBarVisibility="Auto" AutomationProperties.Name="Note">
+                        <TextBox.InputBindings>
+                            <KeyBinding Key="Enter" Modifiers="Control" Command="{Binding SaveNoteCommand}" />
+                        </TextBox.InputBindings>
+                    </TextBox>
                     <TextBlock Text="Write a note…" FontSize="12" Margin="12,9,0,0" IsHitTestVisible="False"
                                Foreground="{DynamicResource Island.Subtle}"
                                Visibility="{Binding HasNoteDraft, Converter={StaticResource Island.InverseBoolToVisibility}}" />
@@ -178,8 +182,12 @@
 
                 <Grid>
                     <TextBox Style="{StaticResource Island.Input}" Text="{Binding TodoDraft, UpdateSourceTrigger=PropertyChanged}"
-                             MinHeight="34" AutomationProperties.Name="To-do" />
-                    <TextBlock Text="Add a to-do…" FontSize="12" Margin="12,9,0,0" IsHitTestVisible="False"
+                             MinHeight="34" AutomationProperties.Name="To-do">
+                        <TextBox.InputBindings>
+                            <KeyBinding Key="Enter" Command="{Binding AddTodoCommand}" />
+                        </TextBox.InputBindings>
+                    </TextBox>
+                    <TextBlock Text="Add a to-do and press Enter…" FontSize="12" Margin="12,9,0,0" IsHitTestVisible="False"
                                Foreground="{DynamicResource Island.Subtle}"
                                Visibility="{Binding HasTodoDraft, Converter={StaticResource Island.InverseBoolToVisibility}}" />
                 </Grid>

@@ -191,7 +191,10 @@
                         </Border>
                     </DockPanel>
 
-                    <ContentPresenter x:Name="PanelBody" Grid.Row="1" Margin="4,10,4,0" />
+                    <Grid Grid.Row="1" Margin="4,10,4,0">
+                        <ContentPresenter x:Name="PanelBody" />
+                        <shell:CommandPaletteView x:Name="Palette" Visibility="Collapsed" />
+                    </Grid>
                 </Grid>
             </Grid>
         </shell:PillBorder>

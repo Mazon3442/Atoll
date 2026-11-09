@@ -134,6 +134,16 @@ internal static class CalendarUiTests
             Assert.DoesNotContain(menu.Items.Cast<ModuleTab>(), tab => tab.Contains("weather"));
             Assert.Equal(outside.Length, menu.Items.Count);
             Assert.Equal(modules.Count - outside.Length, tabs.Items.Count);
+
+            island.ShowPalette();
+            island.UpdateLayout();
+            var palette = (FrameworkElement)island.FindName("Palette");
+            Assert.Equal(Visibility.Visible, palette.Visibility);
+            ((Control)palette).Background = Brushes.Black; // the island's dark surface is the parent, not the control
+            palette.Measure(new Size(600, 220));
+            palette.Arrange(new Rect(0, 0, 600, 220));
+            palette.UpdateLayout();
+            Render(palette, "command-palette");
         }
         finally { island.Close(); }
     }
