@@ -41,6 +41,16 @@ public partial class App : Application
         ThemeService.Apply(_settings.Current.Theme);
         if (_settings.Current.StartWithWindows) StartupRegistration.Apply(true); // refresh exe path if the app moved
 
+        // "--onboarding" opens only the welcome window, without islands, tray, hooks or update checks.
+        if (e.Args.Any(arg => arg.Equals("--onboarding", StringComparison.OrdinalIgnoreCase)))
+        {
+            var setup = new Onboarding.OnboardingViewModel(_settings.Current, _settings.NotifyChanged, StartupRegistration.Apply);
+            var window = new Onboarding.OnboardingWindow(setup);
+            window.Closed += (_, _) => Shutdown();
+            window.Show();
+            return;
+        }
+
         // If ATOLL moved (a Velopack update installs to a new folder), point the hooks back at it so
         // Claude Code keeps reporting to this copy without the user reinstalling them.
         if (ClaudeHookInstaller.GetStatus() == ClaudeHookInstaller.Status.InstalledElsewhere)
