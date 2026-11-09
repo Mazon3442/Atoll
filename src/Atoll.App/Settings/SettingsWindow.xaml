@@ -131,17 +131,20 @@
                 <Setter.Value>
                     <ControlTemplate TargetType="ToggleButton">
                         <Border x:Name="Bg" CornerRadius="6" Background="Transparent">
-                            <TextBlock x:Name="Icon" Text="&#xE734;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" FontSize="14"
-                                       HorizontalAlignment="Center" VerticalAlignment="Center"
-                                       Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                            <Grid HorizontalAlignment="Center" VerticalAlignment="Center">
+                                <TextBlock x:Name="Outline" Text="&#xE734;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" FontSize="14"
+                                           Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                                <TextBlock x:Name="Filled" Text="&#xE735;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" FontSize="14"
+                                           Foreground="{DynamicResource AccentFillColorDefaultBrush}" Visibility="Collapsed" />
+                            </Grid>
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
                                 <Setter TargetName="Bg" Property="Background" Value="{DynamicResource SubtleFillColorSecondaryBrush}" />
-                                <Setter TargetName="Icon" Property="Foreground" Value="{DynamicResource TextFillColorPrimaryBrush}" />
                             </Trigger>
                             <Trigger Property="IsChecked" Value="True">
-                                <Setter TargetName="Icon" Property="Foreground" Value="{DynamicResource AccentFillColorDefaultBrush}" />
+                                <Setter TargetName="Outline" Property="Visibility" Value="Collapsed" />
+                                <Setter TargetName="Filled" Property="Visibility" Value="Visible" />
                             </Trigger>
                             <Trigger Property="IsPressed" Value="True">
                                 <Setter TargetName="Bg" Property="Opacity" Value="0.75" />

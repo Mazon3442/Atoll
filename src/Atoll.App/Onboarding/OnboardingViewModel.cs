@@ -26,7 +26,7 @@ public sealed partial class OnboardingViewModel : ObservableObject
 
         Tabs.Add(new OnboardingTabRow("home", "Home",
             "Your day at a glance: now playing, weather, timer, this month and what's next.",
-            "\uE80F", [], settings.Home.Bookmarked ?? true, OnRowToggled));
+            "\uE80F", [], settings.Home.Bookmarked ?? true, true, OnRowToggled));
 
         foreach (var info in SettingsViewModel.TabInfo)
         {
@@ -34,16 +34,22 @@ public sealed partial class OnboardingViewModel : ObservableObject
                 .Where(d => d.EnabledByDefault && PanelGroups.TabId(d.Id) == info.Id)
                 .ToList();
             if (members.Count == 0) continue;
+            var bookmarked = BookmarkedInSettings(members);
+            var fallback = members.Any(d => d.BookmarkedByDefault);
             Tabs.Add(new OnboardingTabRow(info.Id, info.Name, info.Description, members[0].Glyph, members,
-                BookmarkedInSettings(members), OnRowToggled));
+                bookmarked, fallback, OnRowToggled));
         }
+        RefreshPreview();
     }
 
     public ObservableCollection<OnboardingTabRow> Tabs { get; } = [];
 
+    /// <summary>The chips shown in the live top-row preview, in island order.</summary>
+    public ObservableCollection<OnboardingTabRow> TopRowPreview { get; } = [];
+
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(IsWelcome), nameof(IsPicker), nameof(IsReady), nameof(CanGoBack),
-        nameof(CanSkip), nameof(StepLabel))]
+        nameof(CanSkip), nameof(StepLabel), nameof(PrimaryLabel))]
     private int _stepIndex;
 
     public bool IsWelcome => StepIndex == 0;
@@ -59,9 +65,17 @@ public sealed partial class OnboardingViewModel : ObservableObject
         _ => "Step 2 of 2",
     };
 
+    public string PrimaryLabel => StepIndex switch
+    {
+        0 => "Choose my tabs",
+        1 => "Review top row",
+        _ => "Finish setup",
+    };
+
     [ObservableProperty] private bool _startWithWindows;
 
     public int BookmarkedCount => Tabs.Count(tab => tab.Bookmarked);
+    public bool HasTopRow => TopRowPreview.Count > 0;
 
     public string TopRowSummary => BookmarkedCount switch
     {
@@ -80,13 +94,26 @@ public sealed partial class OnboardingViewModel : ObservableObject
     }
 
     [RelayCommand]
+    private void Primary()
+    {
+        if (IsReady) Finish();
+        else Next();
+    }
+
+    [RelayCommand]
     private void Back()
     {
         if (StepIndex > 0) StepIndex--;
     }
 
     [RelayCommand]
-    private void Skip() => Finish();
+    private void Skip()
+    {
+        // "Use defaults" is honest even after the user has edited the picker and gone back.
+        foreach (var tab in Tabs)
+            if (tab.Bookmarked != tab.DefaultBookmarked) tab.Bookmarked = tab.DefaultBookmarked;
+        Finish();
+    }
 
     [RelayCommand]
     private void Finish()
@@ -115,9 +142,14 @@ public sealed partial class OnboardingViewModel : ObservableObject
             (entry.Bookmarked ?? members.FirstOrDefault(d => d.Id == entry.Id)?.BookmarkedByDefault ?? true));
     }
 
-    private void OnRowToggled()
+    private void OnRowToggled() => RefreshPreview();
+
+    private void RefreshPreview()
     {
+        TopRowPreview.Clear();
+        foreach (var tab in Tabs.Where(tab => tab.Bookmarked)) TopRowPreview.Add(tab);
         OnPropertyChanged(nameof(BookmarkedCount));
+        OnPropertyChanged(nameof(HasTopRow));
         OnPropertyChanged(nameof(TopRowSummary));
     }
 }
@@ -125,12 +157,13 @@ public sealed partial class OnboardingViewModel : ObservableObject
 /// <summary>One tab card in the welcome picker.</summary>
 public sealed partial class OnboardingTabRow(
     string id, string name, string description, string glyph, IReadOnlyList<ModuleDescriptor> members,
-    bool bookmarked, Action toggled) : ObservableObject
+    bool bookmarked, bool defaultBookmarked, Action toggled) : ObservableObject
 {
     public string Id { get; } = id;
     public string Name { get; } = name;
     public string Description { get; } = description;
     public string Glyph { get; } = glyph;
+    public bool DefaultBookmarked { get; } = defaultBookmarked;
 
     [ObservableProperty] private bool _bookmarked = bookmarked;
 

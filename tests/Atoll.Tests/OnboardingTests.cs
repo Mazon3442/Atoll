@@ -17,13 +17,39 @@ public sealed class OnboardingTests
         Assert.Contains(vm.Tabs, tab => tab.Id == "clock" && !tab.Bookmarked);
         Assert.DoesNotContain(vm.Tabs, tab => tab.Id == "providers"); // off until an API key exists
         Assert.Equal("Takes about a minute", vm.StepLabel);
+        Assert.Equal(["home", "claude", "media", "notifications", "calendar", "shelf", "clipboard", "weather"],
+            vm.TopRowPreview.Select(tab => tab.Id));
+
+        vm.Tabs.Single(tab => tab.Id == "clock").Bookmarked = true;
+        Assert.Contains(vm.TopRowPreview, tab => tab.Id == "clock");
+        Assert.True(vm.HasTopRow);
+        vm.Tabs.Single(tab => tab.Id == "media").Bookmarked = false;
+        Assert.DoesNotContain(vm.TopRowPreview, tab => tab.Id == "media");
+        Assert.Equal("Choose my tabs", vm.PrimaryLabel);
 
         vm.NextCommand.Execute(null);
+        Assert.Equal("Review top row", vm.PrimaryLabel);
         Assert.True(vm.IsPicker);
         vm.NextCommand.Execute(null);
         Assert.True(vm.IsReady);
+        Assert.Equal("Finish setup", vm.PrimaryLabel);
         vm.BackCommand.Execute(null);
         Assert.True(vm.IsPicker);
+    }
+
+    [Fact]
+    public void Using_defaults_resets_a_changed_picker()
+    {
+        var settings = new AppSettings();
+        var vm = new OnboardingViewModel(settings, () => { });
+        vm.Tabs.Single(tab => tab.Id == "media").Bookmarked = false;
+        vm.Tabs.Single(tab => tab.Id == "clock").Bookmarked = true;
+
+        vm.SkipCommand.Execute(null);
+
+        Assert.True(settings.OnboardingComplete);
+        Assert.False(settings.Modules.Single(m => m.Id == "clock").Bookmarked);
+        Assert.True(settings.Modules.Single(m => m.Id == "media").Bookmarked);
     }
 
     [Fact]
