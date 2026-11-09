@@ -89,24 +89,51 @@ internal static class CalendarUiTests
             var menu = (ListBox)island.FindName("TabMenu");
             var button = (Button)island.FindName("TabMenuButton");
 
-            Assert.Equal(Visibility.Collapsed, button.Visibility);
-            Assert.Empty(menu.Items);
-            Assert.Equal(modules.Count, tabs.Items.Count);
+            // The default top row is Home, Agents, Media, Notifications, Calendar, Files, Clipboard and
+            // Weather. Timer, Notes, System and Launcher wait in the ⋯ menu.
+            string[] outside = ["clock", "notes", "system", "providers", "launcher"];
+            Assert.Equal(Visibility.Visible, button.Visibility);
+            Assert.Equal(outside.Length, menu.Items.Count);
+            Assert.Equal(modules.Count - outside.Length, tabs.Items.Count);
 
             var weather = modules.Single(t => t.Contains("weather"));
+
+            // Off: gone from the strip and from the ⋯ menu.
             service.Current.Modules.Single(entry => entry.Id == "weather").Enabled = false;
             manager.Tabs.Remove(weather);
+            Assert.Equal(outside.Length, menu.Items.Count);
+            Assert.Equal(modules.Count - outside.Length - 1, tabs.Items.Count);
 
-            Assert.Equal(Visibility.Visible, button.Visibility);
-            Assert.Contains(menu.Items.Cast<ModuleDescriptor>(), descriptor => descriptor.Id == "weather");
-            Assert.Equal(modules.Count - 1, tabs.Items.Count);
-
+            // On but not bookmarked: waits in the ⋯ menu.
             service.Current.Modules.Single(entry => entry.Id == "weather").Enabled = true;
+            service.Current.Modules.Single(entry => entry.Id == "weather").Bookmarked = false;
             manager.Tabs.Add(weather);
+            Assert.Equal(Visibility.Visible, button.Visibility);
+            Assert.Contains(menu.Items.Cast<ModuleTab>(), tab => tab.Contains("weather"));
+            Assert.Equal(outside.Length + 1, menu.Items.Count);
+            Assert.Equal(modules.Count - outside.Length - 1, tabs.Items.Count);
 
-            Assert.Equal(Visibility.Collapsed, button.Visibility);
-            Assert.Empty(menu.Items);
-            Assert.Equal(modules.Count, tabs.Items.Count);
+            island.Show();
+            island.UpdateLayout();
+            button.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+            var popup = (Popup)island.FindName("TabMenuPopup");
+            Assert.True(popup.IsOpen);
+            if (popup.Child is FrameworkElement popupRoot)
+            {
+                popupRoot.Measure(new Size(260, 400));
+                popupRoot.Arrange(new Rect(0, 0, 260, 400));
+                popupRoot.UpdateLayout();
+                Render(popupRoot, "overflow-menu");
+            }
+            popup.IsOpen = false;
+
+            // Bookmarked again: back in the top row and out of the menu.
+            service.Current.Modules.Single(entry => entry.Id == "weather").Bookmarked = true;
+            manager.Tabs.Remove(weather);
+            manager.Tabs.Add(weather);
+            Assert.DoesNotContain(menu.Items.Cast<ModuleTab>(), tab => tab.Contains("weather"));
+            Assert.Equal(outside.Length, menu.Items.Count);
+            Assert.Equal(modules.Count - outside.Length, tabs.Items.Count);
         }
         finally { island.Close(); }
     }

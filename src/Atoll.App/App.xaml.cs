@@ -20,6 +20,7 @@ public partial class App : Application
     private TrayIcon? _tray;
     private HotkeyService? _hotkeys;
     private SettingsWindow? _settingsWindow;
+    private Onboarding.OnboardingWindow? _onboardingWindow;
     private int? _restartSettingsPage;
 
     protected override void OnStartup(StartupEventArgs e)
@@ -57,8 +58,13 @@ public partial class App : Application
 
         _islands = new IslandManager(_settings, _activities, _modules, OpenSettings, Dispatcher);
         Navigation.OpenModule = _islands.OpenModule;
+        Navigation.OpenOnboarding = ShowOnboarding;
         _tray = new TrayIcon(OpenSettings, SetPaused, Shutdown);
         _hotkeys = new HotkeyService(_settings, _islands.ToggleFromKeyboard, () => SetPaused(!_islands.Paused));
+
+        // First run: explain the island and let the user choose the top row. Skipping still marks it done.
+        if (!_settings.Current.OnboardingComplete)
+            Dispatcher.BeginInvoke(DispatcherPriority.ApplicationIdle, new Action(ShowOnboarding));
 
         _ = CheckUpdatesLoopAsync();
 
@@ -109,6 +115,23 @@ public partial class App : Application
         _settingsWindow.Closed += (_, _) => _settingsWindow = null;
         _settingsWindow.Show();
         _settingsWindow.Activate();
+    }
+
+    /// <summary>Shows the welcome picker; safe to call again from Settings › About.</summary>
+    internal void ShowOnboarding()
+    {
+        if (_settings is null) return;
+        if (_onboardingWindow is { IsLoaded: true })
+        {
+            if (_onboardingWindow.WindowState == WindowState.Minimized) _onboardingWindow.WindowState = WindowState.Normal;
+            _onboardingWindow.Activate();
+            return;
+        }
+        var vm = new Onboarding.OnboardingViewModel(_settings.Current, _settings.NotifyChanged, StartupRegistration.Apply);
+        _onboardingWindow = new Onboarding.OnboardingWindow(vm);
+        _onboardingWindow.Closed += (_, _) => _onboardingWindow = null;
+        _onboardingWindow.Show();
+        _onboardingWindow.Activate();
     }
 
     private static async Task CheckUpdatesLoopAsync()

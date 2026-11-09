@@ -146,8 +146,8 @@
                                     </ListBox.ItemTemplate>
                                 </ListBox>
                                 <Button x:Name="TabMenuButton" Style="{StaticResource Island.IconButton}" Width="32" Height="32"
-                                        Margin="2,0,0,0" Click="OnTabMenuClick" ToolTip="Turned-off features"
-                                        Visibility="Collapsed" AutomationProperties.Name="Turned-off features">
+                                        Margin="2,0,0,0" Click="OnTabMenuClick" ToolTip="Sections outside the top row"
+                                        Visibility="Collapsed" AutomationProperties.Name="Sections outside the top row">
                                     <shell:Icon Kind="more" Size="15" />
                                 </Button>
                                 <Popup x:Name="TabMenuPopup" PlacementTarget="{Binding ElementName=TabMenuButton}"
@@ -156,7 +156,7 @@
                                     <Border Background="{DynamicResource Island.Menu}" BorderBrush="{DynamicResource Island.Hover}"
                                             BorderThickness="1" CornerRadius="12" Padding="4" MinWidth="200" MaxHeight="360">
                                         <StackPanel>
-                                            <TextBlock Text="Turned off" FontSize="10" FontWeight="Bold"
+                                            <TextBlock Text="Outside the top row" FontSize="10" FontWeight="Bold"
                                                        Foreground="{DynamicResource Island.Subtle}" Margin="8,6,8,4" />
                                             <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
                                                 <ListBox x:Name="TabMenu"
@@ -164,16 +164,20 @@
                                                          Background="Transparent" BorderThickness="0"
                                                          Foreground="{DynamicResource Island.Foreground}"
                                                          KeyDown="OnTabMenuKeyDown" MouseLeftButtonUp="OnTabMenuClickItem"
-                                                         AutomationProperties.Name="Turned-off features">
+                                                         AutomationProperties.Name="Sections outside the top row">
                                                     <ListBox.ItemTemplate>
                                                         <DataTemplate>
                                                             <DockPanel>
-                                                                <TextBlock DockPanel.Dock="Right" Text="Off" FontSize="10"
-                                                                           Foreground="{DynamicResource Island.Subtle}" VerticalAlignment="Center" />
-                                                                <TextBlock DockPanel.Dock="Left" Text="{Binding Glyph}"
+                                                                <Button DockPanel.Dock="Right" Style="{StaticResource Island.IconButton}"
+                                                                        Width="24" Height="24" Margin="6,0,0,0"
+                                                                        Click="OnTabMenuBookmark" ToolTip="Keep in the top row"
+                                                                        AutomationProperties.Name="{Binding Descriptor.Name, StringFormat=Keep {0} in the top row}">
+                                                                    <shell:Icon Kind="pin" Size="12" />
+                                                                </Button>
+                                                                <TextBlock DockPanel.Dock="Left" Text="{Binding Descriptor.Glyph}"
                                                                            FontFamily="{StaticResource Island.IconFont}" FontSize="15"
                                                                            Margin="0,0,9,0" VerticalAlignment="Center" />
-                                                                <TextBlock Text="{Binding Name}" FontSize="13" TextTrimming="CharacterEllipsis"
+                                                                <TextBlock Text="{Binding Descriptor.Name}" FontSize="13" TextTrimming="CharacterEllipsis"
                                                                            VerticalAlignment="Center" />
                                                             </DockPanel>
                                                         </DataTemplate>

@@ -121,7 +121,39 @@
             </Setter>
         </Style>
 
-        <!-- Slider + live value on the right of a card. -->
+        <!-- Star switch: on pins the feature's tab to the island's top row. -->
+        <Style x:Key="BookmarkToggle" TargetType="ToggleButton">
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Width" Value="32" />
+            <Setter Property="Height" Value="32" />
+            <Setter Property="FocusVisualStyle" Value="{StaticResource SettingsFocus}" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ToggleButton">
+                        <Border x:Name="Bg" CornerRadius="6" Background="Transparent">
+                            <TextBlock x:Name="Icon" Text="&#xE734;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" FontSize="14"
+                                       HorizontalAlignment="Center" VerticalAlignment="Center"
+                                       Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Bg" Property="Background" Value="{DynamicResource SubtleFillColorSecondaryBrush}" />
+                                <Setter TargetName="Icon" Property="Foreground" Value="{DynamicResource TextFillColorPrimaryBrush}" />
+                            </Trigger>
+                            <Trigger Property="IsChecked" Value="True">
+                                <Setter TargetName="Icon" Property="Foreground" Value="{DynamicResource AccentFillColorDefaultBrush}" />
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="Bg" Property="Opacity" Value="0.75" />
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter Property="Opacity" Value="0.4" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
         <Style x:Key="ValueText" TargetType="TextBlock">
             <Setter Property="Width" Value="56" />
             <Setter Property="TextAlignment" Value="Right" />
@@ -543,7 +575,7 @@
                     <!-- ===================== Modules ===================== -->
                     <StackPanel Visibility="{Binding PageIndex, Converter={StaticResource PageVisible}, ConverterParameter=2}">
                         <TextBlock Style="{StaticResource Hint}" Margin="2,8,0,10"
-                                   Text="Each card is a tab in the open island, shown in this order. Drag a card or use its arrows to reorder, and turn off anything you don't use." />
+                                   Text="Each card is a tab in the open island. The star keeps a tab in the top row; without it the tab waits in the ⋯ menu. Turn a tab off and it disappears from both. Drag a card or use its arrows to reorder." />
 
                         <ItemsControl x:Name="ModuleList" ItemsSource="{Binding ModuleTabs}" Focusable="False">
                             <ItemsControl.ItemTemplate>
@@ -555,7 +587,7 @@
                                             <Grid MinHeight="44">
                                                 <Grid.ColumnDefinitions>
                                                     <ColumnDefinition Width="Auto" /><ColumnDefinition Width="Auto" /><ColumnDefinition Width="*" />
-                                                    <ColumnDefinition Width="Auto" /><ColumnDefinition Width="Auto" />
+                                                    <ColumnDefinition Width="Auto" /><ColumnDefinition Width="Auto" /><ColumnDefinition Width="Auto" />
                                                 </Grid.ColumnDefinitions>
                                                 <Button Content="&#xE76F;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" FontSize="14" Padding="8,10" Margin="0,0,8,0"
                                                         Cursor="SizeAll" Background="Transparent" BorderThickness="0" VerticalAlignment="Center"
@@ -578,7 +610,10 @@
                                                             FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" FontSize="12" Width="34" Height="32" Padding="0" Margin="4,0,0,0"
                                                             ToolTip="Move down" AutomationProperties.Name="{Binding Name, StringFormat=Move {0} down}" />
                                                 </StackPanel>
-                                                <CheckBox x:Name="OnlyToggle" Grid.Column="4" Style="{StaticResource Toggle}" Margin="20,0,0,0" VerticalAlignment="Center"
+                                                <ToggleButton x:Name="OnlyBookmark" Grid.Column="4" Style="{StaticResource BookmarkToggle}" Margin="16,0,0,0" VerticalAlignment="Center"
+                                                              IsChecked="{Binding OnlyFeature.Bookmarked}" ToolTip="Keep in the top row"
+                                                              AutomationProperties.Name="{Binding Name, StringFormat=Keep the {0} tab in the top row}" />
+                                                <CheckBox x:Name="OnlyToggle" Grid.Column="5" Style="{StaticResource Toggle}" Margin="12,0,0,0" VerticalAlignment="Center"
                                                           IsChecked="{Binding OnlyFeature.Enabled}"
                                                           AutomationProperties.Name="{Binding Name, StringFormat=Show the {0} tab}" />
                                             </Grid>
@@ -589,12 +624,15 @@
                                                     <DataTemplate>
                                                         <Border BorderThickness="0,1,0,0" BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}" Padding="0,8,0,8">
                                                             <Grid>
-                                                                <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                                                                <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
                                                                 <StackPanel VerticalAlignment="Center" Margin="0,0,12,0">
                                                                     <TextBlock Text="{Binding Name}" TextWrapping="Wrap" />
                                                                     <TextBlock Text="{Binding Description}" Style="{StaticResource Hint}" />
                                                                 </StackPanel>
-                                                                <CheckBox Grid.Column="1" Style="{StaticResource Toggle}" IsChecked="{Binding Enabled}" VerticalAlignment="Center"
+                                                                <ToggleButton Grid.Column="1" Style="{StaticResource BookmarkToggle}" VerticalAlignment="Center"
+                                                                              IsChecked="{Binding Bookmarked}" ToolTip="Keep in the top row"
+                                                                              AutomationProperties.Name="{Binding Name, StringFormat=Keep {0} in the top row}" />
+                                                                <CheckBox Grid.Column="2" Style="{StaticResource Toggle}" IsChecked="{Binding Enabled}" VerticalAlignment="Center" Margin="8,0,0,0"
                                                                           AutomationProperties.Name="{Binding Name, StringFormat=Turn {0} on or off}" />
                                                             </Grid>
                                                         </Border>
@@ -607,6 +645,7 @@
                                         <DataTrigger Binding="{Binding HasSeveralFeatures}" Value="True">
                                             <Setter TargetName="Features" Property="Visibility" Value="Visible" />
                                             <!-- Hidden, not collapsed, so the arrows line up on every card. -->
+                                            <Setter TargetName="OnlyBookmark" Property="Visibility" Value="Hidden" />
                                             <Setter TargetName="OnlyToggle" Property="Visibility" Value="Hidden" />
                                         </DataTrigger>
                                         <DataTrigger Binding="{Binding IsFirst}" Value="True">
@@ -625,7 +664,12 @@
 
                         <TextBlock Style="{StaticResource SectionHeader}" Text="Home" />
                         <s:SettingCard Glyph="&#xE80F;" Header="Home tab" Description="A dashboard of what's playing, the weather, your timer, this month and what's next.">
-                            <CheckBox Style="{StaticResource Toggle}" IsChecked="{Binding HomeEnabled}" AutomationProperties.Name="Show the Home tab" />
+                            <StackPanel Orientation="Horizontal">
+                                <ToggleButton Style="{StaticResource BookmarkToggle}" IsChecked="{Binding HomeBookmarked}" VerticalAlignment="Center"
+                                              ToolTip="Keep in the top row" AutomationProperties.Name="Keep the Home tab in the top row" />
+                                <CheckBox Style="{StaticResource Toggle}" IsChecked="{Binding HomeEnabled}" Margin="12,0,0,0"
+                                          AutomationProperties.Name="Show the Home tab" />
+                            </StackPanel>
                         </s:SettingCard>
                         <s:SettingCard Glyph="&#xE71D;" Header="Cards on Home" Description="Cards for features that are off never show."
                                        IsEnabled="{Binding HomeEnabled}">
@@ -882,6 +926,10 @@
                         </StackPanel>
                         <s:SettingCard Glyph="&#xE8B7;" Header="Settings and logs" Description="{Binding DataFolder}">
                             <Button Content="Open folder" Padding="14,5" Command="{Binding OpenDataFolderCommand}" />
+                        </s:SettingCard>
+                        <s:SettingCard Glyph="&#xE946;" Header="Welcome setup"
+                                       Description="Meet the island again and choose which tabs sit in the top row.">
+                            <Button Content="Open setup" Padding="14,5" Click="OnOpenOnboarding" />
                         </s:SettingCard>
 
                         <TextBlock Style="{StaticResource SectionHeader}" Text="Updates" />

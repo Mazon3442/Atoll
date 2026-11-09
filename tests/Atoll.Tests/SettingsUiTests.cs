@@ -1,5 +1,6 @@
 using Atoll.Activities;
 using Atoll.Modules;
+using Atoll.Onboarding;
 using Atoll.Settings;
 using Atoll.Shell;
 using Atoll.Theme;
@@ -197,6 +198,28 @@ public class SettingsUiTests
             window.Content = originalContent;
         }
         finally { window.Close(); }
+
+        // First-run setup: defaults, top-row picker and the ready screen.
+        var onboarding = new OnboardingViewModel(service.Current, () => { });
+        Assert.Equal(["home", "claude", "media", "notifications", "calendar", "shelf", "clipboard", "weather"],
+            onboarding.Tabs.Where(tab => tab.Bookmarked).Select(tab => tab.Id));
+        Assert.DoesNotContain(onboarding.Tabs, tab => tab.Id == "providers");
+        var welcome = new OnboardingWindow(onboarding);
+        welcome.Show();
+        try
+        {
+            Drain(); welcome.UpdateLayout();
+            Render(welcome, "onboarding-welcome");
+            onboarding.StepIndex = 1;
+            Drain(); welcome.UpdateLayout();
+            Render(welcome, "onboarding-top-row");
+            onboarding.Tabs.Single(tab => tab.Id == "clock").Bookmarked = true;
+            onboarding.StepIndex = 2;
+            Drain(); welcome.UpdateLayout();
+            Render(welcome, "onboarding-ready");
+            Assert.Equal(9, onboarding.BookmarkedCount);
+        }
+        finally { welcome.Close(); }
 
         using var host = new ActivityHost();
         using var manager = new ModuleManager([], host, Application.Current.Dispatcher, service);

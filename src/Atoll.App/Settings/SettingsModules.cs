@@ -12,7 +12,7 @@ namespace Atoll.Settings;
 public sealed partial class SettingsViewModel
 {
     // Tab id → (name, description). Order is the default tab order.
-    private static readonly (string Id, string Name, string Description)[] TabInfo =
+    internal static readonly (string Id, string Name, string Description)[] TabInfo =
     [
         ("claude", "Agents", "Claude Code, Codex, OpenCode and Hermes sessions, with alerts when they finish or need you."),
         ("providers", "API keys", "Live requests and token totals for your own OpenAI, Anthropic, DeepSeek or compatible API keys."),
@@ -50,7 +50,7 @@ public sealed partial class SettingsViewModel
     {
         // Every catalog feature gets an entry; ModuleManager adds missing ones the same way at startup.
         foreach (var d in catalog.Where(d => S.Modules.All(e => e.Id != d.Id)))
-            S.Modules.Add(new ModuleEntry { Id = d.Id, Enabled = d.EnabledByDefault });
+            S.Modules.Add(new ModuleEntry { Id = d.Id, Enabled = d.EnabledByDefault, Bookmarked = d.BookmarkedByDefault });
 
         // A tab sits where its first switched-on feature sits; the island orders tabs the same way.
         int Rank(string tab)
@@ -66,7 +66,8 @@ public sealed partial class SettingsViewModel
                 .Select(d =>
                 {
                     var info = FeatureInfo.GetValueOrDefault(d.Id, (d.Name, description));
-                    return new ModuleRow(S.Modules.First(e => e.Id == d.Id), info.Item1, info.Item2, d.Glyph, OnFeatureToggled);
+                    return new ModuleRow(S.Modules.First(e => e.Id == d.Id), info.Item1, info.Item2, d.Glyph,
+                        OnFeatureToggled, d.BookmarkedByDefault);
                 })
                 .ToList();
             if (features.Count > 0)
@@ -134,9 +135,21 @@ public sealed partial class ModuleTabRow(string id, string name, string descript
 
     public bool IsShown => Features.Any(f => f.Enabled);
 
-    /// <summary>"2 of 3 on", or why the tab isn't in the island.</summary>
-    public string Status => !IsShown ? (HasSeveralFeatures ? "Not in the island: every feature is off" : "Not in the island")
-        : Features.All(f => f.Enabled) ? "" : $"{Features.Count(f => f.Enabled)} of {Features.Count} on";
+    /// <summary>Features that are on and pinned to the top row.</summary>
+    public int BookmarkedCount => Features.Count(f => f.Bookmarked);
+
+    /// <summary>"2 of 3 on", where the tab sits, or why it isn't in the island at all.</summary>
+    public string Status
+    {
+        get
+        {
+            var on = Features.Count(f => f.Enabled);
+            if (on == 0) return HasSeveralFeatures ? "Not in the island: every feature is off" : "Not in the island";
+            if (BookmarkedCount == 0) return "In the ⋯ menu, not the top row";
+            if (BookmarkedCount < on) return $"{BookmarkedCount} of {on} in the top row";
+            return on == Features.Count ? "" : $"{on} of {Features.Count} on";
+        }
+    }
 
     internal void SetPosition(int index, int count)
     {
@@ -148,6 +161,7 @@ public sealed partial class ModuleTabRow(string id, string name, string descript
     internal void Refresh()
     {
         OnPropertyChanged(nameof(IsShown));
+        OnPropertyChanged(nameof(BookmarkedCount));
         OnPropertyChanged(nameof(Status));
     }
 }

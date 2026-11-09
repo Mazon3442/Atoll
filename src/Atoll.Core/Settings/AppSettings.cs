@@ -40,6 +40,9 @@ public sealed class AppSettings
 {
     public bool StartWithWindows { get; set; }
 
+    /// <summary>False until the welcome setup has been finished or skipped.</summary>
+    public bool OnboardingComplete { get; set; }
+
     /// <summary>Looks up time-synced lyrics for the playing song on lrclib.net.</summary>
     public bool ShowLyrics { get; set; } = true;
 
@@ -160,6 +163,33 @@ public sealed class ThemeSettings
 public sealed class HomeSettings
 {
     public bool Enabled { get; set; } = true;
+
+    /// <summary>Null keeps Home in the top row, as it was before bookmarks existed.</summary>
+    public bool? Bookmarked { get; set; }
+
+    [JsonIgnore]
+    public FeaturePlacement Placement => !Enabled ? FeaturePlacement.Off
+        : Bookmarked == false ? FeaturePlacement.Menu
+        : FeaturePlacement.Bookmarked;
+
+    public void SetPlacement(FeaturePlacement placement)
+    {
+        switch (placement)
+        {
+            case FeaturePlacement.Off:
+                Enabled = false;
+                break;
+            case FeaturePlacement.Menu:
+                Enabled = true;
+                Bookmarked = false;
+                break;
+            default:
+                Enabled = true;
+                Bookmarked = true;
+                break;
+        }
+    }
+
     public bool Media { get; set; } = true;
     public bool Weather { get; set; } = true;
     public bool Timer { get; set; } = true;
@@ -236,10 +266,51 @@ public sealed class CalendarSource
     public string EncryptedUrl { get; set; } = "";
 }
 
+/// <summary>Where a feature appears: pinned to the island's top row, in the ⋯ menu, or not at all.</summary>
+public enum FeaturePlacement
+{
+    Bookmarked,
+    Menu,
+    Off,
+}
+
 public sealed class ModuleEntry
 {
     public string Id { get; set; } = "";
+
+    /// <summary>False keeps the feature out of the island entirely. Kept for older settings files.</summary>
     public bool Enabled { get; set; } = true;
+
+    /// <summary>
+    /// Null means the default, which is bookmarked: settings saved before bookmarks, and new features,
+    /// keep their tab in the top row. False moves an enabled feature into the ⋯ menu.
+    /// </summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public bool? Bookmarked { get; set; }
+
+    [JsonIgnore]
+    public FeaturePlacement Placement => !Enabled ? FeaturePlacement.Off
+        : Bookmarked == false ? FeaturePlacement.Menu
+        : FeaturePlacement.Bookmarked;
+
+    /// <summary>Moves the feature without forgetting where it was, so turning it back on restores it.</summary>
+    public void SetPlacement(FeaturePlacement placement)
+    {
+        switch (placement)
+        {
+            case FeaturePlacement.Off:
+                Enabled = false;
+                break;
+            case FeaturePlacement.Menu:
+                Enabled = true;
+                Bookmarked = false;
+                break;
+            default:
+                Enabled = true;
+                Bookmarked = true;
+                break;
+        }
+    }
 }
 
 /// <summary>Notes, one-off reminders and a small to-do list, kept with the rest of the settings.</summary>

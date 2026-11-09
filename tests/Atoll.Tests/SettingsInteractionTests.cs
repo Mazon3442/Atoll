@@ -105,10 +105,53 @@ public class SettingsInteractionTests
         vm.MoveTabDownCommand.Execute(system);
         Assert.Equal(3, system.Number);
         system.Features.Single(f => f.Entry.Id == "stats").Enabled = false;
-        Assert.Equal("3 of 4 on", system.Status);
+        // System's features are not bookmarked by default, so the tab waits in the ⋯ menu.
+        Assert.Equal("In the ⋯ menu, not the top row", system.Status);
+        system.Features[0].Bookmarked = true;
+        Assert.Equal("1 of 3 in the top row", system.Status);
         vm.MoveTab(system, 99);
         Assert.Equal(3, system.Number);
         Assert.Same(unknown, service.Current.Modules.Last());
+    }
+
+    [Fact]
+    public void Features_can_be_bookmarked_in_the_top_row_or_switched_off_entirely()
+    {
+        var service = new SettingsService(new SettingsStore(Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".json")));
+        using var vm = new SettingsViewModel(service, ModuleCatalog.All);
+        var weather = vm.ModuleTabs.Single(t => t.Id == "weather");
+        var entry = service.Current.Modules.Single(m => m.Id == "weather");
+
+        // Existing and new features are bookmarked until moved.
+        Assert.True(weather.OnlyFeature.Bookmarked);
+        Assert.Equal(FeaturePlacement.Bookmarked, entry.Placement);
+
+        // Unstarring keeps it on, in the ⋯ menu instead of the top row.
+        weather.OnlyFeature.Bookmarked = false;
+        Assert.True(weather.OnlyFeature.Enabled);
+        Assert.Equal(FeaturePlacement.Menu, entry.Placement);
+        Assert.Contains("menu", weather.Status);
+
+        // Off hides it from both places, and turning it back on remembers the menu.
+        weather.OnlyFeature.Enabled = false;
+        Assert.Equal(FeaturePlacement.Off, entry.Placement);
+        Assert.StartsWith("Not in the island", weather.Status);
+        weather.OnlyFeature.Enabled = true;
+        Assert.Equal(FeaturePlacement.Menu, entry.Placement);
+
+        // Starring it again puts it in the top row.
+        weather.OnlyFeature.Bookmarked = true;
+        Assert.Equal(FeaturePlacement.Bookmarked, entry.Placement);
+
+        // Home follows the same three states.
+        vm.HomeBookmarked = false;
+        Assert.True(vm.HomeEnabled);
+        Assert.Equal(FeaturePlacement.Menu, service.Current.Home.Placement);
+        vm.HomeEnabled = false;
+        Assert.Equal(FeaturePlacement.Off, service.Current.Home.Placement);
+        vm.HomeBookmarked = true;
+        Assert.True(vm.HomeEnabled);
+        Assert.Equal(FeaturePlacement.Bookmarked, service.Current.Home.Placement);
     }
 
     [Theory]

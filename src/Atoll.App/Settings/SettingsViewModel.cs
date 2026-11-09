@@ -290,6 +290,21 @@ public sealed partial class SettingsViewModel : ObservableObject
 
     // Home tab cards
     public bool HomeEnabled { get => S.Home.Enabled; set => Set(S.Home.Enabled, value, v => S.Home.Enabled = v); }
+
+    /// <summary>On pins Home to the top row; off leaves it in the ⋯ menu while it stays enabled.</summary>
+    public bool HomeBookmarked
+    {
+        get => S.Home.Bookmarked ?? true;
+        set
+        {
+            if (HomeBookmarked == value) return;
+            S.Home.SetPlacement(value ? FeaturePlacement.Bookmarked : S.Home.Enabled ? FeaturePlacement.Menu : FeaturePlacement.Off);
+            OnPropertyChanged();
+            OnPropertyChanged(nameof(HomeEnabled));
+            Save();
+        }
+    }
+
     public bool HomeMedia { get => S.Home.Media; set => Set(S.Home.Media, value, v => S.Home.Media = v); }
     public bool HomeWeather { get => S.Home.Weather; set => Set(S.Home.Weather, value, v => S.Home.Weather = v); }
     public bool HomeTimer { get => S.Home.Timer; set => Set(S.Home.Timer, value, v => S.Home.Timer = v); }
@@ -488,14 +503,16 @@ public sealed partial class ThemeCard(ThemePreset preset, bool isCustom) : Obser
     [ObservableProperty] private bool _isSelected;
 }
 
-/// <summary>One feature's on/off switch inside a tab card on the Modules page.</summary>
-public sealed class ModuleRow(ModuleEntry entry, string name, string description, string glyph, Action toggled) : ObservableObject
+/// <summary>One feature's show/bookmark switches inside a tab card on the Modules page.</summary>
+public sealed class ModuleRow(ModuleEntry entry, string name, string description, string glyph, Action toggled,
+    bool bookmarkedByDefault = true) : ObservableObject
 {
     public ModuleEntry Entry { get; } = entry;
     public string Name { get; } = name;
     public string Description { get; } = description;
     public string Glyph { get; } = glyph;
 
+    /// <summary>On means it appears somewhere; off keeps it out of the island entirely.</summary>
     public bool Enabled
     {
         get => Entry.Enabled;
@@ -504,6 +521,21 @@ public sealed class ModuleRow(ModuleEntry entry, string name, string description
             if (Entry.Enabled == value) return;
             Entry.Enabled = value;
             OnPropertyChanged();
+            OnPropertyChanged(nameof(Bookmarked));
+            toggled();
+        }
+    }
+
+    /// <summary>On pins the tab to the top row; off leaves an enabled feature in the ⋯ menu.</summary>
+    public bool Bookmarked
+    {
+        get => Entry.Bookmarked ?? bookmarkedByDefault;
+        set
+        {
+            if (Bookmarked == value) return;
+            Entry.SetPlacement(value ? FeaturePlacement.Bookmarked : Entry.Enabled ? FeaturePlacement.Menu : FeaturePlacement.Off);
+            OnPropertyChanged();
+            OnPropertyChanged(nameof(Enabled));
             toggled();
         }
     }
