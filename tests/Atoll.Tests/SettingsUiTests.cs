@@ -210,9 +210,17 @@ public class SettingsUiTests
         {
             Drain(); welcome.UpdateLayout();
             Render(welcome, "onboarding-welcome");
+            welcome.Width = 760;
+            Drain(); welcome.UpdateLayout();
+            Render(welcome, "onboarding-welcome-narrow");
+            welcome.Width = 900;
             onboarding.StepIndex = 1;
             Drain(); welcome.UpdateLayout();
             Render(welcome, "onboarding-top-row");
+            welcome.Width = 760;
+            Drain(); welcome.UpdateLayout();
+            Render(welcome, "onboarding-top-row-narrow");
+            welcome.Width = 900;
             onboarding.Tabs.Single(tab => tab.Id == "clock").Bookmarked = true;
             onboarding.StepIndex = 2;
             Drain(); welcome.UpdateLayout();

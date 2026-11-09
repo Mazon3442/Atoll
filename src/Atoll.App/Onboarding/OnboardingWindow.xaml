@@ -274,7 +274,7 @@
             <Border Grid.Row="1" Height="86" CornerRadius="16" Background="#0A0A0D" BorderBrush="#26262D" BorderThickness="1"
                     Padding="16,0" Margin="0,0,0,14" AutomationProperties.Name="Top row preview">
                 <Grid>
-                    <ScrollViewer HorizontalScrollBarVisibility="Hidden" VerticalScrollBarVisibility="Disabled" VerticalAlignment="Center">
+                    <Viewbox Stretch="Uniform" StretchDirection="DownOnly" HorizontalAlignment="Center" VerticalAlignment="Center">
                         <ItemsControl ItemsSource="{Binding TopRowPreview}" Focusable="False">
                             <ItemsControl.ItemsPanel>
                                 <ItemsPanelTemplate><StackPanel Orientation="Horizontal" /></ItemsPanelTemplate>
@@ -293,7 +293,7 @@
                                 </DataTemplate>
                             </ItemsControl.ItemTemplate>
                         </ItemsControl>
-                    </ScrollViewer>
+                    </Viewbox>
                     <TextBlock Text="Star a tab below to start the top row." FontSize="11.5" Foreground="#787881"
                                VerticalAlignment="Center" Margin="2,0,0,0"
                                Visibility="{Binding HasTopRow, Converter={StaticResource Island.InverseBoolToVisibility}}" />
