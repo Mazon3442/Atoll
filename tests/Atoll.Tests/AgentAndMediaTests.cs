@@ -134,6 +134,15 @@ public class AgentAndMediaTests
         Assert.Equal(-1, Lyrics.IndexAt(lines, TimeSpan.FromSeconds(1)));
         Assert.Equal(1, Lyrics.IndexAt(lines, TimeSpan.FromSeconds(12)));
 
+        // LRC's positive offset makes lyrics appear sooner; negative delays them, and times never go below zero.
+        var earlier = Lyrics.Parse("[offset:+500]\n[00:10.00]Line\n[00:20.00]Next");
+        Assert.Equal(TimeSpan.FromSeconds(9.5), earlier[0].At);
+        Assert.Equal(TimeSpan.FromSeconds(19.5), earlier[1].At);
+        var later = Lyrics.Parse("[offset:-2000]\n[00:01.00]Line");
+        Assert.Equal(TimeSpan.FromSeconds(3), later[0].At);
+        var clamped = Lyrics.Parse("[offset:5000]\n[00:01.00]Line");
+        Assert.Equal(TimeSpan.Zero, clamped[0].At);
+
         using var results = JsonDocument.Parse("""[{"duration":250,"syncedLyrics":null},{"duration":300,"syncedLyrics":"[00:01.00]live"},{"duration":201,"syncedLyrics":"[00:01.00]album"}]""");
         Assert.Equal("[00:01.00]album", Lyrics.Pick(results.RootElement, TimeSpan.FromSeconds(200)));
         Assert.Null(Lyrics.Pick(results.RootElement, TimeSpan.FromSeconds(100))); // no version of this length
