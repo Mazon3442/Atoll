@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.Text.RegularExpressions;
 using Ical.Net;
 using Ical.Net.CalendarComponents;
 using Ical.Net.DataTypes;
@@ -16,7 +17,8 @@ public sealed record CalendarEventItem(
     string Title,
     string? Location,
     string CalendarName,
-    string Color)
+    string Color,
+    string? Url = null)
 {
     /// <summary>"10:30 AM" in the user's time format, or "All day".</summary>
     public string StartText => AllDay ? "All day" : IcsCalendar.ShortTime(Start);
@@ -33,6 +35,23 @@ public sealed record CalendarEventItem(
     public string DisplayTitle => string.IsNullOrWhiteSpace(Title) ? "(No title)" : Title;
 
     public string OccurrenceKey => $"{Uid}|{Start.UtcTicks}";
+
+    /// <summary>"45m", "1h 30m", or "All day" for the agenda's duration column.</summary>
+    public string DurationText => AllDay ? "All day" : FormatDuration(End - Start);
+
+    /// <summary>A web meeting link the agenda can open.</summary>
+    public bool HasJoin => Url is { Length: > 0 }
+        && (Url.StartsWith("https://", StringComparison.OrdinalIgnoreCase)
+            || Url.StartsWith("http://", StringComparison.OrdinalIgnoreCase));
+
+    private static string FormatDuration(TimeSpan span)
+    {
+        var minutes = Math.Max(1, (int)Math.Round(span.TotalMinutes));
+        if (minutes < 60) return $"{minutes}m";
+        var hours = minutes / 60;
+        var rest = minutes % 60;
+        return rest == 0 ? $"{hours}h" : $"{hours}h {rest}m";
+    }
 }
 
 /// <summary>
@@ -41,12 +60,31 @@ public sealed record CalendarEventItem(
 /// </summary>
 public static class IcsCalendar
 {
+    private static readonly Regex UrlPattern = new(@"https?://[^\s<>""']+", RegexOptions.IgnoreCase | RegexOptions.Compiled);
+    private static readonly string[] MeetingHosts =
+    [
+        "meet.google.com", "zoom.us", "teams.microsoft.com", "teams.live.com",
+        "webex.com", "whereby.com", "discord.com", "discord.gg",
+    ];
+
     /// <summary>Parses one calendar. Malformed input yields an empty list rather than throwing.</summary>
     public static IReadOnlyList<CalendarEventItem> Parse(
         string ics, string sourceName, string color, DateTimeOffset windowStart, DateTimeOffset windowEnd)
     {
         TryParse(ics, sourceName, color, windowStart, windowEnd, out var events);
         return events;
+    }
+
+    /// <summary>The first meeting link in free text, so Google Meet and Teams descriptions still get a Join button.</summary>
+    internal static string? FindMeetingLink(string? text)
+    {
+        if (string.IsNullOrWhiteSpace(text)) return null;
+        foreach (Match match in UrlPattern.Matches(text))
+        {
+            var url = match.Value.TrimEnd('.', ',', ')', ']', ';');
+            if (MeetingHosts.Any(host => url.Contains(host, StringComparison.OrdinalIgnoreCase))) return url;
+        }
+        return null;
     }
 
     internal static bool TryParse(string ics, string sourceName, string color,
@@ -66,6 +104,9 @@ public static class IcsCalendar
                 var allDay = ev.IsAllDay;
                 // EndTime is null for most occurrences; EffectiveEndTime honors DTEND/DURATION (RFC 5545).
                 var end = occurrence.Period.EffectiveEndTime ?? start;
+                var url = ev.Url?.ToString();
+                if (string.IsNullOrWhiteSpace(url))
+                    url = FindMeetingLink(ev.Description) ?? FindMeetingLink(ev.Location);
                 results.Add(new CalendarEventItem(
                     ev.Uid ?? "",
                     ToOffset(start, allDay),
@@ -74,7 +115,8 @@ public static class IcsCalendar
                     ev.Summary ?? "",
                     string.IsNullOrWhiteSpace(ev.Location) ? null : ev.Location.Trim(),
                     sourceName,
-                    color));
+                    color,
+                    string.IsNullOrWhiteSpace(url) ? null : url));
             }
             events = results;
             return true;

@@ -2,11 +2,15 @@ using Atoll.Modules.Actions;
 using Atoll.Modules.Calendar;
 using Atoll.Modules.Clipboard;
 using Atoll.Modules.Clock;
+using Atoll.Modules.Games;
 using Atoll.Modules.Indicators;
+using Atoll.Modules.Launcher;
 using Atoll.Modules.Media;
 using Atoll.Modules.Shelf;
 using Atoll.Modules.Stats;
 using Atoll.Settings;
+using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
 
 namespace Atoll.Modules;
 
@@ -16,14 +20,42 @@ public sealed record FilesPanelViewModel(ShelfViewModel? Shelf, ClipboardViewMod
 public sealed record SystemGroupViewModel(SystemPanelViewModel? Devices, StatsViewModel? Stats,
     QuickActionsViewModel? Actions, SystemPanelViewModel? Sound);
 
+/// <summary>The Launcher tab: Start Menu apps and the Games section share one tab.</summary>
+public sealed partial class LauncherPanelViewModel(LauncherViewModel? apps, GameViewModel? games) : ObservableObject
+{
+    public LauncherViewModel? Apps { get; } = apps;
+    public GameViewModel? Games { get; } = games;
+
+    public bool HasApps => Apps is not null;
+    public bool HasGames => Games is not null;
+    public bool ShowSwitch => HasApps && HasGames;
+    public IReadOnlyList<string> Sections { get; } = ["Apps", "Games"];
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsApps), nameof(IsGames))]
+    private int _sectionIndex = apps is null ? 1 : 0;
+
+    public bool IsApps => SectionIndex == 0;
+    public bool IsGames => SectionIndex == 1;
+
+    [RelayCommand] private void ShowApps() => SectionIndex = 0;
+    [RelayCommand] private void ShowGames() => SectionIndex = 1;
+
+    // The selected sub-tab is presentation state; two tab lists with the same panels are the same tab.
+    public override bool Equals(object? obj) =>
+        obj is LauncherPanelViewModel other && ReferenceEquals(Apps, other.Apps) && ReferenceEquals(Games, other.Games);
+
+    public override int GetHashCode() => HashCode.Combine(Apps, Games);
+}
+
 internal static class PanelGroups
 {
     internal static string TabId(string id) => id switch
     {
         "agents" => "claude",
-        "calendar" => "clock",
         "files" or "clipboard" => "shelf",
         "stats" or "actions" or "privacy" => "system",
+        "games" => "launcher",
         _ => id,
     };
 
@@ -40,7 +72,9 @@ internal static class PanelGroups
             (string Name, object Panel) combined = group switch
             {
                 "media" => ("Media", new MediaPanelViewModel(Panel<MediaViewModel>("media"), Panel<SystemPanelViewModel>("system"))),
-                "clock" => ("Clock & calendar", new TimePanelViewModel(Panel<ClockPanelViewModel>("clock"), Panel<CalendarViewModel>("calendar"))),
+                "clock" => ("Timer", Panel<ClockPanelViewModel>("clock")!),
+                "calendar" => ("Calendar", Panel<CalendarViewModel>("calendar")!),
+                "launcher" => ("Launcher", new LauncherPanelViewModel(Panel<LauncherViewModel>("launcher"), Panel<GameViewModel>("games"))),
                 "shelf" => ("Files", new FilesPanelViewModel(Panel<ShelfViewModel>("shelf"), Panel<ClipboardViewModel>("clipboard"))),
                 "system" => ("System", new SystemGroupViewModel(Panel<SystemPanelViewModel>("system"), Panel<StatsViewModel>("stats"),
                     Panel<QuickActionsViewModel>("actions"), Panel<MediaViewModel>("media") is null ? Panel<SystemPanelViewModel>("system") : null)),

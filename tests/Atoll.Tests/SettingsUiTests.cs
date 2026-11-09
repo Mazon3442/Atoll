@@ -211,14 +211,12 @@ public class SettingsUiTests
             var expected = service.Current.Theme.ExpandedHeight - 26;
             Assert.Equal(expected, panel.Height);
             Assert.Equal(expected, panel.ActualHeight);
-            var clockScroll = Descendants<ScrollViewer>(panel).First(s => s.Content is ContentControl c && c.Content is Atoll.Modules.Clock.ClockPanelViewModel);
-            var viewport = clockScroll.ViewportHeight;
+            Assert.Contains(Descendants<ContentPresenter>(panel), p => p.Content is Atoll.Modules.Clock.ClockPanelViewModel);
             // Reproduces the first opening frame without advancing the animation clock.
             var pill = (PillBorder)island.FindName("Pill");
             pill.BeginAnimation(FrameworkElement.HeightProperty, null);
             pill.Height = 32;
             island.UpdateLayout();
-            Assert.Equal(viewport, clockScroll.ViewportHeight);
             Assert.Equal(expected, panel.ActualHeight);
 
             // Media needs more room than the default height; the song title must not be clipped at the top.

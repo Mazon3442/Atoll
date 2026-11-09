@@ -1,5 +1,6 @@
 using System.ComponentModel;
 using System.Windows;
+using System.Windows.Automation;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Interop;
@@ -37,6 +38,8 @@ public partial class IslandWindow : Window
     private const int PeekCollapseAfterMs = 450;
     private const int MinClickThroughDwellMs = 350; // short passes (moving to a browser tab) must not open it
     private const double PassThroughOpacity = 0.25;
+    private const double SideChipWidth = 118;
+    private const double SideChipGap = 4;
 
     private readonly SettingsService _settings;
     private readonly ModuleManager _modules;
@@ -59,8 +62,8 @@ public partial class IslandWindow : Window
     private nint _hwnd;
     private IslandMode _mode = IslandMode.Compact;
     private Activity? _primary;
-    private Activity? _secondary;
-    private Activity? _tertiary;
+    private IReadOnlyList<Activity> _sideActivities = [];
+    private readonly SideChipViewModel?[] _sideChips = new SideChipViewModel?[4];
     private Rect _peekAnchor = Rect.Empty;
     private object? _shownContent;
     private string? _shownTemplateMode;
@@ -82,6 +85,8 @@ public partial class IslandWindow : Window
     private ImageBrush? _pillGlassBrush;
     private ImageBrush? _bubbleGlassBrush;
     private ImageBrush? _bubble2GlassBrush;
+    private ImageBrush? _bubble3GlassBrush;
+    private ImageBrush? _bubble4GlassBrush;
 
     public IslandWindow(MonitorInfo monitor, SettingsService settings, ModuleManager modules, Action<int> openSettings)
     {
@@ -124,16 +129,10 @@ public partial class IslandWindow : Window
             SetMode(IslandMode.Expanded, ActivityTab(_primary));
             e.Handled = true;
         };
-        Bubble.MouseLeftButtonUp += (_, e) =>
-        {
-            SetMode(IslandMode.Expanded, ActivityTab(_secondary));
-            e.Handled = true;
-        };
-        Bubble2.MouseLeftButtonUp += (_, e) =>
-        {
-            SetMode(IslandMode.Expanded, ActivityTab(_tertiary));
-            e.Handled = true;
-        };
+        Bubble.MouseLeftButtonUp += (_, e) => OpenSide(0, e);
+        Bubble2.MouseLeftButtonUp += (_, e) => OpenSide(1, e);
+        Bubble3.MouseLeftButtonUp += (_, e) => OpenSide(2, e);
+        Bubble4.MouseLeftButtonUp += (_, e) => OpenSide(3, e);
         Pill.SizeChanged += (_, _) => UpdateBubbleOffset();
 
         // Dragging files onto the island opens the shelf so they can be dropped there.
@@ -189,6 +188,7 @@ public partial class IslandWindow : Window
             _edgeTimer.Stop();
             _hint?.Close();
             _glassTimer.Stop();
+            DisposeSideChips();
         };
     }
 
@@ -215,12 +215,16 @@ public partial class IslandWindow : Window
     private bool ClickThrough =>
         _settings.Current.ClickThrough && _foreground is ForegroundKind.Maximized or ForegroundKind.Fullscreen;
 
-    public void SetActivities(Activity? primary, Activity? secondary, Activity? tertiary = null)
+    /// <summary>Compatibility overload for tests and the two-slot callers.</summary>
+    public void SetActivities(Activity? primary, Activity? secondary, Activity? tertiary = null) =>
+        SetActivitySnapshot(primary, new[] { secondary, tertiary }.OfType<Activity>().ToList());
+
+    public void SetActivitySnapshot(Activity? primary, IReadOnlyList<Activity> sides)
     {
         var isNewPrimary = !ReferenceEquals(primary, _primary);
         _primary = primary;
-        _secondary = secondary;
-        _tertiary = tertiary;
+        _sideActivities = sides.Take(4).ToList();
+        RebuildSideChips();
 
         if (isNewPrimary && primary is { Alert: true } && _mode == IslandMode.Compact)
         {
@@ -239,17 +243,36 @@ public partial class IslandWindow : Window
         Render();
     }
 
+    private void RebuildSideChips()
+    {
+        DisposeSideChips();
+        var accent = AccentColor();
+        for (var i = 0; i < _sideActivities.Count && i < _sideChips.Length; i++)
+            _sideChips[i] = new SideChipViewModel(_sideActivities[i], accent);
+    }
+
+    private void DisposeSideChips()
+    {
+        foreach (var chip in _sideChips) chip?.Dispose();
+        Array.Clear(_sideChips, 0, _sideChips.Length);
+    }
+
+    private Color AccentColor() =>
+        ThemeService.TryParseColor(_settings.Current.Theme.Accent, out var color) ? color : Color.FromRgb(0x0A, 0x84, 0xFF);
+
     /// <summary>Re-reads size/offset/theme settings.</summary>
     public void ApplySettings()
     {
         var t = _settings.Current.Theme;
         var offset = TopGap;
-        foreach (var b in new[] { Pill, Bubble, Bubble2 }) b.Notch = Notch;
+        foreach (var b in new[] { Pill, Bubble, Bubble2, Bubble3, Bubble4 }) b.Notch = Notch;
         Stage.Margin = new Thickness(0, offset, 0, 0);
-        Width = Math.Max(760, Math.Clamp(t.ExpandedWidth, 320, 900) + 4 * (Math.Max(CompactHeight, 96) + 8));
+        var desiredWidth = Math.Max(1200, Math.Clamp(t.ExpandedWidth, 320, 900) + 4 * (SideChipWidth + 8));
+        Width = Math.Min(desiredWidth, Math.Max(760, Monitor.WorkArea.Width / Monitor.Scale - 24));
         Height = AvailablePanelHeight + offset + 24; // room for panels that grow to fit their content
         _target = (-1, -1, -1);
         _shownContent = null; // template choice may depend on size; rebuild
+        RebuildSideChips(); // the theme accent may have changed
         Place();
         UpdatePresence();
         UpdateGlass();
@@ -309,6 +332,26 @@ public partial class IslandWindow : Window
         var index = Tabs.SelectedIndex + delta;
         Tabs.SelectedIndex = wrap ? (index % count + count) % count : Math.Clamp(index, 0, count - 1);
         if (Tabs.IsKeyboardFocusWithin) FocusSelectedTab();
+    }
+
+    private void OnTabMenuClick(object sender, RoutedEventArgs e) => TabMenuPopup.IsOpen = !TabMenuPopup.IsOpen;
+
+    private void OnTabMenuOpened(object? sender, EventArgs e) =>
+        Dispatcher.BeginInvoke(DispatcherPriority.Input, new Action(() => TabMenu.Focus()));
+
+    private void OnTabMenuSelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (!TabMenuPopup.IsOpen || TabMenu.SelectedItem is null) return;
+        TabMenuPopup.IsOpen = false;
+        if (_mode == IslandMode.Expanded) FocusSelectedTab();
+    }
+
+    private void OnTabMenuKeyDown(object sender, KeyEventArgs e)
+    {
+        if (e.Key != Key.Escape) return;
+        TabMenuPopup.IsOpen = false;
+        TabMenuButton.Focus();
+        e.Handled = true;
     }
 
     private void OnHeaderWheel(object sender, MouseWheelEventArgs e)
@@ -470,6 +513,7 @@ public partial class IslandWindow : Window
 
     private void SetMode(IslandMode mode, string? moduleId = null)
     {
+        TabMenuPopup.IsOpen = false;
         // Keep the original hover region while the pill grows and pushes side activities away.
         _peekAnchor = mode == IslandMode.Peek && _mode != IslandMode.Peek ? IslandBounds() : Rect.Empty;
         if (mode == IslandMode.Expanded)
@@ -478,7 +522,13 @@ public partial class IslandWindow : Window
             SetNoActivate(false);
             Activate();
             var tab = moduleId is null ? null : _modules.Tabs.FirstOrDefault(t => t.Contains(moduleId));
-            if (tab is not null) Tabs.SelectedItem = tab;
+            if (tab is not null)
+            {
+                Tabs.SelectedItem = tab;
+                // Opening from a game activity should land on the Launcher's Games section.
+                if (tab.Panel is LauncherPanelViewModel launcher && moduleId is "games" or "launcher")
+                    launcher.SectionIndex = moduleId == "games" ? 1 : 0;
+            }
             else if (Tabs.SelectedItem is null && Tabs.Items.Count > 0) Tabs.SelectedIndex = 0;
             ShowSelectedTab();
         }
@@ -572,6 +622,8 @@ public partial class IslandWindow : Window
         Pill.BeginAnimation(OpacityProperty, new DoubleAnimation(to, FadeDuration));
         Bubble.BeginAnimation(OpacityProperty, new DoubleAnimation(to, FadeDuration));
         Bubble2.BeginAnimation(OpacityProperty, new DoubleAnimation(to, FadeDuration));
+        Bubble3.BeginAnimation(OpacityProperty, new DoubleAnimation(to, FadeDuration));
+        Bubble4.BeginAnimation(OpacityProperty, new DoubleAnimation(to, FadeDuration));
     }
 
     private bool IsCursorOverIsland()
@@ -590,8 +642,8 @@ public partial class IslandWindow : Window
         static Rect Bounds(FrameworkElement element) => new(element.PointToScreen(new Point()),
             element.PointToScreen(new Point(element.ActualWidth, element.ActualHeight)));
         var bounds = Bounds(Pill);
-        if (Bubble.IsVisible) bounds.Union(Bounds(Bubble));
-        if (Bubble2.IsVisible) bounds.Union(Bounds(Bubble2));
+        foreach (var bubble in new[] { Bubble, Bubble2, Bubble3, Bubble4 }.Where(b => b.IsVisible))
+            bounds.Union(Bounds(bubble));
         return bounds;
     }
 
@@ -616,10 +668,12 @@ public partial class IslandWindow : Window
             if (_hwnd != 0) GlassSampler.ExcludeFromCapture(_hwnd, false);
             _glassImage = null;
             _pillGlassBrush = null; _bubbleGlassBrush = null;
-            _bubble2GlassBrush = null;
+            _bubble2GlassBrush = null; _bubble3GlassBrush = null; _bubble4GlassBrush = null;
             Pill.SetResourceReference(BackgroundProperty, "Island.Background");
             Bubble.SetResourceReference(BackgroundProperty, "Island.Background");
             Bubble2.SetResourceReference(BackgroundProperty, "Island.Background");
+            Bubble3.SetResourceReference(BackgroundProperty, "Island.Background");
+            Bubble4.SetResourceReference(BackgroundProperty, "Island.Background");
         }
     }
 
@@ -632,16 +686,15 @@ public partial class IslandWindow : Window
         var targetHeight = Math.Max(1, _target.H) * dpi.DpiScaleY;
         var center = pill.Left + pill.Width / 2;
         var bounds = Rect.Union(pill, new Rect(center - targetWidth / 2, pill.Top, targetWidth, targetHeight));
-        foreach (var side in new[] { Bubble, Bubble2 }.Where(side => side.IsVisible))
+        foreach (var side in new[] { Bubble, Bubble2, Bubble3, Bubble4 }.Where(side => side.IsVisible))
         {
             var size = new Size(side.ActualWidth * dpi.DpiScaleX, side.ActualHeight * dpi.DpiScaleY);
-            var bubble = new Rect(side.PointToScreen(new Point()), size);
-            bounds.Union(bubble);
-            // Where the bubble will sit once the pill reaches its target width: first on the right, second on the left.
-            var gap = 8 * dpi.DpiScaleX;
-            var left = ReferenceEquals(side, Bubble2) ? center - targetWidth / 2 - gap - size.Width : center + targetWidth / 2 + gap;
-            bounds.Union(new Rect(new Point(left, bubble.Top), size));
+            bounds.Union(new Rect(side.PointToScreen(new Point()), size));
         }
+        // Cover where two side capsules on each side can sit once the pill reaches its target width.
+        var margin = 2 * (SideChipWidth + SideChipGap + 8) * dpi.DpiScaleX;
+        bounds.Union(new Rect(center - targetWidth / 2 - margin, pill.Top,
+            targetWidth + 2 * margin, Math.Max(pill.Height, targetHeight)));
         var moving = Math.Abs(Pill.ActualWidth - _target.W) > 1 || Math.Abs(Pill.ActualHeight - _target.H) > 1;
         bounds.Inflate((moving ? 40 : 8) * dpi.DpiScaleX, (moving ? 40 : 8) * dpi.DpiScaleY);
         var area = GlassSampler.CaptureBounds(bounds);
@@ -658,6 +711,8 @@ public partial class IslandWindow : Window
         Pill.Background = _pillGlassBrush = GlassBrush(Pill, _pillGlassBrush);
         if (Bubble.IsVisible) Bubble.Background = _bubbleGlassBrush = GlassBrush(Bubble, _bubbleGlassBrush);
         if (Bubble2.IsVisible) Bubble2.Background = _bubble2GlassBrush = GlassBrush(Bubble2, _bubble2GlassBrush);
+        if (Bubble3.IsVisible) Bubble3.Background = _bubble3GlassBrush = GlassBrush(Bubble3, _bubble3GlassBrush);
+        if (Bubble4.IsVisible) Bubble4.Background = _bubble4GlassBrush = GlassBrush(Bubble4, _bubble4GlassBrush);
     }
 
     private ImageBrush GlassBrush(FrameworkElement e, ImageBrush? previous)
@@ -716,7 +771,7 @@ public partial class IslandWindow : Window
         {
             var expandedWidth = Math.Max(Math.Clamp(t.ExpandedWidth, 320, 900), HeaderWidth()); // every tab fits without scrolling
             var expandedHeight = Math.Clamp(t.ExpandedHeight, 140, 600);
-            if (Tabs.SelectedItem is ModuleTab { Panel: MediaPanelViewModel or SystemGroupViewModel or Atoll.Modules.Weather.WeatherViewModel or Atoll.Modules.Home.HomeViewModel or Atoll.Modules.Games.GameViewModel })
+            if (Tabs.SelectedItem is ModuleTab { Panel: MediaPanelViewModel or SystemGroupViewModel or Atoll.Modules.Weather.WeatherViewModel or Atoll.Modules.Home.HomeViewModel or Atoll.Modules.Games.GameViewModel or Atoll.Modules.Calendar.CalendarViewModel or LauncherPanelViewModel })
                 expandedHeight = Math.Max(expandedHeight, FittedPanelHeight(expandedWidth)); // show all of it
             expandedHeight = Math.Min(expandedHeight, AvailablePanelHeight);
             // Lay out at the destination size, so opening the pill cannot create transient overflow.
@@ -727,6 +782,8 @@ public partial class IslandWindow : Window
             Animate(expandedWidth, expandedHeight, Roundness * 32);
             RenderBubble(Bubble, BubbleContent, null, h0);
             RenderBubble(Bubble2, Bubble2Content, null, h0);
+            RenderBubble(Bubble3, Bubble3Content, null, h0);
+            RenderBubble(Bubble4, Bubble4Content, null, h0);
             return;
         }
 
@@ -763,8 +820,10 @@ public partial class IslandWindow : Window
         }
         Animate(w, h, Roundness * Math.Min(h / 2, 28));
         var sides = t.ShowSideActivities;
-        RenderBubble(Bubble, BubbleContent, sides ? _secondary?.Content : null, h0);
-        RenderBubble(Bubble2, Bubble2Content, sides ? _tertiary?.Content : null, h0);
+        RenderBubble(Bubble, BubbleContent, sides ? _sideChips[0] : null, h0);
+        RenderBubble(Bubble2, Bubble2Content, sides ? _sideChips[1] : null, h0);
+        RenderBubble(Bubble3, Bubble3Content, sides ? _sideChips[2] : null, h0);
+        RenderBubble(Bubble4, Bubble4Content, sides ? _sideChips[3] : null, h0);
         UpdateBubbleOffset();
     }
 
@@ -774,6 +833,7 @@ public partial class IslandWindow : Window
         {
             bubble.Visibility = Visibility.Collapsed;
             presenter.Content = null;
+            AutomationProperties.SetName(bubble, "");
             return;
         }
         if (!ReferenceEquals(presenter.Content, content))
@@ -782,18 +842,32 @@ public partial class IslandWindow : Window
             presenter.ContentTemplate = Templates.Find(this, content, "Mini");
             presenter.Content = content;
         }
-        presenter.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
         bubble.Height = size;
-        bubble.Width = Math.Max(size, Math.Min(96, presenter.DesiredSize.Width + size * 0.6));
+        bubble.Width = SideChipWidth;
         bubble.ClipToBounds = true;
         bubble.Radius = Roundness * size / 2;
         bubble.Visibility = Visibility.Visible;
+        AutomationProperties.SetName(bubble, content is SideChipViewModel chip ? chip.Label : "");
     }
 
     private void UpdateBubbleOffset()
     {
-        if (Bubble.IsVisible) BubbleShift.X = Pill.ActualWidth / 2 + 8 + Bubble.Width / 2;
-        if (Bubble2.IsVisible) Bubble2Shift.X = -(Pill.ActualWidth / 2 + 8 + Bubble2.Width / 2);
+        var center = Math.Max(0, Pill.ActualWidth / 2);
+        var right = center;
+        if (Bubble.IsVisible)
+        {
+            BubbleShift.X = right + SideChipGap + Bubble.Width / 2;
+            right = BubbleShift.X + Bubble.Width / 2;
+        }
+        if (Bubble3.IsVisible) Bubble3Shift.X = right + SideChipGap + Bubble3.Width / 2;
+
+        var left = center;
+        if (Bubble2.IsVisible)
+        {
+            Bubble2Shift.X = -(left + SideChipGap + Bubble2.Width / 2);
+            left += SideChipGap + Bubble2.Width;
+        }
+        if (Bubble4.IsVisible) Bubble4Shift.X = -(left + SideChipGap + Bubble4.Width / 2);
     }
 
     private void Animate(double w, double h, double r)
@@ -844,6 +918,12 @@ public partial class IslandWindow : Window
         PanelBody.Content = tab.Panel;
     }
 
+    private void OpenSide(int index, MouseButtonEventArgs e)
+    {
+        if (_sideChips[index] is { } chip) SetMode(IslandMode.Expanded, ActivityTab(chip.Activity));
+        e.Handled = true;
+    }
+
     private string? ActivityTab(Activity? activity) =>
         activity?.Content is IndicatorViewModel { Detail: "Volume" }
             && _modules.Tabs.Any(t => t.Contains("media")) ? "media" : activity?.ModuleId;
@@ -859,8 +939,9 @@ public partial class IslandWindow : Window
     {
         "notifications" => 3,
         "claude" or "providers" => 4,
-        "clock" => 5,
+        "calendar" => 5,
         "weather" => 6,
+        "clock" or "launcher" => 2,
         _ => 0,
     };
 

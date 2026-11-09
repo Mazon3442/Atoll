@@ -204,8 +204,28 @@ internal static class AgentMediaUi
         Render(game, "GameViewModel.Compact", "game-overlay", 420, 24);
         Render(game, "GameViewModel.Panel", "games-panel", 640, 210);
         var timer = new Atoll.Modules.Clock.TimerViewModel(TimeProvider.System);
+        var calendar = new Atoll.Modules.Calendar.CalendarViewModel(() => { }) { HasSources = true, HasEvents = true };
+        var today = DateTime.Today;
+        calendar.SelectedDate = today;
+        calendar.VisibleMonth = new DateTime(today.Year, today.Month, 1);
+        calendar.MonthCells = Atoll.Modules.Calendar.CalendarViewModel.BuildMonth(calendar.VisibleMonth, today, today,
+            new Dictionary<DateTime, Atoll.Modules.Calendar.CalendarDayMark>
+            {
+                [today] = new(2, ["#0A84FF", "#30D158"]),
+                [today.AddDays(3)] = new(1, ["#FF9F0A"]),
+            });
+        var eventStart = DateTimeOffset.Now.AddHours(1);
+        calendar.Days.Add(new Atoll.Modules.Calendar.CalendarDay
+        {
+            Label = "Today",
+            Events =
+            [
+                new(new Atoll.Modules.Calendar.CalendarEventItem("render", eventStart, eventStart.AddHours(1), false,
+                    "Design review", "Studio 2", "Work", "#0A84FF"), _ => { }, _ => { }),
+            ],
+        });
         var home = new Atoll.Modules.Home.HomeViewModel(media, null, new Atoll.Modules.Clock.ClockPanelViewModel(new Atoll.Modules.Clock.ClockViewModel(), timer),
-            new Atoll.Modules.Calendar.CalendarViewModel(() => { }), game, new HomeSettings());
+            calendar, game, new HomeSettings());
         Render(home, "HomeViewModel.Panel", "home-panel", 640, 300);
     }
 
@@ -235,11 +255,37 @@ public class HomeAndGamesTests
     [Fact]
     public void Month_grid_is_six_weeks_with_today_and_event_days()
     {
-        var cells = Atoll.Modules.Home.HomeViewModel.BuildMonth(new DateTime(2026, 11, 1), new DateTime(2026, 11, 9), new HashSet<DateTime> { new(2026, 11, 12) });
+        var marks = new Dictionary<DateTime, Atoll.Modules.Calendar.CalendarDayMark>
+        {
+            [new DateTime(2026, 11, 12)] = new(1, ["#0A84FF"]),
+        };
+        var cells = Atoll.Modules.Calendar.CalendarViewModel.BuildMonth(
+            new DateTime(2026, 11, 1), new DateTime(2026, 11, 9), new DateTime(2026, 11, 9), marks);
         Assert.Equal(42, cells.Count);
-        Assert.Single(cells, c => c.IsToday && c.Day == 9);
-        Assert.Single(cells, c => c.HasEvents && c.Day == 12 && c.InMonth);
+        Assert.Single(cells, c => c.IsToday && c.Date.Day == 9 && c.IsSelected);
+        Assert.Single(cells, c => c.HasEvents && c.Date.Day == 12 && c.InMonth);
         Assert.Equal(30, cells.Count(c => c.InMonth));
+    }
+
+    [Fact]
+    public void Launcher_filters_apps_by_name_and_source()
+    {
+        var vm = new Atoll.Modules.Launcher.LauncherViewModel(System.Windows.Threading.Dispatcher.CurrentDispatcher);
+        vm.SetAppsForTest([
+            new("Visual Studio Code", @"C:\Start Menu\Visual Studio Code.lnk", "Development"),
+            new("Spotify", @"C:\Start Menu\Spotify.lnk", "Music"),
+            new("Steam", @"C:\Start Menu\Steam.lnk", "Games"),
+        ]);
+        Assert.Equal(3, vm.FilteredApps.Count);
+        Assert.True(vm.HasApps);
+
+        vm.SearchText = "studio";
+        Assert.Equal("Visual Studio Code", Assert.Single(vm.FilteredApps).Name);
+        vm.SearchText = "music";
+        Assert.Equal("Spotify", Assert.Single(vm.FilteredApps).Name);
+        vm.SearchText = "nothing here";
+        Assert.Empty(vm.FilteredApps);
+        Assert.True(vm.ShowEmpty);
     }
 
     [Fact]

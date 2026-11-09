@@ -3,6 +3,7 @@ using System.Windows.Automation;
 using System.Windows.Controls;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
+using System.Windows.Threading;
 using Atoll.Modules;
 using Atoll.Modules.Actions;
 using Atoll.Modules.Calendar;
@@ -30,6 +31,12 @@ public class GroupedPanelsTests
         player.Follow("media:spotify");
         var sound = new SystemPanelViewModel(_ => { }, () => { })
         { Volume = 50, Network = "Connected", Bluetooth = "Headphones", Battery = "85%" };
+        var launcher = new Atoll.Modules.Launcher.LauncherViewModel(Dispatcher.CurrentDispatcher);
+        launcher.SetAppsForTest([
+            new("Visual Studio Code", @"C:\ProgramData\Microsoft\Windows\Start Menu\Programs\Visual Studio Code.lnk", "Development"),
+            new("Spotify", @"C:\Users\mason\AppData\Roaming\Microsoft\Windows\Start Menu\Programs\Spotify.lnk", "Music"),
+            new("Steam", @"C:\ProgramData\Microsoft\Windows\Start Menu\Programs\Steam.lnk", "Games"),
+        ]);
         var panels = new Dictionary<string, object>
         {
             ["claude"] = new ClaudeViewModel(new ClaudeSessionTracker(TimeProvider.System)),
@@ -45,17 +52,19 @@ public class GroupedPanelsTests
             ["weather"] = new object(),
             ["actions"] = new QuickActionsViewModel(new QuickActionsModule()),
             ["privacy"] = new object(), // no panel of its own; it belongs to the System tab
+            ["launcher"] = launcher,
             ["games"] = new Atoll.Modules.Games.GameViewModel(),
         };
         return ModuleCatalog.All.Select(d => new ModuleTab(d, panels[d.Id])).ToList();
     }
 
     [Fact]
-    public void Twelve_modules_become_eight_tabs_with_stable_identity_and_legacy_routes()
+    public void Modules_become_tabs_with_stable_identity_and_legacy_routes()
     {
         var modules = Modules();
         var tabs = PanelGroups.Combine(modules);
-        Assert.Equal(["claude", "providers", "media", "notifications", "clock", "system", "shelf", "weather", "games"], tabs.Select(t => t.Descriptor.Id));
+        Assert.Equal(["claude", "providers", "media", "notifications", "clock", "calendar", "system", "shelf", "weather", "launcher"],
+            tabs.Select(t => t.Descriptor.Id));
         Assert.Equal(tabs, PanelGroups.Combine(modules));
         foreach (var module in modules)
             Assert.Single(tabs, t => t.Contains(module.Descriptor.Id));
@@ -66,7 +75,9 @@ public class GroupedPanelsTests
     }
 
     [Theory]
-    [InlineData("clock", 5)]
+    [InlineData("clock", 2)]
+    [InlineData("calendar", 5)]
+    [InlineData("launcher", 2)]
     [InlineData("claude", 4)]
     [InlineData("providers", 4)]
     [InlineData("notifications", 3)]
@@ -82,9 +93,7 @@ public class GroupedPanelsTests
         var modules = Modules().Where(t => t.Descriptor.Id is not ("media" or "clock" or "shelf")).ToList();
         var tabs = PanelGroups.Combine(modules);
         Assert.NotNull(Assert.IsType<SystemGroupViewModel>(tabs.Single(t => t.Contains("system")).Panel).Sound);
-        var time = Assert.IsType<TimePanelViewModel>(tabs.Single(t => t.Contains("calendar")).Panel);
-        Assert.Null(time.Clock);
-        Assert.NotNull(time.Calendar);
+        Assert.IsType<CalendarViewModel>(tabs.Single(t => t.Contains("calendar")).Panel);
         var files = Assert.IsType<FilesPanelViewModel>(tabs.Single(t => t.Contains("clipboard")).Panel);
         Assert.Null(files.Shelf);
         Assert.NotNull(files.Clipboard);
@@ -99,7 +108,7 @@ public class GroupedPanelsTests
             "Modules/Clock/ClockTemplates.xaml", "Modules/Media/MediaTemplates.xaml", "Modules/Notifications/NotificationTemplates.xaml",
             "Modules/Shelf/ShelfTemplates.xaml", "Modules/Clipboard/ClipboardTemplates.xaml", "Modules/Stats/StatsTemplates.xaml",
             "Modules/Weather/WeatherTemplates.xaml", "Modules/Indicators/IndicatorsTemplates.xaml", "Modules/Calendar/CalendarTemplates.xaml",
-            "Modules/GroupedTemplates.xaml" })
+            "Modules/Games/GamesTemplates.xaml", "Modules/Launcher/LauncherTemplates.xaml", "Modules/GroupedTemplates.xaml" })
             resources.MergedDictionaries.Add(new ResourceDictionary { Source = new Uri("/Atoll;component/" + file, UriKind.Relative) });
         var modules = Modules();
         var panels = PanelGroups.Combine(modules).Where(t => t.Panel.GetType() != typeof(object))
@@ -111,8 +120,19 @@ public class GroupedPanelsTests
         var nine = new DateTimeOffset(2026, 11, 6, 9, 0, 0, TimeSpan.Zero);
         CalendarEventViewModel Event(string title, string? place, bool allDay, int hour, string color, bool pinned = false) =>
             new(new CalendarEventItem(title, nine.AddHours(hour - 9), nine.AddHours(hour - 8), allDay, title, place, "Work", color), _ => { }, _ => { }) { IsPinned = pinned };
-        agenda.Days.Add(new CalendarDay { Label = "Today", Events = [Event("Design review", "Room 4", false, 11, "#0A84FF", pinned: true), Event("Release day", null, true, 0, "#30D158")] });
-        agenda.Days.Add(new CalendarDay { Label = "Tomorrow", Events = [Event("Dentist appointment with a very long title", "Main Street", false, 14, "#FF9F0A")] });
+        agenda.SelectedDate = new DateTime(2026, 11, 6);
+        agenda.VisibleMonth = new DateTime(2026, 11, 1);
+        agenda.SelectedDayTitle = "Today";
+        agenda.SelectedDayDate = "Nov 6";
+        agenda.SelectedDayCount = "2 events";
+        agenda.HasSelectedDayEvents = true;
+        agenda.SelectedDayRows =
+        [
+            Event("Design review", "Room 4", false, 11, "#0A84FF", pinned: true),
+            Event("Release day", null, true, 0, "#30D158"),
+        ];
+        agenda.MonthCells = CalendarViewModel.BuildMonth(new DateTime(2026, 11, 1), new DateTime(2026, 11, 6), new DateTime(2026, 11, 6),
+            new Dictionary<DateTime, CalendarDayMark> { [new DateTime(2026, 11, 6)] = new(2, ["#0A84FF", "#30D158"]) });
         var runningTimer = new TimerViewModel(TimeProvider.System);
         runningTimer.StartCountdownCommand.Execute(5);
         panels.Add(("time-timer-idle", new TimePanelViewModel(idleClock, agenda)));

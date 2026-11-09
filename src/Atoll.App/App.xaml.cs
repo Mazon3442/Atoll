@@ -56,6 +56,7 @@ public partial class App : Application
         };
 
         _islands = new IslandManager(_settings, _activities, _modules, OpenSettings, Dispatcher);
+        Navigation.OpenModule = _islands.OpenModule;
         _tray = new TrayIcon(OpenSettings, SetPaused, Shutdown);
         _hotkeys = new HotkeyService(_settings, _islands.ToggleFromKeyboard, () => SetPaused(!_islands.Paused));
 

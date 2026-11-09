@@ -105,6 +105,38 @@ public class CalendarParsingTests
     }
 
     [Fact]
+    public void Finds_meeting_links_and_formats_the_agenda_duration()
+    {
+        var events = Parse("""
+            BEGIN:VCALENDAR
+            VERSION:2.0
+            BEGIN:VEVENT
+            UID:meeting
+            SUMMARY:Design review
+            DTSTART:20261110T090000Z
+            DTEND:20261110T093000Z
+            URL:https://meet.google.com/abc-defg-hij
+            END:VEVENT
+            BEGIN:VEVENT
+            UID:zoom
+            SUMMARY:Standup
+            DTSTART:20261110T100000Z
+            DTEND:20261110T113000Z
+            DESCRIPTION:Join at https://zoom.us/j/123456789
+            END:VEVENT
+            END:VCALENDAR
+            """);
+
+        var meeting = events.Single(e => e.Uid == "meeting");
+        Assert.Equal("https://meet.google.com/abc-defg-hij", meeting.Url);
+        Assert.True(meeting.HasJoin);
+        Assert.Equal("30m", meeting.DurationText);
+        var zoom = events.Single(e => e.Uid == "zoom");
+        Assert.Equal("https://zoom.us/j/123456789", zoom.Url);
+        Assert.Equal("1h 30m", zoom.DurationText);
+    }
+
+    [Fact]
     public void Includes_events_that_started_before_the_window_but_are_still_running()
     {
         var events = IcsCalendar.Parse("""
@@ -149,6 +181,28 @@ public class CalendarParsingTests
 
         Assert.Empty(IcsCalendar.Parse("not an ics file", "X", "#fff", Start, End));
         Assert.Empty(IcsCalendar.Parse("", "X", "#fff", Start, End));
+    }
+
+    [Fact]
+    public void Month_commands_keep_the_selected_day_and_visible_month_together()
+    {
+        var vm = new CalendarViewModel(() => { });
+        vm.SelectedDate = new DateTime(2026, 11, 9);
+        vm.VisibleMonth = new DateTime(2026, 11, 1);
+
+        vm.PreviousMonthCommand.Execute(null);
+        Assert.Equal(new DateTime(2026, 10, 9), vm.SelectedDate);
+        Assert.Equal(new DateTime(2026, 10, 1), vm.VisibleMonth);
+
+        vm.SelectDayCommand.Execute(new CalendarMonthCell(new DateTime(2026, 12, 3), true, false, false, [], 0));
+        Assert.Equal(new DateTime(2026, 12, 3), vm.SelectedDate);
+        Assert.Equal(new DateTime(2026, 12, 1), vm.VisibleMonth);
+
+        // The list clears its selection while its items are replaced; that must not move the date.
+        vm.SelectedCell = null;
+        Assert.Equal(new DateTime(2026, 12, 3), vm.SelectedDate);
+        vm.SelectedCell = new CalendarMonthCell(new DateTime(2026, 12, 8), true, false, false, [], 0);
+        Assert.Equal(new DateTime(2026, 12, 8), vm.SelectedDate);
     }
 
     [Theory]

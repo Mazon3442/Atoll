@@ -260,6 +260,35 @@
         </Setter>
     </Style>
 
+    <!-- Vertical row in the overflow menu: every section with its icon and name. -->
+    <Style x:Key="Island.TabMenuItem" TargetType="ListBoxItem">
+        <Setter Property="FocusVisualStyle" Value="{StaticResource Island.FocusVisual}" />
+        <Setter Property="Foreground" Value="{DynamicResource Island.Subtle}" />
+        <Setter Property="Cursor" Value="Hand" />
+        <Setter Property="AutomationProperties.Name" Value="{Binding Descriptor.Name}" />
+        <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="ListBoxItem">
+                    <Border x:Name="Bg" Background="Transparent" CornerRadius="8" Padding="10,7" Margin="0,1">
+                        <ContentPresenter VerticalAlignment="Center" />
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="Bg" Property="Background" Value="{DynamicResource Island.Hover}" />
+                            <Setter Property="Foreground" Value="{DynamicResource Island.Foreground}" />
+                        </Trigger>
+                        <Trigger Property="IsSelected" Value="True">
+                            <Setter TargetName="Bg" Property="Background" Value="{DynamicResource Island.Raised}" />
+                            <Setter Property="Foreground" Value="{DynamicResource Island.Foreground}" />
+                            <Setter Property="FontWeight" Value="SemiBold" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
     <!-- Round icon chip on the island surface: header status chips, play/pause, month arrows. -->
     <Style x:Key="Island.RoundButton" TargetType="Button">
         <Setter Property="Foreground" Value="{DynamicResource Island.Foreground}" />
@@ -313,6 +342,19 @@
             </Setter.Value>
         </Setter>
     </Style>
+
+    <!-- A side activity capsule: module icon, short live label, and a quiet module tint. -->
+    <DataTemplate x:Key="SideChipViewModel.Mini">
+        <Border Background="{Binding SurfaceBrush}" CornerRadius="999" Padding="10,0"
+                ToolTip="{Binding Label}" AutomationProperties.Name="{Binding Label}">
+            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                <shell:Icon Kind="{Binding Glyph}" Size="14" Foreground="{Binding TintBrush}" VerticalAlignment="Center" />
+                <TextBlock Text="{Binding Label}" FontSize="12" FontWeight="SemiBold" Margin="6,0,0,0"
+                           MaxWidth="74" TextTrimming="CharacterEllipsis" VerticalAlignment="Center"
+                           Foreground="{DynamicResource Island.Foreground}" />
+            </StackPanel>
+        </Border>
+    </DataTemplate>
 
     <!-- Used when an activity's view model has no ".Mini" template. -->
     <DataTemplate x:Key="Fallback.Mini">

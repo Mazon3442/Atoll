@@ -647,7 +647,7 @@
                         <s:SettingCard Glyph="&#xE708;" Header="Mute notifications while playing" Description="They still go to the notification history. Agent and timer alerts get through.">
                             <CheckBox Style="{StaticResource Toggle}" IsChecked="{Binding GameMuteNotifications}" AutomationProperties.Name="Mute notifications while playing" />
                         </s:SettingCard>
-                        <s:SettingCard Glyph="&#xE968;" Header="Minecraft server" Description="Shows players online and ping in the Games tab. Java servers, host or host:port.">
+                        <s:SettingCard Glyph="&#xE968;" Header="Minecraft server" Description="Shows players online and ping in Launcher › Games. Java servers, host or host:port.">
                             <TextBox Width="250" Text="{Binding MinecraftServer, UpdateSourceTrigger=LostFocus}" AutomationProperties.Name="Minecraft server address" />
                         </s:SettingCard>
 

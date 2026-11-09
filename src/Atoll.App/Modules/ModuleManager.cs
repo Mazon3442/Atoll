@@ -36,6 +36,7 @@ public static class ModuleCatalog
         new("weather", "Weather", "", () => new WeatherModule()),
         new("actions", "Quick actions", "", () => new QuickActionsModule()),
         new("privacy", "Camera and mic in use", "", () => new PrivacyModule()),
+        new("launcher", "Launcher", "\uE71D", () => new Launcher.LauncherModule()),
         new("games", "Games", "", () => new Games.GamesModule()),
     ];
 }

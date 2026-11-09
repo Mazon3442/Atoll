@@ -18,11 +18,12 @@ public sealed partial class SettingsViewModel
         ("providers", "API keys", "Live requests and token totals for your own OpenAI, Anthropic, DeepSeek or compatible API keys."),
         ("media", "Media", "What's playing, with controls, seeking and the volume slider."),
         ("notifications", "Notifications", "Windows notifications, mirrored into the island."),
-        ("clock", "Clock & calendar", "The time, timers and your upcoming events."),
+        ("clock", "Timer", "The clock, countdowns, stopwatch and Pomodoro."),
+        ("calendar", "Calendar", "A month view and the selected day's events."),
         ("system", "System", "Device status, live graphs and quick actions."),
         ("shelf", "Files", "Files you drop on the island and your recent copies."),
         ("weather", "Weather", "Current conditions and a 7-day forecast."),
-        ("games", "Games", "Game mode, play time, your game library and a Minecraft server's status."),
+        ("launcher", "Launcher", "Start Menu apps and your games, one tab away."),
     ];
 
     // Feature id → (name, description) where the catalog name alone doesn't explain it.
@@ -30,6 +31,8 @@ public sealed partial class SettingsViewModel
     {
         ["clock"] = ("Clock & timers", "Countdowns, stopwatch and Pomodoro."),
         ["calendar"] = ("Calendar", "Events from the calendars you add."),
+        ["launcher"] = ("App launcher", "Search and open Start Menu apps."),
+        ["games"] = ("Games", "Game mode, play time, your game library and a Minecraft server."),
         ["system"] = ("Status popups", "Volume, battery, network, Bluetooth, brightness and lock keys."),
         ["stats"] = ("Live graphs", "CPU, GPU, memory and network."),
         ["actions"] = ("Quick actions", "Screenshot, mic mute, lock, screen off and Downloads."),

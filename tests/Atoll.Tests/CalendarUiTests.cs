@@ -29,12 +29,20 @@ internal static class CalendarUiTests
         }
         var start = new DateTimeOffset(2026, 11, 10, 9, 0, 0, TimeSpan.Zero);
         var allDay = Row(new CalendarEventItem("day", start, start.AddDays(1), true, "All-day event", null, "Test fixture", "#007AFF"));
-        vm.Days.Add(new CalendarDay { Label = "Today", Events = [allDay,
-            Row(new CalendarEventItem("timed", start, start.AddHours(1), false, "Meeting with a long title that should truncate", "Conference room", "Test fixture", "#007AFF"))] });
+        var timed = Row(new CalendarEventItem("timed", start, start.AddHours(1), false, "Meeting with a long title that should truncate", "Conference room", "Test fixture", "#007AFF"));
+        vm.SelectedDate = new DateTime(2026, 11, 10);
+        vm.VisibleMonth = new DateTime(2026, 11, 1);
+        vm.SelectedDayTitle = "Today";
+        vm.SelectedDayDate = "Nov 10";
+        vm.SelectedDayCount = "2 events";
+        vm.HasSelectedDayEvents = true;
+        vm.SelectedDayRows = [allDay, timed];
+        vm.MonthCells = CalendarViewModel.BuildMonth(new DateTime(2026, 11, 1), new DateTime(2026, 11, 10), new DateTime(2026, 11, 10),
+            new Dictionary<DateTime, CalendarDayMark> { [new DateTime(2026, 11, 10)] = new(2, ["#007AFF"]) });
         foreach (var light in new[] { false, true })
         {
             ThemeService.Apply(new ThemeSettings { Background = light ? "#F5F5F7" : "#000000", Foreground = light ? "#1C1C1E" : "#FFFFFF" });
-            foreach (var width in new[] { 210, 300 })
+            foreach (var width in new[] { 560, 720 })
             {
                 var panel = (FrameworkElement)((DataTemplate)Application.Current.Resources["CalendarViewModel.Panel"]).LoadContent();
                 panel.DataContext = vm;
@@ -74,21 +82,32 @@ internal static class CalendarUiTests
             var next = new NextEventViewModel(() => { }, () => { }) { Title = "Calendar interaction fixture", When = "in 10 min", Subtitle = "Test fixture" };
             var timer = new TimerViewModel(TimeProvider.System);
             timer.StartCountdownCommand.Execute(5);
-            island.SetActivities(new Activity("calendar.next", "calendar", next, ActivityPriority.Ambient),
+            var mediaPanel = GroupedPanelsTests.Modules().Single(m => m.Descriptor.Id == "media").Panel;
+            island.SetActivitySnapshot(new Activity("calendar.next", "calendar", next, ActivityPriority.High),
+            [
                 new Activity("clock.timer", "clock", timer, ActivityPriority.Normal),
-                new Activity("media.song", "media", GroupedPanelsTests.Modules().Single(m => m.Descriptor.Id == "media").Panel, ActivityPriority.Normal));
+                new Activity("media.song", "media", mediaPanel, ActivityPriority.Normal),
+                new Activity("system.battery", "system", new IndicatorViewModel("", "Battery 80%"), ActivityPriority.Ambient),
+                new Activity("weather.cpu", "weather", new IndicatorViewModel("", "CPU 34%"), ActivityPriority.Ambient),
+            ]);
             island.Show();
             island.UpdateLayout();
             var pill = (PillBorder)island.FindName("Pill");
             var bubble = (PillBorder)island.FindName("Bubble");
             var second = (PillBorder)island.FindName("Bubble2");
+            var third = (PillBorder)island.FindName("Bubble3");
+            var fourth = (PillBorder)island.FindName("Bubble4");
             SnapCompact(pill, (ContentPresenter)island.FindName("PillContent"), service.Current.Theme.CompactHeight);
             island.UpdateLayout();
             Assert.True(bubble.IsVisible);
             Assert.True(second.IsVisible);
-            // One bubble on each side of the pill.
+            Assert.True(third.IsVisible);
+            Assert.True(fourth.IsVisible);
+            // Two capsules on each side of the pill, nearest first.
             Assert.True(bubble.PointToScreen(new Point()).X >= pill.PointToScreen(new Point(pill.ActualWidth, 0)).X);
+            Assert.True(third.PointToScreen(new Point()).X >= bubble.PointToScreen(new Point(bubble.ActualWidth, 0)).X);
             Assert.True(second.PointToScreen(new Point(second.ActualWidth, 0)).X <= pill.PointToScreen(new Point()).X);
+            Assert.True(fourth.PointToScreen(new Point(fourth.ActualWidth, 0)).X <= second.PointToScreen(new Point()).X);
             var pointer = bubble.PointToScreen(new Point(bubble.ActualWidth / 2, bubble.ActualHeight / 2));
             var compactWidth = pill.ActualWidth;
             for (var i = 0; i < 6; i++) island.OnPointerTick(pointer);
@@ -107,12 +126,14 @@ internal static class CalendarUiTests
             SnapCompact(pill, (ContentPresenter)island.FindName("PillContent"), service.Current.Theme.CompactHeight); island.UpdateLayout();
             ((ContentPresenter)island.FindName("PillContent")).BeginAnimation(UIElement.OpacityProperty, null);
             Drain(); island.UpdateLayout();
-            RenderIsland(pill, bubble, second);
+            RenderIsland(pill, bubble, third, second, fourth);
 
             second.RaiseEvent(new MouseButtonEventArgs(Mouse.PrimaryDevice, 0, MouseButton.Left) { RoutedEvent = UIElement.MouseLeftButtonUpEvent });
             Assert.True(((ModuleTab)((ListBox)island.FindName("Tabs")).SelectedItem).Contains("media"));
             Assert.False(bubble.IsVisible);
             Assert.False(second.IsVisible);
+            Assert.False(third.IsVisible);
+            Assert.False(fourth.IsVisible);
 
             service.Current.FullscreenMode = FullscreenMode.PopUp;
             island.SetEnvironment(false, ForegroundKind.Fullscreen);
@@ -186,7 +207,7 @@ internal static class CalendarUiTests
         var bitmap = new RenderTargetBitmap((int)Math.Ceiling(width), (int)Math.Ceiling(pieces.Max(p => p.ActualHeight)), 96, 96, PixelFormats.Pbgra32);
         bitmap.Render(strip);
         var encoder = new PngBitmapEncoder(); encoder.Frames.Add(BitmapFrame.Create(bitmap));
-        using var output = File.Create(Path.Combine(Path.GetTempPath(), "atoll-calendar-review", "island-two-sides.png")); encoder.Save(output);
+        using var output = File.Create(Path.Combine(Path.GetTempPath(), "atoll-calendar-review", "island-four-sides.png")); encoder.Save(output);
     }
 
     private static void Drain()

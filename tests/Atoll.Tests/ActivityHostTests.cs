@@ -63,6 +63,27 @@ public class ActivityHostTests
     }
 
     [Fact]
+    public void Snapshot_returns_four_distinct_side_modules()
+    {
+        using var host = new ActivityHost(_time);
+        host.Post(Make("primary", "system", ActivityPriority.High));
+        host.Post(Make("media", "media", ActivityPriority.Normal));
+        host.Post(Make("claude", "claude", ActivityPriority.Normal));
+        host.Post(Make("calendar", "calendar", ActivityPriority.Ambient));
+        host.Post(Make("weather", "weather", ActivityPriority.Ambient));
+        host.Post(Make("clock", "clock", ActivityPriority.Idle));
+
+        var snapshot = host.Snapshot(4);
+
+        Assert.Equal("primary", snapshot.Primary?.Id);
+        Assert.Equal(["claude", "media", "weather", "calendar"], snapshot.Sides.Select(a => a.Id));
+        var legacy = host.Current;
+        Assert.Equal("claude", legacy.Secondary?.Id);
+        Assert.Equal("media", legacy.Tertiary?.Id);
+        Assert.Equal(2, host.Snapshot(2).Sides.Count);
+    }
+
+    [Fact]
     public void Transient_activity_expires_after_its_duration()
     {
         using var host = new ActivityHost(_time);

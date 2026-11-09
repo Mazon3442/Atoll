@@ -83,28 +83,63 @@
                             </Button>
                         </StackPanel>
                         <Border Background="{DynamicResource Island.Surface}" CornerRadius="18" Padding="3" HorizontalAlignment="Left">
-                        <ListBox x:Name="Tabs"
-                                 Background="Transparent" BorderThickness="0"
-                                 ItemContainerStyle="{StaticResource Island.TabItem}"
-                                 ScrollViewer.HorizontalScrollBarVisibility="Hidden"
-                                 ScrollViewer.VerticalScrollBarVisibility="Disabled"
-                                 AutomationProperties.Name="ATOLL sections">
-                            <ListBox.ItemsPanel>
-                                <ItemsPanelTemplate>
-                                    <StackPanel Orientation="Horizontal" />
-                                </ItemsPanelTemplate>
-                            </ListBox.ItemsPanel>
-                            <ListBox.ItemTemplate>
-                                <DataTemplate>
-                                    <StackPanel Orientation="Horizontal" ToolTip="{Binding Descriptor.Name}"
-                                                AutomationProperties.Name="{Binding Descriptor.Name}">
-                                        <shell:Icon Kind="{Binding Descriptor.Id, Converter={x:Static shell:TabIconConverter.Instance}}" Size="15" VerticalAlignment="Center" />
-                                        <TextBlock Text="{Binding Descriptor.Name}" FontSize="13" FontWeight="SemiBold" Margin="7,0,0,0" VerticalAlignment="Center"
-                                                   Visibility="{Binding IsSelected, RelativeSource={RelativeSource AncestorType=ListBoxItem}, Converter={StaticResource Island.BoolToVisibility}, FallbackValue=Collapsed}" />
-                                    </StackPanel>
-                                </DataTemplate>
-                            </ListBox.ItemTemplate>
-                        </ListBox>
+                            <StackPanel Orientation="Horizontal">
+                                <ListBox x:Name="Tabs"
+                                         Background="Transparent" BorderThickness="0"
+                                         ItemContainerStyle="{StaticResource Island.TabItem}"
+                                         ScrollViewer.HorizontalScrollBarVisibility="Hidden"
+                                         ScrollViewer.VerticalScrollBarVisibility="Disabled"
+                                         AutomationProperties.Name="ATOLL sections">
+                                    <ListBox.ItemsPanel>
+                                        <ItemsPanelTemplate>
+                                            <StackPanel Orientation="Horizontal" />
+                                        </ItemsPanelTemplate>
+                                    </ListBox.ItemsPanel>
+                                    <ListBox.ItemTemplate>
+                                        <DataTemplate>
+                                            <StackPanel Orientation="Horizontal" ToolTip="{Binding Descriptor.Name}"
+                                                        AutomationProperties.Name="{Binding Descriptor.Name}">
+                                                <shell:Icon Kind="{Binding Descriptor.Id, Converter={x:Static shell:TabIconConverter.Instance}}" Size="15" VerticalAlignment="Center" />
+                                                <TextBlock Text="{Binding Descriptor.Name}" FontSize="13" FontWeight="SemiBold" Margin="7,0,0,0" VerticalAlignment="Center"
+                                                           Visibility="{Binding IsSelected, RelativeSource={RelativeSource AncestorType=ListBoxItem}, Converter={StaticResource Island.BoolToVisibility}, FallbackValue=Collapsed}" />
+                                            </StackPanel>
+                                        </DataTemplate>
+                                    </ListBox.ItemTemplate>
+                                </ListBox>
+                                <Button x:Name="TabMenuButton" Style="{StaticResource Island.IconButton}" Width="32" Height="32"
+                                        Margin="2,0,0,0" Click="OnTabMenuClick" ToolTip="All sections"
+                                        AutomationProperties.Name="All sections">
+                                    <shell:Icon Kind="more" Size="15" />
+                                </Button>
+                                <Popup x:Name="TabMenuPopup" PlacementTarget="{Binding ElementName=TabMenuButton}"
+                                       Placement="Bottom" VerticalOffset="6" StaysOpen="False" AllowsTransparency="True"
+                                       PopupAnimation="Fade" Opened="OnTabMenuOpened">
+                                    <Border Background="{DynamicResource Island.Menu}" BorderBrush="{DynamicResource Island.Hover}"
+                                            BorderThickness="1" CornerRadius="12" Padding="4" MinWidth="190" MaxHeight="360">
+                                        <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                                            <ListBox x:Name="TabMenu"
+                                                     ItemsSource="{Binding ItemsSource, ElementName=Tabs}"
+                                                     SelectedItem="{Binding SelectedItem, ElementName=Tabs, Mode=TwoWay}"
+                                                     ItemContainerStyle="{StaticResource Island.TabMenuItem}"
+                                                     Background="Transparent" BorderThickness="0"
+                                                     Foreground="{DynamicResource Island.Foreground}"
+                                                     KeyDown="OnTabMenuKeyDown" SelectionChanged="OnTabMenuSelectionChanged"
+                                                     AutomationProperties.Name="All sections">
+                                                <ListBox.ItemTemplate>
+                                                    <DataTemplate>
+                                                        <StackPanel Orientation="Horizontal">
+                                                            <shell:Icon Kind="{Binding Descriptor.Id, Converter={x:Static shell:TabIconConverter.Instance}}"
+                                                                        Size="15" VerticalAlignment="Center" />
+                                                            <TextBlock Text="{Binding Descriptor.Name}" FontSize="13" Margin="9,0,0,0"
+                                                                       VerticalAlignment="Center" />
+                                                        </StackPanel>
+                                                    </DataTemplate>
+                                                </ListBox.ItemTemplate>
+                                            </ListBox>
+                                        </ScrollViewer>
+                                    </Border>
+                                </Popup>
+                            </StackPanel>
                         </Border>
                     </DockPanel>
 
@@ -121,7 +156,7 @@
             <shell:PillBorder.RenderTransform>
                 <TranslateTransform x:Name="BubbleShift" />
             </shell:PillBorder.RenderTransform>
-            <ContentPresenter x:Name="BubbleContent" HorizontalAlignment="Center" VerticalAlignment="Center" />
+            <ContentPresenter x:Name="BubbleContent" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" />
         </shell:PillBorder>
         <shell:PillBorder x:Name="Bubble2"
                           Background="{DynamicResource Island.Background}" BorderBrush="{DynamicResource Island.Rim}" BorderThickness="1"
@@ -131,7 +166,27 @@
             <shell:PillBorder.RenderTransform>
                 <TranslateTransform x:Name="Bubble2Shift" />
             </shell:PillBorder.RenderTransform>
-            <ContentPresenter x:Name="Bubble2Content" HorizontalAlignment="Center" VerticalAlignment="Center" />
+            <ContentPresenter x:Name="Bubble2Content" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" />
+        </shell:PillBorder>
+        <shell:PillBorder x:Name="Bubble3"
+                          Background="{DynamicResource Island.Background}" BorderBrush="{DynamicResource Island.Rim}" BorderThickness="1"
+                          HorizontalAlignment="Center" VerticalAlignment="Top"
+                          Visibility="Collapsed" Cursor="Hand"
+                          AutomationProperties.Name="Third side activity">
+            <shell:PillBorder.RenderTransform>
+                <TranslateTransform x:Name="Bubble3Shift" />
+            </shell:PillBorder.RenderTransform>
+            <ContentPresenter x:Name="Bubble3Content" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" />
+        </shell:PillBorder>
+        <shell:PillBorder x:Name="Bubble4"
+                          Background="{DynamicResource Island.Background}" BorderBrush="{DynamicResource Island.Rim}" BorderThickness="1"
+                          HorizontalAlignment="Center" VerticalAlignment="Top"
+                          Visibility="Collapsed" Cursor="Hand"
+                          AutomationProperties.Name="Fourth side activity">
+            <shell:PillBorder.RenderTransform>
+                <TranslateTransform x:Name="Bubble4Shift" />
+            </shell:PillBorder.RenderTransform>
+            <ContentPresenter x:Name="Bubble4Content" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" />
         </shell:PillBorder>
     </Grid>
 </Window>

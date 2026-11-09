@@ -88,21 +88,31 @@ public sealed class ActivityHost : IDisposable
         if (removed > 0) Changed?.Invoke(this, EventArgs.Empty);
     }
 
+    /// <summary>The primary activity and the other modules' activities beside it.</summary>
+    public readonly record struct ActivitySnapshot(Activity? Primary, IReadOnlyList<Activity> Sides);
+
+    public ActivitySnapshot Snapshot(int maxSides = 2)
+    {
+        lock (_gate)
+        {
+            var ordered = _items.Values
+                .OrderByDescending(a => a.Priority)
+                .ThenByDescending(a => a.Sequence)
+                .ToList();
+            var primary = ordered.FirstOrDefault();
+            var sides = ordered.Where(a => a.ModuleId != primary?.ModuleId && a.Priority > ActivityPriority.Idle)
+                .DistinctBy(a => a.ModuleId).Take(Math.Max(0, maxSides)).ToList();
+            return new ActivitySnapshot(primary, sides);
+        }
+    }
+
+    /// <summary>The legacy three-slot view used by the Avalonia shell.</summary>
     public (Activity? Primary, Activity? Secondary, Activity? Tertiary) Current
     {
         get
         {
-            lock (_gate)
-            {
-                var ordered = _items.Values
-                    .OrderByDescending(a => a.Priority)
-                    .ThenByDescending(a => a.Sequence)
-                    .ToList();
-                var primary = ordered.FirstOrDefault();
-                var sides = ordered.Where(a => a.ModuleId != primary?.ModuleId && a.Priority > ActivityPriority.Idle)
-                    .DistinctBy(a => a.ModuleId).Take(2).ToList();
-                return (primary, sides.ElementAtOrDefault(0), sides.ElementAtOrDefault(1));
-            }
+            var snapshot = Snapshot(2);
+            return (snapshot.Primary, snapshot.Sides.ElementAtOrDefault(0), snapshot.Sides.ElementAtOrDefault(1));
         }
     }
 
