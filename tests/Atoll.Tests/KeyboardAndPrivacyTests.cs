@@ -161,6 +161,10 @@ internal static class KeyboardIslandUi
             island.StepTab(-1, wrap: true);
             Assert.Equal(tabs.Items.Count - 1, tabs.SelectedIndex);
             Render(pill, "island-notch-open");
+            // Wide enough for every tab and status chip: nothing is scrolled out of view.
+            var header = (FrameworkElement)island.FindName("Header");
+            header.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
+            Assert.InRange(pill.ActualWidth, header.DesiredSize.Width, header.DesiredSize.Width + 120);
             island.ToggleFromKeyboard();
             Assert.False(island.IsExpanded);
         }

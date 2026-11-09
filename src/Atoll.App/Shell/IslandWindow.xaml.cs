@@ -109,7 +109,7 @@ public partial class IslandWindow : Window
         Tabs.ItemsSource = modules.Tabs;
         // The header's status chips use the System group's sound, battery and quick actions.
         void BindStatus() => StatusChips.DataContext = modules.Tabs.Select(t => t.Panel).OfType<SystemGroupViewModel>().FirstOrDefault();
-        modules.Tabs.CollectionChanged += (_, _) => BindStatus();
+        modules.Tabs.CollectionChanged += (_, _) => { BindStatus(); _headerWidth = 0; };
         BindStatus();
         Tabs.SelectionChanged += (_, _) =>
         {
@@ -683,6 +683,20 @@ public partial class IslandWindow : Window
     // ---------- rendering ----------
 
     /// <summary>The panel height that shows all of the selected tab's content without scrolling or clipping.</summary>
+    private double _headerWidth;
+
+    /// <summary>
+    /// Width the open island needs for every tab and status chip. Remembers the widest seen (the selected tab's name
+    /// changes it), so switching tabs never makes the island jump narrower; it resets when tabs are added or removed.
+    /// </summary>
+    private double HeaderWidth()
+    {
+        Header.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
+        var needed = Header.DesiredSize.Width + PanelRoot.Margin.Left + PanelRoot.Margin.Right + Pill.BorderThickness.Left + Pill.BorderThickness.Right + 2;
+        _headerWidth = Math.Max(_headerWidth, needed);
+        return Math.Min(_headerWidth, Monitor.WorkArea.Width / Monitor.Scale - 32);
+    }
+
     private double FittedPanelHeight(double expandedWidth)
     {
         var border = Pill.BorderThickness;
@@ -700,7 +714,7 @@ public partial class IslandWindow : Window
 
         if (_mode == IslandMode.Expanded)
         {
-            var expandedWidth = Math.Clamp(t.ExpandedWidth, 320, 900);
+            var expandedWidth = Math.Max(Math.Clamp(t.ExpandedWidth, 320, 900), HeaderWidth()); // every tab fits without scrolling
             var expandedHeight = Math.Clamp(t.ExpandedHeight, 140, 600);
             if (Tabs.SelectedItem is ModuleTab { Panel: MediaPanelViewModel or SystemGroupViewModel or Atoll.Modules.Weather.WeatherViewModel or Atoll.Modules.Home.HomeViewModel or Atoll.Modules.Games.GameViewModel })
                 expandedHeight = Math.Max(expandedHeight, FittedPanelHeight(expandedWidth)); // show all of it

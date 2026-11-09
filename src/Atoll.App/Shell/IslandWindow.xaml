@@ -30,7 +30,7 @@
                         <RowDefinition Height="*" />
                     </Grid.RowDefinitions>
 
-                    <DockPanel Background="Transparent" MouseWheel="OnHeaderWheel">
+                    <DockPanel x:Name="Header" Background="Transparent" MouseWheel="OnHeaderWheel">
                         <!-- Status chips: battery, mic, sound, lock, settings. DataContext: the System group (null when it is off). -->
                         <StackPanel x:Name="StatusChips" DockPanel.Dock="Right" Orientation="Horizontal" Margin="10,0,0,0" VerticalAlignment="Center">
                             <StackPanel.Resources>
@@ -100,7 +100,7 @@
                                                 AutomationProperties.Name="{Binding Descriptor.Name}">
                                         <shell:Icon Kind="{Binding Descriptor.Id, Converter={x:Static shell:TabIconConverter.Instance}}" Size="15" VerticalAlignment="Center" />
                                         <TextBlock Text="{Binding Descriptor.Name}" FontSize="13" FontWeight="SemiBold" Margin="7,0,0,0" VerticalAlignment="Center"
-                                                   Visibility="{Binding IsSelected, RelativeSource={RelativeSource AncestorType=ListBoxItem}, Converter={StaticResource Island.BoolToVisibility}}" />
+                                                   Visibility="{Binding IsSelected, RelativeSource={RelativeSource AncestorType=ListBoxItem}, Converter={StaticResource Island.BoolToVisibility}, FallbackValue=Collapsed}" />
                                     </StackPanel>
                                 </DataTemplate>
                             </ListBox.ItemTemplate>
