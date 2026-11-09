@@ -205,8 +205,22 @@ public sealed class GameSettings
     /// <summary>Overlay: a small pill with the game, play time and CPU/GPU while you play. Hidden: out of the way until the open shortcut.</summary>
     public GameIslandMode Mode { get; set; } = GameIslandMode.Overlay;
     public bool MuteNotifications { get; set; } = true;
+    /// <summary>Show CPU, GPU and GPU temperature in the game overlay and panel.</summary>
+    public bool ShowPerformance { get; set; } = true;
+    /// <summary>Show how long the current session has run.</summary>
+    public bool ShowPlayTime { get; set; } = true;
+    /// <summary>Pop a small island when a game starts.</summary>
+    public bool AnnounceGameStart { get; set; } = true;
+    /// <summary>Notice games automatically. Off leaves the library and server available.</summary>
+    public bool DetectGames { get; set; } = true;
+    public bool ScanSteam { get; set; } = true;
+    public bool ScanEpic { get; set; } = true;
+    public bool ScanMinecraft { get; set; } = true;
     /// <summary>A Minecraft (Java) server to watch, "host" or "host:port". Empty: none.</summary>
     public string MinecraftServer { get; set; } = "";
+    public bool ShowServer { get; set; } = true;
+    /// <summary>Seconds between Minecraft server checks.</summary>
+    public int ServerRefreshSeconds { get; set; } = 60;
 }
 
 public sealed class ClaudeSettings

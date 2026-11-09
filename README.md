@@ -257,6 +257,8 @@ to step through the hours. Rain timing is a forecast, not an alert service.
 
 The **Launcher** tab has two sections. **Apps** searches your Start Menu and opens a shortcut with
 one click; **Games** holds the game library, the current session and the Minecraft server (Windows).
+Game behavior lives in **Settings > Games**: the island overlay, notifications, performance and play
+time, start announcements, game detection, library sources, and the Minecraft server check interval.
 Use the refresh button in Apps if you install something while ATOLL is open.
 
 ### Notes

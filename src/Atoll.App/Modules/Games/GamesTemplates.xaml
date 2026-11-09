@@ -65,7 +65,7 @@
                         <shell:Icon Kind="server" Size="14" Foreground="{DynamicResource Island.Subtle}" />
                         <TextBlock Text="Minecraft server" FontSize="13" FontWeight="SemiBold" Margin="6,0,0,0" />
                     </StackPanel>
-                    <TextBlock Text="Add a server in Settings › Modules › Games to see who's online." FontSize="12" Margin="0,6,0,0" TextWrapping="Wrap"
+                    <TextBlock Text="Add a server in Settings › Games to see who's online." FontSize="12" Margin="0,6,0,0" TextWrapping="Wrap"
                                Foreground="{DynamicResource Island.Subtle}" Visibility="{Binding HasServer, Converter={StaticResource Island.InverseBoolToVisibility}}" />
                     <StackPanel Margin="0,6,0,0" Visibility="{Binding HasServer, Converter={StaticResource Island.BoolToVisibility}}">
                         <StackPanel Orientation="Horizontal">

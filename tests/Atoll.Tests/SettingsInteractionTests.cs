@@ -94,7 +94,7 @@ public class SettingsInteractionTests
 
         var weather = vm.ModuleTabs.Single(t => t.Id == "weather");
         Assert.False(weather.IsShown);
-        Assert.StartsWith("Not in the island", weather.Status);
+        Assert.StartsWith("Off", weather.Status);
         vm.MoveTab(weather, 0);
         Assert.Same(weather, vm.ModuleTabs[0]);
         Assert.Equal(["weather", "system", "stats", "actions"], service.Current.Modules.Take(4).Select(m => m.Id));
@@ -106,9 +106,16 @@ public class SettingsInteractionTests
         Assert.Equal(3, system.Number);
         system.Features.Single(f => f.Entry.Id == "stats").Enabled = false;
         // System's features are not bookmarked by default, so the tab waits in the ⋯ menu.
-        Assert.Equal("In the ⋯ menu, not the top row", system.Status);
-        system.Features[0].Bookmarked = true;
-        Assert.Equal("1 of 3 in the top row", system.Status);
+        Assert.Equal("⋯ menu", system.Status);
+        system.Bookmarked = true;
+        Assert.All(system.Features, feature => Assert.True(feature.Entry.Bookmarked));
+        Assert.Equal("Top row", system.Status);
+        system.Enabled = false;
+        Assert.All(system.Features, feature => Assert.False(feature.Entry.Enabled));
+        Assert.Equal("Off", system.Status);
+        system.Enabled = true;
+        Assert.All(system.Features, feature => Assert.True(feature.Entry.Enabled));
+        Assert.Equal("Top row", system.Status);
         vm.MoveTab(system, 99);
         Assert.Equal(3, system.Number);
         Assert.Same(unknown, service.Current.Modules.Last());
@@ -135,7 +142,7 @@ public class SettingsInteractionTests
         // Off hides it from both places, and turning it back on remembers the menu.
         weather.OnlyFeature.Enabled = false;
         Assert.Equal(FeaturePlacement.Off, entry.Placement);
-        Assert.StartsWith("Not in the island", weather.Status);
+        Assert.StartsWith("Off", weather.Status);
         weather.OnlyFeature.Enabled = true;
         Assert.Equal(FeaturePlacement.Menu, entry.Placement);
 
@@ -152,6 +159,42 @@ public class SettingsInteractionTests
         vm.HomeBookmarked = true;
         Assert.True(vm.HomeEnabled);
         Assert.Equal(FeaturePlacement.Bookmarked, service.Current.Home.Placement);
+    }
+
+    [Fact]
+    public void Games_settings_are_written_to_the_settings_model()
+    {
+        var service = new SettingsService(new SettingsStore(Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".json")));
+        using var vm = new SettingsViewModel(service, ModuleCatalog.All);
+        Assert.Equal(7, vm.Pages.ToList().FindIndex(page => page.Title == "Games"));
+        Assert.Equal(8, vm.Pages.ToList().FindIndex(page => page.Title == "About"));
+
+        vm.GameMode = GameIslandMode.Hidden;
+        vm.GameMuteNotifications = false;
+        vm.GameShowPerformance = false;
+        vm.GameShowPlayTime = false;
+        vm.GameAnnounceStart = false;
+        vm.GameDetect = false;
+        vm.GameScanSteam = false;
+        vm.GameScanEpic = false;
+        vm.GameScanMinecraft = false;
+        vm.MinecraftServer = " play.example.net ";
+        vm.GameShowServer = false;
+        vm.GameServerInterval = 120;
+
+        var games = service.Current.Games;
+        Assert.Equal(GameIslandMode.Hidden, games.Mode);
+        Assert.False(games.MuteNotifications);
+        Assert.False(games.ShowPerformance);
+        Assert.False(games.ShowPlayTime);
+        Assert.False(games.AnnounceGameStart);
+        Assert.False(games.DetectGames);
+        Assert.False(games.ScanSteam);
+        Assert.False(games.ScanEpic);
+        Assert.False(games.ScanMinecraft);
+        Assert.Equal("play.example.net", games.MinecraftServer);
+        Assert.False(games.ShowServer);
+        Assert.Equal(120, games.ServerRefreshSeconds);
     }
 
     [Theory]

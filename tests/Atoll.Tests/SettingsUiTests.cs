@@ -115,6 +115,13 @@ public class SettingsUiTests
                             Render(window, $"{mode}-{width}-4-api-keys");
                             scroll.ScrollToVerticalOffset(0);
                         }
+                        if (page == 7 && scroll.ScrollableHeight > 0)
+                        {
+                            scroll.ScrollToVerticalOffset(scroll.ScrollableHeight);
+                            Drain(); window.UpdateLayout();
+                            Render(window, $"{mode}-{width}-7-minecraft");
+                            scroll.ScrollToVerticalOffset(0);
+                        }
                     }
                 }
             }

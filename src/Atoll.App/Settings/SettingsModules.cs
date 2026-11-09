@@ -71,7 +71,7 @@ public sealed partial class SettingsViewModel
                 })
                 .ToList();
             if (features.Count > 0)
-                ModuleTabs.Add(new ModuleTabRow(id, name, description, features[0].Glyph, features));
+                ModuleTabs.Add(new ModuleTabRow(id, name, description, features[0].Glyph, features, OnFeatureToggled));
         }
         RefreshTabPositions();
         // Keep each tab's features together in settings so switching one on can't move a tab.
@@ -118,7 +118,8 @@ public sealed partial class SettingsViewModel
 }
 
 /// <summary>One tab of the expanded island and the features that make it up.</summary>
-public sealed partial class ModuleTabRow(string id, string name, string description, string glyph, IReadOnlyList<ModuleRow> features) : ObservableObject
+public sealed partial class ModuleTabRow(string id, string name, string description, string glyph,
+    IReadOnlyList<ModuleRow> features, Action toggled) : ObservableObject
 {
     public string Id { get; } = id;
     public string Name { get; } = name;
@@ -126,7 +127,7 @@ public sealed partial class ModuleTabRow(string id, string name, string descript
     public string Glyph { get; } = glyph;
     public IReadOnlyList<ModuleRow> Features { get; } = features;
     public bool HasSeveralFeatures => Features.Count > 1;
-    /// <summary>The switch shown on the card itself when the tab has a single feature.</summary>
+    /// <summary>The single feature a tab is made of, used by tests and one-feature cards.</summary>
     public ModuleRow OnlyFeature => Features[0];
 
     [ObservableProperty] private int _number;
@@ -135,21 +136,38 @@ public sealed partial class ModuleTabRow(string id, string name, string descript
 
     public bool IsShown => Features.Any(f => f.Enabled);
 
-    /// <summary>Features that are on and pinned to the top row.</summary>
-    public int BookmarkedCount => Features.Count(f => f.Bookmarked);
-
-    /// <summary>"2 of 3 on", where the tab sits, or why it isn't in the island at all.</summary>
-    public string Status
+    /// <summary>Whole tab: on if any of its features are on.</summary>
+    public bool Enabled
     {
-        get
+        get => IsShown;
+        set
         {
-            var on = Features.Count(f => f.Enabled);
-            if (on == 0) return HasSeveralFeatures ? "Not in the island: every feature is off" : "Not in the island";
-            if (BookmarkedCount == 0) return "In the ⋯ menu, not the top row";
-            if (BookmarkedCount < on) return $"{BookmarkedCount} of {on} in the top row";
-            return on == Features.Count ? "" : $"{on} of {Features.Count} on";
+            if (Enabled == value) return;
+            foreach (var feature in Features) feature.Entry.Enabled = value;
+            foreach (var feature in Features) feature.Refresh();
+            Refresh();
+            toggled();
         }
     }
+
+    /// <summary>Whole tab: bookmarked if any of its on features are in the top row.</summary>
+    public bool Bookmarked
+    {
+        get => Features.Any(f => f.Enabled && f.Bookmarked);
+        set
+        {
+            if (Bookmarked == value) return;
+            foreach (var feature in Features) feature.Entry.Bookmarked = value;
+            foreach (var feature in Features) feature.Refresh();
+            Refresh();
+            toggled();
+        }
+    }
+
+    /// <summary>Where the whole tab sits, in two words or fewer.</summary>
+    public string Status => !IsShown ? "Off" : Bookmarked ? "Top row" : "⋯ menu";
+
+    public int BookmarkedCount => Features.Count(f => f.Bookmarked);
 
     internal void SetPosition(int index, int count)
     {
@@ -161,6 +179,8 @@ public sealed partial class ModuleTabRow(string id, string name, string descript
     internal void Refresh()
     {
         OnPropertyChanged(nameof(IsShown));
+        OnPropertyChanged(nameof(Enabled));
+        OnPropertyChanged(nameof(Bookmarked));
         OnPropertyChanged(nameof(BookmarkedCount));
         OnPropertyChanged(nameof(Status));
     }

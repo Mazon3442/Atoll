@@ -578,7 +578,7 @@
                     <!-- ===================== Modules ===================== -->
                     <StackPanel Visibility="{Binding PageIndex, Converter={StaticResource PageVisible}, ConverterParameter=2}">
                         <TextBlock Style="{StaticResource Hint}" Margin="2,8,0,10"
-                                   Text="Each card is a tab in the open island. The star keeps a tab in the top row; without it the tab waits in the ⋯ menu. Turn a tab off and it disappears from both. Drag a card or use its arrows to reorder." />
+                                   Text="Each card is one tab. The star bookmarks the whole tab in the top row. The switch turns the whole tab off. Switches inside a card fine-tune its parts. Drag a card or use its arrows to reorder." />
 
                         <ItemsControl x:Name="ModuleList" ItemsSource="{Binding ModuleTabs}" Focusable="False">
                             <ItemsControl.ItemTemplate>
@@ -614,28 +614,25 @@
                                                             ToolTip="Move down" AutomationProperties.Name="{Binding Name, StringFormat=Move {0} down}" />
                                                 </StackPanel>
                                                 <ToggleButton x:Name="OnlyBookmark" Grid.Column="4" Style="{StaticResource BookmarkToggle}" Margin="16,0,0,0" VerticalAlignment="Center"
-                                                              IsChecked="{Binding OnlyFeature.Bookmarked}" ToolTip="Keep in the top row"
-                                                              AutomationProperties.Name="{Binding Name, StringFormat=Keep the {0} tab in the top row}" />
+                                                              IsChecked="{Binding Bookmarked}" ToolTip="Bookmark this tab in the top row"
+                                                              AutomationProperties.Name="{Binding Name, StringFormat=Bookmark the {0} tab in the top row}" />
                                                 <CheckBox x:Name="OnlyToggle" Grid.Column="5" Style="{StaticResource Toggle}" Margin="12,0,0,0" VerticalAlignment="Center"
-                                                          IsChecked="{Binding OnlyFeature.Enabled}"
-                                                          AutomationProperties.Name="{Binding Name, StringFormat=Show the {0} tab}" />
+                                                          IsChecked="{Binding Enabled}" ToolTip="Turn the whole tab off"
+                                                          AutomationProperties.Name="{Binding Name, StringFormat=Turn the {0} tab off}" />
                                             </Grid>
 
-                                            <!-- A tab made of several features: one switch each. -->
+                                            <!-- A tab made of several features: each switch turns one part of the tab on or off. -->
                                             <ItemsControl x:Name="Features" ItemsSource="{Binding Features}" Margin="80,6,0,0" Visibility="Collapsed" Focusable="False">
                                                 <ItemsControl.ItemTemplate>
                                                     <DataTemplate>
                                                         <Border BorderThickness="0,1,0,0" BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}" Padding="0,8,0,8">
                                                             <Grid>
-                                                                <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                                                                <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
                                                                 <StackPanel VerticalAlignment="Center" Margin="0,0,12,0">
                                                                     <TextBlock Text="{Binding Name}" TextWrapping="Wrap" />
                                                                     <TextBlock Text="{Binding Description}" Style="{StaticResource Hint}" />
                                                                 </StackPanel>
-                                                                <ToggleButton Grid.Column="1" Style="{StaticResource BookmarkToggle}" VerticalAlignment="Center"
-                                                                              IsChecked="{Binding Bookmarked}" ToolTip="Keep in the top row"
-                                                                              AutomationProperties.Name="{Binding Name, StringFormat=Keep {0} in the top row}" />
-                                                                <CheckBox Grid.Column="2" Style="{StaticResource Toggle}" IsChecked="{Binding Enabled}" VerticalAlignment="Center" Margin="8,0,0,0"
+                                                                <CheckBox Grid.Column="1" Style="{StaticResource Toggle}" IsChecked="{Binding Enabled}" VerticalAlignment="Center"
                                                                           AutomationProperties.Name="{Binding Name, StringFormat=Turn {0} on or off}" />
                                                             </Grid>
                                                         </Border>
@@ -647,9 +644,6 @@
                                     <DataTemplate.Triggers>
                                         <DataTrigger Binding="{Binding HasSeveralFeatures}" Value="True">
                                             <Setter TargetName="Features" Property="Visibility" Value="Visible" />
-                                            <!-- Hidden, not collapsed, so the arrows line up on every card. -->
-                                            <Setter TargetName="OnlyBookmark" Property="Visibility" Value="Hidden" />
-                                            <Setter TargetName="OnlyToggle" Property="Visibility" Value="Hidden" />
                                         </DataTrigger>
                                         <DataTrigger Binding="{Binding IsFirst}" Value="True">
                                             <Setter TargetName="Up" Property="IsEnabled" Value="False" />
@@ -914,8 +908,69 @@
                                    Text="ICS links give read-only access, and anyone with a link can read that calendar. ATOLL stores them encrypted with your Windows login (DPAPI) so they can't be read from the settings file. ATOLL only downloads the calendars, and only from the servers you add here." />
                     </StackPanel>
 
-                    <!-- ===================== About ===================== -->
+                    <!-- ===================== Games ===================== -->
                     <StackPanel Visibility="{Binding PageIndex, Converter={StaticResource PageVisible}, ConverterParameter=7}">
+                        <TextBlock Style="{StaticResource SectionHeader}" Text="While you play" />
+                        <s:SettingCard Glyph="&#xE7FC;" Header="Island while playing"
+                                       Description="Overlay keeps the game, play time and performance in a small pill. Hidden keeps the island out of the way.">
+                            <ComboBox Width="250" ItemsSource="{Binding GameModes}" DisplayMemberPath="Label"
+                                      SelectedValuePath="Value" SelectedValue="{Binding GameMode}" AutomationProperties.Name="Island while playing" />
+                        </s:SettingCard>
+                        <s:SettingCard Glyph="&#xE7ED;" Header="Mute notifications while playing"
+                                       Description="Keep alerts quiet until the session ends.">
+                            <CheckBox Style="{StaticResource Toggle}" IsChecked="{Binding GameMuteNotifications}"
+                                      AutomationProperties.Name="Mute notifications while playing" />
+                        </s:SettingCard>
+                        <s:SettingCard Glyph="&#xE9D9;" Header="Show performance"
+                                       Description="CPU, GPU and GPU temperature in the game pill and the Games tab.">
+                            <CheckBox Style="{StaticResource Toggle}" IsChecked="{Binding GameShowPerformance}"
+                                      AutomationProperties.Name="Show game performance" />
+                        </s:SettingCard>
+                        <s:SettingCard Glyph="&#xE823;" Header="Show play time"
+                                       Description="How long the current session has run.">
+                            <CheckBox Style="{StaticResource Toggle}" IsChecked="{Binding GameShowPlayTime}"
+                                      AutomationProperties.Name="Show play time" />
+                        </s:SettingCard>
+                        <s:SettingCard Glyph="&#xEA8F;" Header="Announce when a game starts"
+                                       Description="A short island with the game name when a session begins.">
+                            <CheckBox Style="{StaticResource Toggle}" IsChecked="{Binding GameAnnounceStart}"
+                                      AutomationProperties.Name="Announce when a game starts" />
+                        </s:SettingCard>
+
+                        <TextBlock Style="{StaticResource SectionHeader}" Text="Detection" />
+                        <s:SettingCard Glyph="&#xE7FC;" Header="Detect games automatically"
+                                       Description="Notice games from Steam, Epic, the Xbox app and common launchers. Off leaves the library and the Minecraft server available.">
+                            <CheckBox Style="{StaticResource Toggle}" IsChecked="{Binding GameDetect}"
+                                      AutomationProperties.Name="Detect games automatically" />
+                        </s:SettingCard>
+                        <s:SettingCard Glyph="&#xE8F1;" Header="Watch these libraries"
+                                       Description="The Games tab and the Launcher only list what you keep on here.">
+                            <WrapPanel MaxWidth="330">
+                                <CheckBox Content="Steam" IsChecked="{Binding GameScanSteam}" Margin="0,0,16,6" />
+                                <CheckBox Content="Epic" IsChecked="{Binding GameScanEpic}" Margin="0,0,16,6" />
+                                <CheckBox Content="Minecraft" IsChecked="{Binding GameScanMinecraft}" Margin="0,0,16,6" />
+                            </WrapPanel>
+                        </s:SettingCard>
+
+                        <TextBlock Style="{StaticResource SectionHeader}" Text="Minecraft server" />
+                        <s:SettingCard Glyph="&#xE968;" Header="Server address"
+                                       Description="host or host:port. Leave it empty to turn the check off.">
+                            <TextBox Width="260" Text="{Binding MinecraftServer}" AutomationProperties.Name="Minecraft server address" />
+                        </s:SettingCard>
+                        <s:SettingCard Glyph="&#xE8B7;" Header="Show the server in Games"
+                                       Description="Players, ping and MOTD in the Games tab.">
+                            <CheckBox Style="{StaticResource Toggle}" IsChecked="{Binding GameShowServer}"
+                                      AutomationProperties.Name="Show the Minecraft server in Games" />
+                        </s:SettingCard>
+                        <s:SettingCard Glyph="&#xE916;" Header="Check every"
+                                       Description="How often to ask the server for players and ping.">
+                            <ComboBox Width="200" ItemsSource="{Binding GameServerIntervals}" DisplayMemberPath="Label"
+                                      SelectedValuePath="Value" SelectedValue="{Binding GameServerInterval}" AutomationProperties.Name="Minecraft server check interval" />
+                        </s:SettingCard>
+                    </StackPanel>
+
+                    <!-- ===================== About ===================== -->
+                    <StackPanel Visibility="{Binding PageIndex, Converter={StaticResource PageVisible}, ConverterParameter=8}">
                         <StackPanel Orientation="Horizontal" Margin="2,12,0,18">
                             <Border Width="56" Height="56" CornerRadius="12.3" BorderThickness="1" BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}">
                                 <Image Source="{StaticResource Atoll.Logo}" AutomationProperties.Name="ATOLL logo" />

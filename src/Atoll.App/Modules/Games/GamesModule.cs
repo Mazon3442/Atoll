@@ -51,7 +51,6 @@ public sealed partial class GameViewModel : ObservableObject
 /// </summary>
 public sealed class GamesModule : IIslandModule
 {
-    private static readonly TimeSpan ServerInterval = TimeSpan.FromSeconds(60);
     private readonly GameViewModel _vm = new();
     private readonly CpuSampler _cpu = new();
     private GpuSampler? _gpu;
@@ -63,6 +62,7 @@ public sealed class GamesModule : IIslandModule
     private string? _postedAs;
     private DateTimeOffset _nextServerCheck;
     private IReadOnlyList<GameEntry> _library = [];
+    private string _libraryKey = "";
 
     public object? Panel => _vm;
 
@@ -74,28 +74,55 @@ public sealed class GamesModule : IIslandModule
         _timer.Start();
         context.Settings.Changed += OnSettingsChanged;
         OnSettingsChanged();
-        _ = Task.Run(GameLibrary.Scan).ContinueWith(t =>
-        {
-            if (t.IsCompletedSuccessfully) context.Dispatcher.BeginInvoke(() =>
-            {
-                _library = t.Result;
-                foreach (var game in t.Result) _vm.Library.Add(game);
-                _vm.HasLibrary = _vm.Library.Count > 0;
-            });
-        }, TaskScheduler.Default);
         Tick();
     }
 
     private void OnSettingsChanged()
     {
         if (_context is null) return;
-        var address = _context.Settings.Current.Games.MinecraftServer.Trim();
-        if (address == _vm.ServerAddress) return;
-        _vm.ServerAddress = address;
-        _vm.HasServer = address.Length > 0;
-        _vm.ServerStatus = address.Length > 0 ? "Checking…" : "";
-        _vm.ServerMotd = "";
-        _nextServerCheck = DateTimeOffset.MinValue;
+        var games = _context.Settings.Current.Games;
+        var address = games.MinecraftServer.Trim();
+        if (address != _vm.ServerAddress)
+        {
+            _vm.ServerAddress = address;
+            _vm.ServerMotd = "";
+            _nextServerCheck = DateTimeOffset.MinValue;
+        }
+        _vm.HasServer = games.ShowServer && address.Length > 0;
+        if (_vm.HasServer && _vm.ServerStatus.Length == 0) _vm.ServerStatus = "Checking…";
+        if (!_vm.HasServer) _vm.ServerStatus = "";
+
+        var libraryKey = $"{games.ScanSteam}{games.ScanEpic}{games.ScanMinecraft}";
+        if (libraryKey != _libraryKey)
+        {
+            _libraryKey = libraryKey;
+            _ = ScanLibraryAsync();
+        }
+
+        if (!games.DetectGames && _pid != 0) EndSession();
+    }
+
+    private async Task ScanLibraryAsync()
+    {
+        if (_context is null) return;
+        var games = _context.Settings.Current.Games;
+        var steam = games.ScanSteam;
+        var epic = games.ScanEpic;
+        var minecraft = games.ScanMinecraft;
+        var found = await Task.Run(() => GameLibrary.Scan()
+            .Where(game => game.Source switch
+            {
+                "Steam" => steam,
+                "Epic" => epic,
+                "Minecraft" => minecraft,
+                _ => true,
+            })
+            .ToList());
+        if (_context is null) return;
+        _library = found;
+        _vm.Library.Clear();
+        foreach (var game in found) _vm.Library.Add(game);
+        _vm.HasLibrary = _vm.Library.Count > 0;
     }
 
     private void Tick()
@@ -106,16 +133,17 @@ public sealed class GamesModule : IIslandModule
 
         // A game stays the session until its process ends, even while you look at something else.
         if (_pid != 0 && !IsRunning(_pid)) EndSession();
-        if (_pid == 0 && fgPid != 0 && IsGame(fgPid, foreground)) StartSession(fgPid);
+        var games = _context.Settings.Current.Games;
+        if (games.DetectGames && _pid == 0 && fgPid != 0 && IsGame(fgPid, foreground)) StartSession(fgPid);
 
         if (_pid != 0)
         {
             var inFront = fgPid == _pid;
-            _vm.PlayTime = Format(DateTimeOffset.Now - _started);
+            _vm.PlayTime = games.ShowPlayTime ? Format(DateTimeOffset.Now - _started) : "";
             if (_vm.GameName.StartsWith("Minecraft", StringComparison.Ordinal)) _vm.GameDetail = MinecraftDetail(foreground, inFront) ?? _vm.GameDetail;
-            var overlay = inFront && _context.Settings.Current.Games.Mode == GameIslandMode.Overlay;
-            _vm.Stats = overlay ? SampleStats() : "";
-            if (!overlay) { _gpu?.Dispose(); _gpu = null; }
+            var overlay = inFront && games.Mode == GameIslandMode.Overlay;
+            _vm.Stats = overlay && games.ShowPerformance ? SampleStats() : "";
+            if (!overlay || !games.ShowPerformance) { _gpu?.Dispose(); _gpu = null; }
             Post(overlay ? "overlay" : "session");
         }
 
@@ -143,6 +171,9 @@ public sealed class GamesModule : IIslandModule
         _vm.IsPlaying = true;
         GameState.Playing = true;
         Log.Info($"Game started: {_vm.GameName}");
+        if (_context?.Settings.Current.Games.AnnounceGameStart == true)
+            _context.Post("game.start", new IndicatorViewModel("\uE7FC", _vm.GameName, "Game started"),
+                ActivityPriority.Ambient, TimeSpan.FromSeconds(5));
     }
 
     private void EndSession()
@@ -227,8 +258,11 @@ public sealed class GamesModule : IIslandModule
 
     private async Task CheckServerAsync()
     {
-        _nextServerCheck = DateTimeOffset.Now + ServerInterval;
+        var seconds = Math.Clamp(_context?.Settings.Current.Games.ServerRefreshSeconds ?? 60, 15, 3600);
+        _nextServerCheck = DateTimeOffset.Now + TimeSpan.FromSeconds(seconds);
+        if (_context?.Settings.Current.Games.ShowServer != true) return;
         var address = _vm.ServerAddress;
+        if (address.Length == 0) return;
         try
         {
             var status = await MinecraftServer.QueryAsync(address, _stop.Token);
