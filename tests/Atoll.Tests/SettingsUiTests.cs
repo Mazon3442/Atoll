@@ -210,6 +210,10 @@ public class SettingsUiTests
         {
             Drain(); welcome.UpdateLayout();
             Render(welcome, "onboarding-welcome");
+            welcome.ThemeMode = ThemeMode.Light;
+            Drain(); welcome.UpdateLayout();
+            Render(welcome, "onboarding-light");
+            welcome.ThemeMode = ThemeMode.System;
             welcome.Width = 760;
             Drain(); welcome.UpdateLayout();
             Render(welcome, "onboarding-welcome-narrow");
