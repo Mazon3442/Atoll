@@ -41,7 +41,6 @@ public partial class IslandWindow : Window
     private const double PassThroughOpacity = 0.25;
     private const double SideChipWidth = 118;
     private const double SideChipGap = 4;
-    private const int MaxVisibleTabs = 6;
 
     private readonly SettingsService _settings;
     private readonly ModuleManager _modules;
@@ -66,9 +65,7 @@ public partial class IslandWindow : Window
     private Activity? _primary;
     private IReadOnlyList<Activity> _sideActivities = [];
     private readonly SideChipViewModel?[] _sideChips = new SideChipViewModel?[4];
-    private readonly ObservableCollection<ModuleTab> _visibleTabs = [];
-    private readonly ObservableCollection<ModuleTab> _overflowTabs = [];
-    private bool _refreshingTabs;
+    private readonly ObservableCollection<ModuleDescriptor> _offFeatures = [];
     private Rect _peekAnchor = Rect.Empty;
     private object? _shownContent;
     private string? _shownTemplateMode;
@@ -117,15 +114,14 @@ public partial class IslandWindow : Window
         _glassTimer = new DispatcherTimer(DispatcherPriority.Background) { Interval = TimeSpan.FromMilliseconds(120) };
         _glassTimer.Tick += (_, _) => SampleGlass();
 
-        Tabs.ItemsSource = _visibleTabs;
-        TabMenu.ItemsSource = _overflowTabs;
+        Tabs.ItemsSource = modules.Tabs;
+        TabMenu.ItemsSource = _offFeatures;
         // The header's status chips use the System group's sound, battery and quick actions.
         void BindStatus() => StatusChips.DataContext = modules.Tabs.Select(t => t.Panel).OfType<SystemGroupViewModel>().FirstOrDefault();
         modules.Tabs.CollectionChanged += (_, _) => { BindStatus(); _headerWidth = 0; RefreshTabStrip(); };
         BindStatus();
         Tabs.SelectionChanged += (_, _) =>
         {
-            if (_refreshingTabs) return;
             if (Tabs.SelectedItem is { } selected) Tabs.ScrollIntoView(selected); // a narrow island scrolls the tab bar
             ShowSelectedTab();
             if (_mode == IslandMode.Expanded) Render();
@@ -335,55 +331,24 @@ public partial class IslandWindow : Window
     }
 
     /// <summary>
-    /// Keeps the header to a readable size. The overflow menu only contains sections that are not
-    /// already in the visible strip; when everything fits, the three-dot button disappears.
+    /// Every enabled tab stays in the strip. The overflow menu is the shelf for features that were
+    /// switched off in Settings; when nothing is off, its button disappears.
     /// </summary>
-    private void RefreshTabStrip(ModuleTab? prefer = null)
+    private void RefreshTabStrip()
     {
-        if (_refreshingTabs) return;
-        _refreshingTabs = true;
-        try
+        var off = _modules.DisabledFeatures();
+        if (!_offFeatures.SequenceEqual(off))
         {
-            var all = _modules.Tabs.ToList();
-            var selected = prefer ?? Tabs.SelectedItem as ModuleTab ?? all.FirstOrDefault();
-            var visible = new List<ModuleTab>();
-            if (all.Count <= MaxVisibleTabs) visible.AddRange(all);
-            else
-            {
-                if (selected is not null) visible.Add(selected);
-                foreach (var tab in all)
-                {
-                    if (visible.Count >= MaxVisibleTabs) break;
-                    if (!visible.Contains(tab)) visible.Add(tab);
-                }
-                visible.Sort((a, b) => all.IndexOf(a).CompareTo(all.IndexOf(b)));
-            }
-            var overflow = all.Where(tab => !visible.Contains(tab)).ToList();
-
-            if (!_visibleTabs.SequenceEqual(visible))
-            {
-                _visibleTabs.Clear();
-                foreach (var tab in visible) _visibleTabs.Add(tab);
-            }
-            if (!_overflowTabs.SequenceEqual(overflow))
-            {
-                _overflowTabs.Clear();
-                foreach (var tab in overflow) _overflowTabs.Add(tab);
-                TabMenu.SelectedItem = null;
-            }
-            var hasOverflow = overflow.Count > 0;
-            TabMenuButton.Visibility = hasOverflow ? Visibility.Visible : Visibility.Collapsed;
-            if (!hasOverflow) TabMenuPopup.IsOpen = false;
-            if (selected is not null && !ReferenceEquals(Tabs.SelectedItem, selected)) Tabs.SelectedItem = selected;
-            if (selected is not null) Tabs.ScrollIntoView(selected);
-            ShowSelectedTab();
-            _headerWidth = 0;
-            if (_mode == IslandMode.Expanded) Render();
+            _offFeatures.Clear();
+            foreach (var feature in off) _offFeatures.Add(feature);
+            TabMenu.SelectedItem = null;
         }
-        finally
-        {
-            _refreshingTabs = false;
-        }
+        var hasOff = _offFeatures.Count > 0;
+        TabMenuButton.Visibility = hasOff ? Visibility.Visible : Visibility.Collapsed;
+        if (!hasOff) TabMenuPopup.IsOpen = false;
+        if (Tabs.SelectedItem is null && Tabs.Items.Count > 0) Tabs.SelectedIndex = 0;
+        _headerWidth = 0;
+        if (_mode == IslandMode.Expanded) Render();
     }
 
     /// <summary>Moves between tabs. The wheel stops at the ends; Ctrl+Tab wraps around, as in browsers.</summary>
@@ -409,16 +374,16 @@ public partial class IslandWindow : Window
     private void OnTabMenuClickItem(object sender, MouseButtonEventArgs e)
     {
         if (e.OriginalSource is not DependencyObject source) return;
-        if (TabMenu.ContainerFromElement(source) is not ListBoxItem { Content: ModuleTab tab }) return;
-        ActivateTab(tab);
+        if (TabMenu.ContainerFromElement(source) is not ListBoxItem { Content: ModuleDescriptor feature }) return;
+        EnableOffFeature(feature);
         e.Handled = true;
     }
 
     private void OnTabMenuKeyDown(object sender, KeyEventArgs e)
     {
-        if ((e.Key is Key.Enter or Key.Space) && TabMenu.SelectedItem is ModuleTab tab)
+        if ((e.Key is Key.Enter or Key.Space) && TabMenu.SelectedItem is ModuleDescriptor feature)
         {
-            ActivateTab(tab);
+            EnableOffFeature(feature);
             e.Handled = true;
         }
         else if (e.Key == Key.Escape)
@@ -429,17 +394,21 @@ public partial class IslandWindow : Window
         }
     }
 
-    private void ActivateTab(ModuleTab tab)
+    private void EnableOffFeature(ModuleDescriptor feature)
     {
         TabMenuPopup.IsOpen = false;
-        RefreshTabStrip(tab);
-        Tabs.SelectedItem = tab;
-        Tabs.ScrollIntoView(tab);
-        ShowSelectedTab();
-        if (_mode == IslandMode.Expanded)
+        _modules.EnableFeature(feature);
+        var tab = _modules.Tabs.FirstOrDefault(t => t.Contains(feature.Id));
+        if (tab is not null)
         {
-            Render();
-            FocusSelectedTab();
+            Tabs.SelectedItem = tab;
+            Tabs.ScrollIntoView(tab);
+            ShowSelectedTab();
+            if (_mode == IslandMode.Expanded)
+            {
+                Render();
+                FocusSelectedTab();
+            }
         }
         TabMenu.SelectedItem = null;
     }
@@ -615,7 +584,6 @@ public partial class IslandWindow : Window
             var tab = moduleId is null ? null : _modules.Tabs.FirstOrDefault(t => t.Contains(moduleId));
             if (tab is not null)
             {
-                RefreshTabStrip(tab);
                 Tabs.SelectedItem = tab;
                 // Opening from a game activity should land on the Launcher's Games section.
                 if (tab.Panel is LauncherPanelViewModel launcher && moduleId is "games" or "launcher")

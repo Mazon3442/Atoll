@@ -16,6 +16,6 @@ Energy 1 / Rhythm 2 / Motion 2: quiet controls, content-led layouts, responsive 
 - Files and Clipboard are separate tabs. Files is the shelf of paths; Clipboard is recent copies held in memory only.
 - The Bluetooth header chip opens a small popover with connected devices and battery levels. The chip belongs with the other status chips, not inside the System tab.
 - Side activities use attached capsules beside the main pill: two on each side, each with a module icon, a short live label and a quiet module tint. Surface tints identify the module; text stays neutral. Capsules disappear when the island opens.
-- The header's overflow button lists only the sections that are not already in the visible tab strip. When every section fits, the three-dot button disappears. Keep the same selected-tab treatment in the menu as in the strip.
+- Every enabled tab stays in the header strip; do not cap it at an arbitrary visible count. The three-dot button is a shelf for features turned off in Settings: it lists them with an "Off" state and turns one back on when chosen. When every feature is enabled, the button disappears. Keep the same icon and name treatment in the menu as in Settings.
 - Use sender icons for notifications, with a native bell fallback. The notification view must work independently of coding-agent templates.
 - Motion communicates opening, closing, and selection. Respect Windows reduced-motion settings; keep input available during transitions.

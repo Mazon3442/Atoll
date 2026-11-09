@@ -347,7 +347,7 @@
         <Setter Property="FocusVisualStyle" Value="{StaticResource Island.FocusVisual}" />
         <Setter Property="Foreground" Value="{DynamicResource Island.Subtle}" />
         <Setter Property="Cursor" Value="Hand" />
-        <Setter Property="AutomationProperties.Name" Value="{Binding Descriptor.Name}" />
+        <Setter Property="AutomationProperties.Name" Value="{Binding Name}" />
         <Setter Property="HorizontalContentAlignment" Value="Stretch" />
         <Setter Property="Template">
             <Setter.Value>

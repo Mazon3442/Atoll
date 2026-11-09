@@ -77,9 +77,11 @@ internal static class CalendarUiTests
         var service = new SettingsService(new SettingsStore(Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".json")));
         ThemeService.Apply(service.Current.Theme);
         using var host = new ActivityHost();
-        using var manager = new ModuleManager([], host, Application.Current.Dispatcher, service);
+        using var manager = new ModuleManager(ModuleCatalog.All, host, Application.Current.Dispatcher, service);
+        foreach (var descriptor in ModuleCatalog.All)
+            service.Current.Modules.Add(new ModuleEntry { Id = descriptor.Id, Enabled = true });
         var modules = PanelGroups.Combine(GroupedPanelsTests.Modules());
-        foreach (var tab in modules.Take(2)) manager.Tabs.Add(tab);
+        foreach (var tab in modules) manager.Tabs.Add(tab);
         var island = new IslandWindow(Monitors.GetAll()[0], service, manager, _ => { });
         try
         {
@@ -89,17 +91,22 @@ internal static class CalendarUiTests
 
             Assert.Equal(Visibility.Collapsed, button.Visibility);
             Assert.Empty(menu.Items);
-            Assert.Equal(2, tabs.Items.Count);
+            Assert.Equal(modules.Count, tabs.Items.Count);
 
-            foreach (var tab in modules.Skip(2)) manager.Tabs.Add(tab);
+            var weather = modules.Single(t => t.Contains("weather"));
+            service.Current.Modules.Single(entry => entry.Id == "weather").Enabled = false;
+            manager.Tabs.Remove(weather);
 
             Assert.Equal(Visibility.Visible, button.Visibility);
-            var visible = tabs.Items.Cast<ModuleTab>().ToList();
-            var overflow = menu.Items.Cast<ModuleTab>().ToList();
-            Assert.Equal(6, visible.Count);
-            Assert.Equal(modules.Count, visible.Count + overflow.Count);
-            Assert.Empty(visible.Intersect(overflow));
-            Assert.True(overflow.Count > 0);
+            Assert.Contains(menu.Items.Cast<ModuleDescriptor>(), descriptor => descriptor.Id == "weather");
+            Assert.Equal(modules.Count - 1, tabs.Items.Count);
+
+            service.Current.Modules.Single(entry => entry.Id == "weather").Enabled = true;
+            manager.Tabs.Add(weather);
+
+            Assert.Equal(Visibility.Collapsed, button.Visibility);
+            Assert.Empty(menu.Items);
+            Assert.Equal(modules.Count, tabs.Items.Count);
         }
         finally { island.Close(); }
     }

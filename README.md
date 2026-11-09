@@ -22,9 +22,9 @@
 
 ATOLL sits at the top of your primary display as a **compact** pill that shows the most important
 thing happening. Up to four other live activities sit in small tinted capsules beside it. Hover over
-it or click it to **expand** it into tabs, and press Escape to collapse it again. The **...** button
-in the header lists the sections that don't fit in the visible tab strip; it disappears when every
-section is already there. Each module can be turned on or off in Settings.
+it or click it to **expand** it into tabs, and press Escape to collapse it again. Every feature you
+leave on is in the tab strip. The **...** button lists the features you turned off in Settings, so
+you can bring one back with a click; when everything is on, the button disappears.
 
 From any app, **Ctrl+Alt+Space** opens the island ready for the keyboard and **Ctrl+Alt+H** hides or
 shows it. In the open island, Ctrl+Tab or the mouse wheel over the tabs switches sections. You can

@@ -57,9 +57,36 @@ public sealed class ModuleManager(
     private readonly Dictionary<string, IIslandModule> _running = [];
     private string _homeKey = "";
 
+    private static readonly ModuleDescriptor HomeTab = new("home", "Home", "\uE80F",
+        static () => throw new NotSupportedException());
+
     public IReadOnlyList<ModuleDescriptor> Catalog => catalog;
 
     public ObservableCollection<ModuleTab> Tabs { get; } = [];
+
+    /// <summary>Features switched off in Settings, including Home; these are the 3-dot menu's entries.</summary>
+    public IReadOnlyList<ModuleDescriptor> DisabledFeatures()
+    {
+        var off = catalog
+            .Where(d => settings.Current.Modules.FirstOrDefault(e => e.Id == d.Id)?.Enabled != true)
+            .ToList();
+        if (!settings.Current.Home.Enabled) off.Insert(0, HomeTab);
+        return off;
+    }
+
+    /// <summary>Turns a feature back on from the overflow menu.</summary>
+    public void EnableFeature(ModuleDescriptor descriptor)
+    {
+        if (descriptor.Id == "home") settings.Current.Home.Enabled = true;
+        else
+        {
+            var entry = settings.Current.Modules.FirstOrDefault(e => e.Id == descriptor.Id);
+            if (entry is null) settings.Current.Modules.Add(new ModuleEntry { Id = descriptor.Id, Enabled = true });
+            else entry.Enabled = true;
+        }
+        Apply();
+        settings.NotifyChanged();
+    }
 
     public void Apply()
     {
