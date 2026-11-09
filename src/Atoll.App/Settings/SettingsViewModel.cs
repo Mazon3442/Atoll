@@ -37,6 +37,7 @@ public sealed partial class SettingsViewModel : ObservableObject
         CalendarSources = new(S.Calendar.Sources.Select(s => new CalendarSourceRow(s) { Url = SecretStore.Unprotect(s.EncryptedUrl) ?? "" }));
         LoadProviderAccounts();
         RebuildThemes();
+        HookShortcuts();
     }
 
     private AppSettings S => _service.Current;
@@ -144,6 +145,28 @@ public sealed partial class SettingsViewModel : ObservableObject
     public double Roundness { get => T.Roundness; set => Set(T.Roundness, value, v => T.Roundness = v); }
     public double ExpandedWidth { get => T.ExpandedWidth; set => Set(T.ExpandedWidth, value, v => T.ExpandedWidth = v); }
     public double ExpandedHeight { get => T.ExpandedHeight; set => Set(T.ExpandedHeight, value, v => T.ExpandedHeight = v); }
+    public double CompactWidth { get => T.CompactWidth; set => Set(T.CompactWidth, value, v => T.CompactWidth = v); }
+    public bool Outline { get => T.Outline; set => Set(T.Outline, value, v => T.Outline = v); }
+    public bool ShowSideActivities { get => T.ShowSideActivities; set => Set(T.ShowSideActivities, value, v => T.ShowSideActivities = v); }
+
+    // Two radio buttons bind here; only the checked one writes.
+    public bool IsPill { get => T.Shape == IslandShape.Pill; set { if (value) SetShape(IslandShape.Pill); } }
+    public bool IsNotch { get => T.Shape == IslandShape.Notch; set { if (value) SetShape(IslandShape.Notch); } }
+
+    private void SetShape(IslandShape shape)
+    {
+        Set(T.Shape, shape, v => T.Shape = v, nameof(IsPill));
+        OnPropertyChanged(nameof(IsNotch));
+    }
+
+    public IReadOnlyList<Choice<MotionStyle>> MotionStyles { get; } =
+    [
+        new(MotionStyle.Bouncy, "Bouncy"),
+        new(MotionStyle.Smooth, "Smooth, no bounce"),
+        new(MotionStyle.Off, "Off"),
+    ];
+
+    public MotionStyle Motion { get => T.Motion; set => Set(T.Motion, value, v => T.Motion = v); }
 
     // Live preview of the island with the current theme.
     public Brush PreviewFill
@@ -160,8 +183,14 @@ public sealed partial class SettingsViewModel : ObservableObject
     public Brush PreviewSubtle => Freeze(new SolidColorBrush(((SolidColorBrush)PreviewText).Color) { Opacity = 0.6 });
     public Brush PreviewAccent => ColorBrush(T.Accent, Colors.DodgerBlue);
     public double PreviewHeight => Math.Clamp(T.CompactHeight, 24, 60);
-    public CornerRadius PreviewCorner => new(Math.Clamp(T.Roundness, 0, 1) * PreviewHeight / 2);
-    public CornerRadius PreviewPeekCorner => new(Math.Clamp(T.Roundness, 0, 1) * Math.Min(PreviewHeight * 0.85, 28));
+    public CornerRadius PreviewCorner => Corners(Math.Clamp(T.Roundness, 0, 1) * PreviewHeight / 2);
+    public CornerRadius PreviewPeekCorner => Corners(Math.Clamp(T.Roundness, 0, 1) * Math.Min(PreviewHeight * 0.85, 28));
+    public double PreviewWidth => Math.Clamp(T.CompactWidth, 60, 400);
+    public Thickness PreviewTopGap => new(0, IsNotch ? 0 : 6 + Math.Clamp(S.TopOffset, 0, 80) / 2, 0, 0);
+    public Thickness PreviewRimThickness => IsNotch ? new(1, 0, 1, 1) : new(1);
+    public Brush PreviewRim => T.Outline ? Freeze(new SolidColorBrush(Color.FromArgb(0x33, 0xFF, 0xFF, 0xFF))) : Brushes.Transparent;
+
+    private CornerRadius Corners(double r) => IsNotch ? new(0, 0, r, r) : new(r);
     public double PreviewBlur => T.Glass ? 18 : 0;
 
     [RelayCommand]
@@ -227,7 +256,8 @@ public sealed partial class SettingsViewModel : ObservableObject
     private void RefreshAppearance()
     {
         foreach (var name in new[] { nameof(PreviewFill), nameof(PreviewText), nameof(PreviewSubtle), nameof(PreviewAccent),
-                                     nameof(PreviewHeight), nameof(PreviewCorner), nameof(PreviewPeekCorner), nameof(PreviewBlur) })
+                                     nameof(PreviewHeight), nameof(PreviewCorner), nameof(PreviewPeekCorner), nameof(PreviewBlur),
+                                     nameof(PreviewWidth), nameof(PreviewTopGap), nameof(PreviewRimThickness), nameof(PreviewRim) })
             OnPropertyChanged(name);
         if (!Themes.Where(c => c.IsCustom).Select(c => c.Preset).SequenceEqual(S.CustomThemes))
             RebuildThemes();
@@ -257,6 +287,8 @@ public sealed partial class SettingsViewModel : ObservableObject
     public string NotificationStatus => NotificationAccessInfo.Describe(_notificationAccess);
     public bool CanRequestNotifications => _notificationAccess == NotificationAccess.NeedsPermission;
     public bool NotificationsAllowed => _notificationAccess == NotificationAccess.Allowed;
+
+    public bool ShowLyrics { get => S.ShowLyrics; set => Set(S.ShowLyrics, value, v => S.ShowLyrics = v); }
 
     public bool ShowNotificationContent
     {
@@ -289,7 +321,7 @@ public sealed partial class SettingsViewModel : ObservableObject
     // ---------- Agents ----------
 
     public IReadOnlyList<AgentIntegrationRow> AgentIntegrations { get; } =
-        Atoll.Claude.HookProtocol.Agents.Select(agent => new AgentIntegrationRow(agent, new AgentIntegrationInstaller())).ToList();
+        Atoll.Claude.HookProtocol.Agents.Append("shell").Select(agent => new AgentIntegrationRow(agent, new AgentIntegrationInstaller())).ToList();
 
     public bool SoundOnDone { get => S.Claude.SoundOnDone; set => Set(S.Claude.SoundOnDone, value, v => S.Claude.SoundOnDone = v); }
     public bool SoundOnAttention { get => S.Claude.SoundOnAttention; set => Set(S.Claude.SoundOnAttention, value, v => S.Claude.SoundOnAttention = v); }

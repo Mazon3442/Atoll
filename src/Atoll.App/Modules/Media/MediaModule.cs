@@ -4,6 +4,8 @@ using Atoll.Desktop;
 #else
 using System.Windows.Threading;
 #endif
+using System.Net.Http;
+using System.Runtime.InteropServices;
 using Atoll.Activities;
 using Atoll.Modules.Clock;
 using Atoll.Shell;
@@ -28,6 +30,9 @@ public sealed partial class MediaModule : IIslandModule
     private SessionManager? _manager;
     private Session? _session;
     private DispatcherTimer? _progressTimer;
+    private static readonly HttpClient LyricsHttp = CreateLyricsClient();
+    private IReadOnlyList<LyricLine> _lyrics = [];
+    private int _lyricsVersion;
     private TimeSpan _position;
     private TimeSpan _duration;
     private TimeSpan _startTime;
@@ -62,6 +67,7 @@ public sealed partial class MediaModule : IIslandModule
             _context?.Dispatcher.BeginInvoke(DispatcherPriority.Render, () => _vm.Visualizer.Set(levels));
         _levels.Unavailable += () => OnUi(() => _vm.VisualizerNote = "Audio visualization is unavailable for this source on this Windows version.");
         _vm.SourceChanged += _ => BindCurrentSession();
+        _vm.OutputChanged += id => _ = SwitchOutputAsync(id);
     }
 
     public object? Panel => _vm;
@@ -74,7 +80,8 @@ public sealed partial class MediaModule : IIslandModule
         _progressTimer = new DispatcherTimer(DispatcherPriority.Background) { Interval = TimeSpan.FromMilliseconds(500) };
         _progressTimer.Tick += (_, _) => UpdateProgress();
         _sourceTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(2) };
-        _sourceTimer.Tick += (_, _) => RefreshSources(); _sourceTimer.Start();
+        _sourceTimer.Tick += (_, _) => { RefreshSources(); RefreshOutputs(); }; _sourceTimer.Start();
+        RefreshOutputs();
         _followTimer = new DispatcherTimer { Interval = FollowDelay };
         _followTimer.Tick += (_, _) => { _followTimer.Stop(); FollowSystem(); };
         _ = InitAsync();
@@ -274,6 +281,7 @@ public sealed partial class MediaModule : IIslandModule
             {
                 var hadTrack = _trackKey.Length > 0;
                 _trackKey = key; _acceptedSeek = null; _seekVersion++;
+                _ = LoadLyricsAsync(_vm.Artist, _vm.Title);
                 if (hadTrack && _vm.IsPlaying && _vm.Title.Length > 0)
                     _context?.Post("track", _vm, ActivityPriority.High, TrackPeek, alert: true);
             }
@@ -304,6 +312,54 @@ public sealed partial class MediaModule : IIslandModule
         UpdateActivity();
     }
 
+    private void RefreshOutputs()
+    {
+        try
+        {
+            var (outputs, current) = AudioOutputs.List();
+            _vm.SetOutputs(outputs, current);
+        }
+        catch (Exception ex) when (ex is COMException or InvalidCastException) { Log.Info($"Audio outputs unavailable: {ex.Message}"); }
+    }
+
+    private async Task SwitchOutputAsync(string id)
+    {
+        try { await Task.Run(() => AudioOutputs.SetDefault(id)); }
+        catch (Exception ex) when (ex is COMException or InvalidCastException) { Log.Error("Switching audio output failed", ex); }
+        if (_disposed) return;
+        RefreshOutputs();
+        _levels.Stop(); // loopback capture stays on the old device until restarted
+        if (_vm.IsPlaying) _levels.Start(_captureProcess);
+    }
+
+    private static HttpClient CreateLyricsClient()
+    {
+        var http = new HttpClient { Timeout = TimeSpan.FromSeconds(15) };
+        http.DefaultRequestHeaders.UserAgent.ParseAdd("ATOLL (https://github.com/Mazon3442/Atoll)"); // lrclib asks clients to name themselves
+        return http;
+    }
+
+    private async Task LoadLyricsAsync(string artist, string title)
+    {
+        var version = ++_lyricsVersion;
+        _lyrics = []; _vm.Lyric = ""; _vm.HasLyrics = false;
+        if (_context?.Settings.Current.ShowLyrics != true || artist.Length == 0 || title.Length == 0) return;
+        await Task.Delay(TimeSpan.FromSeconds(1)); // skipping through tracks should not look each one up; the timeline also arrives by then
+        if (version != _lyricsVersion || _disposed) return;
+        try
+        {
+            var lines = await Lyrics.FindAsync(LyricsHttp, artist, title, _duration, CancellationToken.None);
+            if (version != _lyricsVersion || _disposed) return;
+            _lyrics = lines;
+            _vm.HasLyrics = lines.Count > 0;
+            UpdateProgress();
+        }
+        catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException or IOException or System.Text.Json.JsonException or UnauthorizedAccessException)
+        {
+            Log.Info($"Lyrics unavailable: {ex.Message}");
+        }
+    }
+
     private void RefreshTimeline()
     {
         var t = _session?.GetTimelineProperties();
@@ -330,6 +386,7 @@ public sealed partial class MediaModule : IIslandModule
         if (pos < TimeSpan.Zero) pos = TimeSpan.Zero;
         _vm.Progress = pos / _duration;
         _vm.PositionText = TimerViewModel.Format(pos);
+        if (_lyrics.Count > 0) _vm.Lyric = Lyrics.LineAt(_lyrics, pos);
         _vm.DurationText = TimerViewModel.Format(_duration);
     }
 

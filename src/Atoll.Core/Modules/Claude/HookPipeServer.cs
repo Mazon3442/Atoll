@@ -9,12 +9,15 @@ namespace Atoll.Modules.Claude;
 /// of parallel tool calls does not make hooks wait. The pipe only accepts the current user.
 /// <see cref="Received"/> fires on a thread-pool thread.
 /// </summary>
-public sealed class HookPipeServer : IDisposable
+public sealed class HookPipeServer(string pipeName = HookProtocol.PipeName) : IDisposable
 {
     private const int Listeners = 2;
     private readonly CancellationTokenSource _cts = new();
 
     public event Action<HookMessage>? Received;
+
+    /// <summary>Answers a message that <see cref="HookMessage.WantsReply"/>: "allow", "deny" or null for the terminal.</summary>
+    public Func<HookMessage, Task<string?>>? Decide { get; set; }
 
     public void Start()
     {
@@ -27,12 +30,21 @@ public sealed class HookPipeServer : IDisposable
         {
             try
             {
-                await using var server = new NamedPipeServerStream(
-                    HookProtocol.PipeName, PipeDirection.In, NamedPipeServerStream.MaxAllowedServerInstances,
+                var server = new NamedPipeServerStream(
+                    pipeName, PipeDirection.InOut, NamedPipeServerStream.MaxAllowedServerInstances,
                     PipeTransmissionMode.Byte, PipeOptions.Asynchronous | PipeOptions.CurrentUserOnly);
-                await server.WaitForConnectionAsync(ct);
-                var message = await ReadMessageAsync(server, ct);
-                if (message is not null) Received?.Invoke(message);
+                try
+                {
+                    await server.WaitForConnectionAsync(ct);
+                    var message = await ReadMessageAsync(server, ct);
+                    if (message is { WantsReply: true } && Decide is { } decide)
+                    {
+                        _ = ReplyAsync(server, decide(message), ct); // owns the pipe now; this listener moves on
+                        server = null;
+                    }
+                    else if (message is not null) Received?.Invoke(message);
+                }
+                finally { if (server is not null) await server.DisposeAsync(); }
             }
             catch (OperationCanceledException) when (ct.IsCancellationRequested)
             {
@@ -44,6 +56,19 @@ public sealed class HookPipeServer : IDisposable
                 Log.Error("Claude hook message dropped", ex);
                 await Task.Delay(100, CancellationToken.None);
             }
+        }
+    }
+
+    private static async Task ReplyAsync(NamedPipeServerStream server, Task<string?> decision, CancellationToken ct)
+    {
+        await using (server)
+        {
+            try
+            {
+                var answer = await decision.WaitAsync(HookProtocol.ReplyTimeout, ct);
+                await server.WriteAsync(System.Text.Encoding.UTF8.GetBytes((answer ?? "") + "\n"), ct);
+            }
+            catch (Exception ex) when (ex is TimeoutException or OperationCanceledException or IOException) { } // the terminal asks instead
         }
     }
 

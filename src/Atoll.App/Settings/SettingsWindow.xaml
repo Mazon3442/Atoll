@@ -183,6 +183,33 @@
                 </Setter.Value>
             </Setter>
         </Style>
+        <!-- Shape choice: a card with a small drawing; the top line is the screen edge. -->
+        <Style x:Key="ShapeOption" TargetType="RadioButton">
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Margin" Value="0,0,8,0" />
+            <Setter Property="FocusVisualStyle" Value="{StaticResource SettingsFocus}" />
+            <Setter Property="Foreground" Value="{DynamicResource TextFillColorPrimaryBrush}" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="RadioButton">
+                        <Border x:Name="Frame" Width="220" CornerRadius="8" BorderThickness="2" Padding="12"
+                                BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
+                                Background="{DynamicResource CardBackgroundFillColorDefaultBrush}">
+                            <ContentPresenter TextElement.Foreground="{TemplateBinding Foreground}" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Frame" Property="BorderBrush" Value="{DynamicResource TextFillColorSecondaryBrush}" />
+                            </Trigger>
+                            <Trigger Property="IsChecked" Value="True">
+                                <Setter TargetName="Frame" Property="BorderBrush" Value="{DynamicResource AccentFillColorDefaultBrush}" />
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True"><Setter TargetName="Frame" Property="Opacity" Value="0.7" /></Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
         </ResourceDictionary>
     </Window.Resources>
 
@@ -272,6 +299,25 @@
                             <CheckBox Style="{StaticResource Toggle}" IsChecked="{Binding ClickThrough}" AutomationProperties.Name="Click through over full-size windows" />
                         </s:SettingCard>
 
+                        <TextBlock Style="{StaticResource SectionHeader}" Text="Keyboard" />
+                        <s:SettingCard Glyph="&#xE765;" Header="Open ATOLL"
+                                       Description="Opens the island from any app, ready for the keyboard. Press it again or Esc to close it.">
+                            <s:HotkeyBox Shortcut="{Binding OpenShortcut}" AutomationProperties.Name="Shortcut to open ATOLL" />
+                        </s:SettingCard>
+                        <TextBlock Text="{Binding OpenShortcutStatus}" Style="{StaticResource Hint}" Margin="4,-2,0,8"
+                                   Foreground="{DynamicResource SystemFillColorCriticalBrush}" AutomationProperties.LiveSetting="Assertive"
+                                   Visibility="{Binding OpenShortcutStatus, Converter={StaticResource EmptyToCollapsed}}" />
+                        <s:SettingCard Glyph="&#xED1A;" Header="Hide or show ATOLL" Description="The same as Hide island in the tray menu.">
+                            <s:HotkeyBox Shortcut="{Binding HideShortcut}" AutomationProperties.Name="Shortcut to hide or show ATOLL" />
+                        </s:SettingCard>
+                        <TextBlock Text="{Binding HideShortcutStatus}" Style="{StaticResource Hint}" Margin="4,-2,0,8"
+                                   Foreground="{DynamicResource SystemFillColorCriticalBrush}" AutomationProperties.LiveSetting="Assertive"
+                                   Visibility="{Binding HideShortcutStatus, Converter={StaticResource EmptyToCollapsed}}" />
+                        <TextBlock Text="{Binding ShortcutMessage}" Style="{StaticResource Hint}" Margin="4,-2,0,8" AutomationProperties.LiveSetting="Polite"
+                                   Visibility="{Binding ShortcutMessage, Converter={StaticResource EmptyToCollapsed}}" />
+                        <TextBlock Style="{StaticResource Hint}" Margin="4,2,0,0"
+                                   Text="Click a shortcut and press new keys to change it. Backspace turns it off. In the open island, Ctrl+Tab or the mouse wheel over the tabs switches sections." />
+
                         <TextBlock Style="{StaticResource SectionHeader}" Text="Position" />
                         <s:SettingCard Glyph="&#xE7F4;" Header="Show on" Description="Which displays get an island.">
                             <ComboBox Width="250" ItemsSource="{Binding MonitorModes}" DisplayMemberPath="Label"
@@ -288,13 +334,6 @@
                                 </ItemsControl.ItemTemplate>
                             </ItemsControl>
                         </Border>
-                        <s:SettingCard Glyph="&#xE74A;" Header="Gap from the top of the screen">
-                            <StackPanel Orientation="Horizontal">
-                                <Slider Width="200" Minimum="0" Maximum="40" TickFrequency="1" IsSnapToTickEnabled="True"
-                                        Value="{Binding TopOffset}" AutomationProperties.Name="Gap from the top of the screen" />
-                                <TextBlock Style="{StaticResource ValueText}" Text="{Binding TopOffset, StringFormat={}{0:0} px}" />
-                            </StackPanel>
-                        </s:SettingCard>
                     </StackPanel>
 
                     <!-- ===================== Appearance ===================== -->
@@ -309,10 +348,11 @@
                             </Border.Background>
                             <Grid>
                                 <TextBlock Text="Live preview" Foreground="White" FontSize="12" Margin="16,14" VerticalAlignment="Bottom" />
-                                <StackPanel HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,14,0,0">
+                                <StackPanel HorizontalAlignment="Center" VerticalAlignment="Top" Margin="{Binding PreviewTopGap}">
                                     <!-- Compact -->
                                     <Border Background="{Binding PreviewFill}" CornerRadius="{Binding PreviewCorner}" Height="{Binding PreviewHeight}"
-                                            BorderBrush="#33FFFFFF" BorderThickness="1" Padding="16,0" HorizontalAlignment="Center">
+                                            MinWidth="{Binding PreviewWidth}"
+                                            BorderBrush="{Binding PreviewRim}" BorderThickness="{Binding PreviewRimThickness}" Padding="16,0" HorizontalAlignment="Center">
                                         <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                                             <TextBlock Text="&#x273B;" FontFamily="Segoe UI Symbol" Foreground="#D97757" FontSize="14" VerticalAlignment="Center" />
                                             <TextBlock Text="Editing App.xaml" Foreground="{Binding PreviewText}" FontSize="12" FontWeight="SemiBold"
@@ -320,7 +360,7 @@
                                         </StackPanel>
                                     </Border>
                                     <!-- Peek -->
-                                    <Border Background="{Binding PreviewFill}" CornerRadius="{Binding PreviewPeekCorner}" BorderBrush="#33FFFFFF"
+                                    <Border Background="{Binding PreviewFill}" CornerRadius="{Binding PreviewPeekCorner}" BorderBrush="{Binding PreviewRim}"
                                             BorderThickness="1" Padding="14,10" Margin="0,14,0,0" HorizontalAlignment="Center">
                                         <StackPanel Orientation="Horizontal">
                                             <Border Width="40" Height="40" CornerRadius="8" Background="{Binding PreviewAccent}" />
@@ -340,6 +380,49 @@
                                 </StackPanel>
                             </Grid>
                         </Border>
+
+                        <TextBlock Style="{StaticResource SectionHeader}" Text="Shape" />
+                        <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                            <RadioButton Style="{StaticResource ShapeOption}" GroupName="Shape" IsChecked="{Binding IsPill}"
+                                         AutomationProperties.Name="Pill shape: floats below the top of the screen">
+                                <StackPanel>
+                                    <Grid Height="40">
+                                        <Rectangle Height="2" VerticalAlignment="Top" Fill="{DynamicResource TextFillColorTertiaryBrush}" />
+                                        <Border Width="84" Height="20" CornerRadius="10" Background="Black" Margin="0,10,0,0" VerticalAlignment="Top" />
+                                    </Grid>
+                                    <TextBlock Text="Pill" FontWeight="SemiBold" Margin="0,8,0,0" />
+                                    <TextBlock Text="Floats just below the top of the screen." Style="{StaticResource Hint}" />
+                                </StackPanel>
+                            </RadioButton>
+                            <RadioButton Style="{StaticResource ShapeOption}" GroupName="Shape" IsChecked="{Binding IsNotch}"
+                                         AutomationProperties.Name="Notch shape: attached to the top of the screen">
+                                <StackPanel>
+                                    <Grid Height="40">
+                                        <Rectangle Height="2" VerticalAlignment="Top" Fill="{DynamicResource TextFillColorTertiaryBrush}" />
+                                        <Border Width="84" Height="22" CornerRadius="0,0,11,11" Background="Black" VerticalAlignment="Top" />
+                                    </Grid>
+                                    <TextBlock Text="Notch" FontWeight="SemiBold" Margin="0,8,0,0" />
+                                    <TextBlock Text="Hangs from the top edge, like a laptop notch." Style="{StaticResource Hint}" />
+                                </StackPanel>
+                            </RadioButton>
+                        </StackPanel>
+                        <s:SettingCard Glyph="&#xE74A;" Header="Gap from the top of the screen" Description="Only for the pill. The notch always touches the edge."
+                                       Visibility="{Binding IsPill, Converter={StaticResource BoolToVisibility}}">
+                            <StackPanel Orientation="Horizontal">
+                                <Slider Width="200" Minimum="0" Maximum="40" TickFrequency="1" IsSnapToTickEnabled="True"
+                                        Value="{Binding TopOffset}" AutomationProperties.Name="Gap from the top of the screen" />
+                                <TextBlock Style="{StaticResource ValueText}" Text="{Binding TopOffset, StringFormat={}{0:0} px}" />
+                            </StackPanel>
+                        </s:SettingCard>
+                        <s:SettingCard Glyph="&#xE91F;" Header="Roundness" Description="0% gives square corners, 100% fully round ones. A notch rounds only its bottom corners.">
+                            <StackPanel Orientation="Horizontal">
+                                <Slider Width="200" Minimum="0" Maximum="1" Value="{Binding Roundness}" AutomationProperties.Name="Roundness" />
+                                <TextBlock Style="{StaticResource ValueText}" Text="{Binding Roundness, StringFormat={}{0:P0}}" />
+                            </StackPanel>
+                        </s:SettingCard>
+                        <s:SettingCard Glyph="&#xE81E;" Header="Outline" Description="A thin rim that separates the island from what is behind it.">
+                            <CheckBox Style="{StaticResource Toggle}" IsChecked="{Binding Outline}" AutomationProperties.Name="Outline" />
+                        </s:SettingCard>
 
                         <Expander Margin="0,16,0,0" AutomationProperties.Name="Theme presets">
                             <Expander.Header><TextBlock Text="Theme presets" FontSize="15" FontWeight="SemiBold" /></Expander.Header>
@@ -424,10 +507,11 @@
                                 <TextBlock Style="{StaticResource ValueText}" Text="{Binding CompactHeight, StringFormat={}{0:0} px}" />
                             </StackPanel>
                         </s:SettingCard>
-                        <s:SettingCard Glyph="&#xE91F;" Header="Roundness" Description="0% gives square corners, 100% a full pill.">
+                        <s:SettingCard Glyph="&#xE9A6;" Header="Resting width" Description="The narrowest the island gets. Longer text still widens it.">
                             <StackPanel Orientation="Horizontal">
-                                <Slider Width="200" Minimum="0" Maximum="1" Value="{Binding Roundness}" AutomationProperties.Name="Roundness" />
-                                <TextBlock Style="{StaticResource ValueText}" Text="{Binding Roundness, StringFormat={}{0:P0}}" />
+                                <Slider Width="200" Minimum="60" Maximum="400" TickFrequency="5" IsSnapToTickEnabled="True"
+                                        Value="{Binding CompactWidth}" AutomationProperties.Name="Resting width" />
+                                <TextBlock Style="{StaticResource ValueText}" Text="{Binding CompactWidth, StringFormat={}{0:0} px}" />
                             </StackPanel>
                         </s:SettingCard>
                         <s:SettingCard Glyph="&#xE9A6;" Header="Expanded width" Description="Size of the panel when you click ATOLL.">
@@ -443,6 +527,16 @@
                                         Value="{Binding ExpandedHeight}" AutomationProperties.Name="Expanded height" />
                                 <TextBlock Style="{StaticResource ValueText}" Text="{Binding ExpandedHeight, StringFormat={}{0:0} px}" />
                             </StackPanel>
+                        </s:SettingCard>
+
+                        <TextBlock Style="{StaticResource SectionHeader}" Text="Behavior" />
+                        <s:SettingCard Glyph="&#xE945;" Header="Motion" Description="How the island grows and shrinks. Turning off animation effects in Windows also turns this off.">
+                            <ComboBox Width="250" ItemsSource="{Binding MotionStyles}" DisplayMemberPath="Label"
+                                      SelectedValuePath="Value" SelectedValue="{Binding Motion}" AutomationProperties.Name="Motion" />
+                        </s:SettingCard>
+                        <s:SettingCard Glyph="&#xE8A9;" Header="Show other activities beside the island"
+                                       Description="Small bubbles for things running in the background, like a timer while music plays.">
+                            <CheckBox Style="{StaticResource Toggle}" IsChecked="{Binding ShowSideActivities}" AutomationProperties.Name="Show other activities beside the island" />
                         </s:SettingCard>
                     </StackPanel>
 
@@ -528,6 +622,12 @@
                                 </DataTemplate>
                             </ItemsControl.ItemTemplate>
                         </ItemsControl>
+
+                        <TextBlock Style="{StaticResource SectionHeader}" Text="Media" />
+                        <s:SettingCard Glyph="&#xE8D6;" Header="Show synced lyrics"
+                                       Description="Looks up the playing song's title and artist on lrclib.net and shows the current line in the media tab.">
+                            <CheckBox Style="{StaticResource Toggle}" IsChecked="{Binding ShowLyrics}" AutomationProperties.Name="Show synced lyrics" />
+                        </s:SettingCard>
 
                         <TextBlock Style="{StaticResource SectionHeader}" Text="Clipboard and shelf" />
                         <s:SettingCard Glyph="&#xE72E;" Header="Privacy"

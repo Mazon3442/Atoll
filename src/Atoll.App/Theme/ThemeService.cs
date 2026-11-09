@@ -34,6 +34,7 @@ public static class ThemeService
             res["Island.Background"] = Frozen(new SolidColorBrush(bg) { Opacity = opacity });
             res["Island.Rim"] = Frozen(new SolidColorBrush(fg) { Opacity = 0.12 });
         }
+        if (!theme.Outline) res["Island.Rim"] = Brushes.Transparent;
         res["Island.Menu"] = Frozen(new SolidColorBrush(Color.FromRgb(bg.R, bg.G, bg.B)));
         res["Island.Foreground"] = Frozen(new SolidColorBrush(fg));
         res["Island.Subtle"] = Frozen(new SolidColorBrush(fg) { Opacity = 0.6 });

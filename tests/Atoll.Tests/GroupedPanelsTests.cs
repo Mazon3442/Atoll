@@ -44,6 +44,7 @@ public class GroupedPanelsTests
             ["stats"] = new StatsViewModel(),
             ["weather"] = new object(),
             ["actions"] = new QuickActionsViewModel(new QuickActionsModule()),
+            ["privacy"] = new object(), // no panel of its own; it belongs to the System tab
         };
         return ModuleCatalog.All.Select(d => new ModuleTab(d, panels[d.Id])).ToList();
     }
@@ -155,7 +156,7 @@ public class GroupedPanelsTests
             if (panel.Name == "media")
             {
                 // The source picker is a small label showing the followed player; playback controls stay in view.
-                var picker = Descendants<ComboBox>(background).Single();
+                var picker = Descendants<ComboBox>(background).Single(c => AutomationProperties.GetName(c) == "Audio source");
                 Assert.Equal("Spotify", Assert.IsType<MediaSourceChoice>(picker.SelectedItem).Name);
                 Assert.InRange(picker.ActualWidth, 1, 200);
                 foreach (var name in new[] { "Previous track", "Play or pause", "Next track" })

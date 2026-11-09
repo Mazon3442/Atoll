@@ -14,7 +14,9 @@ using CommunityToolkit.Mvvm.Input;
 
 namespace Atoll.Modules.Weather;
 
-public sealed record WeatherDay(ForecastDay Forecast, string Name, string Symbol, string High, string Low)
+/// <param name="BarStart">Where the day's low sits in the week's temperature range, 0 to 1.</param>
+/// <param name="BarEnd">Where the day's high sits in the week's temperature range, 0 to 1.</param>
+public sealed record WeatherDay(ForecastDay Forecast, string Name, string Symbol, string High, string Low, double BarStart = 0, double BarEnd = 1)
 {
     public string Condition => WeatherCodes.Describe(Forecast.Code).Text;
     public string Range => $"{High} / {Low}";
@@ -63,7 +65,7 @@ public sealed partial class WeatherViewModel(SettingsService settings) : Observa
     public string ChartReadout => SelectedChartIndex >= 0 && SelectedChartIndex < ChartPoints.Count
         ? ChartPoints[SelectedChartIndex].Detail : "Hourly data unavailable";
     public IReadOnlyList<Choice<WeatherMetric>> Metrics { get; } =
-    [new(WeatherMetric.Precipitation, "Precipitation"), new(WeatherMetric.Wind, "Wind"), new(WeatherMetric.Temperature, "Temperature")];
+    [new(WeatherMetric.Precipitation, "Rain"), new(WeatherMetric.Wind, "Wind"), new(WeatherMetric.Temperature, "Temp")];
     public ObservableCollection<WeatherChartPoint> ChartPoints { get; } = [];
     public ObservableCollection<WeatherDay> Days { get; } = [];
     public IReadOnlyList<WeatherHour> Hours => _chartHours;
@@ -159,9 +161,12 @@ public sealed partial class WeatherViewModel(SettingsService settings) : Observa
         RainSummary = DescribeRain(report);
         Updated = $"Updated {DateTime.Now:t} · Open-Meteo";
         Days.Clear();
+        var weekLow = report.Days.Count > 0 ? report.Days.Min(d => d.Low) : 0;
+        var weekSpan = Math.Max(1, (report.Days.Count > 0 ? report.Days.Max(d => d.High) : 1) - weekLow);
         foreach (var day in report.Days)
             Days.Add(new WeatherDay(day, day.Date.Date == report.LocalTime.Date ? "Today" : day.Date.ToString("ddd", CultureInfo.CurrentCulture),
-                WeatherCodes.Describe(day.Code).Symbol, $"{Math.Round(day.High)}°", $"{Math.Round(day.Low)}°"));
+                WeatherCodes.Describe(day.Code).Symbol, $"{Math.Round(day.High)}°", $"{Math.Round(day.Low)}°",
+                (day.Low - weekLow) / weekSpan, (day.High - weekLow) / weekSpan));
         SelectedDay = Days.FirstOrDefault(d => d.Forecast.Date.Date == chosenDate) ?? Days.FirstOrDefault();
         UpdateHours();
         Status = ""; HasReport = true;

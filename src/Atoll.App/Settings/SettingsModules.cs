@@ -32,6 +32,7 @@ public sealed partial class SettingsViewModel
         ["system"] = ("Status popups", "Volume, battery, network, Bluetooth, brightness and lock keys."),
         ["stats"] = ("Live graphs", "CPU, GPU, memory and network."),
         ["actions"] = ("Quick actions", "Screenshot, mic mute, lock, screen off and Downloads."),
+        ["privacy"] = ("Camera and mic in use", "A green dot while an app uses your camera, orange for the microphone."),
         ["shelf"] = ("File shelf", "Drop files on the island to keep them at hand."),
         ["clipboard"] = ("Clipboard history", "Your last 25 copies, kept in memory only."),
     };

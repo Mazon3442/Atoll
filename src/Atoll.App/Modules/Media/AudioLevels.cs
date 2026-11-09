@@ -1,3 +1,4 @@
+using System.Buffers.Binary;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
 using NAudio.Dsp;
@@ -62,7 +63,7 @@ public sealed class AudioLevels : IDisposable
             {
                 if (_disposed || generation != _generation) { recorder.Dispose(); return; }
                 _recorder = recorder; _format = recorder.WaveFormat;
-                if (!IsFloat32(_format)) Log.Info($"Visualizer: unsupported audio format {_format}; bars stay still");
+                if (SampleBits(_format) == 0) Log.Info($"Visualizer: unsupported audio format {_format}; bars stay still");
                 recorder.DataAvailable += (buffer, _, _, _) => { lock (_gate) { if (generation == _generation) OnData(buffer); } };
                 recorder.StartRecording(); _starting = false;
             }
@@ -96,24 +97,48 @@ public sealed class AudioLevels : IDisposable
     }
 
     private static readonly Guid FloatSubFormat = new("00000003-0000-0010-8000-00aa00389b71");
+    private static readonly Guid PcmSubFormat = new("00000001-0000-0010-8000-00aa00389b71");
 
     /// <summary>Shared-mode loopback is 32-bit float, usually wrapped as WAVE_FORMAT_EXTENSIBLE.</summary>
     internal static bool IsFloat32(WaveFormat? f) => f is { BitsPerSample: 32 } &&
         (f.Encoding == WaveFormatEncoding.IeeeFloat || (f is WaveFormatExtensible x && x.SubFormat == FloatSubFormat));
 
+    /// <summary>
+    /// Bits per sample the visualizer can read: 32 for float, 16/24/32 for integer PCM (exclusive-mode devices and
+    /// some USB DACs loop back integer audio). 0 when unsupported.
+    /// </summary>
+    internal static int SampleBits(WaveFormat? f)
+    {
+        if (IsFloat32(f)) return 32;
+        var pcm = f is not null && (f.Encoding == WaveFormatEncoding.Pcm || f is WaveFormatExtensible x && x.SubFormat == PcmSubFormat);
+        return pcm && f!.BitsPerSample is 16 or 24 or 32 ? f.BitsPerSample : 0;
+    }
+
+    /// <summary>One sample as -1..1.</summary>
+    internal static float ReadSample(ReadOnlySpan<byte> b, bool isFloat, int bits) => bits switch
+    {
+        32 when isFloat => BinaryPrimitives.ReadSingleLittleEndian(b),
+        16 => BinaryPrimitives.ReadInt16LittleEndian(b) / 32768f,
+        24 => (b[0] | b[1] << 8 | (sbyte)b[2] << 16) / 8388608f,
+        32 => BinaryPrimitives.ReadInt32LittleEndian(b) / 2147483648f,
+        _ => 0,
+    };
+
     private void OnData(ReadOnlySpan<byte> buffer)
     {
-        if (!IsFloat32(_format)) return;
-
+        var bits = SampleBits(_format);
+        if (bits == 0) return;
+        var isFloat = IsFloat32(_format);
+        var bytes = bits / 8;
         var channels = _format!.Channels;
+        var frameBytes = _format.BlockAlign > 0 ? _format.BlockAlign : channels * bytes;
         // Front left/right only: surround layouts (e.g. 7.1) are mostly silent channels that would
         // dilute the level.
         var used = Math.Min(channels, 2);
-        var frames = MemoryMarshal.Cast<byte, float>(buffer);
-        for (var i = 0; i + channels <= frames.Length; i += channels)
+        for (var i = 0; i + frameBytes <= buffer.Length; i += frameBytes)
         {
             float sum = 0;
-            for (var c = 0; c < used; c++) sum += frames[i + c];
+            for (var c = 0; c < used; c++) sum += ReadSample(buffer.Slice(i + c * bytes, bytes), isFloat, bits);
             _samples[_filled++] = sum / used;
             if (_filled == FftSize)
             {

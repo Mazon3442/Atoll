@@ -39,6 +39,8 @@ switch ($hostOs) {
         if ($LASTEXITCODE -ne 0) { throw 'Velopack tool install failed.' }
         & (Join-Path $tools 'vpk.exe') pack --packId Atoll --packVersion $Version --runtime win-x64 --packDir $publishDir --mainExe Atoll.exe --packTitle ATOLL --packAuthors Mazon3442 --icon (Join-Path $PSScriptRoot 'identity/Assets/Atoll.ico') --outputDir $packages
         if ($LASTEXITCODE -ne 0) { throw 'Windows packaging failed.' }
+        # Auto-update reads only releases.win.json and the .nupkg from the GitHub release; ship those beside Setup.exe.
+        Get-ChildItem -LiteralPath $packages -File | Where-Object Name -in 'Atoll-win-Portable.zip', 'RELEASES', 'assets.win.json' | Remove-Item
     }
     'linux' {
         & bash (Join-Path $PSScriptRoot 'package-linux.sh') $Version $publishDir $packages
@@ -49,27 +51,6 @@ switch ($hostOs) {
         if ($LASTEXITCODE -ne 0) { throw 'macOS packaging failed.' }
     }
 }
-# A freshly written package can be held open for a moment by the OS (macOS scans new disk images), so retry briefly.
-function Get-PackageHash([string]$Path) {
-    for ($attempt = 1; ; $attempt++) {
-        try {
-            $stream = [IO.File]::Open($Path, 'Open', 'Read', 'Read')
-            try {
-                $sha = [Security.Cryptography.SHA256]::Create()
-                try { return (($sha.ComputeHash($stream) | ForEach-Object { $_.ToString('x2') }) -join '') } finally { $sha.Dispose() }
-            }
-            finally { $stream.Dispose() }
-        }
-        catch [System.IO.IOException] {
-            if ($attempt -ge 30) { throw }
-            Start-Sleep -Seconds 1
-        }
-    }
-}
-$hashes = Get-ChildItem -LiteralPath $packages -File | Sort-Object Name | ForEach-Object {
-    "$(Get-PackageHash $_.FullName)  $($_.Name)"
-}
-[IO.File]::WriteAllLines((Join-Path $packages "SHA256SUMS-$RuntimeIdentifier.txt"), [string[]]$hashes, [Text.UTF8Encoding]::new($false))
 Write-Output "Release packages: $packages"
 if ($Publish) {
     if (-not $env:GH_TOKEN) { $env:GH_TOKEN = $env:VPK_TOKEN }

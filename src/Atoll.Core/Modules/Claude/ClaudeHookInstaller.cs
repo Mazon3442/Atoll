@@ -10,7 +10,7 @@ namespace Atoll.Modules.Claude;
 public static class ClaudeHookInstaller
 {
     public static readonly string[] Events =
-        ["SessionStart", "UserPromptSubmit", "PreToolUse", "PostToolUse", "Notification", "Stop", "SessionEnd"];
+        ["SessionStart", "UserPromptSubmit", "PreToolUse", "PostToolUse", "PermissionRequest", "Notification", "Stop", "SessionEnd"];
 
     private const string Marker = "Atoll.ClaudeHook";
     private static readonly string[] ToolEvents = ["PreToolUse", "PostToolUse"];
@@ -81,7 +81,7 @@ public static class ClaudeHookInstaller
                 {
                     ["type"] = "command",
                     ["command"] = command,
-                    ["timeout"] = name == "Interrupt" ? 1 : 5,
+                    ["timeout"] = name switch { "Interrupt" => 1, "PermissionRequest" => 40, _ => 5 }, // 40: waits up to 30 s for an island answer
                 }),
             };
             if (ToolEvents.Contains(name) || name == "PermissionRequest") group.Insert(0, "matcher", "*");

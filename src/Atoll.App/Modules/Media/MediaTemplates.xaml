@@ -101,8 +101,21 @@
                     </DockPanel>
                     <TextBlock Text="{Binding Artist}" FontSize="13" Foreground="{DynamicResource Island.Subtle}"
                                TextTrimming="CharacterEllipsis" />
-                    <ContentPresenter Content="{Binding}" ContentTemplate="{StaticResource Media.SourcePicker}"
-                                      HorizontalAlignment="Left" Margin="-6,1,0,0" />
+                    <StackPanel Orientation="Horizontal" Margin="-6,1,0,0">
+                        <ContentPresenter Content="{Binding}" ContentTemplate="{StaticResource Media.SourcePicker}" />
+                        <ComboBox Style="{StaticResource Island.Picker}" ItemsSource="{Binding Outputs}" Margin="4,0,0,0"
+                                  SelectedItem="{Binding SelectedOutput, Mode=TwoWay}" Tag="Output" MaxWidth="170"
+                                  AutomationProperties.Name="Audio output" ToolTip="Play through another speaker or headphones"
+                                  Visibility="{Binding HasOutputs, Converter={StaticResource Island.BoolToVisibility}}">
+                            <ComboBox.ItemTemplate>
+                                <DataTemplate><TextBlock Text="{Binding Name}" TextTrimming="CharacterEllipsis" /></DataTemplate>
+                            </ComboBox.ItemTemplate>
+                        </ComboBox>
+                    </StackPanel>
+                    <TextBlock Text="{Binding Lyric}" FontSize="13" FontWeight="SemiBold" Margin="0,4,0,0" MinHeight="17"
+                               Foreground="{Binding Visualizer.Color}" TextTrimming="CharacterEllipsis"
+                               ToolTip="{Binding Lyric}" AutomationProperties.Name="Lyrics"
+                               Visibility="{Binding HasLyrics, Converter={StaticResource Island.BoolToVisibility}}" />
 
                     <StackPanel Margin="0,6,0,0" Visibility="{Binding HasTimeline, Converter={StaticResource Island.BoolToVisibility}}">
                         <Slider Minimum="0" Maximum="1"

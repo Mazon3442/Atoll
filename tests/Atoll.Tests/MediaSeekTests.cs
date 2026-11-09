@@ -139,6 +139,8 @@ public class MediaSeekTests
                 GroupedPanelsTests.VerifyTemplates();
                 SettingsUiTests.VerifySettings();
                 CalendarUiTests.Verify();
+                KeyboardIslandUi.Verify();
+                AgentMediaUi.Verify();
             }
             catch (Exception ex) { failure = ex; }
             finally { Application.Current?.Shutdown(); }

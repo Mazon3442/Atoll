@@ -16,9 +16,27 @@ public enum FullscreenMode
     Hide,
 }
 
+public enum IslandShape
+{
+    /// <summary>Floats below the top edge with every corner rounded.</summary>
+    Pill,
+    /// <summary>Attached to the top edge; only the bottom corners are rounded.</summary>
+    Notch,
+}
+
+public enum MotionStyle
+{
+    Bouncy,
+    Smooth,
+    Off,
+}
+
 public sealed class AppSettings
 {
     public bool StartWithWindows { get; set; }
+
+    /// <summary>Looks up time-synced lyrics for the playing song on lrclib.net.</summary>
+    public bool ShowLyrics { get; set; } = true;
 
     /// <summary>What the island does over fullscreen apps (videos, games, F11 browsers).</summary>
     public FullscreenMode FullscreenMode { get; set; } = FullscreenMode.PopUp;
@@ -42,6 +60,12 @@ public sealed class AppSettings
     public bool ClickThrough { get; set; } = true;
 
     public int HoverDelayMs { get; set; } = 200;
+
+    /// <summary>System-wide shortcut that opens the island with keyboard focus, or closes it. Empty turns it off.</summary>
+    public string OpenShortcut { get; set; } = "Ctrl+Alt+Space";
+
+    /// <summary>System-wide shortcut that hides or shows the island, like the tray's "Hide island". Empty turns it off.</summary>
+    public string HideShortcut { get; set; } = "Ctrl+Alt+H";
 
     public MonitorMode MonitorMode { get; set; } = MonitorMode.Primary;
 
@@ -97,7 +121,20 @@ public sealed class ThemeSettings
     /// <summary>Island background opacity, 0.3–1.</summary>
     public double Opacity { get; set; } = 1;
 
+    public IslandShape Shape { get; set; } = IslandShape.Pill;
+
+    /// <summary>Thin rim around the island.</summary>
+    public bool Outline { get; set; } = true;
+
+    /// <summary>Small bubbles beside the island for other running activities.</summary>
+    public bool ShowSideActivities { get; set; } = true;
+
+    public MotionStyle Motion { get; set; } = MotionStyle.Bouncy;
+
     public double CompactHeight { get; set; } = 34;
+
+    /// <summary>Narrowest the resting island gets, in DIPs; content can make it wider.</summary>
+    public double CompactWidth { get; set; } = 110;
 
     /// <summary>0 = square corners, 1 = fully rounded pill.</summary>
     public double Roundness { get; set; } = 1;

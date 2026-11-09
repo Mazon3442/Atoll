@@ -1,4 +1,6 @@
+using System.Collections.ObjectModel;
 using System.Globalization;
+using CommunityToolkit.Mvvm.Input;
 #if !AVALONIA
 using System.Media;
 #endif
@@ -8,6 +10,7 @@ using Atoll.Desktop;
 #else
 using System.Windows.Threading;
 #endif
+using System.Net.Http;
 using CommunityToolkit.Mvvm.ComponentModel;
 using Atoll.Activities;
 using Atoll.Claude;
@@ -22,6 +25,23 @@ public sealed partial class UsageViewModel : ObservableObject
     [ObservableProperty] private string _blockResets = "";
     [ObservableProperty] private double _blockProgress;
     [ObservableProperty] private string _todayText = "";
+    [ObservableProperty] private bool _hasLimits;
+
+    /// <summary>Plan limits (5-hour, weekly) as Claude and Codex report them.</summary>
+    public ObservableCollection<PlanLimitRow> Limits { get; } = [];
+
+    public void SetLimits(IEnumerable<PlanLimit> limits, DateTimeOffset now)
+    {
+        Limits.Clear();
+        foreach (var limit in limits) Limits.Add(new PlanLimitRow(limit));
+        HasLimits = Limits.Count > 0;
+        RefreshLimits(now);
+    }
+
+    public void RefreshLimits(DateTimeOffset now)
+    {
+        foreach (var row in Limits) row.Refresh(now);
+    }
 
     public void Update(UsageSummary s, DateTimeOffset now)
     {
@@ -47,6 +67,26 @@ public sealed partial class UsageViewModel : ObservableObject
     private static string Money(decimal d) => d.ToString("C2", CultureInfo.GetCultureInfo("en-US"));
 }
 
+public sealed partial class PlanLimitRow(PlanLimit limit) : ObservableObject
+{
+    public string Name => limit.Name;
+    [ObservableProperty] private double _progress;
+    [ObservableProperty] private string _percentText = "";
+    [ObservableProperty] private string _resetText = "";
+    [ObservableProperty] private bool _isHigh;
+
+    public void Refresh(DateTimeOffset now)
+    {
+        var passed = limit.ResetsAt is { } at && at <= now; // the window already restarted
+        Progress = passed ? 0 : Math.Clamp(limit.Percent / 100, 0, 1);
+        PercentText = $"{Progress * 100:0}% used";
+        IsHigh = Progress >= 0.8;
+        ResetText = limit.ResetsAt is not { } r ? "" : passed ? "reset" : r - now < TimeSpan.FromDays(1)
+            ? $"resets in {ClaudeSessionTracker.FormatDuration(r - now)}"
+            : $"resets {r.ToLocalTime():ddd h tt}";
+    }
+}
+
 /// <summary>Shown as the "work" activity, the Claude tab and the usage summary.</summary>
 public sealed partial class ClaudeViewModel(ClaudeSessionTracker tracker) : ObservableObject
 {
@@ -69,8 +109,18 @@ public sealed partial class ClaudeViewModel(ClaudeSessionTracker tracker) : Obse
     }
 }
 
-/// <summary>Done / needs-you popup. Opening it focuses the session's terminal or editor.</summary>
-public sealed record ClaudeAlertViewModel(ClaudeSessionViewModel Session, string Title, string Detail);
+/// <summary>
+/// Done / needs-you popup. Opening it focuses the session's terminal or editor. With <paramref name="Answer"/>,
+/// a permission prompt can be allowed or denied right here; "Terminal" hands it back to the terminal.
+/// </summary>
+public sealed record ClaudeAlertViewModel(ClaudeSessionViewModel Session, string Title, string Detail, Action<string?>? Answer = null)
+{
+    public bool CanAnswer => Answer is not null;
+    public bool CanOpen => Session.CanFocus && !CanAnswer;
+    public IRelayCommand AllowCommand { get; } = new RelayCommand(() => Answer?.Invoke("allow"));
+    public IRelayCommand DenyCommand { get; } = new RelayCommand(() => Answer?.Invoke("deny"));
+    public IRelayCommand TerminalCommand { get; } = new RelayCommand(() => { Answer?.Invoke(null); Session.FocusCommand.Execute(null); });
+}
 
 /// <summary>
 /// Live Claude Code activity (from hooks), done/needs-you alerts and token usage (from transcripts).
@@ -88,6 +138,11 @@ public sealed class ClaudeModule : IIslandModule
     private bool _workPosted;
     private bool _disposed;
     private readonly HashSet<string> _attention = [];
+    private readonly Dictionary<string, TaskCompletionSource<string?>> _pending = []; // attention key → hook waiting for an answer
+    private static readonly HttpClient LimitsHttp = new() { Timeout = TimeSpan.FromSeconds(20) };
+    private readonly CancellationTokenSource _stop = new();
+    private IReadOnlyList<PlanLimit> _claudeLimits = [];
+    private DateTimeOffset _nextLimitsCheck;
 
     public ClaudeModule() => _vm = new ClaudeViewModel(_tracker);
 
@@ -102,6 +157,16 @@ public sealed class ClaudeModule : IIslandModule
             _vm.ConnectionStatus = $"Last hook: {HookProtocol.AgentName(m.Agent)} · {m.Event} · {DateTimeOffset.Now:t}";
             OnHook(m);
         });
+        _server.Decide = m =>
+        {
+            var answer = new TaskCompletionSource<string?>(TaskCreationOptions.RunContinuationsAsynchronously);
+            context.Dispatcher.BeginInvoke(() =>
+            {
+                _vm.ConnectionStatus = $"Last hook: {HookProtocol.AgentName(m.Agent)} · {m.Event} · {DateTimeOffset.Now:t}";
+                OnHook(m, answer);
+            });
+            return answer.Task;
+        };
         _server.Start();
         _codex.Received += m => context.Dispatcher.BeginInvoke(() =>
         {
@@ -120,14 +185,30 @@ public sealed class ClaudeModule : IIslandModule
             _tracker.Tick();
             _vm.Refresh();
             UpdateActivities();
+            if (DateTimeOffset.Now >= _nextLimitsCheck) _ = CheckLimitsAsync();
+            else _vm.Usage.RefreshLimits(DateTimeOffset.Now);
         };
         _ticker.Start();
     }
 
-    private void OnHook(HookMessage message)
+    private async Task CheckLimitsAsync()
     {
-        if (_disposed) return;
+        _nextLimitsCheck = DateTimeOffset.Now.AddMinutes(5);
+        try { _claudeLimits = await PlanLimits.ReadClaudeAsync(LimitsHttp, PlanLimits.ClaudeCredentialsPath, _stop.Token); }
+        catch (Exception ex) when (ex is HttpRequestException or IOException or System.Text.Json.JsonException or TaskCanceledException or UnauthorizedAccessException)
+        {
+            Log.Info($"Claude plan limits unavailable: {ex.Message}"); // keep the last known numbers
+        }
+        var codex = await Task.Run(() => PlanLimits.ReadCodex(PlanLimits.CodexSessionsRoot));
+        if (!_disposed) _vm.Usage.SetLimits(_claudeLimits.Concat(codex), DateTimeOffset.Now);
+    }
+
+    private void OnHook(HookMessage message, TaskCompletionSource<string?>? answer = null)
+    {
+        if (_disposed) { answer?.TrySetResult(null); return; }
+        if (message.Agent == "shell") { OnCommandFinished(message); return; }
         var (session, transition) = _tracker.Apply(message);
+        if (answer is not null && (session is null || !session.NeedsYou)) answer.TrySetResult(null);
         _vm.Refresh();
         UpdateActivities();
         if (session is null || _context is null) return;
@@ -138,7 +219,20 @@ public sealed class ClaudeModule : IIslandModule
             case ClaudeTransition.NeedsYou:
                 var key = AttentionKey(session);
                 _attention.Add(key);
-                _context.Post(key, new ClaudeAlertViewModel(session, $"{session.Project} needs you", session.Detail),
+                Action<string?>? reply = null;
+                if (answer is not null)
+                {
+                    _pending[key] = answer;
+                    reply = choice =>
+                    {
+                        if (!_pending.Remove(key, out var waiting) || !waiting.TrySetResult(choice) || choice is null) return;
+                        session.State = ClaudeState.Thinking; // the hook answered; don't wait for the next event to clear the prompt
+                        session.Detail = choice == "allow" ? "Allowed from ATOLL" : "Denied from ATOLL";
+                        _context.Remove(key);
+                        _attention.Remove(key);
+                    };
+                }
+                _context.Post(key, new ClaudeAlertViewModel(session, $"{session.Project} needs you", session.Detail, reply),
                     ActivityPriority.Critical, alert: true);
                 if (settings.SoundOnAttention) SystemSounds.Exclamation.Play();
                 break;
@@ -165,6 +259,21 @@ public sealed class ClaudeModule : IIslandModule
             _context.Remove(key);
             _attention.Remove(key);
         }
+        // Answered in the terminal or the session moved on: release the waiting hook.
+        foreach (var key in _pending.Keys.Where(k => !waiting.Contains(k)).ToList())
+            if (_pending.Remove(key, out var stale)) stale.TrySetResult(null);
+    }
+
+    /// <summary>A long PowerShell command finished while its terminal was in the background.</summary>
+    private void OnCommandFinished(HookMessage m)
+    {
+        if (_context is null) return; // the hook already skipped commands whose terminal is in front
+        var failed = m.NotificationType is { } code && code != "0";
+        var project = m.Cwd is { Length: > 0 } cwd ? Path.GetFileName(Path.TrimEndingDirectorySeparator(cwd)) : "";
+        var session = new ClaudeSessionViewModel("shell:" + m.SessionId) { Agent = "shell", Hwnd = m.Hwnd, Project = project.Length > 0 ? project : "PowerShell" };
+        _context.Post("command", new ClaudeAlertViewModel(session, failed ? $"Failed · exit {m.NotificationType}" : "Command finished",
+            $"{m.Detail} · {m.Message}"), failed ? ActivityPriority.High : ActivityPriority.Normal, TimeSpan.FromSeconds(8), alert: true);
+        if (_context.Settings.Current.Claude.SoundOnDone) (failed ? SystemSounds.Exclamation : SystemSounds.Asterisk).Play();
     }
 
     private static string AttentionKey(ClaudeSessionViewModel session) => $"attention.{session.Agent}.{session.SessionId}";
@@ -172,6 +281,8 @@ public sealed class ClaudeModule : IIslandModule
     public void Dispose()
     {
         _disposed = true;
+        _stop.Cancel();
+        foreach (var waiting in _pending.Values) waiting.TrySetResult(null);
         _ticker?.Stop();
         _server.Dispose();
         _codex.Dispose();

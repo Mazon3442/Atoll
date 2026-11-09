@@ -12,6 +12,7 @@ using Atoll.Modules.Clock;
 using Atoll.Modules.Indicators;
 using Atoll.Modules.Media;
 using Atoll.Modules.Notifications;
+using Atoll.Modules.Privacy;
 using Atoll.Modules.Providers;
 using Atoll.Settings;
 
@@ -34,6 +35,7 @@ public static class ModuleCatalog
         new("stats", "System stats", "", () => new StatsModule()),
         new("weather", "Weather", "", () => new WeatherModule()),
         new("actions", "Quick actions", "", () => new QuickActionsModule()),
+        new("privacy", "Camera and mic in use", "", () => new PrivacyModule()),
     ];
 }
 

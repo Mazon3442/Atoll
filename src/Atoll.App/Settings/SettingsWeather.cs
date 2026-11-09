@@ -106,6 +106,7 @@ public sealed partial class SettingsViewModel : IDisposable
 
     public void Dispose()
     {
+        UnhookShortcuts();
         _locationCts?.Cancel();
         if (_ownsWeather) Weather.Dispose();
         else Weather.Disposed -= OnSharedWeatherDisposed;

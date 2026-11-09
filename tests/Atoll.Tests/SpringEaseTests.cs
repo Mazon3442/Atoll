@@ -15,4 +15,36 @@ public class SpringEaseTests
         Assert.InRange(samples.Max(), 1.0, 1.1);   // bounces past the target a little
         Assert.InRange(samples[^2], 0.99, 1.01);  // settled before the end, so no jump at t = 1
     }
+
+    [Fact]
+    public void Smooth_spring_settles_without_overshoot()
+    {
+        var ease = new SpringEase(1);
+        var samples = Enumerable.Range(0, 101).Select(i => ease.Ease(i / 100.0)).ToList();
+        Assert.Equal(0, samples[0], 3);
+        Assert.True(samples.Max() <= 1);
+        Assert.InRange(samples[^2], 0.99, 1);
+    }
+
+    [Fact]
+    public void Notch_rounds_only_the_bottom_and_drops_the_top_rim()
+    {
+        Exception? error = null;
+        var thread = new Thread(() => { try { CheckNotch(); } catch (Exception e) { error = e; } });
+        thread.SetApartmentState(ApartmentState.STA); // WPF elements need an STA thread
+        thread.Start();
+        thread.Join();
+        if (error is not null) throw error;
+    }
+
+    private static void CheckNotch()
+    {
+        var border = new PillBorder { Radius = 12 };
+        Assert.Equal(new System.Windows.CornerRadius(12), border.CornerRadius);
+        border.Notch = true;
+        Assert.Equal(new System.Windows.CornerRadius(0, 0, 12, 12), border.CornerRadius);
+        Assert.Equal(new System.Windows.Thickness(1, 0, 1, 1), border.BorderThickness);
+        border.Notch = false;
+        Assert.Equal(new System.Windows.Thickness(1), border.BorderThickness);
+    }
 }

@@ -28,6 +28,7 @@ public enum IslandMode
 public partial class IslandWindow : Window
 {
     private static readonly IEasingFunction Spring = Freeze(new SpringEase());
+    private static readonly IEasingFunction SmoothSpring = Freeze(new SpringEase(1));
     private static readonly Duration MorphDuration = TimeSpan.FromMilliseconds(320);
     private static readonly Duration FadeDuration = TimeSpan.FromMilliseconds(140);
 
@@ -51,6 +52,8 @@ public partial class IslandWindow : Window
     private int _outsideMs;
     private bool _alertPeek;
     private bool _heldOpen;
+    private nint _returnFocusTo; // the app that had focus before a shortcut opened the island
+    private int _wheelDelta;
     private bool _faded;
 
     private nint _hwnd;
@@ -154,7 +157,19 @@ public partial class IslandWindow : Window
         };
         PreviewKeyDown += (_, e) =>
         {
-            if (e.Key == Key.Escape && _mode == IslandMode.Expanded) SetMode(IslandMode.Compact);
+            if (_mode != IslandMode.Expanded) return;
+            var ctrl = Keyboard.Modifiers.HasFlag(ModifierKeys.Control);
+            var shift = Keyboard.Modifiers.HasFlag(ModifierKeys.Shift);
+            if (e.Key == Key.Escape) SetMode(IslandMode.Compact);
+            else if (ctrl && e.Key == Key.Tab) StepTab(shift ? -1 : 1, wrap: true);
+            else if (ctrl && e.Key is Key.PageDown or Key.PageUp) StepTab(e.Key == Key.PageDown ? 1 : -1, wrap: true);
+            else if (ctrl && e.Key is >= Key.D1 and <= Key.D9 && e.Key - Key.D1 < Tabs.Items.Count)
+            {
+                Tabs.SelectedIndex = e.Key - Key.D1;
+                if (Tabs.IsKeyboardFocusWithin) FocusSelectedTab();
+            }
+            else return;
+            e.Handled = true;
         };
         IsVisibleChanged += (_, _) =>
         {
@@ -174,11 +189,22 @@ public partial class IslandWindow : Window
 
     public MonitorInfo Monitor { get; }
 
+    public bool IsExpanded => _mode == IslandMode.Expanded;
+
     private double CompactHeight => Math.Clamp(_settings.Current.Theme.CompactHeight, 24, 60);
 
     private double Roundness => Math.Clamp(_settings.Current.Theme.Roundness, 0, 1);
-    private double AvailablePanelHeight => Math.Max(140, Monitor.WorkArea.Height / Monitor.Scale - Math.Clamp(_settings.Current.TopOffset, 0, 80) - 24);
-    private double WeatherPanelHeight => Math.Min(580, AvailablePanelHeight);
+    private bool Notch => _settings.Current.Theme.Shape == IslandShape.Notch;
+
+    /// <summary>A notch touches the top edge; a pill floats the chosen gap below it.</summary>
+    private double TopGap => Notch ? 0 : Math.Clamp(_settings.Current.TopOffset, 0, 80);
+
+    /// <summary>Windows' animation effects switch wins over the island's own motion setting.</summary>
+    private bool Animated => SystemParameters.ClientAreaAnimation && _settings.Current.Theme.Motion != MotionStyle.Off;
+
+    private IEasingFunction Ease => _settings.Current.Theme.Motion == MotionStyle.Smooth ? SmoothSpring : Spring;
+
+    private double AvailablePanelHeight => Math.Max(140, Monitor.WorkArea.Height / Monitor.Scale - TopGap - 24);
 
     /// <summary>Pass clicks through only when a maximized or fullscreen app sits behind the island (tabs, toolbars).</summary>
     private bool ClickThrough =>
@@ -212,7 +238,8 @@ public partial class IslandWindow : Window
     public void ApplySettings()
     {
         var t = _settings.Current.Theme;
-        var offset = Math.Clamp(_settings.Current.TopOffset, 0, 80);
+        var offset = TopGap;
+        foreach (var b in new[] { Pill, Bubble, Bubble2 }) b.Notch = Notch;
         Stage.Margin = new Thickness(0, offset, 0, 0);
         Width = Math.Max(760, Math.Clamp(t.ExpandedWidth, 320, 900) + 4 * (Math.Max(CompactHeight, 96) + 8));
         Height = AvailablePanelHeight + offset + 24; // room for panels that grow to fit their content
@@ -233,6 +260,64 @@ public partial class IslandWindow : Window
         if (!IsVisible) return;
         SetMode(IslandMode.Expanded, moduleId);
         _heldOpen = true;
+    }
+
+    /// <summary>
+    /// The open shortcut: opens the island with keyboard focus on its tabs, or closes it when it is open.
+    /// Over a fullscreen app it reveals the island the way an edge hold does. Closing returns focus to the
+    /// app that had it.
+    /// </summary>
+    public void ToggleFromKeyboard()
+    {
+        if (_paused) return;
+        if (_mode == IslandMode.Expanded)
+        {
+            SetMode(IslandMode.Compact);
+            return;
+        }
+        if (!IsVisible)
+        {
+            _revealed = true;
+            UpdatePresence();
+            if (!IsVisible) return;
+        }
+        var previous = Native.GetForegroundWindow();
+        SetMode(IslandMode.Expanded);
+        _returnFocusTo = previous == _hwnd ? 0 : previous;
+        _heldOpen = true;
+        Dispatcher.BeginInvoke(DispatcherPriority.Input, FocusSelectedTab);
+    }
+
+    private void FocusSelectedTab()
+    {
+        if (_mode != IslandMode.Expanded) return;
+        Tabs.UpdateLayout();
+        if (Tabs.ItemContainerGenerator.ContainerFromItem(Tabs.SelectedItem) is ListBoxItem item) Keyboard.Focus(item);
+        else Keyboard.Focus(Tabs);
+    }
+
+    /// <summary>Moves between tabs. The wheel stops at the ends; Ctrl+Tab wraps around, as in browsers.</summary>
+    internal void StepTab(int delta, bool wrap)
+    {
+        var count = Tabs.Items.Count;
+        if (count == 0 || _mode != IslandMode.Expanded) return;
+        var index = Tabs.SelectedIndex + delta;
+        Tabs.SelectedIndex = wrap ? (index % count + count) % count : Math.Clamp(index, 0, count - 1);
+        if (Tabs.IsKeyboardFocusWithin) FocusSelectedTab();
+    }
+
+    private void OnHeaderWheel(object sender, MouseWheelEventArgs e)
+    {
+        // Precision touchpads send many small deltas; act once per full notch (120).
+        if (Math.Sign(e.Delta) != Math.Sign(_wheelDelta)) _wheelDelta = 0;
+        _wheelDelta += e.Delta;
+        while (Math.Abs(_wheelDelta) >= Mouse.MouseWheelDeltaForOneLine)
+        {
+            var notch = Math.Sign(_wheelDelta);
+            _wheelDelta -= notch * Mouse.MouseWheelDeltaForOneLine;
+            StepTab(-notch, wrap: false); // wheel down = next tab
+        }
+        e.Handled = true;
     }
 
     /// <summary>Called by the manager whenever pause or the foreground app's state may have changed.</summary>
@@ -394,6 +479,9 @@ public partial class IslandWindow : Window
         else if (_mode == IslandMode.Expanded)
         {
             SetNoActivate(true);
+            // Give focus back only if it is still ours: clicking another app already moved it there.
+            if (_returnFocusTo != 0 && Native.GetForegroundWindow() == _hwnd) Native.SetForegroundWindow(_returnFocusTo);
+            _returnFocusTo = 0;
         }
         _alertPeek = false;
         _heldOpen = false;
@@ -608,9 +696,7 @@ public partial class IslandWindow : Window
         {
             var expandedWidth = Math.Clamp(t.ExpandedWidth, 320, 900);
             var expandedHeight = Math.Clamp(t.ExpandedHeight, 140, 600);
-            if (Tabs.SelectedItem is ModuleTab { Panel: Atoll.Modules.Weather.WeatherViewModel })
-                expandedHeight = Math.Max(expandedHeight, WeatherPanelHeight);
-            else if (Tabs.SelectedItem is ModuleTab { Panel: MediaPanelViewModel or SystemGroupViewModel })
+            if (Tabs.SelectedItem is ModuleTab { Panel: MediaPanelViewModel or SystemGroupViewModel or Atoll.Modules.Weather.WeatherViewModel })
                 expandedHeight = Math.Max(expandedHeight, FittedPanelHeight(expandedWidth)); // show all of it
             expandedHeight = Math.Min(expandedHeight, AvailablePanelHeight);
             // Lay out at the destination size, so opening the pill cannot create transient overflow.
@@ -638,7 +724,7 @@ public partial class IslandWindow : Window
             _shownContent = content;
             _shownTemplateMode = templateMode;
             Watch(content);
-            if (isNewContent && SystemParameters.ClientAreaAnimation)
+            if (isNewContent && Animated)
                 PillContent.BeginAnimation(OpacityProperty, new DoubleAnimation(0, 1, TimeSpan.FromMilliseconds(200)));
         }
 
@@ -653,11 +739,12 @@ public partial class IslandWindow : Window
         else
         {
             h = h0;
-            w = Math.Max(h0 * 3.2, desired.Width + h0);
+            w = Math.Max(Math.Clamp(t.CompactWidth, 60, 400), desired.Width + h0);
         }
         Animate(w, h, Roundness * Math.Min(h / 2, 28));
-        RenderBubble(Bubble, BubbleContent, _secondary?.Content, h0);
-        RenderBubble(Bubble2, Bubble2Content, _tertiary?.Content, h0);
+        var sides = t.ShowSideActivities;
+        RenderBubble(Bubble, BubbleContent, sides ? _secondary?.Content : null, h0);
+        RenderBubble(Bubble2, Bubble2Content, sides ? _tertiary?.Content : null, h0);
         UpdateBubbleOffset();
     }
 
@@ -693,15 +780,15 @@ public partial class IslandWindow : Window
     {
         if (Math.Abs(w - _target.W) < 0.5 && Math.Abs(h - _target.H) < 0.5 && Math.Abs(r - _target.R) < 0.5) return;
         _target = (w, h, r);
-        if (!SystemParameters.ClientAreaAnimation)
+        if (!Animated)
         {
             Pill.BeginAnimation(WidthProperty, null); Pill.BeginAnimation(HeightProperty, null); Pill.BeginAnimation(PillBorder.RadiusProperty, null);
             Pill.Width = w; Pill.Height = h; Pill.Radius = r;
             return;
         }
-        Pill.BeginAnimation(WidthProperty, new DoubleAnimation(w, MorphDuration) { EasingFunction = Spring });
-        Pill.BeginAnimation(HeightProperty, new DoubleAnimation(h, MorphDuration) { EasingFunction = Spring });
-        Pill.BeginAnimation(PillBorder.RadiusProperty, new DoubleAnimation(r, MorphDuration) { EasingFunction = Spring });
+        Pill.BeginAnimation(WidthProperty, new DoubleAnimation(w, MorphDuration) { EasingFunction = Ease });
+        Pill.BeginAnimation(HeightProperty, new DoubleAnimation(h, MorphDuration) { EasingFunction = Ease });
+        Pill.BeginAnimation(PillBorder.RadiusProperty, new DoubleAnimation(r, MorphDuration) { EasingFunction = Ease });
     }
 
     /// <summary>Re-measure when the shown view model changes (e.g. clock text gets wider).</summary>

@@ -21,7 +21,6 @@ cp "$root/packaging/identity/Assets/Square150x150Logo.png" "$stage/usr/share/ico
 find "$stage" -type d -exec chmod 755 {} +
 find "$stage" -type f -exec chmod 644 {} +
 chmod 755 "$stage/opt/atoll/Atoll" "$stage/opt/atoll/Atoll.ClaudeHook"
-tar -czf "$packages/Atoll-$version-linux-x64.tar.gz" -C "$stage/opt/atoll" .
 deb="$staging/deb"
 mkdir "$deb"
 cp -a "$stage/." "$deb/"

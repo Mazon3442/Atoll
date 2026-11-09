@@ -76,6 +76,16 @@ public sealed class IslandManager : IDisposable
     public void OpenModule(string moduleId) =>
         (_windows.FirstOrDefault(w => w.Monitor.IsPrimary) ?? _windows.FirstOrDefault())?.OpenModule(moduleId);
 
+    /// <summary>The open shortcut acts on the island of the display the pointer is on, else the main one.</summary>
+    public void ToggleFromKeyboard()
+    {
+        var target = Native.GetCursorPos(out var p)
+            ? _windows.FirstOrDefault(w => p.X >= w.Monitor.Bounds.X && p.X < w.Monitor.Bounds.X + w.Monitor.Bounds.Width && p.Y >= w.Monitor.Bounds.Y && p.Y < w.Monitor.Bounds.Y + w.Monitor.Bounds.Height) : null;
+        // Close whichever island is open first, so the shortcut always undoes itself.
+        (_windows.FirstOrDefault(w => w.IsExpanded) ?? target ?? _windows.FirstOrDefault(w => w.Monitor.IsPrimary) ?? _windows.FirstOrDefault())
+            ?.ToggleFromKeyboard();
+    }
+
     private void UpdateVisibility()
     {
         foreach (var w in _windows)

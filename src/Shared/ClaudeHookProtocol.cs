@@ -28,6 +28,9 @@ public sealed record HookMessage
 
     /// <summary>Process id of the agent itself, when its adapter reports it (0 if unknown).</summary>
     public int AgentPid { get; init; }
+
+    /// <summary>The hook waits on the pipe for "allow", "deny" or an empty line (answer in the terminal).</summary>
+    public bool WantsReply { get; init; }
 }
 
 public static class HookProtocol
@@ -40,12 +43,24 @@ public static class HookProtocol
         "codex" => "Codex",
         "opencode" => "OpenCode",
         "hermes" => "Hermes",
+        "shell" => "PowerShell",
         _ => agent,
     };
 
     // Keep the pipe and exe names compatible with existing Claude Code hook installations.
     public const string PipeName = "atoll-claude";
     public const int MaxMessageBytes = 16 * 1024;
+
+    /// <summary>How long a permission hook waits for an answer from the island before the terminal asks instead.</summary>
+    public static readonly TimeSpan ReplyTimeout = TimeSpan.FromSeconds(30);
+
+    /// <summary>Claude Code's PermissionRequest hook output for an island answer; null leaves the decision to the terminal.</summary>
+    public static string? DecisionOutput(string? answer) => answer switch
+    {
+        "allow" => """{"hookSpecificOutput":{"hookEventName":"PermissionRequest","decision":{"behavior":"allow"}}}""",
+        "deny" => """{"hookSpecificOutput":{"hookEventName":"PermissionRequest","decision":{"behavior":"deny","message":"Denied from ATOLL"}}}""",
+        _ => null,
+    };
 
     public static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web);
 
@@ -60,7 +75,7 @@ public static class HookProtocol
             SessionId = Str(root, "session_id") ?? "",
             Cwd = Str(root, "cwd"),
             Tool = tool,
-            Detail = tool is null ? null : DescribeTool(tool, input),
+            Detail = tool is null ? Truncate(FirstLine(Str(root, "command")), 80) : DescribeTool(tool, input), // "command": shell integration
             Message = Truncate(Str(root, "message"), 300),
             NotificationType = Str(root, "notification_type"),
             Hwnd = hwnd,
@@ -78,7 +93,7 @@ public static class HookProtocol
             "apply_patch" => "Applying a patch",
             "NotebookEdit" => $"Editing {FileName(Arg("notebook_path"))}",
             "Read" or "read" or "read_file" => $"Reading {FileName(Arg("file_path") ?? Arg("filePath") ?? Arg("path"))}",
-            "Bash" or "PowerShell" or "bash" or "terminal" or "exec_command" or "shell_command" => $"Running {Truncate(FirstLine(Arg("description") ?? Arg("command") ?? Arg("cmd")), 60)}",
+            "Bash" or "PowerShell" or "bash" or "terminal" or "exec_command" or "shell_command" => $"Running {Truncate(FirstLine(Arg("description") ?? Arg("command") ?? Arg("cmd")) ?? "a command", 60)}",
             "Grep" or "Glob" or "grep" or "glob" or "file_search" => $"Searching {Truncate(Arg("pattern"), 40)}",
             "WebFetch" => $"Fetching {Host(Arg("url"))}",
             "WebSearch" => $"Searching the web for {Truncate(Arg("query"), 40)}",
@@ -98,7 +113,7 @@ public static class HookProtocol
 
     private static string Host(string? url) => Uri.TryCreate(url, UriKind.Absolute, out var u) ? u.Host : "a page";
 
-    private static string FirstLine(string? s) => s is null ? "a command" : s.Split('\n', 2)[0].Trim();
+    private static string? FirstLine(string? s) => s?.Split('\n', 2)[0].Trim();
 
     private static string? Truncate(string? s, int max) => s is null || s.Length <= max ? s : s[..(max - 1)] + "…";
 }

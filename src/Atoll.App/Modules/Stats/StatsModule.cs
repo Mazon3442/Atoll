@@ -57,6 +57,10 @@ public sealed class StatsViewModel
     private readonly HashSet<FrameworkElement> _observers = [];
     internal event Action<bool>? ObservationChanged;
     internal bool IsObserved => _observers.Count > 0;
+
+    /// <summary>Connected Bluetooth devices that report a battery level.</summary>
+    public System.Collections.ObjectModel.ObservableCollection<DeviceBattery> Devices { get; } = [];
+
     internal void Observe(FrameworkElement view, bool visible)
     {
         var wasObserved = IsObserved;
@@ -86,6 +90,7 @@ public sealed class StatsModule : IIslandModule
     private ModuleContext? _context;
     private Timer? _timer;
     private int _busy;
+    private int _ticks;
 
     public object? Panel => _vm;
 
@@ -104,7 +109,7 @@ public sealed class StatsModule : IIslandModule
             if (_disposed) return;
             _sampling = active;
             _timer?.Change(active ? TimeSpan.Zero : Timeout.InfiniteTimeSpan, active ? TimeSpan.FromSeconds(1) : Timeout.InfiniteTimeSpan);
-            if (!active) { _gpu?.Dispose(); _gpu = null; }
+            if (!active) { _gpu?.Dispose(); _gpu = null; _ticks = 0; }
         }
     }
 
@@ -121,6 +126,12 @@ public sealed class StatsModule : IIslandModule
                 var (usedGb, totalGb, memLoad) = MemorySampler.Sample();
                 var (down, up) = _net.Sample();
                 var netScale = _net.Scale(down + up);
+                IReadOnlyList<DeviceBattery>? batteries = null;
+                if (_ticks++ % 30 == 0) // battery levels change slowly; enumerating devices is not free
+                {
+                    try { batteries = BluetoothBattery.ReadAsync().GetAwaiter().GetResult(); }
+                    catch (Exception ex) { Log.Info($"Bluetooth battery unavailable: {ex.Message}"); batteries = []; }
+                }
 
                 _context?.Dispatcher.BeginInvoke(() =>
                 {
@@ -130,6 +141,11 @@ public sealed class StatsModule : IIslandModule
                     else _vm.Gpu.Push(0, "—", "not available");
                     _vm.Memory.Push(memLoad, $"{memLoad:P0}", $"{usedGb:0.0} of {totalGb:0} GB");
                     _vm.Network.Push(netScale, $"↓ {Rate(down)}", $"↑ {Rate(up)}");
+                    if (batteries is not null && !batteries.SequenceEqual(_vm.Devices))
+                    {
+                        _vm.Devices.Clear();
+                        foreach (var device in batteries) _vm.Devices.Add(device);
+                    }
                 });
             }
         }

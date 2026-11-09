@@ -22,7 +22,7 @@ internal static class PanelGroups
         "agents" => "claude",
         "calendar" => "clock",
         "files" or "clipboard" => "shelf",
-        "stats" or "actions" => "system",
+        "stats" or "actions" or "privacy" => "system",
         _ => id,
     };
 

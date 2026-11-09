@@ -74,8 +74,36 @@ public sealed partial class MediaViewModel(Func<Task> playPause, Func<Task> next
     [ObservableProperty] private double _progress;
     [ObservableProperty] private string _positionText = "";
     [ObservableProperty] private string _durationText = "";
+    /// <summary>The current line of time-synced lyrics; <see cref="HasLyrics"/> keeps its row so the panel does not jump.</summary>
+    [ObservableProperty] private string _lyric = "";
+    [ObservableProperty] private bool _hasLyrics;
 
     public VisualizerViewModel Visualizer { get; } = new();
+
+    /// <summary>Speakers and headphones; picking one makes it the Windows default output.</summary>
+    public ObservableCollection<MediaSourceChoice> Outputs { get; } = [];
+    [ObservableProperty] private MediaSourceChoice? _selectedOutput;
+    public bool HasOutputs => Outputs.Count > 1; // a picker with one choice is noise
+    /// <summary>Raised only when the user picks an output.</summary>
+    public event Action<string>? OutputChanged;
+    private bool _syncingOutputs;
+    partial void OnSelectedOutputChanged(MediaSourceChoice? value)
+    {
+        if (value is not null && !_syncingOutputs) OutputChanged?.Invoke(value.Id);
+    }
+    public void SetOutputs(IEnumerable<MediaSourceChoice> outputs, string? current)
+    {
+        var wanted = outputs.ToList();
+        _syncingOutputs = true;
+        try
+        {
+            foreach (var o in Outputs.Where(o => wanted.All(w => w.Id != o.Id)).ToList()) Outputs.Remove(o);
+            foreach (var o in wanted.Where(o => Outputs.All(w => w.Id != o.Id))) Outputs.Add(o);
+            SelectedOutput = Outputs.FirstOrDefault(o => o.Id == current);
+        }
+        finally { _syncingOutputs = false; }
+        OnPropertyChanged(nameof(HasOutputs));
+    }
     public bool IsScrubbing { get; set; }
 
     partial void OnArtChanged(ImageSource? value)

@@ -1,7 +1,7 @@
 // Atoll.ClaudeHook: run by Claude Code hooks (see ClaudeHookInstaller in the app).
 // Reads the hook JSON from stdin and forwards a compact summary to the island over a named pipe.
-// It never writes to stdout and always exits 0: hook output can change Claude Code's behavior,
-// and the island being closed must never slow down or break a session.
+// It always exits 0 and writes to stdout only to pass on a permission answer given in the island:
+// hook output can change Claude Code's behavior, and a closed island must never slow down or break a session.
 using System.Diagnostics;
 using System.IO.Pipes;
 using System.Runtime.InteropServices;
@@ -12,7 +12,7 @@ using Atoll.Claude;
 try
 {
     var agent = args.Length == 2 && args[0] == "--agent" ? args[1] : "claude";
-    if (!HookProtocol.Agents.Contains(agent)) return 0;
+    if (!HookProtocol.Agents.Contains(agent) && agent != "shell") return 0; // shell: PowerShell command alerts
     using var stdin = Console.OpenStandardInput();
     using var buffer = new MemoryStream();
     stdin.CopyTo(buffer); // drain fully even if the island is closed
@@ -27,15 +27,27 @@ try
     var eventName = doc.RootElement.TryGetProperty("hook_event_name", out var ev) ? ev.GetString() : null;
     var hwnd = !OperatingSystem.IsWindows() || eventName is "PreToolUse" or "PostToolUse" ? 0 : HostWindow.Find();
 
-    var message = HookProtocol.FromHookInput(doc.RootElement, hwnd, agent);
+    // Someone looking at the terminal already saw the command finish.
+    if (agent == "shell" && OperatingSystem.IsWindows() && hwnd != 0 && PipeCheck.GetForegroundWindow() == hwnd) return 0;
+
+    // Ask the island only while the terminal is in the background; someone looking at it answers there.
+    var wantsReply = agent == "claude" && eventName == "PermissionRequest" && OperatingSystem.IsWindows()
+        && (hwnd == 0 || PipeCheck.GetForegroundWindow() != hwnd);
+    var message = HookProtocol.FromHookInput(doc.RootElement, hwnd, agent) with { WantsReply = wantsReply };
     var line = JsonSerializer.SerializeToUtf8Bytes(message, HookProtocol.Json);
     if (line.Length > HookProtocol.MaxMessageBytes) return 0;
 
-    using var pipe = new NamedPipeClientStream(".", HookProtocol.PipeName, PipeDirection.Out, PipeOptions.CurrentUserOnly);
+    using var pipe = new NamedPipeClientStream(".", HookProtocol.PipeName, wantsReply ? PipeDirection.InOut : PipeDirection.Out, PipeOptions.CurrentUserOnly);
     pipe.Connect(150); // throws TimeoutException when the island is not running
     pipe.Write(line);
     pipe.WriteByte((byte)'\n');
     pipe.Flush();
+    if (wantsReply)
+    {
+        var reply = new StreamReader(pipe, Encoding.UTF8).ReadLineAsync();
+        if (reply.Wait(HookProtocol.ReplyTimeout + TimeSpan.FromSeconds(2)) && HookProtocol.DecisionOutput(reply.Result?.Trim()) is { } output)
+            Console.Out.Write(output);
+    }
 }
 catch (Exception ex)
 {
@@ -47,6 +59,9 @@ return 0;
 internal static class PipeCheck
 {
     private const int ERROR_FILE_NOT_FOUND = 2;
+
+    [DllImport("user32.dll")]
+    public static extern nint GetForegroundWindow();
 
     [DllImport("kernel32.dll", EntryPoint = "WaitNamedPipeW", CharSet = CharSet.Unicode, SetLastError = true)]
     private static extern bool WaitNamedPipe(string name, uint timeoutMs);

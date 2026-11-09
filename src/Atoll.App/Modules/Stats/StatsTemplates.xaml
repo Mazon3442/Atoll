@@ -24,13 +24,39 @@
     </DataTemplate>
 
     <DataTemplate x:Key="StatsViewModel.Panel">
-        <UniformGrid Columns="4" VerticalAlignment="Center" AutomationProperties.Name="System stats"
-                     Loaded="OnViewVisible" IsVisibleChanged="OnViewVisible" DataContextChanged="OnViewVisible" Unloaded="OnViewUnloaded">
-            <ContentPresenter Content="{Binding Cpu}" ContentTemplate="{StaticResource Stats.Tile}" />
-            <ContentPresenter Content="{Binding Gpu}" ContentTemplate="{StaticResource Stats.Tile}" />
-            <ContentPresenter Content="{Binding Memory}" ContentTemplate="{StaticResource Stats.Tile}" />
-            <ContentPresenter Content="{Binding Network}" ContentTemplate="{StaticResource Stats.Tile}" />
-        </UniformGrid>
+        <StackPanel VerticalAlignment="Center"
+                    Loaded="OnViewVisible" IsVisibleChanged="OnViewVisible" DataContextChanged="OnViewVisible" Unloaded="OnViewUnloaded">
+            <UniformGrid Columns="4" AutomationProperties.Name="System stats">
+                <ContentPresenter Content="{Binding Cpu}" ContentTemplate="{StaticResource Stats.Tile}" />
+                <ContentPresenter Content="{Binding Gpu}" ContentTemplate="{StaticResource Stats.Tile}" />
+                <ContentPresenter Content="{Binding Memory}" ContentTemplate="{StaticResource Stats.Tile}" />
+                <ContentPresenter Content="{Binding Network}" ContentTemplate="{StaticResource Stats.Tile}" />
+            </UniformGrid>
+            <!-- Bluetooth batteries: one chip per connected device. -->
+            <ItemsControl ItemsSource="{Binding Devices}" AutomationProperties.Name="Bluetooth batteries">
+                <ItemsControl.ItemsPanel>
+                    <ItemsPanelTemplate><WrapPanel /></ItemsPanelTemplate>
+                </ItemsControl.ItemsPanel>
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                        <Border CornerRadius="9" Padding="10,4" Margin="0,0,6,6" Background="{DynamicResource Island.Hover}"
+                                AutomationProperties.Name="{Binding Description}">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="&#xE702;" FontFamily="{StaticResource Island.IconFont}" FontSize="11"
+                                           Foreground="{DynamicResource Island.Subtle}" VerticalAlignment="Center" Margin="0,0,6,0" />
+                                <TextBlock Text="{Binding Name}" FontSize="12" MaxWidth="160" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
+                                <TextBlock x:Name="Level" Text="{Binding Text}" FontSize="12" FontWeight="SemiBold" Margin="8,0,0,0" VerticalAlignment="Center" />
+                            </StackPanel>
+                        </Border>
+                        <DataTemplate.Triggers>
+                            <DataTrigger Binding="{Binding IsLow}" Value="True">
+                                <Setter TargetName="Level" Property="Foreground" Value="#FF9F0A" />
+                            </DataTrigger>
+                        </DataTemplate.Triggers>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+        </StackPanel>
     </DataTemplate>
 
 </ResourceDictionary>

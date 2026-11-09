@@ -6,13 +6,14 @@ namespace Atoll.Shell;
 public sealed class TrayIcon : IDisposable
 {
     private readonly TaskbarIcon _icon;
+    private readonly MenuItem _pauseItem;
 
     public TrayIcon(Action openSettings, Action<bool> setPaused, Action quit)
     {
         var settingsItem = new MenuItem { Header = "Settings" };
         settingsItem.Click += (_, _) => openSettings();
 
-        var pauseItem = new MenuItem { Header = "Hide island", IsCheckable = true };
+        var pauseItem = _pauseItem = new MenuItem { Header = "Hide island", IsCheckable = true };
         pauseItem.Click += (_, _) => setPaused(pauseItem.IsChecked);
 
         var quitItem = new MenuItem { Header = "Quit" };
@@ -44,6 +45,9 @@ public sealed class TrayIcon : IDisposable
             ? System.Drawing.Icon.ExtractIcon(exe, 0, size > 0 ? size : 16)
             : null;
     }
+
+    /// <summary>Keeps the "Hide island" check in step when the hide shortcut changes it.</summary>
+    public bool Paused { set => _pauseItem.IsChecked = value; }
 
     public void Dispose() => _icon.Dispose();
 }

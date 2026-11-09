@@ -30,7 +30,7 @@
                         <RowDefinition Height="*" />
                     </Grid.RowDefinitions>
 
-                    <DockPanel>
+                    <DockPanel Background="Transparent" MouseWheel="OnHeaderWheel">
                         <Button DockPanel.Dock="Right" Style="{StaticResource Island.IconButton}"
                                 Margin="6,0,0,0"
                                 Content="&#xE713;" ToolTip="Settings"

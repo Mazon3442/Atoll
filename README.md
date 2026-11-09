@@ -24,16 +24,20 @@ ATOLL sits at the top of your primary display as a **compact** pill that shows t
 thing happening. Hover over it or click it to **expand** it into grouped tabs, and press Escape to
 collapse it again. Each module can be turned on or off in Settings.
 
+From any app, **Ctrl+Alt+Space** opens the island ready for the keyboard and **Ctrl+Alt+H** hides or
+shows it. In the open island, Ctrl+Tab or the mouse wheel over the tabs switches sections. You can
+change both shortcuts in **Settings › General › Keyboard**.
+
 | Feature | What it does |
 | --- | --- |
-| **Agents** | Activity from Claude Code, Codex, OpenCode and Hermes, with completion and attention alerts. Codex also reads recent local session events, including sessions already running when hooks were installed. Claude Code token and cost totals come from local transcripts and are estimates at API list prices. |
+| **Agents** | Activity from Claude Code, Codex, OpenCode and Hermes, with completion and attention alerts. Codex also reads recent local session events, including sessions already running when hooks were installed. Claude Code token and cost totals come from local transcripts and are estimates at API list prices. Claude Code permission prompts can be allowed or denied from the island. Claude and Codex plan limits (5-hour and weekly) show with their reset times. With the PowerShell integration, a command that ran 10 seconds or longer pops up when it finishes while you're in another window. |
 | **API providers** | An optional local gateway for OpenAI-compatible Chat Completions/Responses and official Anthropic Messages. It shows requests in progress and local token totals. OpenAI organization usage and costs are available with an optional admin key, and DeepSeek balance with a normal key. |
-| **Media** | Pick a player in the source dropdown. Five bars take their color from its cover, adjusted for your theme. Play/pause, skip and seek when the player supports it. |
+| **Media** | Pick a player in the source dropdown. Five bars take their color from its cover, adjusted for your theme. Play/pause, skip and seek when the player supports it. Synced lyrics from lrclib.net (turn off in Settings › Modules), and an output picker to switch speakers or headphones (Windows). |
 | **Clock & timers** | Clock, countdown presets, stopwatch and Pomodoro. |
 | **Calendar** | Upcoming events from private HTTPS ICS links (Google, Outlook / Microsoft 365, ...), with pin and dismiss controls and alerts before events start. |
 | **Weather** | Open-Meteo city search, current conditions and a seven-day forecast. Hourly wind, rain and temperature charts work with the pointer and the keyboard. |
 | **Files** | A file shelf and clipboard history. History stays in memory, and private or password formats are skipped. |
-| **System** | CPU, memory and network readings, volume and battery, and quick actions: screenshot, microphone mute, lock, display off and Downloads. |
+| **System** | CPU, memory and network readings, volume and battery, and quick actions: screenshot, microphone mute, lock, display off and Downloads. Battery levels of connected Bluetooth devices (Windows). A green dot shows while an app uses the camera and an orange dot for the microphone (Windows). |
 | **Notifications** | Windows notifications mirrored into the island once you set up the package identity and allow access. |
 | **Updates** | Windows installer copies download published releases in the background and apply them on restart. |
 
@@ -66,17 +70,16 @@ appear on Windows and Linux without track details or playback controls.
 ## Install
 
 Download the package for your computer from the [latest release](https://github.com/Mazon3442/Atoll/releases/latest).
-Every package includes the .NET runtime and the agent hook executable.
+Every package includes the .NET runtime and the agent hook executable. `releases.win.json` and the `.nupkg` are
+the Windows auto-update feed; you don't need to download them.
 
 | System | Package | Install |
 | --- | --- | --- |
 | **Windows** 10 (2004+) / 11, x64 | `Atoll-win-Setup.exe` | Run the installer. It installs to your user folder, so no admin prompt. |
-| **Windows** portable | `Atoll-win-Portable.zip` | Extract the whole ZIP and run `Atoll.exe`. |
 | **macOS** 14+, Apple silicon | `Atoll-X.Y.Z-osx-arm64.dmg` | Open the disk image and drag ATOLL to Applications. |
 | **macOS** 14+, Intel | `Atoll-X.Y.Z-osx-x64.dmg` | Open the disk image and drag ATOLL to Applications. |
 | **Ubuntu** 22.04 / 24.04, x64 | `atoll_X.Y.Z_amd64.deb` | `sudo apt install ./atoll_X.Y.Z_amd64.deb` |
 | **Arch Linux**, x64 | `atoll-X.Y.Z-1-x86_64.pkg.tar.zst` | `sudo pacman -U ./atoll-X.Y.Z-1-x86_64.pkg.tar.zst` |
-| **Linux** portable, x64 | `Atoll-X.Y.Z-linux-x64.tar.gz` | Extract it and run `./Atoll`. Install the native dependencies first (see *Linux notes* below). |
 
 > [!WARNING]
 > The Windows installer isn't code-signed, and macOS bundles have only an ad-hoc signature: no
@@ -88,11 +91,11 @@ Every package includes the .NET runtime and the agent hook executable.
 
 <br>
 
-Each platform's `SHA256SUMS-*.txt` lists its package hashes.
+The release page shows each file's SHA-256 digest. Compare it with:
 
-- **Linux**: `sha256sum -c SHA256SUMS-linux-x64.txt`
-- **macOS**: `shasum -a 256 <file>` and compare the result
-- **Windows**: `Get-FileHash -Algorithm SHA256 <file>` and compare the result
+- **Linux**: `sha256sum <file>`
+- **macOS**: `shasum -a 256 <file>`
+- **Windows**: `Get-FileHash -Algorithm SHA256 <file>`
 
 </details>
 
@@ -144,10 +147,19 @@ Malformed settings files are left alone.
 | **Codex** | Command hooks in `$CODEX_HOME/hooks.json` (default `~/.codex/hooks.json`). |
 | **OpenCode** | A local plugin at `~/.config/opencode/plugins/atoll.js` (respects `XDG_CONFIG_HOME` and `OPENCODE_CONFIG_DIR`). |
 | **Hermes** | A native `atoll` plugin under `$HERMES_HOME/plugins/atoll` (default `%LocalAppData%\hermes` on Windows, `~/.hermes` elsewhere). |
+| **PowerShell** | `Documents\PowerShell\atoll-commands.ps1`, loaded by one line added to your PowerShell 7 and Windows PowerShell profiles. Remove takes the line out again. |
 
 Adapters send short activity summaries to ATOLL over a local named pipe that only your user account
-can open. They never approve, deny or change an agent's tool calls. Agents must run on the same
-computer as ATOLL.
+can open. Agents must run on the same computer as ATOLL.
+
+When Claude Code asks for permission while its terminal is in the background, the island shows
+**Allow**, **Deny** and **Terminal**. The hook waits up to 30 seconds for your choice; with no answer,
+or after **Terminal**, Claude Code asks in the terminal as usual. ATOLL only answers when you click.
+When the terminal is in front, the prompt goes straight to the terminal.
+
+Plan limits for Claude come from the same usage endpoint Claude Code's `/usage` reads, using Claude
+Code's own sign-in, sent only to `api.anthropic.com`, every 5 minutes. Codex limits come from its local
+session logs.
 
 #### Codex connection
 

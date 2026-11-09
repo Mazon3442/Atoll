@@ -84,12 +84,12 @@ public class SettingsInteractionTests
         Assert.Equal(["System", "Agents", "Media", "Files", "Notifications", "Clock & calendar", "Weather", "API keys"], vm.ModuleTabs.Select(t => t.Name));
         Assert.False(vm.ModuleTabs.Single(t => t.Id == "providers").IsShown);
         Assert.Equal(["System", "Agents", "Media", "Files", "Notifications", "Clock & calendar"], vm.ModuleTabs.Where(t => t.IsShown).Select(t => t.Name));
-        Assert.Equal(["Status popups", "Live graphs", "Quick actions"], vm.ModuleTabs[0].Features.Select(f => f.Name));
+        Assert.Equal(["Status popups", "Live graphs", "Quick actions", "Camera and mic in use"], vm.ModuleTabs[0].Features.Select(f => f.Name));
         Assert.True(vm.ModuleTabs[0].IsFirst);
 
         // Each tab's features are kept together, so the island's order is exactly the card order.
-        Assert.Equal(["system", "stats", "actions", "claude", "media", "shelf", "clipboard", "notifications", "clock", "calendar", "weather"],
-            service.Current.Modules.Take(11).Select(m => m.Id));
+        Assert.Equal(["system", "stats", "actions", "privacy", "claude", "media", "shelf", "clipboard", "notifications", "clock", "calendar", "weather"],
+            service.Current.Modules.Take(12).Select(m => m.Id));
         Assert.Same(unknown, service.Current.Modules.Last());
 
         var weather = vm.ModuleTabs.Single(t => t.Id == "weather");
@@ -105,7 +105,7 @@ public class SettingsInteractionTests
         vm.MoveTabDownCommand.Execute(system);
         Assert.Equal(3, system.Number);
         system.Features.Single(f => f.Entry.Id == "stats").Enabled = false;
-        Assert.Equal("2 of 3 on", system.Status);
+        Assert.Equal("3 of 4 on", system.Status);
         vm.MoveTab(system, 99);
         Assert.Equal(3, system.Number);
         Assert.Same(unknown, service.Current.Modules.Last());

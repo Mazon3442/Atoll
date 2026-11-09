@@ -27,8 +27,16 @@ public sealed class AgentIntegrationInstaller(string? userDirectory = null, stri
         "hermes" => Path.Combine(Home("HERMES_HOME", userDirectory is null
             ? OperatingSystem.IsWindows() ? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "hermes") : Path.Combine(_userDirectory, ".hermes")
             : Path.Combine(_userDirectory, ".hermes")), "plugins", "atoll", "__init__.py"),
+        "shell" => Path.Combine(Documents, "PowerShell", "atoll-commands.ps1"),
         _ => throw new ArgumentException("Unknown agent", nameof(agent)),
     };
+
+    private string Documents => userDirectory is null ? Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments) : Path.Combine(_userDirectory, "Documents");
+
+    /// <summary>PowerShell 7 and Windows PowerShell profiles; each dot-sources the command alert script.</summary>
+    internal IEnumerable<string> ShellProfiles => new[] { "PowerShell", "WindowsPowerShell" }.Select(d => Path.Combine(Documents, d, "Microsoft.PowerShell_profile.ps1"));
+
+    private string ProfileLine => $". '{PathFor("shell").Replace("'", "''")}' # {Marker}";
 
     private string Command(string agent) => ClaudeHookInstaller.QuoteCommand(_hookExe) + (agent == "claude" ? "" : $" --agent {agent}");
 
@@ -39,6 +47,7 @@ public sealed class AgentIntegrationInstaller(string? userDirectory = null, stri
             if (agent is "claude" or "codex")
                 return ClaudeHookInstaller.GetStatus(PathFor(agent), Command(agent),
                     agent == "claude" ? ClaudeHookInstaller.Events.Length : CodexEvents.Length) == ClaudeHookInstaller.Status.Installed;
+            if (agent == "shell" && !ShellProfiles.All(p => File.Exists(p) && File.ReadAllText(p).Contains(ProfileLine, StringComparison.Ordinal))) return false;
             return File.Exists(PathFor(agent)) && File.ReadAllText(PathFor(agent)) == Script(agent)
                 && (agent != "hermes" || File.Exists(Path.Combine(Path.GetDirectoryName(PathFor(agent))!, "plugin.yaml")));
         }
@@ -57,8 +66,9 @@ public sealed class AgentIntegrationInstaller(string? userDirectory = null, stri
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) { return false; }
     }
 
-    internal string Script(string agent) => Resource(agent == "opencode" ? "opencode.js" : "hermes.py")
-        .Replace("__ATOLL_HOOK_EXE__", JsonSerializer.Serialize(_hookExe));
+    internal string Script(string agent) => agent == "shell"
+        ? Resource("powershell.ps1").Replace("__ATOLL_HOOK_EXE__", $"'{_hookExe.Replace("'", "''")}'")
+        : Resource(agent == "opencode" ? "opencode.js" : "hermes.py").Replace("__ATOLL_HOOK_EXE__", JsonSerializer.Serialize(_hookExe));
 
     private static string Resource(string name)
     {
@@ -81,6 +91,14 @@ public sealed class AgentIntegrationInstaller(string? userDirectory = null, stri
                 }, PathFor(agent));
 
             WriteOwned(PathFor(agent), Script(agent));
+            if (agent == "shell")
+                foreach (var profile in ShellProfiles)
+                {
+                    var text = File.Exists(profile) ? File.ReadAllText(profile) : "";
+                    if (text.Contains(ProfileLine, StringComparison.Ordinal)) continue;
+                    Directory.CreateDirectory(Path.GetDirectoryName(profile)!);
+                    File.AppendAllText(profile, (text.Length == 0 || text.EndsWith('\n') ? "" : Environment.NewLine) + ProfileLine + Environment.NewLine);
+                }
             if (agent == "hermes")
             {
                 WriteOwned(Path.Combine(Path.GetDirectoryName(PathFor(agent))!, "plugin.yaml"), "# " + Marker + "\n" + Resource("hermes-plugin.yaml"));
@@ -106,6 +124,14 @@ public sealed class AgentIntegrationInstaller(string? userDirectory = null, stri
                 var error = await ToggleHermesAsync(enable: false);
                 if (error is not null) return error;
             }
+            if (agent == "shell")
+                foreach (var profile in ShellProfiles.Where(File.Exists))
+                {
+                    var lines = File.ReadAllLines(profile);
+                    var kept = lines.Where(l => !l.Contains(Marker, StringComparison.Ordinal)).ToArray();
+                    var bom = File.ReadAllBytes(profile).AsSpan().StartsWith((ReadOnlySpan<byte>)[0xEF, 0xBB, 0xBF]); // Windows PowerShell reads BOM-less files as ANSI
+                    if (kept.Length != lines.Length) File.WriteAllLines(profile, kept, new System.Text.UTF8Encoding(bom));
+                }
             DeleteOwned(PathFor(agent));
             if (agent == "hermes") DeleteOwned(Path.Combine(Path.GetDirectoryName(PathFor(agent))!, "plugin.yaml"));
             return null;
@@ -189,6 +215,7 @@ public sealed partial class AgentIntegrationRow(string agent, AgentIntegrationIn
     {
         "codex" => "Review and trust ATOLL's hooks in Codex Settings › Hooks (or /hooks in the CLI), then restart sessions. Hooks must be enabled.",
         "hermes" => "Setup enables the atoll plugin through Hermes. Restart running Hermes sessions afterward.",
+        "shell" => "Commands that run 10 seconds or longer show in the island when they finish while you're in another window. Open a new PowerShell window afterward.",
         _ => "Restart running sessions after installing or updating the adapter.",
     };
     [ObservableProperty] private string _message = "";

@@ -18,6 +18,7 @@ public partial class App : Application
     private ModuleManager? _modules;
     private IslandManager? _islands;
     private TrayIcon? _tray;
+    private HotkeyService? _hotkeys;
     private SettingsWindow? _settingsWindow;
     private int? _restartSettingsPage;
 
@@ -55,7 +56,8 @@ public partial class App : Application
         };
 
         _islands = new IslandManager(_settings, _activities, _modules, OpenSettings, Dispatcher);
-        _tray = new TrayIcon(OpenSettings, paused => _islands.Paused = paused, Shutdown);
+        _tray = new TrayIcon(OpenSettings, SetPaused, Shutdown);
+        _hotkeys = new HotkeyService(_settings, _islands.ToggleFromKeyboard, () => SetPaused(!_islands.Paused));
 
         _ = CheckUpdatesLoopAsync();
 
@@ -69,6 +71,14 @@ public partial class App : Application
     }
 
     private void OpenSettings() => OpenSettings(0);
+
+    /// <summary>Hides or shows every island; the tray item and the hide shortcut stay in step.</summary>
+    private void SetPaused(bool paused)
+    {
+        if (_islands is null || _tray is null) return;
+        _islands.Paused = paused;
+        _tray.Paused = paused;
+    }
 
     internal void RestartToSettings(int page)
     {
@@ -126,6 +136,7 @@ public partial class App : Application
 
     protected override void OnExit(ExitEventArgs e)
     {
+        _hotkeys?.Dispose();
         _tray?.Dispose();
         _islands?.Dispose();
         _modules?.Dispose();

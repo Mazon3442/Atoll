@@ -66,10 +66,23 @@
                 <TextBlock Text="{Binding Detail}" FontSize="12" Foreground="{DynamicResource Island.Subtle}"
                            TextTrimming="CharacterEllipsis" />
             </StackPanel>
-            <Button Style="{StaticResource Island.ChipButton}" Content="Open" Margin="14,0,0,0" VerticalAlignment="Center"
-                    Command="{Binding Session.FocusCommand}"
-                    Visibility="{Binding Session.CanFocus, Converter={StaticResource Island.BoolToVisibility}}"
-                    AutomationProperties.Name="Open the agent session" />
+            <Grid Margin="14,0,0,0" VerticalAlignment="Center">
+                <Button Style="{StaticResource Island.ChipButton}" Content="Open" Margin="0"
+                        Command="{Binding Session.FocusCommand}"
+                        Visibility="{Binding CanOpen, Converter={StaticResource Island.BoolToVisibility}}"
+                        AutomationProperties.Name="Open the agent session" />
+                <!-- Permission prompt: answer here, or hand it back to the terminal. -->
+                <StackPanel Orientation="Horizontal" Visibility="{Binding CanAnswer, Converter={StaticResource Island.BoolToVisibility}}">
+                    <Button Style="{StaticResource Island.ChipButton}" Content="Allow" Margin="0,0,6,0" FontWeight="SemiBold"
+                            Foreground="{StaticResource Claude.Orange}" Command="{Binding AllowCommand}"
+                            AutomationProperties.Name="{Binding Detail, StringFormat=Allow: {0}}" />
+                    <Button Style="{StaticResource Island.ChipButton}" Content="Deny" Margin="0,0,6,0" Command="{Binding DenyCommand}"
+                            AutomationProperties.Name="{Binding Detail, StringFormat=Deny: {0}}" />
+                    <Button Style="{StaticResource Island.ChipButton}" Content="Terminal" Margin="0" Command="{Binding TerminalCommand}"
+                            ToolTip="Answer in the terminal instead"
+                            AutomationProperties.Name="Answer in the terminal instead" />
+                </StackPanel>
+            </Grid>
         </StackPanel>
     </DataTemplate>
 
@@ -109,6 +122,41 @@
                     <Run Text="Claude today  " /><Run Text="{Binding Usage.TodayText, Mode=OneWay}" Foreground="{DynamicResource Island.Foreground}" />
                 </TextBlock>
             </Grid>
+
+            <!-- Plan limits, as Claude and Codex report them -->
+            <ItemsControl DockPanel.Dock="Bottom" ItemsSource="{Binding Usage.Limits}" Margin="0,8,0,0"
+                          Visibility="{Binding Usage.HasLimits, Converter={StaticResource Island.BoolToVisibility}}">
+                <ItemsControl.ItemsPanel>
+                    <ItemsPanelTemplate>
+                        <UniformGrid Columns="2" />
+                    </ItemsPanelTemplate>
+                </ItemsControl.ItemsPanel>
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                        <StackPanel Margin="0,0,12,6" AutomationProperties.Name="{Binding Name}">
+                            <DockPanel>
+                                <TextBlock DockPanel.Dock="Right" Text="{Binding ResetText}" FontSize="11" Foreground="{DynamicResource Island.Subtle}" />
+                                <TextBlock FontSize="11" Foreground="{DynamicResource Island.Subtle}" TextTrimming="CharacterEllipsis">
+                                    <Run Text="{Binding Name, Mode=OneWay}" /><Run Text="  " /><Run Text="{Binding PercentText, Mode=OneWay}" Foreground="{DynamicResource Island.Foreground}" />
+                                </TextBlock>
+                            </DockPanel>
+                            <Grid Height="3" Margin="0,4,0,0">
+                                <Border CornerRadius="1.5" Background="{DynamicResource Island.Hover}" />
+                                <Border x:Name="Fill" CornerRadius="1.5" Background="{DynamicResource Island.Accent}" RenderTransformOrigin="0,0.5">
+                                    <Border.RenderTransform>
+                                        <ScaleTransform ScaleX="{Binding Progress}" />
+                                    </Border.RenderTransform>
+                                </Border>
+                            </Grid>
+                        </StackPanel>
+                        <DataTemplate.Triggers>
+                            <DataTrigger Binding="{Binding IsHigh}" Value="True">
+                                <Setter TargetName="Fill" Property="Background" Value="{StaticResource Claude.Orange}" />
+                            </DataTrigger>
+                        </DataTemplate.Triggers>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
 
             <!-- Sessions -->
             <Grid>
