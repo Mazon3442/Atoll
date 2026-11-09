@@ -20,8 +20,10 @@ public sealed partial class SettingsViewModel
         ("notifications", "Notifications", "Windows notifications, mirrored into the island."),
         ("clock", "Timer", "The clock, countdowns, stopwatch and Pomodoro."),
         ("calendar", "Calendar", "A month view and the selected day's events."),
+        ("notes", "Notes", "Notes, quick reminders and a to-do list."),
         ("system", "System", "Device status, live graphs and quick actions."),
-        ("shelf", "Files", "Files you drop on the island and your recent copies."),
+        ("shelf", "Files", "Files you drop on the island to keep their paths handy."),
+        ("clipboard", "Clipboard", "Your recent copies, kept in memory only."),
         ("weather", "Weather", "Current conditions and a 7-day forecast."),
         ("launcher", "Launcher", "Start Menu apps and your games, one tab away."),
     ];
@@ -31,6 +33,7 @@ public sealed partial class SettingsViewModel
     {
         ["clock"] = ("Clock & timers", "Countdowns, stopwatch and Pomodoro."),
         ["calendar"] = ("Calendar", "Events from the calendars you add."),
+        ["notes"] = ("Notes", "Notes, quick reminders and a to-do list."),
         ["launcher"] = ("App launcher", "Search and open Start Menu apps."),
         ["games"] = ("Games", "Game mode, play time, your game library and a Minecraft server."),
         ["system"] = ("Status popups", "Volume, battery, network, Bluetooth, brightness and lock keys."),

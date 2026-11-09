@@ -30,11 +30,13 @@ public sealed partial class SystemPanelViewModel(Action<double> setVolume, Actio
     [ObservableProperty] private string _bluetooth = "None connected";
 
     public bool HasBattery => Battery.Length > 0;
+    public bool HasBluetooth => Bluetooth is not ("None connected" or "");
 
     /// <summary>"80%" for the header chip.</summary>
     public string BatteryShort => Battery.Split(' ')[0];
 
     partial void OnBatteryChanged(string value) { OnPropertyChanged(nameof(HasBattery)); OnPropertyChanged(nameof(BatteryShort)); }
+    partial void OnBluetoothChanged(string value) => OnPropertyChanged(nameof(HasBluetooth));
 
     partial void OnVolumeChanged(double value)
     {

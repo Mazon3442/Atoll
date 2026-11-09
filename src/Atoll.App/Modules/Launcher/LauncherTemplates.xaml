@@ -2,40 +2,13 @@
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
                     xmlns:shell="clr-namespace:Atoll.Shell">
 
-    <!-- Apps | Games switch, matching the weather metric pills. -->
-    <Style x:Key="Launcher.SegmentItem" TargetType="ListBoxItem">
-        <Setter Property="Cursor" Value="Hand" />
-        <Setter Property="FocusVisualStyle" Value="{StaticResource Island.FocusVisual}" />
-        <Setter Property="HorizontalContentAlignment" Value="Center" />
-        <Setter Property="Template">
-            <Setter.Value>
-                <ControlTemplate TargetType="ListBoxItem">
-                    <Border x:Name="Bg" CornerRadius="12" Padding="16,5" Background="Transparent">
-                        <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
-                    </Border>
-                    <ControlTemplate.Triggers>
-                        <Trigger Property="IsMouseOver" Value="True">
-                            <Setter TargetName="Bg" Property="Background" Value="{DynamicResource Island.Hover}" />
-                            <Setter Property="Foreground" Value="{DynamicResource Island.Foreground}" />
-                        </Trigger>
-                        <Trigger Property="IsSelected" Value="True">
-                            <Setter TargetName="Bg" Property="Background" Value="{DynamicResource Island.SelectedBackground}" />
-                            <Setter Property="Foreground" Value="{DynamicResource Island.SelectedForeground}" />
-                            <Setter Property="FontWeight" Value="SemiBold" />
-                        </Trigger>
-                    </ControlTemplate.Triggers>
-                </ControlTemplate>
-            </Setter.Value>
-        </Setter>
-    </Style>
-
     <DataTemplate x:Key="LauncherPanelViewModel.Panel">
         <StackPanel MinHeight="220">
             <Border Background="{DynamicResource Island.Surface}" CornerRadius="15" Padding="3"
                     HorizontalAlignment="Left" Margin="0,0,0,10"
                     Visibility="{Binding ShowSwitch, Converter={StaticResource Island.BoolToVisibility}}">
                 <ListBox ItemsSource="{Binding Sections}" SelectedIndex="{Binding SectionIndex, Mode=TwoWay}"
-                         ItemContainerStyle="{StaticResource Launcher.SegmentItem}"
+                         ItemContainerStyle="{StaticResource Island.SegmentItem}"
                          Background="Transparent" BorderThickness="0" FontSize="12"
                          Foreground="{DynamicResource Island.Subtle}"
                          ScrollViewer.HorizontalScrollBarVisibility="Disabled"

@@ -2,6 +2,7 @@ using System.Windows;
 using System.Windows.Automation.Peers;
 using System.Windows.Automation.Provider;
 using System.Windows.Controls;
+using System.Windows.Controls.Primitives;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
@@ -10,6 +11,8 @@ using Atoll.Activities;
 using Atoll.Modules;
 using Atoll.Modules.Calendar;
 using Atoll.Modules.Clock;
+using Atoll.Modules.Indicators;
+using Atoll.Modules.Stats;
 using Atoll.Settings;
 using Atoll.Shell;
 using Atoll.Theme;
@@ -66,6 +69,39 @@ internal static class CalendarUiTests
             }
         }
         VerifyIsland();
+        VerifyTabStrip();
+    }
+
+    private static void VerifyTabStrip()
+    {
+        var service = new SettingsService(new SettingsStore(Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".json")));
+        ThemeService.Apply(service.Current.Theme);
+        using var host = new ActivityHost();
+        using var manager = new ModuleManager([], host, Application.Current.Dispatcher, service);
+        var modules = PanelGroups.Combine(GroupedPanelsTests.Modules());
+        foreach (var tab in modules.Take(2)) manager.Tabs.Add(tab);
+        var island = new IslandWindow(Monitors.GetAll()[0], service, manager, _ => { });
+        try
+        {
+            var tabs = (ListBox)island.FindName("Tabs");
+            var menu = (ListBox)island.FindName("TabMenu");
+            var button = (Button)island.FindName("TabMenuButton");
+
+            Assert.Equal(Visibility.Collapsed, button.Visibility);
+            Assert.Empty(menu.Items);
+            Assert.Equal(2, tabs.Items.Count);
+
+            foreach (var tab in modules.Skip(2)) manager.Tabs.Add(tab);
+
+            Assert.Equal(Visibility.Visible, button.Visibility);
+            var visible = tabs.Items.Cast<ModuleTab>().ToList();
+            var overflow = menu.Items.Cast<ModuleTab>().ToList();
+            Assert.Equal(6, visible.Count);
+            Assert.Equal(modules.Count, visible.Count + overflow.Count);
+            Assert.Empty(visible.Intersect(overflow));
+            Assert.True(overflow.Count > 0);
+        }
+        finally { island.Close(); }
     }
 
     private static void VerifyIsland()
@@ -74,7 +110,12 @@ internal static class CalendarUiTests
         ThemeService.Apply(service.Current.Theme);
         using var host = new ActivityHost();
         using var manager = new ModuleManager([], host, Application.Current.Dispatcher, service);
-        foreach (var tab in PanelGroups.Combine(GroupedPanelsTests.Modules())) manager.Tabs.Add(tab);
+        var modules = GroupedPanelsTests.Modules();
+        var sound = (SystemPanelViewModel)modules.Single(m => m.Descriptor.Id == "system").Panel;
+        var stats = (StatsViewModel)modules.Single(m => m.Descriptor.Id == "stats").Panel;
+        sound.Bluetooth = "Headphones";
+        stats.Devices.Add(new DeviceBattery("Headphones", 80));
+        foreach (var tab in PanelGroups.Combine(modules)) manager.Tabs.Add(tab);
         var monitor = Monitors.GetAll()[0];
         var island = new IslandWindow(monitor, service, manager, _ => { });
         try
@@ -92,6 +133,19 @@ internal static class CalendarUiTests
             ]);
             island.Show();
             island.UpdateLayout();
+            var bluetooth = (Button)island.FindName("BluetoothButton");
+            Assert.Equal(Visibility.Visible, bluetooth.Visibility);
+            bluetooth.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+            var bluetoothPopup = (Popup)island.FindName("BluetoothPopup");
+            Assert.True(bluetoothPopup.IsOpen);
+            if (bluetoothPopup.Child is FrameworkElement popupRoot)
+            {
+                popupRoot.Measure(new Size(260, 400));
+                popupRoot.Arrange(new Rect(0, 0, 260, 400));
+                popupRoot.UpdateLayout();
+                Render(popupRoot, "bluetooth-popup");
+            }
+            bluetoothPopup.IsOpen = false;
             var pill = (PillBorder)island.FindName("Pill");
             var bubble = (PillBorder)island.FindName("Bubble");
             var second = (PillBorder)island.FindName("Bubble2");

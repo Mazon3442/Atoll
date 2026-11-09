@@ -53,7 +53,7 @@ internal static class PanelGroups
     internal static string TabId(string id) => id switch
     {
         "agents" => "claude",
-        "files" or "clipboard" => "shelf",
+        "files" => "shelf",
         "stats" or "actions" or "privacy" => "system",
         "games" => "launcher",
         _ => id,
@@ -75,7 +75,8 @@ internal static class PanelGroups
                 "clock" => ("Timer", Panel<ClockPanelViewModel>("clock")!),
                 "calendar" => ("Calendar", Panel<CalendarViewModel>("calendar")!),
                 "launcher" => ("Launcher", new LauncherPanelViewModel(Panel<LauncherViewModel>("launcher"), Panel<GameViewModel>("games"))),
-                "shelf" => ("Files", new FilesPanelViewModel(Panel<ShelfViewModel>("shelf"), Panel<ClipboardViewModel>("clipboard"))),
+                "shelf" => ("Files", Panel<ShelfViewModel>("shelf")!),
+                "clipboard" => ("Clipboard", Panel<ClipboardViewModel>("clipboard")!),
                 "system" => ("System", new SystemGroupViewModel(Panel<SystemPanelViewModel>("system"), Panel<StatsViewModel>("stats"),
                     Panel<QuickActionsViewModel>("actions"), Panel<MediaViewModel>("media") is null ? Panel<SystemPanelViewModel>("system") : null)),
                 _ => (module.Descriptor.Name, module.Panel),

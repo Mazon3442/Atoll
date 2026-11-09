@@ -657,7 +657,7 @@
                             <CheckBox Style="{StaticResource Toggle}" IsChecked="{Binding ShowLyrics}" AutomationProperties.Name="Show synced lyrics" />
                         </s:SettingCard>
 
-                        <TextBlock Style="{StaticResource SectionHeader}" Text="Clipboard and shelf" />
+                        <TextBlock Style="{StaticResource SectionHeader}" Text="Clipboard and files" />
                         <s:SettingCard Glyph="&#xE72E;" Header="Privacy"
                                        Description="Clipboard history stays in memory and is cleared when ATOLL closes. Copies from password managers are skipped. The shelf stores file locations only, never the files." />
                     </StackPanel>

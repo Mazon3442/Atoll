@@ -203,6 +203,13 @@ internal static class AgentMediaUi
         game.Library.Add(new("Minecraft Launcher", "Minecraft", "x")); game.Library.Add(new("Dota 2", "Steam", "x")); game.HasLibrary = true;
         Render(game, "GameViewModel.Compact", "game-overlay", 420, 24);
         Render(game, "GameViewModel.Panel", "games-panel", 640, 210);
+        var launcher = new Atoll.Modules.Launcher.LauncherViewModel(System.Windows.Threading.Dispatcher.CurrentDispatcher);
+        launcher.SetAppsForTest([
+            new("Visual Studio Code", @"C:\ProgramData\Microsoft\Windows\Start Menu\Programs\Visual Studio Code.lnk", "Development"),
+            new("Spotify", @"C:\Users\mason\AppData\Roaming\Microsoft\Windows\Start Menu\Programs\Spotify.lnk", "Music"),
+            new("Steam", @"C:\ProgramData\Microsoft\Windows\Start Menu\Programs\Steam.lnk", "Games"),
+        ]);
+        Render(new Atoll.Modules.LauncherPanelViewModel(launcher, game), "LauncherPanelViewModel.Panel", "launcher-panel", 640, 360);
         var timer = new Atoll.Modules.Clock.TimerViewModel(TimeProvider.System);
         var calendar = new Atoll.Modules.Calendar.CalendarViewModel(() => { }) { HasSources = true, HasEvents = true };
         var today = DateTime.Today;
@@ -227,6 +234,18 @@ internal static class AgentMediaUi
         var home = new Atoll.Modules.Home.HomeViewModel(media, null, new Atoll.Modules.Clock.ClockPanelViewModel(new Atoll.Modules.Clock.ClockViewModel(), timer),
             calendar, game, new HomeSettings());
         Render(home, "HomeViewModel.Panel", "home-panel", 640, 300);
+
+        var notesSettings = new NotesSettings();
+        notesSettings.Notes.Add(new NoteItem { Text = "Ship the calendar update", Updated = DateTimeOffset.Now.AddMinutes(-20) });
+        notesSettings.Reminders.Add(new ReminderItem { Title = "Standup", Due = DateTimeOffset.Now.AddMinutes(10) });
+        notesSettings.Todos.Add(new TodoItem { Text = "Review release notes" });
+        notesSettings.Todos.Add(new TodoItem { Text = "Reply to Sam", Done = true });
+        var notes = new Atoll.Modules.Notes.NotesViewModel(notesSettings, () => { });
+        Render(notes, "NotesViewModel.Panel", "notes-panel", 640, 380);
+        notes.SectionIndex = 1;
+        Render(notes, "NotesViewModel.Panel", "notes-reminders", 640, 380);
+        notes.SectionIndex = 2;
+        Render(notes, "NotesViewModel.Panel", "notes-todos", 640, 380);
     }
 
     private static void Render(object vm, string key, string name, double width, double height = 60)

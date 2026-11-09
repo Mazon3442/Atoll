@@ -29,6 +29,7 @@ public static class ModuleCatalog
         new("notifications", "Notifications", "", () => new NotificationsModule()),
         new("clock", "Clock & timer", "", () => new ClockModule()),
         new("calendar", "Calendar", "\uE787", () => new CalendarModule()),
+        new("notes", "Notes", "\uE70B", () => new Notes.NotesModule()),
         new("system", "System", "", () => new IndicatorsModule()),
         new("shelf", "File shelf", "", () => new ShelfModule()),
         new("clipboard", "Clipboard history", "", () => new ClipboardModule()),

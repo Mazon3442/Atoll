@@ -1,3 +1,4 @@
+using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Windows;
 using System.Windows.Automation;
@@ -40,6 +41,7 @@ public partial class IslandWindow : Window
     private const double PassThroughOpacity = 0.25;
     private const double SideChipWidth = 118;
     private const double SideChipGap = 4;
+    private const int MaxVisibleTabs = 6;
 
     private readonly SettingsService _settings;
     private readonly ModuleManager _modules;
@@ -64,10 +66,14 @@ public partial class IslandWindow : Window
     private Activity? _primary;
     private IReadOnlyList<Activity> _sideActivities = [];
     private readonly SideChipViewModel?[] _sideChips = new SideChipViewModel?[4];
+    private readonly ObservableCollection<ModuleTab> _visibleTabs = [];
+    private readonly ObservableCollection<ModuleTab> _overflowTabs = [];
+    private bool _refreshingTabs;
     private Rect _peekAnchor = Rect.Empty;
     private object? _shownContent;
     private string? _shownTemplateMode;
     private INotifyPropertyChanged? _watched;
+    private INotifyPropertyChanged? _watchedPanel;
     private bool _renderQueued;
     private (double W, double H, double R) _target = (-1, -1, -1);
 
@@ -111,17 +117,20 @@ public partial class IslandWindow : Window
         _glassTimer = new DispatcherTimer(DispatcherPriority.Background) { Interval = TimeSpan.FromMilliseconds(120) };
         _glassTimer.Tick += (_, _) => SampleGlass();
 
-        Tabs.ItemsSource = modules.Tabs;
+        Tabs.ItemsSource = _visibleTabs;
+        TabMenu.ItemsSource = _overflowTabs;
         // The header's status chips use the System group's sound, battery and quick actions.
         void BindStatus() => StatusChips.DataContext = modules.Tabs.Select(t => t.Panel).OfType<SystemGroupViewModel>().FirstOrDefault();
-        modules.Tabs.CollectionChanged += (_, _) => { BindStatus(); _headerWidth = 0; };
+        modules.Tabs.CollectionChanged += (_, _) => { BindStatus(); _headerWidth = 0; RefreshTabStrip(); };
         BindStatus();
         Tabs.SelectionChanged += (_, _) =>
         {
+            if (_refreshingTabs) return;
             if (Tabs.SelectedItem is { } selected) Tabs.ScrollIntoView(selected); // a narrow island scrolls the tab bar
             ShowSelectedTab();
             if (_mode == IslandMode.Expanded) Render();
         };
+        RefreshTabStrip();
 
         Pill.MouseLeftButtonUp += (_, e) =>
         {
@@ -184,6 +193,7 @@ public partial class IslandWindow : Window
         Closed += (_, _) =>
         {
             Watch(null);
+            WatchPanel(null);
             _pointer.Stop();
             _edgeTimer.Stop();
             _hint?.Close();
@@ -324,6 +334,58 @@ public partial class IslandWindow : Window
         else Keyboard.Focus(Tabs);
     }
 
+    /// <summary>
+    /// Keeps the header to a readable size. The overflow menu only contains sections that are not
+    /// already in the visible strip; when everything fits, the three-dot button disappears.
+    /// </summary>
+    private void RefreshTabStrip(ModuleTab? prefer = null)
+    {
+        if (_refreshingTabs) return;
+        _refreshingTabs = true;
+        try
+        {
+            var all = _modules.Tabs.ToList();
+            var selected = prefer ?? Tabs.SelectedItem as ModuleTab ?? all.FirstOrDefault();
+            var visible = new List<ModuleTab>();
+            if (all.Count <= MaxVisibleTabs) visible.AddRange(all);
+            else
+            {
+                if (selected is not null) visible.Add(selected);
+                foreach (var tab in all)
+                {
+                    if (visible.Count >= MaxVisibleTabs) break;
+                    if (!visible.Contains(tab)) visible.Add(tab);
+                }
+                visible.Sort((a, b) => all.IndexOf(a).CompareTo(all.IndexOf(b)));
+            }
+            var overflow = all.Where(tab => !visible.Contains(tab)).ToList();
+
+            if (!_visibleTabs.SequenceEqual(visible))
+            {
+                _visibleTabs.Clear();
+                foreach (var tab in visible) _visibleTabs.Add(tab);
+            }
+            if (!_overflowTabs.SequenceEqual(overflow))
+            {
+                _overflowTabs.Clear();
+                foreach (var tab in overflow) _overflowTabs.Add(tab);
+                TabMenu.SelectedItem = null;
+            }
+            var hasOverflow = overflow.Count > 0;
+            TabMenuButton.Visibility = hasOverflow ? Visibility.Visible : Visibility.Collapsed;
+            if (!hasOverflow) TabMenuPopup.IsOpen = false;
+            if (selected is not null && !ReferenceEquals(Tabs.SelectedItem, selected)) Tabs.SelectedItem = selected;
+            if (selected is not null) Tabs.ScrollIntoView(selected);
+            ShowSelectedTab();
+            _headerWidth = 0;
+            if (_mode == IslandMode.Expanded) Render();
+        }
+        finally
+        {
+            _refreshingTabs = false;
+        }
+    }
+
     /// <summary>Moves between tabs. The wheel stops at the ends; Ctrl+Tab wraps around, as in browsers.</summary>
     internal void StepTab(int delta, bool wrap)
     {
@@ -334,24 +396,52 @@ public partial class IslandWindow : Window
         if (Tabs.IsKeyboardFocusWithin) FocusSelectedTab();
     }
 
+    private void OnBluetoothClick(object sender, RoutedEventArgs e) => BluetoothPopup.IsOpen = !BluetoothPopup.IsOpen;
+
     private void OnTabMenuClick(object sender, RoutedEventArgs e) => TabMenuPopup.IsOpen = !TabMenuPopup.IsOpen;
 
-    private void OnTabMenuOpened(object? sender, EventArgs e) =>
-        Dispatcher.BeginInvoke(DispatcherPriority.Input, new Action(() => TabMenu.Focus()));
-
-    private void OnTabMenuSelectionChanged(object sender, SelectionChangedEventArgs e)
+    private void OnTabMenuOpened(object? sender, EventArgs e)
     {
-        if (!TabMenuPopup.IsOpen || TabMenu.SelectedItem is null) return;
-        TabMenuPopup.IsOpen = false;
-        if (_mode == IslandMode.Expanded) FocusSelectedTab();
+        TabMenu.SelectedItem = null;
+        Dispatcher.BeginInvoke(DispatcherPriority.Input, new Action(() => TabMenu.Focus()));
+    }
+
+    private void OnTabMenuClickItem(object sender, MouseButtonEventArgs e)
+    {
+        if (e.OriginalSource is not DependencyObject source) return;
+        if (TabMenu.ContainerFromElement(source) is not ListBoxItem { Content: ModuleTab tab }) return;
+        ActivateTab(tab);
+        e.Handled = true;
     }
 
     private void OnTabMenuKeyDown(object sender, KeyEventArgs e)
     {
-        if (e.Key != Key.Escape) return;
+        if ((e.Key is Key.Enter or Key.Space) && TabMenu.SelectedItem is ModuleTab tab)
+        {
+            ActivateTab(tab);
+            e.Handled = true;
+        }
+        else if (e.Key == Key.Escape)
+        {
+            TabMenuPopup.IsOpen = false;
+            TabMenuButton.Focus();
+            e.Handled = true;
+        }
+    }
+
+    private void ActivateTab(ModuleTab tab)
+    {
         TabMenuPopup.IsOpen = false;
-        TabMenuButton.Focus();
-        e.Handled = true;
+        RefreshTabStrip(tab);
+        Tabs.SelectedItem = tab;
+        Tabs.ScrollIntoView(tab);
+        ShowSelectedTab();
+        if (_mode == IslandMode.Expanded)
+        {
+            Render();
+            FocusSelectedTab();
+        }
+        TabMenu.SelectedItem = null;
     }
 
     private void OnHeaderWheel(object sender, MouseWheelEventArgs e)
@@ -514,6 +604,7 @@ public partial class IslandWindow : Window
     private void SetMode(IslandMode mode, string? moduleId = null)
     {
         TabMenuPopup.IsOpen = false;
+        BluetoothPopup.IsOpen = false;
         // Keep the original hover region while the pill grows and pushes side activities away.
         _peekAnchor = mode == IslandMode.Peek && _mode != IslandMode.Peek ? IslandBounds() : Rect.Empty;
         if (mode == IslandMode.Expanded)
@@ -524,6 +615,7 @@ public partial class IslandWindow : Window
             var tab = moduleId is null ? null : _modules.Tabs.FirstOrDefault(t => t.Contains(moduleId));
             if (tab is not null)
             {
+                RefreshTabStrip(tab);
                 Tabs.SelectedItem = tab;
                 // Opening from a game activity should land on the Launcher's Games section.
                 if (tab.Panel is LauncherPanelViewModel launcher && moduleId is "games" or "launcher")
@@ -771,7 +863,7 @@ public partial class IslandWindow : Window
         {
             var expandedWidth = Math.Max(Math.Clamp(t.ExpandedWidth, 320, 900), HeaderWidth()); // every tab fits without scrolling
             var expandedHeight = Math.Clamp(t.ExpandedHeight, 140, 600);
-            if (Tabs.SelectedItem is ModuleTab { Panel: MediaPanelViewModel or SystemGroupViewModel or Atoll.Modules.Weather.WeatherViewModel or Atoll.Modules.Home.HomeViewModel or Atoll.Modules.Games.GameViewModel or Atoll.Modules.Calendar.CalendarViewModel or LauncherPanelViewModel })
+            if (Tabs.SelectedItem is ModuleTab { Panel: MediaPanelViewModel or SystemGroupViewModel or Atoll.Modules.Weather.WeatherViewModel or Atoll.Modules.Home.HomeViewModel or Atoll.Modules.Games.GameViewModel or Atoll.Modules.Calendar.CalendarViewModel or Atoll.Modules.Notes.NotesViewModel or LauncherPanelViewModel })
                 expandedHeight = Math.Max(expandedHeight, FittedPanelHeight(expandedWidth)); // show all of it
             expandedHeight = Math.Min(expandedHeight, AvailablePanelHeight);
             // Lay out at the destination size, so opening the pill cannot create transient overflow.
@@ -904,14 +996,33 @@ public partial class IslandWindow : Window
         });
     }
 
+    private void WatchPanel(object? panel)
+    {
+        if (ReferenceEquals(_watchedPanel, panel)) return;
+        if (_watchedPanel is not null) _watchedPanel.PropertyChanged -= OnPanelPropertyChanged;
+        _watchedPanel = panel as INotifyPropertyChanged;
+        if (_watchedPanel is not null) _watchedPanel.PropertyChanged += OnPanelPropertyChanged;
+    }
+
+    private void OnPanelPropertyChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        // Notes, Launcher and similar panels change height when their section changes.
+        if (e.PropertyName is not (nameof(LauncherPanelViewModel.SectionIndex) or nameof(Atoll.Modules.Notes.NotesViewModel.SectionIndex))) return;
+        Dispatcher.BeginInvoke(DispatcherPriority.Background, new Action(() =>
+        {
+            if (_mode == IslandMode.Expanded) Render();
+        }));
+    }
+
     private void ShowSelectedTab()
     {
         if (Tabs.SelectedItem is not ModuleTab tab)
         {
             if (Tabs.Items.Count > 0) Tabs.SelectedIndex = 0; // raises SelectionChanged again
-            else PanelBody.Content = null;
+            else { WatchPanel(null); PanelBody.Content = null; }
             return;
         }
+        WatchPanel(tab.Panel);
         if (ReferenceEquals(PanelBody.Content, tab.Panel)) return;
         PanelBody.Content = null;
         PanelBody.ContentTemplate = Templates.Find(this, tab.Panel, "Panel");
@@ -941,7 +1052,7 @@ public partial class IslandWindow : Window
         "claude" or "providers" => 4,
         "calendar" => 5,
         "weather" => 6,
-        "clock" or "launcher" => 2,
+        "clock" or "launcher" or "shelf" or "clipboard" or "notes" => 2,
         _ => 0,
     };
 

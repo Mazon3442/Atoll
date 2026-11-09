@@ -23,8 +23,8 @@
 ATOLL sits at the top of your primary display as a **compact** pill that shows the most important
 thing happening. Up to four other live activities sit in small tinted capsules beside it. Hover over
 it or click it to **expand** it into tabs, and press Escape to collapse it again. The **...** button
-in the header lists every section when you don't want to hunt across the tab strip. Each module can
-be turned on or off in Settings.
+in the header lists the sections that don't fit in the visible tab strip; it disappears when every
+section is already there. Each module can be turned on or off in Settings.
 
 From any app, **Ctrl+Alt+Space** opens the island ready for the keyboard and **Ctrl+Alt+H** hides or
 shows it. In the open island, Ctrl+Tab or the mouse wheel over the tabs switches sections. You can
@@ -37,11 +37,13 @@ change both shortcuts in **Settings › General › Keyboard**.
 | **Media** | Pick a player in the source dropdown. Five bars take their color from its cover, adjusted for your theme. Play/pause, skip and seek when the player supports it. Synced lyrics from lrclib.net (turn off in Settings › Modules), and an output picker to switch speakers or headphones (Windows). |
 | **Clock & timers** | Clock, countdown presets, stopwatch and Pomodoro. |
 | **Calendar** | A month grid with colored event dots and a selected-day agenda from private HTTPS ICS links (Google, Outlook / Microsoft 365, ...). Join meeting links, pin or dismiss events, and get alerts before they start. Clicking a day on Home opens the same calendar on that date. |
+| **Notes** | Quick notes, one-off reminders and a to-do list in one tab. Reminders pop up in the island when they are due. |
 | **Home** | A dashboard: now playing, weather, timer, an interactive month and what's next today. Choose the cards in Settings › Modules › Home. |
 | **Launcher** | Start Menu apps with search, plus a Games section with game mode, play time, CPU, GPU and GPU temperature (NVIDIA), or the island stays hidden. Notifications go quiet. Starts Steam, Epic and Minecraft games, and shows a Minecraft Java server's players and ping (Windows). |
 | **Weather** | Open-Meteo city search, current conditions and a seven-day forecast. Hourly wind, rain and temperature charts cover the whole day and work with the pointer and the keyboard. |
-| **Files** | A file shelf and clipboard history. History stays in memory, and private or password formats are skipped. |
-| **System** | CPU, memory and network readings, volume and battery, and quick actions: screenshot, microphone mute, lock, display off and Downloads. Battery levels of connected Bluetooth devices (Windows). A green dot shows while an app uses the camera and an orange dot for the microphone (Windows). |
+| **Files** | A file shelf: drop files on the island to keep their paths handy without copying the files. |
+| **Clipboard** | Your recent copies, kept in memory only. Private and password formats are skipped. |
+| **System** | CPU, memory and network readings, volume and battery, and quick actions: screenshot, microphone mute, lock, display off and Downloads. A Bluetooth button in the header lists connected devices and their battery levels (Windows). A green dot shows while an app uses the camera and an orange dot for the microphone (Windows). |
 | **Notifications** | Windows notifications mirrored into the island once you set up the package identity and allow access. |
 | **Updates** | Windows installer copies download published releases in the background and apply them on restart. |
 
@@ -51,7 +53,7 @@ change both shortcuts in **Settings › General › Keyboard**.
 | --- | :---: | :---: | :---: |
 | Agents, API gateway, clock, calendar, weather, file shelf | ✅ | ✅ | ✅ |
 | Clipboard history | ✅ | ✅ | ✅ ¹ |
-| Launcher and Games | ✅ | ➖ | ➖ |
+| Notes, Launcher and Games | ✅ | ➖ | ➖ |
 | Media sources | Any player | Music, Spotify ² | MPRIS via `playerctl` |
 | Live audio bars | ✅ ³ | Cover color only | Cover color only |
 | Volume and battery | ✅ | ✅ | PulseAudio / PipeWire |
@@ -248,6 +250,24 @@ to step through the hours. Rain timing is a forecast, not an alert service.
 The **Launcher** tab has two sections. **Apps** searches your Start Menu and opens a shortcut with
 one click; **Games** holds the game library, the current session and the Minecraft server (Windows).
 Use the refresh button in Apps if you install something while ATOLL is open.
+
+### Notes
+
+The **Notes** tab has three sections. **Notes** keeps quick text notes, **Reminders** sets a one-off
+reminder with 10-minute to 3-hour presets or tomorrow morning, and **To-do** is a simple checklist.
+Reminders pop up in the island when they are due. Notes, reminders and to-dos are stored in ATOLL's
+settings file.
+
+### Files and clipboard
+
+The **Files** tab is the file shelf: drag files onto the island and their paths stay here. The
+**Clipboard** tab keeps recent copies in memory only. They are separate tabs and separate switches
+in Settings › Modules.
+
+### Bluetooth
+
+The Bluetooth button at the right of the open island lists connected Bluetooth devices. When Live
+graphs is on in Settings › Modules › System, each device also shows its battery level.
 
 ### Windows notifications
 

@@ -45,6 +45,7 @@ public class GroupedPanelsTests
             ["notifications"] = new object(),
             ["clock"] = new ClockPanelViewModel(clock, new TimerViewModel(TimeProvider.System)),
             ["calendar"] = new CalendarViewModel(() => { }),
+            ["notes"] = new Atoll.Modules.Notes.NotesViewModel(new Atoll.Settings.NotesSettings(), () => { }),
             ["system"] = sound,
             ["shelf"] = new ShelfViewModel(_ => { }, () => { }),
             ["clipboard"] = new ClipboardViewModel(new ClipboardHistory()),
@@ -63,7 +64,7 @@ public class GroupedPanelsTests
     {
         var modules = Modules();
         var tabs = PanelGroups.Combine(modules);
-        Assert.Equal(["claude", "providers", "media", "notifications", "clock", "calendar", "system", "shelf", "weather", "launcher"],
+        Assert.Equal(["claude", "providers", "media", "notifications", "clock", "calendar", "notes", "system", "shelf", "clipboard", "weather", "launcher"],
             tabs.Select(t => t.Descriptor.Id));
         Assert.Equal(tabs, PanelGroups.Combine(modules));
         foreach (var module in modules)
@@ -77,7 +78,10 @@ public class GroupedPanelsTests
     [Theory]
     [InlineData("clock", 2)]
     [InlineData("calendar", 5)]
+    [InlineData("notes", 2)]
     [InlineData("launcher", 2)]
+    [InlineData("shelf", 2)]
+    [InlineData("clipboard", 2)]
     [InlineData("claude", 4)]
     [InlineData("providers", 4)]
     [InlineData("notifications", 3)]
@@ -94,9 +98,8 @@ public class GroupedPanelsTests
         var tabs = PanelGroups.Combine(modules);
         Assert.NotNull(Assert.IsType<SystemGroupViewModel>(tabs.Single(t => t.Contains("system")).Panel).Sound);
         Assert.IsType<CalendarViewModel>(tabs.Single(t => t.Contains("calendar")).Panel);
-        var files = Assert.IsType<FilesPanelViewModel>(tabs.Single(t => t.Contains("clipboard")).Panel);
-        Assert.Null(files.Shelf);
-        Assert.NotNull(files.Clipboard);
+        Assert.NotNull(Assert.IsType<ClipboardViewModel>(tabs.Single(t => t.Contains("clipboard")).Panel));
+        Assert.DoesNotContain(tabs, t => t.Contains("shelf"));
     }
 
     // Runs on the existing WPF test's STA thread; WPF permits one Application per test process.
@@ -108,7 +111,8 @@ public class GroupedPanelsTests
             "Modules/Clock/ClockTemplates.xaml", "Modules/Media/MediaTemplates.xaml", "Modules/Notifications/NotificationTemplates.xaml",
             "Modules/Shelf/ShelfTemplates.xaml", "Modules/Clipboard/ClipboardTemplates.xaml", "Modules/Stats/StatsTemplates.xaml",
             "Modules/Weather/WeatherTemplates.xaml", "Modules/Indicators/IndicatorsTemplates.xaml", "Modules/Calendar/CalendarTemplates.xaml",
-            "Modules/Games/GamesTemplates.xaml", "Modules/Launcher/LauncherTemplates.xaml", "Modules/GroupedTemplates.xaml" })
+            "Modules/Games/GamesTemplates.xaml", "Modules/Launcher/LauncherTemplates.xaml", "Modules/Notes/NotesTemplates.xaml",
+            "Modules/GroupedTemplates.xaml" })
             resources.MergedDictionaries.Add(new ResourceDictionary { Source = new Uri("/Atoll;component/" + file, UriKind.Relative) });
         var modules = Modules();
         var panels = PanelGroups.Combine(modules).Where(t => t.Panel.GetType() != typeof(object))

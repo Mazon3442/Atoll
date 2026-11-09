@@ -1,3 +1,8 @@
+using System.Globalization;
+using System.Text.Json.Serialization;
+using Atoll.Modules.Calendar;
+using CommunityToolkit.Mvvm.ComponentModel;
+
 namespace Atoll.Settings;
 
 public enum MonitorMode
@@ -94,6 +99,8 @@ public sealed class AppSettings
     public WeatherSettings Weather { get; set; } = new();
 
     public CalendarSettings Calendar { get; set; } = new();
+
+    public NotesSettings Notes { get; set; } = new();
 
     /// <summary>List order = tab order in the expanded panel.</summary>
     public List<ModuleEntry> Modules { get; set; } = [];
@@ -233,4 +240,62 @@ public sealed class ModuleEntry
 {
     public string Id { get; set; } = "";
     public bool Enabled { get; set; } = true;
+}
+
+/// <summary>Notes, one-off reminders and a small to-do list, kept with the rest of the settings.</summary>
+public sealed class NotesSettings
+{
+    public List<NoteItem> Notes { get; set; } = [];
+    public List<ReminderItem> Reminders { get; set; } = [];
+    public List<TodoItem> Todos { get; set; } = [];
+}
+
+public sealed partial class NoteItem : ObservableObject
+{
+    public string Id { get; set; } = Guid.NewGuid().ToString("N");
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(UpdatedText))]
+    private string _text = "";
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(UpdatedText))]
+    private DateTimeOffset _updated = DateTimeOffset.Now;
+
+    [JsonIgnore]
+    public string UpdatedText => Updated.LocalDateTime.ToString("MMM d, h:mm tt", CultureInfo.CurrentCulture);
+}
+
+public sealed partial class ReminderItem : ObservableObject
+{
+    public string Id { get; set; } = Guid.NewGuid().ToString("N");
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsOverdue))]
+    private string _title = "";
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(DueText), nameof(IsOverdue))]
+    private DateTimeOffset _due = DateTimeOffset.Now;
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(DueText), nameof(IsOverdue))]
+    private bool _done;
+
+    [JsonIgnore] public string DueText => Done ? "Done" : IcsCalendar.Relative(Due, DateTimeOffset.Now);
+    [JsonIgnore] public bool IsOverdue => !Done && Due <= DateTimeOffset.Now;
+
+    internal void RefreshTime()
+    {
+        OnPropertyChanged(nameof(DueText));
+        OnPropertyChanged(nameof(IsOverdue));
+    }
+}
+
+public sealed partial class TodoItem : ObservableObject
+{
+    public string Id { get; set; } = Guid.NewGuid().ToString("N");
+
+    [ObservableProperty] private string _text = "";
+    [ObservableProperty] private bool _done;
 }
