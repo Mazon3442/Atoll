@@ -23,6 +23,9 @@ public sealed class SettingsStoreTests : IDisposable
         var s = new AppSettings { MonitorMode = MonitorMode.All, TopOffset = 12 };
         s.Theme.Accent = "#FF00FF";
         s.Modules.Add(new ModuleEntry { Id = "clock", Enabled = false });
+        s.Games.ShowPerformance = false;
+        s.Games.ScanEpic = false;
+        s.Games.ServerRefreshSeconds = 120;
         store.Save(s);
 
         var loaded = store.Load();
@@ -31,6 +34,9 @@ public sealed class SettingsStoreTests : IDisposable
         Assert.Equal(12, loaded.TopOffset);
         Assert.Equal("#FF00FF", loaded.Theme.Accent);
         Assert.False(Assert.Single(loaded.Modules).Enabled);
+        Assert.False(loaded.Games.ShowPerformance);
+        Assert.False(loaded.Games.ScanEpic);
+        Assert.Equal(120, loaded.Games.ServerRefreshSeconds);
         Assert.Contains("\"All\"", File.ReadAllText(FilePath)); // enums stored as names
     }
 

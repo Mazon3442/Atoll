@@ -81,20 +81,20 @@ public class SettingsInteractionTests
 
         // One card per tab, placed where the island puts it: at its first switched-on feature.
         // API keys is new to these saved settings, so it is added switched off at the end.
-        Assert.Equal(["System", "Agents", "Media", "Files", "Notifications", "Clock & calendar", "Games", "Weather", "API keys"], vm.ModuleTabs.Select(t => t.Name));
+        Assert.Equal(["System", "Agents", "Media", "Clipboard", "Notifications", "Timer", "Calendar", "Files", "Notes", "Launcher", "Weather", "API keys"], vm.ModuleTabs.Select(t => t.Name));
         Assert.False(vm.ModuleTabs.Single(t => t.Id == "providers").IsShown);
-        Assert.Equal(["System", "Agents", "Media", "Files", "Notifications", "Clock & calendar", "Games"], vm.ModuleTabs.Where(t => t.IsShown).Select(t => t.Name));
+        Assert.Equal(["System", "Agents", "Media", "Clipboard", "Notifications", "Timer", "Calendar", "Files", "Notes", "Launcher"], vm.ModuleTabs.Where(t => t.IsShown).Select(t => t.Name));
         Assert.Equal(["Status popups", "Live graphs", "Quick actions", "Camera and mic in use"], vm.ModuleTabs[0].Features.Select(f => f.Name));
         Assert.True(vm.ModuleTabs[0].IsFirst);
 
         // Each tab's features are kept together, so the island's order is exactly the card order.
-        Assert.Equal(["system", "stats", "actions", "privacy", "claude", "media", "shelf", "clipboard", "notifications", "clock", "calendar", "games", "weather"],
-            service.Current.Modules.Take(13).Select(m => m.Id));
+        Assert.Equal(["system", "stats", "actions", "privacy", "claude", "media", "clipboard", "notifications", "clock", "calendar", "shelf", "notes", "launcher", "games", "weather", "providers"],
+            service.Current.Modules.Take(16).Select(m => m.Id));
         Assert.Same(unknown, service.Current.Modules.Last());
 
         var weather = vm.ModuleTabs.Single(t => t.Id == "weather");
         Assert.False(weather.IsShown);
-        Assert.StartsWith("Not in the island", weather.Status);
+        Assert.StartsWith("Off", weather.Status);
         vm.MoveTab(weather, 0);
         Assert.Same(weather, vm.ModuleTabs[0]);
         Assert.Equal(["weather", "system", "stats", "actions"], service.Current.Modules.Take(4).Select(m => m.Id));
@@ -105,10 +105,96 @@ public class SettingsInteractionTests
         vm.MoveTabDownCommand.Execute(system);
         Assert.Equal(3, system.Number);
         system.Features.Single(f => f.Entry.Id == "stats").Enabled = false;
-        Assert.Equal("3 of 4 on", system.Status);
+        // System's features are not bookmarked by default, so the tab waits in the ⋯ menu.
+        Assert.Equal("⋯ menu", system.Status);
+        system.Bookmarked = true;
+        Assert.All(system.Features, feature => Assert.True(feature.Entry.Bookmarked));
+        Assert.Equal("Top row", system.Status);
+        system.Enabled = false;
+        Assert.All(system.Features, feature => Assert.False(feature.Entry.Enabled));
+        Assert.Equal("Off", system.Status);
+        system.Enabled = true;
+        Assert.All(system.Features, feature => Assert.True(feature.Entry.Enabled));
+        Assert.Equal("Top row", system.Status);
         vm.MoveTab(system, 99);
         Assert.Equal(3, system.Number);
         Assert.Same(unknown, service.Current.Modules.Last());
+    }
+
+    [Fact]
+    public void Features_can_be_bookmarked_in_the_top_row_or_switched_off_entirely()
+    {
+        var service = new SettingsService(new SettingsStore(Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".json")));
+        using var vm = new SettingsViewModel(service, ModuleCatalog.All);
+        var weather = vm.ModuleTabs.Single(t => t.Id == "weather");
+        var entry = service.Current.Modules.Single(m => m.Id == "weather");
+
+        // Existing and new features are bookmarked until moved.
+        Assert.True(weather.OnlyFeature.Bookmarked);
+        Assert.Equal(FeaturePlacement.Bookmarked, entry.Placement);
+
+        // Unstarring keeps it on, in the ⋯ menu instead of the top row.
+        weather.OnlyFeature.Bookmarked = false;
+        Assert.True(weather.OnlyFeature.Enabled);
+        Assert.Equal(FeaturePlacement.Menu, entry.Placement);
+        Assert.Contains("menu", weather.Status);
+
+        // Off hides it from both places, and turning it back on remembers the menu.
+        weather.OnlyFeature.Enabled = false;
+        Assert.Equal(FeaturePlacement.Off, entry.Placement);
+        Assert.StartsWith("Off", weather.Status);
+        weather.OnlyFeature.Enabled = true;
+        Assert.Equal(FeaturePlacement.Menu, entry.Placement);
+
+        // Starring it again puts it in the top row.
+        weather.OnlyFeature.Bookmarked = true;
+        Assert.Equal(FeaturePlacement.Bookmarked, entry.Placement);
+
+        // Home follows the same three states.
+        vm.HomeBookmarked = false;
+        Assert.True(vm.HomeEnabled);
+        Assert.Equal(FeaturePlacement.Menu, service.Current.Home.Placement);
+        vm.HomeEnabled = false;
+        Assert.Equal(FeaturePlacement.Off, service.Current.Home.Placement);
+        vm.HomeBookmarked = true;
+        Assert.True(vm.HomeEnabled);
+        Assert.Equal(FeaturePlacement.Bookmarked, service.Current.Home.Placement);
+    }
+
+    [Fact]
+    public void Games_settings_are_written_to_the_settings_model()
+    {
+        var service = new SettingsService(new SettingsStore(Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".json")));
+        using var vm = new SettingsViewModel(service, ModuleCatalog.All);
+        Assert.Equal(7, vm.Pages.ToList().FindIndex(page => page.Title == "Games"));
+        Assert.Equal(8, vm.Pages.ToList().FindIndex(page => page.Title == "About"));
+
+        vm.GameMode = GameIslandMode.Hidden;
+        vm.GameMuteNotifications = false;
+        vm.GameShowPerformance = false;
+        vm.GameShowPlayTime = false;
+        vm.GameAnnounceStart = false;
+        vm.GameDetect = false;
+        vm.GameScanSteam = false;
+        vm.GameScanEpic = false;
+        vm.GameScanMinecraft = false;
+        vm.MinecraftServer = " play.example.net ";
+        vm.GameShowServer = false;
+        vm.GameServerInterval = 120;
+
+        var games = service.Current.Games;
+        Assert.Equal(GameIslandMode.Hidden, games.Mode);
+        Assert.False(games.MuteNotifications);
+        Assert.False(games.ShowPerformance);
+        Assert.False(games.ShowPlayTime);
+        Assert.False(games.AnnounceGameStart);
+        Assert.False(games.DetectGames);
+        Assert.False(games.ScanSteam);
+        Assert.False(games.ScanEpic);
+        Assert.False(games.ScanMinecraft);
+        Assert.Equal("play.example.net", games.MinecraftServer);
+        Assert.False(games.ShowServer);
+        Assert.Equal(120, games.ServerRefreshSeconds);
     }
 
     [Theory]

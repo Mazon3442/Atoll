@@ -96,6 +96,11 @@ public sealed class Icon : FrameworkElement
         ["chevron-left"] = "M15 18l-6-6 6-6",
         ["chevron-right"] = "M9 18l6-6-6-6",
         ["more"] = C(12, 12, 1) + C(19, 12, 1) + C(5, 12, 1),
+        ["grid"] = R(3, 3, 7, 7, 1) + R(14, 3, 7, 7, 1) + R(14, 14, 7, 7, 1) + R(3, 14, 7, 7, 1),
+        ["refresh"] = "M21 12a9 9 0 1 1-2.64-6.36M21 3v6h-6",
+        ["pencil"] = "M17 3a2.85 2.85 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z",
+        ["pin"] = "M12 17v5M9 10.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V7a1 1 0 0 1 1-1 2 2 0 0 0 0-4H8a2 2 0 0 0 0 4 1 1 0 0 1 1 1z",
+        ["notebook"] = R(5, 2, 14, 20, 2) + "M9 2v20M2 6h3M2 12h3M2 18h3",
         ["rocket"] = "M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 0 0-2.91-.09zM12 15l-3-3a22 22 0 0 1 2-3.95A12.88 12.88 0 0 1 22 2c0 2.72-.78 7.5-6 11a22.35 22.35 0 0 1-4 2zM9 12H4s.55-3.03 2-4c1.62-1.08 5 0 5 0M12 15v5s3.03-.55 4-2c1.08-1.62 0-5 0-5",
     };
 
@@ -108,9 +113,13 @@ public sealed class Icon : FrameworkElement
         "media" => "music",
         "notifications" => "bell",
         "clock" => "timer",
+        "calendar" => "calendar",
         "system" => "cpu",
         "shelf" => "folder",
+        "clipboard" => "clipboard",
+        "notes" => "notebook",
         "weather" => "cloud",
+        "launcher" => "grid",
         "games" => "gamepad",
         _ => "more",
     };

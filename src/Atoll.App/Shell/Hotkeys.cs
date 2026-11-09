@@ -13,23 +13,25 @@ public sealed class HotkeyService : IDisposable
 {
     private const int WM_HOTKEY = 0x0312;
     private const uint MOD_ALT = 0x1, MOD_CONTROL = 0x2, MOD_SHIFT = 0x4, MOD_WIN = 0x8, MOD_NOREPEAT = 0x4000;
-    private const int OpenId = 1, HideId = 2;
+    private const int OpenId = 1, HideId = 2, PaletteId = 3;
 
     private static readonly KeyGestureConverter Converter = new();
 
     private readonly SettingsService _settings;
     private readonly Action _open;
     private readonly Action _toggleHidden;
+    private readonly Action _openPalette;
     private readonly HwndSource _window;
     private readonly HashSet<string> _unavailable = new(StringComparer.OrdinalIgnoreCase);
-    private (string Open, string Hide)? _applied;
+    private (string Open, string Hide, string Palette)? _applied;
     private bool _suspended;
 
-    public HotkeyService(SettingsService settings, Action open, Action toggleHidden)
+    public HotkeyService(SettingsService settings, Action open, Action toggleHidden, Action openPalette)
     {
         _settings = settings;
         _open = open;
         _toggleHidden = toggleHidden;
+        _openPalette = openPalette;
         _window = new HwndSource(new HwndSourceParameters("ATOLL shortcuts") { ParentWindow = -3, WindowStyle = 0 }); // -3 = HWND_MESSAGE
         _window.AddHook(WndProc);
         _settings.Changed += Apply;
@@ -58,16 +60,18 @@ public sealed class HotkeyService : IDisposable
     private void Apply()
     {
         var s = _settings.Current;
-        var wanted = (s.OpenShortcut.Trim(), s.HideShortcut.Trim());
+        var wanted = (s.OpenShortcut.Trim(), s.HideShortcut.Trim(), s.PaletteShortcut.Trim());
         if (_applied == wanted) return;
         _applied = wanted;
         UnregisterHotKey(_window.Handle, OpenId);
         UnregisterHotKey(_window.Handle, HideId);
+        UnregisterHotKey(_window.Handle, PaletteId);
         _unavailable.Clear();
         if (!_suspended)
         {
             Register(OpenId, wanted.Item1);
             Register(HideId, wanted.Item2);
+            Register(PaletteId, wanted.Item3);
         }
         Changed?.Invoke();
     }
@@ -86,6 +90,7 @@ public sealed class HotkeyService : IDisposable
         handled = true;
         if (wParam == OpenId) _open();
         else if (wParam == HideId) _toggleHidden();
+        else if (wParam == PaletteId) _openPalette();
         return 0;
     }
 

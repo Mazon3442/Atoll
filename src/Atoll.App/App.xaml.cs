@@ -20,6 +20,7 @@ public partial class App : Application
     private TrayIcon? _tray;
     private HotkeyService? _hotkeys;
     private SettingsWindow? _settingsWindow;
+    private Onboarding.OnboardingWindow? _onboardingWindow;
     private int? _restartSettingsPage;
 
     protected override void OnStartup(StartupEventArgs e)
@@ -40,6 +41,16 @@ public partial class App : Application
         ThemeService.Apply(_settings.Current.Theme);
         if (_settings.Current.StartWithWindows) StartupRegistration.Apply(true); // refresh exe path if the app moved
 
+        // "--onboarding" opens only the welcome window, without islands, tray, hooks or update checks.
+        if (e.Args.Any(arg => arg.Equals("--onboarding", StringComparison.OrdinalIgnoreCase)))
+        {
+            var setup = new Onboarding.OnboardingViewModel(_settings.Current, _settings.NotifyChanged, StartupRegistration.Apply);
+            var window = new Onboarding.OnboardingWindow(setup);
+            window.Closed += (_, _) => Shutdown();
+            window.Show();
+            return;
+        }
+
         // If ATOLL moved (a Velopack update installs to a new folder), point the hooks back at it so
         // Claude Code keeps reporting to this copy without the user reinstalling them.
         if (ClaudeHookInstaller.GetStatus() == ClaudeHookInstaller.Status.InstalledElsewhere)
@@ -56,8 +67,14 @@ public partial class App : Application
         };
 
         _islands = new IslandManager(_settings, _activities, _modules, OpenSettings, Dispatcher);
+        Navigation.OpenModule = _islands.OpenModule;
+        Navigation.OpenOnboarding = ShowOnboarding;
         _tray = new TrayIcon(OpenSettings, SetPaused, Shutdown);
-        _hotkeys = new HotkeyService(_settings, _islands.ToggleFromKeyboard, () => SetPaused(!_islands.Paused));
+        _hotkeys = new HotkeyService(_settings, _islands.ToggleFromKeyboard, () => SetPaused(!_islands.Paused), _islands.OpenPalette);
+
+        // First run: explain the island and let the user choose the top row. Skipping still marks it done.
+        if (!_settings.Current.OnboardingComplete)
+            Dispatcher.BeginInvoke(DispatcherPriority.ApplicationIdle, new Action(ShowOnboarding));
 
         _ = CheckUpdatesLoopAsync();
 
@@ -103,11 +120,28 @@ public partial class App : Application
             return;
         }
         var weather = _modules.Tabs.Select(t => t.Panel).OfType<Atoll.Modules.Weather.WeatherViewModel>().FirstOrDefault();
-        var vm = new SettingsViewModel(_settings, _modules.Catalog, weather) { PageIndex = Math.Clamp(page, 0, 7) };
+        var vm = new SettingsViewModel(_settings, _modules.Catalog, weather) { PageIndex = Math.Clamp(page, 0, 8) };
         _settingsWindow = new SettingsWindow(vm);
         _settingsWindow.Closed += (_, _) => _settingsWindow = null;
         _settingsWindow.Show();
         _settingsWindow.Activate();
+    }
+
+    /// <summary>Shows the welcome picker; safe to call again from Settings › About.</summary>
+    internal void ShowOnboarding()
+    {
+        if (_settings is null) return;
+        if (_onboardingWindow is { IsLoaded: true })
+        {
+            if (_onboardingWindow.WindowState == WindowState.Minimized) _onboardingWindow.WindowState = WindowState.Normal;
+            _onboardingWindow.Activate();
+            return;
+        }
+        var vm = new Onboarding.OnboardingViewModel(_settings.Current, _settings.NotifyChanged, StartupRegistration.Apply);
+        _onboardingWindow = new Onboarding.OnboardingWindow(vm);
+        _onboardingWindow.Closed += (_, _) => _onboardingWindow = null;
+        _onboardingWindow.Show();
+        _onboardingWindow.Activate();
     }
 
     private static async Task CheckUpdatesLoopAsync()

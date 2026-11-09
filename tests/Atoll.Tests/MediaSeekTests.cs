@@ -5,6 +5,8 @@ using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
 using System.Windows.Input;
 using System.Windows.Media;
+using System.Windows.Media.Imaging;
+using System.Windows.Threading;
 
 namespace Atoll.Tests;
 
@@ -21,6 +23,24 @@ public class MediaSeekTests
         var target = MediaModule.SeekPosition(progress, TimeSpan.FromSeconds(20), TimeSpan.FromSeconds(220),
             TimeSpan.FromSeconds(30), TimeSpan.FromSeconds(210));
         Assert.Equal(TimeSpan.FromSeconds(expected), target);
+    }
+
+    [Fact]
+    public void Timeline_age_is_used_only_when_the_reported_timestamp_is_plausible()
+    {
+        var now = DateTimeOffset.Now;
+        // A one-second-old reading from a player that reports in steps: advance it.
+        Assert.Equal(TimeSpan.FromSeconds(11),
+            MediaModule.TimelinePosition(TimeSpan.FromSeconds(10), TimeSpan.Zero, now.AddSeconds(-1), now));
+        // An old timestamp (track start, or worse) must not push the song forward.
+        Assert.Equal(TimeSpan.FromSeconds(10),
+            MediaModule.TimelinePosition(TimeSpan.FromSeconds(10), TimeSpan.Zero, now.AddMinutes(-5), now));
+        // A future timestamp (clock skew) is ignored too.
+        Assert.Equal(TimeSpan.FromSeconds(10),
+            MediaModule.TimelinePosition(TimeSpan.FromSeconds(10), TimeSpan.Zero, now.AddSeconds(2), now));
+        // StartTime is a chapter offset, not part of the track position.
+        Assert.Equal(TimeSpan.FromSeconds(6),
+            MediaModule.TimelinePosition(TimeSpan.FromSeconds(10), TimeSpan.FromSeconds(5), now.AddSeconds(-1), now));
     }
 
     [Theory]
@@ -136,6 +156,40 @@ public class MediaSeekTests
                 slider.GetBindingExpression(Slider.ValueProperty)!.UpdateTarget();
                 Assert.Equal(0.6, slider.Value);
                 Assert.Equal(2, positions.Count);
+
+                // The lyrics list keeps the sung line centered instead of leaving the box at its top.
+                vm.SetLyrics(Enumerable.Range(0, 12).Select(i => $"Line {i}"));
+                vm.LyricIndex = 8;
+                var window = new Window
+                {
+                    Width = 640, Height = 320, Content = panel, ShowInTaskbar = false,
+                    WindowStyle = WindowStyle.None, AllowsTransparency = true,
+                    Background = (Brush)Application.Current.Resources["Island.Background"],
+                    Foreground = (Brush)Application.Current.Resources["Island.Foreground"],
+                };
+                window.Show();
+                window.UpdateLayout();
+                Dispatcher.CurrentDispatcher.Invoke(() => { }, DispatcherPriority.Loaded);
+                var lyrics = FindLyricsBox(panel)!;
+                Assert.NotNull(lyrics);
+                lyrics.Height = 151; // the Resized path snaps instead of animating, making the result deterministic
+                window.UpdateLayout();
+                Dispatcher.CurrentDispatcher.Invoke(() => { }, DispatcherPriority.Loaded);
+                var list = (ItemsControl)((Canvas)lyrics.Child).Children[0];
+                var line = (FrameworkElement)list.ItemContainerGenerator.ContainerFromIndex(8)!;
+                var shift = (TranslateTransform)list.RenderTransform;
+                var point = line.TranslatePoint(new Point(), list);
+                var expected = lyrics.ActualHeight * 0.5 - point.Y - line.ActualHeight / 2;
+                Assert.InRange(shift.Y, expected - 1, expected + 1);
+                var bitmap = new RenderTargetBitmap((int)window.ActualWidth, (int)window.ActualHeight, 96, 96, PixelFormats.Pbgra32);
+                bitmap.Render(window);
+                var encoder = new PngBitmapEncoder();
+                encoder.Frames.Add(BitmapFrame.Create(bitmap));
+                var directory = Path.Combine(Path.GetTempPath(), "atoll-lyrics-review");
+                Directory.CreateDirectory(directory);
+                using (var output = File.Create(Path.Combine(directory, "lyrics-centered.png"))) encoder.Save(output);
+                window.Close();
+
                 GroupedPanelsTests.VerifyTemplates();
                 SettingsUiTests.VerifySettings();
                 CalendarUiTests.Verify();
@@ -150,6 +204,14 @@ public class MediaSeekTests
         thread.Start();
         thread.Join();
         if (failure is not null) ExceptionDispatchInfo.Capture(failure).Throw();
+    }
+
+    private static Border? FindLyricsBox(DependencyObject parent)
+    {
+        if (parent is Border { Child: Canvas } box) return box;
+        for (var i = 0; i < VisualTreeHelper.GetChildrenCount(parent); i++)
+            if (FindLyricsBox(VisualTreeHelper.GetChild(parent, i)) is { } found) return found;
+        return null;
     }
 
     private static Slider? FindSlider(DependencyObject parent)

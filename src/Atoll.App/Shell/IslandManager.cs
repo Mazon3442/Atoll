@@ -62,19 +62,33 @@ public sealed class IslandManager : IDisposable
         if (chosen.Count == 0) chosen = all.Where(m => m.IsPrimary).Take(1).ToList();
         if (chosen.Count == 0) chosen = all.Take(1).ToList();
 
-        var (primary, secondary, tertiary) = _activities.Current;
+        var snapshot = _activities.Snapshot(4);
         foreach (var monitor in chosen)
         {
             var window = new IslandWindow(monitor, _settings, _modules, _openSettings);
-            window.SetActivities(primary, secondary, tertiary);
+            window.SetActivitySnapshot(snapshot.Primary, snapshot.Sides);
             _windows.Add(window);
         }
         UpdateVisibility();
     }
 
-    /// <summary>Expands the island on the primary display (or the first one) to a module's tab.</summary>
-    public void OpenModule(string moduleId) =>
-        (_windows.FirstOrDefault(w => w.Monitor.IsPrimary) ?? _windows.FirstOrDefault())?.OpenModule(moduleId);
+    /// <summary>Expands the island under the pointer, or the primary display, to a module's tab.</summary>
+    public void OpenModule(string moduleId)
+    {
+        var target = Native.GetCursorPos(out var p)
+            ? _windows.FirstOrDefault(w => p.X >= w.Monitor.Bounds.X && p.X < w.Monitor.Bounds.X + w.Monitor.Bounds.Width
+                && p.Y >= w.Monitor.Bounds.Y && p.Y < w.Monitor.Bounds.Y + w.Monitor.Bounds.Height) : null;
+        (target ?? _windows.FirstOrDefault(w => w.Monitor.IsPrimary) ?? _windows.FirstOrDefault())?.OpenModule(moduleId);
+    }
+
+    /// <summary>Opens the command palette on the display under the pointer, else the main one.</summary>
+    public void OpenPalette()
+    {
+        var target = Native.GetCursorPos(out var p)
+            ? _windows.FirstOrDefault(w => p.X >= w.Monitor.Bounds.X && p.X < w.Monitor.Bounds.X + w.Monitor.Bounds.Width
+                && p.Y >= w.Monitor.Bounds.Y && p.Y < w.Monitor.Bounds.Y + w.Monitor.Bounds.Height) : null;
+        (target ?? _windows.FirstOrDefault(w => w.Monitor.IsPrimary) ?? _windows.FirstOrDefault())?.ShowPalette();
+    }
 
     /// <summary>The open shortcut acts on the island of the display the pointer is on, else the main one.</summary>
     public void ToggleFromKeyboard()
@@ -97,8 +111,8 @@ public sealed class IslandManager : IDisposable
 
     private void OnActivitiesChanged(object? sender, EventArgs e) => _dispatcher.BeginInvoke(() =>
     {
-        var (primary, secondary, tertiary) = _activities.Current;
-        foreach (var w in _windows) w.SetActivities(primary, secondary, tertiary);
+        var snapshot = _activities.Snapshot(4);
+        foreach (var w in _windows) w.SetActivitySnapshot(snapshot.Primary, snapshot.Sides);
     });
 
     private void OnSettingsChanged()

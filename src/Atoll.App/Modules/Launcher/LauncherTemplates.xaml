@@ -1,0 +1,95 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:shell="clr-namespace:Atoll.Shell">
+
+    <DataTemplate x:Key="LauncherPanelViewModel.Panel">
+        <StackPanel MinHeight="220">
+            <Border Background="{DynamicResource Island.Surface}" CornerRadius="15" Padding="3"
+                    HorizontalAlignment="Left" Margin="0,0,0,10"
+                    Visibility="{Binding ShowSwitch, Converter={StaticResource Island.BoolToVisibility}}">
+                <ListBox ItemsSource="{Binding Sections}" SelectedIndex="{Binding SectionIndex, Mode=TwoWay}"
+                         ItemContainerStyle="{StaticResource Island.SegmentItem}"
+                         Background="Transparent" BorderThickness="0" FontSize="12"
+                         Foreground="{DynamicResource Island.Subtle}"
+                         ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                         ScrollViewer.VerticalScrollBarVisibility="Disabled"
+                         AutomationProperties.Name="Launcher section">
+                    <ListBox.ItemsPanel>
+                        <ItemsPanelTemplate><StackPanel Orientation="Horizontal" /></ItemsPanelTemplate>
+                    </ListBox.ItemsPanel>
+                </ListBox>
+            </Border>
+
+            <!-- Apps -->
+            <Grid Visibility="{Binding IsApps, Converter={StaticResource Island.BoolToVisibility}}">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="*" />
+                </Grid.RowDefinitions>
+
+                <Border Background="{DynamicResource Island.Surface}" CornerRadius="9" Padding="10,5" Margin="0,0,0,4">
+                    <DockPanel>
+                        <Button DockPanel.Dock="Right" Style="{StaticResource Island.IconButton}" Width="24" Height="24"
+                                Margin="6,0,0,0" Command="{Binding Apps.RefreshCommand}" ToolTip="Scan the Start Menu again"
+                                AutomationProperties.Name="Scan the Start Menu again">
+                            <shell:Icon Kind="refresh" Size="13" />
+                        </Button>
+                        <Grid>
+                            <TextBlock Text="Search apps" FontSize="12" VerticalAlignment="Center" Foreground="{DynamicResource Island.Subtle}"
+                                       IsHitTestVisible="False"
+                                       Visibility="{Binding Apps.HasSearch, Converter={StaticResource Island.InverseBoolToVisibility}}" />
+                            <TextBox Text="{Binding Apps.SearchText, UpdateSourceTrigger=PropertyChanged}"
+                                     FontSize="12" Background="Transparent" BorderThickness="0" Padding="0"
+                                     Foreground="{DynamicResource Island.Foreground}" CaretBrush="{DynamicResource Island.Foreground}"
+                                     VerticalContentAlignment="Center" AutomationProperties.Name="Search apps">
+                                <TextBox.InputBindings>
+                                    <KeyBinding Key="Enter" Command="{Binding Apps.OpenFirstCommand}" />
+                                </TextBox.InputBindings>
+                            </TextBox>
+                        </Grid>
+                    </DockPanel>
+                </Border>
+
+                <TextBlock Grid.Row="1" Text="{Binding Apps.Status}" FontSize="10" Margin="4,0,0,5"
+                           Foreground="{DynamicResource Island.Subtle}" />
+
+                <Grid Grid.Row="2">
+                    <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Focusable="False" MaxHeight="240">
+                        <ItemsControl ItemsSource="{Binding Apps.FilteredApps}" Focusable="False" Margin="0,0,6,0">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Button Style="{StaticResource Island.RowButton}"
+                                            Command="{Binding DataContext.Apps.LaunchCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                                            CommandParameter="{Binding}"
+                                            AutomationProperties.Name="{Binding Name, StringFormat=Open {0}}">
+                                        <DockPanel>
+                                            <Border DockPanel.Dock="Left" Width="28" Height="28" CornerRadius="7"
+                                                    Background="{DynamicResource Island.Surface}" Margin="0,0,9,0">
+                                                <TextBlock Text="{Binding Initial}" FontSize="13" FontWeight="SemiBold"
+                                                           HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                            </Border>
+                                            <TextBlock DockPanel.Dock="Right" Text="{Binding Source}" FontSize="10"
+                                                       Foreground="{DynamicResource Island.Subtle}" VerticalAlignment="Center"
+                                                       Margin="8,0,0,0" TextTrimming="CharacterEllipsis" MaxWidth="90" />
+                                            <TextBlock Text="{Binding Name}" FontSize="12.5" TextTrimming="CharacterEllipsis"
+                                                       VerticalAlignment="Center" />
+                                        </DockPanel>
+                                    </Button>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </ScrollViewer>
+                    <TextBlock Text="{Binding Apps.EmptyMessage}" FontSize="12" HorizontalAlignment="Center" VerticalAlignment="Center"
+                               Foreground="{DynamicResource Island.Subtle}"
+                               Visibility="{Binding Apps.ShowEmpty, Converter={StaticResource Island.BoolToVisibility}}" />
+                </Grid>
+            </Grid>
+
+            <!-- Games, unchanged from the old Games tab -->
+            <ContentControl Content="{Binding Games}" ContentTemplate="{StaticResource GameViewModel.Panel}"
+                            Visibility="{Binding IsGames, Converter={StaticResource Island.BoolToVisibility}}" />
+        </StackPanel>
+    </DataTemplate>
+
+</ResourceDictionary>

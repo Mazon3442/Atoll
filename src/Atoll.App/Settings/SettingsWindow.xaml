@@ -121,7 +121,42 @@
             </Setter>
         </Style>
 
-        <!-- Slider + live value on the right of a card. -->
+        <!-- Star switch: on pins the feature's tab to the island's top row. -->
+        <Style x:Key="BookmarkToggle" TargetType="ToggleButton">
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Width" Value="32" />
+            <Setter Property="Height" Value="32" />
+            <Setter Property="FocusVisualStyle" Value="{StaticResource SettingsFocus}" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ToggleButton">
+                        <Border x:Name="Bg" CornerRadius="6" Background="Transparent">
+                            <Grid HorizontalAlignment="Center" VerticalAlignment="Center">
+                                <TextBlock x:Name="Outline" Text="&#xE734;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" FontSize="14"
+                                           Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                                <TextBlock x:Name="Filled" Text="&#xE735;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" FontSize="14"
+                                           Foreground="{DynamicResource AccentFillColorDefaultBrush}" Visibility="Collapsed" />
+                            </Grid>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Bg" Property="Background" Value="{DynamicResource SubtleFillColorSecondaryBrush}" />
+                            </Trigger>
+                            <Trigger Property="IsChecked" Value="True">
+                                <Setter TargetName="Outline" Property="Visibility" Value="Collapsed" />
+                                <Setter TargetName="Filled" Property="Visibility" Value="Visible" />
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="Bg" Property="Opacity" Value="0.75" />
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter Property="Opacity" Value="0.4" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
         <Style x:Key="ValueText" TargetType="TextBlock">
             <Setter Property="Width" Value="56" />
             <Setter Property="TextAlignment" Value="Right" />
@@ -313,6 +348,13 @@
                         <TextBlock Text="{Binding HideShortcutStatus}" Style="{StaticResource Hint}" Margin="4,-2,0,8"
                                    Foreground="{DynamicResource SystemFillColorCriticalBrush}" AutomationProperties.LiveSetting="Assertive"
                                    Visibility="{Binding HideShortcutStatus, Converter={StaticResource EmptyToCollapsed}}" />
+                        <s:SettingCard Glyph="&#xE721;" Header="Command palette"
+                                       Description="Search tabs, apps and actions from any app. Ctrl+1 to 9 also jump to a bookmarked tab.">
+                            <s:HotkeyBox Shortcut="{Binding PaletteShortcut}" AutomationProperties.Name="Shortcut for the command palette" />
+                        </s:SettingCard>
+                        <TextBlock Text="{Binding PaletteShortcutStatus}" Style="{StaticResource Hint}" Margin="4,-2,0,8"
+                                   Foreground="{DynamicResource SystemFillColorCriticalBrush}" AutomationProperties.LiveSetting="Assertive"
+                                   Visibility="{Binding PaletteShortcutStatus, Converter={StaticResource EmptyToCollapsed}}" />
                         <TextBlock Text="{Binding ShortcutMessage}" Style="{StaticResource Hint}" Margin="4,-2,0,8" AutomationProperties.LiveSetting="Polite"
                                    Visibility="{Binding ShortcutMessage, Converter={StaticResource EmptyToCollapsed}}" />
                         <TextBlock Style="{StaticResource Hint}" Margin="4,2,0,0"
@@ -543,7 +585,7 @@
                     <!-- ===================== Modules ===================== -->
                     <StackPanel Visibility="{Binding PageIndex, Converter={StaticResource PageVisible}, ConverterParameter=2}">
                         <TextBlock Style="{StaticResource Hint}" Margin="2,8,0,10"
-                                   Text="Each card is a tab in the open island, shown in this order. Drag a card or use its arrows to reorder, and turn off anything you don't use." />
+                                   Text="Each card is one tab. The star bookmarks the whole tab in the top row. The switch turns the whole tab off. Switches inside a card fine-tune its parts. Drag a card or use its arrows to reorder." />
 
                         <ItemsControl x:Name="ModuleList" ItemsSource="{Binding ModuleTabs}" Focusable="False">
                             <ItemsControl.ItemTemplate>
@@ -555,7 +597,7 @@
                                             <Grid MinHeight="44">
                                                 <Grid.ColumnDefinitions>
                                                     <ColumnDefinition Width="Auto" /><ColumnDefinition Width="Auto" /><ColumnDefinition Width="*" />
-                                                    <ColumnDefinition Width="Auto" /><ColumnDefinition Width="Auto" />
+                                                    <ColumnDefinition Width="Auto" /><ColumnDefinition Width="Auto" /><ColumnDefinition Width="Auto" />
                                                 </Grid.ColumnDefinitions>
                                                 <Button Content="&#xE76F;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" FontSize="14" Padding="8,10" Margin="0,0,8,0"
                                                         Cursor="SizeAll" Background="Transparent" BorderThickness="0" VerticalAlignment="Center"
@@ -578,12 +620,15 @@
                                                             FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" FontSize="12" Width="34" Height="32" Padding="0" Margin="4,0,0,0"
                                                             ToolTip="Move down" AutomationProperties.Name="{Binding Name, StringFormat=Move {0} down}" />
                                                 </StackPanel>
-                                                <CheckBox x:Name="OnlyToggle" Grid.Column="4" Style="{StaticResource Toggle}" Margin="20,0,0,0" VerticalAlignment="Center"
-                                                          IsChecked="{Binding OnlyFeature.Enabled}"
-                                                          AutomationProperties.Name="{Binding Name, StringFormat=Show the {0} tab}" />
+                                                <ToggleButton x:Name="OnlyBookmark" Grid.Column="4" Style="{StaticResource BookmarkToggle}" Margin="16,0,0,0" VerticalAlignment="Center"
+                                                              IsChecked="{Binding Bookmarked}" ToolTip="Bookmark this tab in the top row"
+                                                              AutomationProperties.Name="{Binding Name, StringFormat=Bookmark the {0} tab in the top row}" />
+                                                <CheckBox x:Name="OnlyToggle" Grid.Column="5" Style="{StaticResource Toggle}" Margin="12,0,0,0" VerticalAlignment="Center"
+                                                          IsChecked="{Binding Enabled}" ToolTip="Turn the whole tab off"
+                                                          AutomationProperties.Name="{Binding Name, StringFormat=Turn the {0} tab off}" />
                                             </Grid>
 
-                                            <!-- A tab made of several features: one switch each. -->
+                                            <!-- A tab made of several features: each switch turns one part of the tab on or off. -->
                                             <ItemsControl x:Name="Features" ItemsSource="{Binding Features}" Margin="80,6,0,0" Visibility="Collapsed" Focusable="False">
                                                 <ItemsControl.ItemTemplate>
                                                     <DataTemplate>
@@ -606,8 +651,6 @@
                                     <DataTemplate.Triggers>
                                         <DataTrigger Binding="{Binding HasSeveralFeatures}" Value="True">
                                             <Setter TargetName="Features" Property="Visibility" Value="Visible" />
-                                            <!-- Hidden, not collapsed, so the arrows line up on every card. -->
-                                            <Setter TargetName="OnlyToggle" Property="Visibility" Value="Hidden" />
                                         </DataTrigger>
                                         <DataTrigger Binding="{Binding IsFirst}" Value="True">
                                             <Setter TargetName="Up" Property="IsEnabled" Value="False" />
@@ -625,7 +668,12 @@
 
                         <TextBlock Style="{StaticResource SectionHeader}" Text="Home" />
                         <s:SettingCard Glyph="&#xE80F;" Header="Home tab" Description="A dashboard of what's playing, the weather, your timer, this month and what's next.">
-                            <CheckBox Style="{StaticResource Toggle}" IsChecked="{Binding HomeEnabled}" AutomationProperties.Name="Show the Home tab" />
+                            <StackPanel Orientation="Horizontal">
+                                <ToggleButton Style="{StaticResource BookmarkToggle}" IsChecked="{Binding HomeBookmarked}" VerticalAlignment="Center"
+                                              ToolTip="Keep in the top row" AutomationProperties.Name="Keep the Home tab in the top row" />
+                                <CheckBox Style="{StaticResource Toggle}" IsChecked="{Binding HomeEnabled}" Margin="12,0,0,0"
+                                          AutomationProperties.Name="Show the Home tab" />
+                            </StackPanel>
                         </s:SettingCard>
                         <s:SettingCard Glyph="&#xE71D;" Header="Cards on Home" Description="Cards for features that are off never show."
                                        IsEnabled="{Binding HomeEnabled}">
@@ -639,25 +687,13 @@
                             </WrapPanel>
                         </s:SettingCard>
 
-                        <TextBlock Style="{StaticResource SectionHeader}" Text="Games" />
-                        <s:SettingCard Glyph="&#xE7FC;" Header="While you play" Description="The overlay shows the game, play time, CPU, GPU and GPU temperature (NVIDIA). The open shortcut still works over games.">
-                            <ComboBox Width="250" ItemsSource="{Binding GameModes}" DisplayMemberPath="Label"
-                                      SelectedValuePath="Value" SelectedValue="{Binding GameMode}" AutomationProperties.Name="While you play" />
-                        </s:SettingCard>
-                        <s:SettingCard Glyph="&#xE708;" Header="Mute notifications while playing" Description="They still go to the notification history. Agent and timer alerts get through.">
-                            <CheckBox Style="{StaticResource Toggle}" IsChecked="{Binding GameMuteNotifications}" AutomationProperties.Name="Mute notifications while playing" />
-                        </s:SettingCard>
-                        <s:SettingCard Glyph="&#xE968;" Header="Minecraft server" Description="Shows players online and ping in the Games tab. Java servers, host or host:port.">
-                            <TextBox Width="250" Text="{Binding MinecraftServer, UpdateSourceTrigger=LostFocus}" AutomationProperties.Name="Minecraft server address" />
-                        </s:SettingCard>
-
                         <TextBlock Style="{StaticResource SectionHeader}" Text="Media" />
                         <s:SettingCard Glyph="&#xE8D6;" Header="Show synced lyrics"
                                        Description="Looks up the playing song's title and artist on lrclib.net and shows the current line in the media tab.">
                             <CheckBox Style="{StaticResource Toggle}" IsChecked="{Binding ShowLyrics}" AutomationProperties.Name="Show synced lyrics" />
                         </s:SettingCard>
 
-                        <TextBlock Style="{StaticResource SectionHeader}" Text="Clipboard and shelf" />
+                        <TextBlock Style="{StaticResource SectionHeader}" Text="Clipboard and files" />
                         <s:SettingCard Glyph="&#xE72E;" Header="Privacy"
                                        Description="Clipboard history stays in memory and is cleared when ATOLL closes. Copies from password managers are skipped. The shelf stores file locations only, never the files." />
                     </StackPanel>
@@ -867,8 +903,69 @@
                                    Text="ICS links give read-only access, and anyone with a link can read that calendar. ATOLL stores them encrypted with your Windows login (DPAPI) so they can't be read from the settings file. ATOLL only downloads the calendars, and only from the servers you add here." />
                     </StackPanel>
 
-                    <!-- ===================== About ===================== -->
+                    <!-- ===================== Games ===================== -->
                     <StackPanel Visibility="{Binding PageIndex, Converter={StaticResource PageVisible}, ConverterParameter=7}">
+                        <TextBlock Style="{StaticResource SectionHeader}" Text="While you play" />
+                        <s:SettingCard Glyph="&#xE7FC;" Header="Island while playing"
+                                       Description="Overlay keeps the game, play time and performance in a small pill. Hidden keeps the island out of the way.">
+                            <ComboBox Width="250" ItemsSource="{Binding GameModes}" DisplayMemberPath="Label"
+                                      SelectedValuePath="Value" SelectedValue="{Binding GameMode}" AutomationProperties.Name="Island while playing" />
+                        </s:SettingCard>
+                        <s:SettingCard Glyph="&#xE7ED;" Header="Mute notifications while playing"
+                                       Description="Keep alerts quiet until the session ends.">
+                            <CheckBox Style="{StaticResource Toggle}" IsChecked="{Binding GameMuteNotifications}"
+                                      AutomationProperties.Name="Mute notifications while playing" />
+                        </s:SettingCard>
+                        <s:SettingCard Glyph="&#xE9D9;" Header="Show performance"
+                                       Description="CPU, GPU and GPU temperature in the game pill and the Games tab.">
+                            <CheckBox Style="{StaticResource Toggle}" IsChecked="{Binding GameShowPerformance}"
+                                      AutomationProperties.Name="Show game performance" />
+                        </s:SettingCard>
+                        <s:SettingCard Glyph="&#xE823;" Header="Show play time"
+                                       Description="How long the current session has run.">
+                            <CheckBox Style="{StaticResource Toggle}" IsChecked="{Binding GameShowPlayTime}"
+                                      AutomationProperties.Name="Show play time" />
+                        </s:SettingCard>
+                        <s:SettingCard Glyph="&#xEA8F;" Header="Announce when a game starts"
+                                       Description="A short island with the game name when a session begins.">
+                            <CheckBox Style="{StaticResource Toggle}" IsChecked="{Binding GameAnnounceStart}"
+                                      AutomationProperties.Name="Announce when a game starts" />
+                        </s:SettingCard>
+
+                        <TextBlock Style="{StaticResource SectionHeader}" Text="Detection" />
+                        <s:SettingCard Glyph="&#xE7FC;" Header="Detect games automatically"
+                                       Description="Notice games from Steam, Epic, the Xbox app and common launchers. Off leaves the library and the Minecraft server available.">
+                            <CheckBox Style="{StaticResource Toggle}" IsChecked="{Binding GameDetect}"
+                                      AutomationProperties.Name="Detect games automatically" />
+                        </s:SettingCard>
+                        <s:SettingCard Glyph="&#xE8F1;" Header="Watch these libraries"
+                                       Description="The Games tab and the Launcher only list what you keep on here.">
+                            <WrapPanel MaxWidth="330">
+                                <CheckBox Content="Steam" IsChecked="{Binding GameScanSteam}" Margin="0,0,16,6" />
+                                <CheckBox Content="Epic" IsChecked="{Binding GameScanEpic}" Margin="0,0,16,6" />
+                                <CheckBox Content="Minecraft" IsChecked="{Binding GameScanMinecraft}" Margin="0,0,16,6" />
+                            </WrapPanel>
+                        </s:SettingCard>
+
+                        <TextBlock Style="{StaticResource SectionHeader}" Text="Minecraft server" />
+                        <s:SettingCard Glyph="&#xE968;" Header="Server address"
+                                       Description="host or host:port. Leave it empty to turn the check off.">
+                            <TextBox Width="260" Text="{Binding MinecraftServer}" AutomationProperties.Name="Minecraft server address" />
+                        </s:SettingCard>
+                        <s:SettingCard Glyph="&#xE8B7;" Header="Show the server in Games"
+                                       Description="Players, ping and MOTD in the Games tab.">
+                            <CheckBox Style="{StaticResource Toggle}" IsChecked="{Binding GameShowServer}"
+                                      AutomationProperties.Name="Show the Minecraft server in Games" />
+                        </s:SettingCard>
+                        <s:SettingCard Glyph="&#xE916;" Header="Check every"
+                                       Description="How often to ask the server for players and ping.">
+                            <ComboBox Width="200" ItemsSource="{Binding GameServerIntervals}" DisplayMemberPath="Label"
+                                      SelectedValuePath="Value" SelectedValue="{Binding GameServerInterval}" AutomationProperties.Name="Minecraft server check interval" />
+                        </s:SettingCard>
+                    </StackPanel>
+
+                    <!-- ===================== About ===================== -->
+                    <StackPanel Visibility="{Binding PageIndex, Converter={StaticResource PageVisible}, ConverterParameter=8}">
                         <StackPanel Orientation="Horizontal" Margin="2,12,0,18">
                             <Border Width="56" Height="56" CornerRadius="12.3" BorderThickness="1" BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}">
                                 <Image Source="{StaticResource Atoll.Logo}" AutomationProperties.Name="ATOLL logo" />
@@ -882,6 +979,10 @@
                         </StackPanel>
                         <s:SettingCard Glyph="&#xE8B7;" Header="Settings and logs" Description="{Binding DataFolder}">
                             <Button Content="Open folder" Padding="14,5" Command="{Binding OpenDataFolderCommand}" />
+                        </s:SettingCard>
+                        <s:SettingCard Glyph="&#xE946;" Header="Welcome setup"
+                                       Description="Meet the island again and choose which tabs sit in the top row.">
+                            <Button Content="Open setup" Padding="14,5" Click="OnOpenOnboarding" />
                         </s:SettingCard>
 
                         <TextBlock Style="{StaticResource SectionHeader}" Text="Updates" />

@@ -1,5 +1,6 @@
 using Atoll.Activities;
 using Atoll.Modules;
+using Atoll.Onboarding;
 using Atoll.Settings;
 using Atoll.Shell;
 using Atoll.Theme;
@@ -114,6 +115,13 @@ public class SettingsUiTests
                             Render(window, $"{mode}-{width}-4-api-keys");
                             scroll.ScrollToVerticalOffset(0);
                         }
+                        if (page == 7 && scroll.ScrollableHeight > 0)
+                        {
+                            scroll.ScrollToVerticalOffset(scroll.ScrollableHeight);
+                            Drain(); window.UpdateLayout();
+                            Render(window, $"{mode}-{width}-7-minecraft");
+                            scroll.ScrollToVerticalOffset(0);
+                        }
                     }
                 }
             }
@@ -198,6 +206,40 @@ public class SettingsUiTests
         }
         finally { window.Close(); }
 
+        // First-run setup: defaults, top-row picker and the ready screen.
+        var onboarding = new OnboardingViewModel(service.Current, () => { });
+        Assert.Equal(["home", "claude", "media", "notifications", "calendar", "shelf", "clipboard", "weather"],
+            onboarding.Tabs.Where(tab => tab.Bookmarked).Select(tab => tab.Id));
+        Assert.DoesNotContain(onboarding.Tabs, tab => tab.Id == "providers");
+        var welcome = new OnboardingWindow(onboarding);
+        welcome.Show();
+        try
+        {
+            Drain(); welcome.UpdateLayout();
+            Render(welcome, "onboarding-welcome");
+            welcome.ThemeMode = ThemeMode.Light;
+            Drain(); welcome.UpdateLayout();
+            Render(welcome, "onboarding-light");
+            welcome.ThemeMode = ThemeMode.System;
+            welcome.Width = 760;
+            Drain(); welcome.UpdateLayout();
+            Render(welcome, "onboarding-welcome-narrow");
+            welcome.Width = 900;
+            onboarding.StepIndex = 1;
+            Drain(); welcome.UpdateLayout();
+            Render(welcome, "onboarding-top-row");
+            welcome.Width = 760;
+            Drain(); welcome.UpdateLayout();
+            Render(welcome, "onboarding-top-row-narrow");
+            welcome.Width = 900;
+            onboarding.Tabs.Single(tab => tab.Id == "clock").Bookmarked = true;
+            onboarding.StepIndex = 2;
+            Drain(); welcome.UpdateLayout();
+            Render(welcome, "onboarding-ready");
+            Assert.Equal(9, onboarding.BookmarkedCount);
+        }
+        finally { welcome.Close(); }
+
         using var host = new ActivityHost();
         using var manager = new ModuleManager([], host, Application.Current.Dispatcher, service);
         foreach (var tab in PanelGroups.Combine(GroupedPanelsTests.Modules())) manager.Tabs.Add(tab);
@@ -211,14 +253,12 @@ public class SettingsUiTests
             var expected = service.Current.Theme.ExpandedHeight - 26;
             Assert.Equal(expected, panel.Height);
             Assert.Equal(expected, panel.ActualHeight);
-            var clockScroll = Descendants<ScrollViewer>(panel).First(s => s.Content is ContentControl c && c.Content is Atoll.Modules.Clock.ClockPanelViewModel);
-            var viewport = clockScroll.ViewportHeight;
+            Assert.Contains(Descendants<ContentPresenter>(panel), p => p.Content is Atoll.Modules.Clock.ClockPanelViewModel);
             // Reproduces the first opening frame without advancing the animation clock.
             var pill = (PillBorder)island.FindName("Pill");
             pill.BeginAnimation(FrameworkElement.HeightProperty, null);
             pill.Height = 32;
             island.UpdateLayout();
-            Assert.Equal(viewport, clockScroll.ViewportHeight);
             Assert.Equal(expected, panel.ActualHeight);
 
             // Media needs more room than the default height; the song title must not be clipped at the top.

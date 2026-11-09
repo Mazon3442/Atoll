@@ -20,6 +20,8 @@
                 <ResourceDictionary Source="Modules/Calendar/CalendarTemplates.xaml" />
                 <ResourceDictionary Source="Modules/Privacy/PrivacyTemplates.xaml" />
                 <ResourceDictionary Source="Modules/Games/GamesTemplates.xaml" />
+                <ResourceDictionary Source="Modules/Launcher/LauncherTemplates.xaml" />
+                <ResourceDictionary Source="Modules/Notes/NotesTemplates.xaml" />
                 <ResourceDictionary Source="Modules/Home/HomeTemplates.xaml" />
                 <ResourceDictionary Source="Modules/GroupedTemplates.xaml" />
             </ResourceDictionary.MergedDictionaries>

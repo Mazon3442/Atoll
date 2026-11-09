@@ -1,5 +1,7 @@
+using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Windows;
+using System.Windows.Automation;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Interop;
@@ -9,6 +11,8 @@ using System.Windows.Media.Imaging;
 using System.Windows.Threading;
 using Atoll.Activities;
 using Atoll.Modules;
+using Atoll.Modules.Clock;
+using Atoll.Modules.Launcher;
 using Atoll.Settings;
 using Atoll.Theme;
 
@@ -37,6 +41,8 @@ public partial class IslandWindow : Window
     private const int PeekCollapseAfterMs = 450;
     private const int MinClickThroughDwellMs = 350; // short passes (moving to a browser tab) must not open it
     private const double PassThroughOpacity = 0.25;
+    private const double SideChipWidth = 118;
+    private const double SideChipGap = 4;
 
     private readonly SettingsService _settings;
     private readonly ModuleManager _modules;
@@ -59,12 +65,19 @@ public partial class IslandWindow : Window
     private nint _hwnd;
     private IslandMode _mode = IslandMode.Compact;
     private Activity? _primary;
-    private Activity? _secondary;
-    private Activity? _tertiary;
+    private IReadOnlyList<Activity> _sideActivities = [];
+    private readonly SideChipViewModel?[] _sideChips = new SideChipViewModel?[4];
+    private readonly ObservableCollection<ModuleTab> _visibleTabs = [];
+    private readonly ObservableCollection<ModuleTab> _menuTabs = [];
+    private ModuleTab? _transientTab;
+    private bool _refreshingTabs;
+    private readonly CommandPaletteViewModel _palette;
+    private bool _paletteOpen;
     private Rect _peekAnchor = Rect.Empty;
     private object? _shownContent;
     private string? _shownTemplateMode;
     private INotifyPropertyChanged? _watched;
+    private INotifyPropertyChanged? _watchedPanel;
     private bool _renderQueued;
     private (double W, double H, double R) _target = (-1, -1, -1);
 
@@ -82,6 +95,8 @@ public partial class IslandWindow : Window
     private ImageBrush? _pillGlassBrush;
     private ImageBrush? _bubbleGlassBrush;
     private ImageBrush? _bubble2GlassBrush;
+    private ImageBrush? _bubble3GlassBrush;
+    private ImageBrush? _bubble4GlassBrush;
 
     public IslandWindow(MonitorInfo monitor, SettingsService settings, ModuleManager modules, Action<int> openSettings)
     {
@@ -106,17 +121,29 @@ public partial class IslandWindow : Window
         _glassTimer = new DispatcherTimer(DispatcherPriority.Background) { Interval = TimeSpan.FromMilliseconds(120) };
         _glassTimer.Tick += (_, _) => SampleGlass();
 
-        Tabs.ItemsSource = modules.Tabs;
-        // The header's status chips use the System group's sound, battery and quick actions.
-        void BindStatus() => StatusChips.DataContext = modules.Tabs.Select(t => t.Panel).OfType<SystemGroupViewModel>().FirstOrDefault();
-        modules.Tabs.CollectionChanged += (_, _) => { BindStatus(); _headerWidth = 0; };
-        BindStatus();
+        Tabs.ItemsSource = _visibleTabs;
+        TabMenu.ItemsSource = _menuTabs;
+        _palette = new CommandPaletteViewModel(BuildPaletteCommands);
+        Palette.DataContext = _palette;
+        _palette.CloseRequested += ClosePalette;
+        modules.LayoutChanged += OnModulesLayoutChanged;
+        modules.Tabs.CollectionChanged += OnTabsChanged;
+        BindStatusChips();
         Tabs.SelectionChanged += (_, _) =>
         {
+            if (_refreshingTabs) return;
+            if (_paletteOpen) ClosePalette();
             if (Tabs.SelectedItem is { } selected) Tabs.ScrollIntoView(selected); // a narrow island scrolls the tab bar
+            // Picking a bookmarked tab leaves a menu tab that was only open for this visit.
+            if (_transientTab is not null && !ReferenceEquals(Tabs.SelectedItem, _transientTab))
+            {
+                _transientTab = null;
+                RefreshTabStrip();
+            }
             ShowSelectedTab();
             if (_mode == IslandMode.Expanded) Render();
         };
+        RefreshTabStrip();
 
         Pill.MouseLeftButtonUp += (_, e) =>
         {
@@ -124,16 +151,10 @@ public partial class IslandWindow : Window
             SetMode(IslandMode.Expanded, ActivityTab(_primary));
             e.Handled = true;
         };
-        Bubble.MouseLeftButtonUp += (_, e) =>
-        {
-            SetMode(IslandMode.Expanded, ActivityTab(_secondary));
-            e.Handled = true;
-        };
-        Bubble2.MouseLeftButtonUp += (_, e) =>
-        {
-            SetMode(IslandMode.Expanded, ActivityTab(_tertiary));
-            e.Handled = true;
-        };
+        Bubble.MouseLeftButtonUp += (_, e) => OpenSide(0, e);
+        Bubble2.MouseLeftButtonUp += (_, e) => OpenSide(1, e);
+        Bubble3.MouseLeftButtonUp += (_, e) => OpenSide(2, e);
+        Bubble4.MouseLeftButtonUp += (_, e) => OpenSide(3, e);
         Pill.SizeChanged += (_, _) => UpdateBubbleOffset();
 
         // Dragging files onto the island opens the shelf so they can be dropped there.
@@ -162,10 +183,25 @@ public partial class IslandWindow : Window
         };
         PreviewKeyDown += (_, e) =>
         {
-            if (_mode != IslandMode.Expanded) return;
             var ctrl = Keyboard.Modifiers.HasFlag(ModifierKeys.Control);
             var shift = Keyboard.Modifiers.HasFlag(ModifierKeys.Shift);
+            if (_paletteOpen)
+            {
+                if (e.Key == Key.Escape || (ctrl && e.Key == Key.K))
+                {
+                    ClosePalette();
+                    e.Handled = true;
+                }
+                return;
+            }
+            if (_mode != IslandMode.Expanded) return;
             if (e.Key == Key.Escape) SetMode(IslandMode.Compact);
+            else if (ctrl && e.Key == Key.K)
+            {
+                ShowPalette();
+                e.Handled = true;
+                return;
+            }
             else if (ctrl && e.Key == Key.Tab) StepTab(shift ? -1 : 1, wrap: true);
             else if (ctrl && e.Key is Key.PageDown or Key.PageUp) StepTab(e.Key == Key.PageDown ? 1 : -1, wrap: true);
             else if (ctrl && e.Key is >= Key.D1 and <= Key.D9 && e.Key - Key.D1 < Tabs.Items.Count)
@@ -184,13 +220,32 @@ public partial class IslandWindow : Window
         };
         Closed += (_, _) =>
         {
+            _modules.LayoutChanged -= OnModulesLayoutChanged;
+            _modules.Tabs.CollectionChanged -= OnTabsChanged;
+            _palette.CloseRequested -= ClosePalette;
             Watch(null);
+            WatchPanel(null);
             _pointer.Stop();
             _edgeTimer.Stop();
             _hint?.Close();
             _glassTimer.Stop();
+            DisposeSideChips();
         };
     }
+
+    /// <summary>The header's status chips use the System group's sound, battery and quick actions.</summary>
+    private void BindStatusChips() =>
+        StatusChips.DataContext = _modules.Tabs.Select(t => t.Panel).OfType<SystemGroupViewModel>().FirstOrDefault();
+
+    private void OnModulesLayoutChanged()
+    {
+        BindStatusChips();
+        _headerWidth = 0;
+        RefreshTabStrip();
+    }
+
+    private void OnTabsChanged(object? sender, System.Collections.Specialized.NotifyCollectionChangedEventArgs e) =>
+        OnModulesLayoutChanged();
 
     public MonitorInfo Monitor { get; }
 
@@ -215,12 +270,16 @@ public partial class IslandWindow : Window
     private bool ClickThrough =>
         _settings.Current.ClickThrough && _foreground is ForegroundKind.Maximized or ForegroundKind.Fullscreen;
 
-    public void SetActivities(Activity? primary, Activity? secondary, Activity? tertiary = null)
+    /// <summary>Compatibility overload for tests and the two-slot callers.</summary>
+    public void SetActivities(Activity? primary, Activity? secondary, Activity? tertiary = null) =>
+        SetActivitySnapshot(primary, new[] { secondary, tertiary }.OfType<Activity>().ToList());
+
+    public void SetActivitySnapshot(Activity? primary, IReadOnlyList<Activity> sides)
     {
         var isNewPrimary = !ReferenceEquals(primary, _primary);
         _primary = primary;
-        _secondary = secondary;
-        _tertiary = tertiary;
+        _sideActivities = sides.Take(4).ToList();
+        RebuildSideChips();
 
         if (isNewPrimary && primary is { Alert: true } && _mode == IslandMode.Compact)
         {
@@ -239,17 +298,36 @@ public partial class IslandWindow : Window
         Render();
     }
 
+    private void RebuildSideChips()
+    {
+        DisposeSideChips();
+        var accent = AccentColor();
+        for (var i = 0; i < _sideActivities.Count && i < _sideChips.Length; i++)
+            _sideChips[i] = new SideChipViewModel(_sideActivities[i], accent);
+    }
+
+    private void DisposeSideChips()
+    {
+        foreach (var chip in _sideChips) chip?.Dispose();
+        Array.Clear(_sideChips, 0, _sideChips.Length);
+    }
+
+    private Color AccentColor() =>
+        ThemeService.TryParseColor(_settings.Current.Theme.Accent, out var color) ? color : Color.FromRgb(0x0A, 0x84, 0xFF);
+
     /// <summary>Re-reads size/offset/theme settings.</summary>
     public void ApplySettings()
     {
         var t = _settings.Current.Theme;
         var offset = TopGap;
-        foreach (var b in new[] { Pill, Bubble, Bubble2 }) b.Notch = Notch;
+        foreach (var b in new[] { Pill, Bubble, Bubble2, Bubble3, Bubble4 }) b.Notch = Notch;
         Stage.Margin = new Thickness(0, offset, 0, 0);
-        Width = Math.Max(760, Math.Clamp(t.ExpandedWidth, 320, 900) + 4 * (Math.Max(CompactHeight, 96) + 8));
+        var desiredWidth = Math.Max(1200, Math.Clamp(t.ExpandedWidth, 320, 900) + 4 * (SideChipWidth + 8));
+        Width = Math.Min(desiredWidth, Math.Max(760, Monitor.WorkArea.Width / Monitor.Scale - 24));
         Height = AvailablePanelHeight + offset + 24; // room for panels that grow to fit their content
         _target = (-1, -1, -1);
         _shownContent = null; // template choice may depend on size; rebuild
+        RebuildSideChips(); // the theme accent may have changed
         Place();
         UpdatePresence();
         UpdateGlass();
@@ -301,6 +379,149 @@ public partial class IslandWindow : Window
         else Keyboard.Focus(Tabs);
     }
 
+    /// <summary>Opens the command palette from a shortcut.</summary>
+    public void ShowPalette()
+    {
+        if (_paused) return;
+        if (!IsVisible)
+        {
+            _revealed = true;
+            UpdatePresence();
+            if (!IsVisible) return;
+        }
+        var previous = Native.GetForegroundWindow();
+        SetMode(IslandMode.Expanded);
+        _returnFocusTo = previous == _hwnd ? 0 : previous;
+        _heldOpen = true;
+        _paletteOpen = true;
+        _palette.Refresh();
+        PanelBody.Visibility = Visibility.Collapsed;
+        Palette.Visibility = Visibility.Visible;
+        Palette.FocusSearch();
+    }
+
+    private void ClosePalette()
+    {
+        if (!_paletteOpen) return;
+        _paletteOpen = false;
+        Palette.Visibility = Visibility.Collapsed;
+        PanelBody.Visibility = Visibility.Visible;
+        if (_mode == IslandMode.Expanded) FocusSelectedTab();
+    }
+
+    private void RunAndTuck(Action action)
+    {
+        if (_mode == IslandMode.Expanded) SetMode(IslandMode.Compact);
+        action();
+    }
+
+    private IReadOnlyList<CommandItem> BuildPaletteCommands()
+    {
+        var items = new List<CommandItem>();
+        foreach (var tab in _modules.Tabs)
+        {
+            var target = tab;
+            items.Add(new CommandItem(tab.Descriptor.Name, "Section", tab.Descriptor.Glyph, "", CommandKind.Tab,
+                () => OpenFromMenu(target)));
+        }
+
+        var system = _modules.Tabs.Select(tab => tab.Panel).OfType<SystemGroupViewModel>().FirstOrDefault();
+        if (system?.Actions is { } actions)
+        {
+            items.Add(new CommandItem("Screenshot", "Action", "\uE722", "", CommandKind.Action,
+                () => RunAndTuck(() => actions.ScreenshotCommand.Execute(null))));
+            items.Add(new CommandItem(actions.MicLabel, "Action", "\uE720", "", CommandKind.Action,
+                () => RunAndTuck(() => actions.ToggleMicCommand.Execute(null))));
+            items.Add(new CommandItem("Lock the PC", "Action", "\uE72E", "", CommandKind.Action,
+                () => RunAndTuck(() => actions.LockCommand.Execute(null))));
+            items.Add(new CommandItem("Turn off the display", "Action", "\uE7E8", "", CommandKind.Action,
+                () => RunAndTuck(() => actions.ScreenOffCommand.Execute(null))));
+            items.Add(new CommandItem("Open Downloads", "Action", "\uE896", "", CommandKind.Action,
+                () => RunAndTuck(() => actions.DownloadsCommand.Execute(null))));
+        }
+
+        var clock = _modules.Tabs.Select(tab => tab.Panel).OfType<ClockPanelViewModel>().FirstOrDefault();
+        if (clock is not null)
+        {
+            items.Add(new CommandItem("Start a 5 minute timer", "Timer", "\uE916", "", CommandKind.Timer,
+                () => RunAndTuck(() => clock.Timer.StartCountdownCommand.Execute(5))));
+            items.Add(new CommandItem("Start a 15 minute timer", "Timer", "\uE916", "", CommandKind.Timer,
+                () => RunAndTuck(() => clock.Timer.StartCountdownCommand.Execute(15))));
+            items.Add(new CommandItem("Start a focus session", "Timer", "\uE916", "", CommandKind.Timer,
+                () => RunAndTuck(() => clock.Timer.StartPomodoroCommand.Execute(null))));
+            items.Add(new CommandItem("Start the stopwatch", "Timer", "\uE916", "", CommandKind.Timer,
+                () => RunAndTuck(() => clock.Timer.StartStopwatchCommand.Execute(null))));
+            if (clock.Timer.IsActive)
+                items.Add(new CommandItem("Stop the timer", "Timer", "\uE916", "", CommandKind.Timer,
+                    () => RunAndTuck(() => clock.Timer.ResetCommand.Execute(null))));
+        }
+
+        items.Add(new CommandItem("Open Settings", "Action", "\uE713", "", CommandKind.Action,
+            () => RunAndTuck(() => _openSettings(0))));
+
+        var launcher = _modules.Tabs.Select(tab => tab.Panel).OfType<LauncherPanelViewModel>().FirstOrDefault();
+        if (launcher?.Apps is { } apps)
+        {
+            foreach (var app in apps.Apps)
+            {
+                var target = app;
+                items.Add(new CommandItem(app.Name, app.Source, "", app.Initial, CommandKind.App,
+                    () => RunAndTuck(() => apps.LaunchCommand.Execute(target))));
+            }
+        }
+
+        return items;
+    }
+
+    /// <summary>
+    /// Bookmarked tabs sit in the full-width top row. Enabled tabs that are not bookmarked live in the
+    /// ⋯ menu. Features switched off in Settings appear in neither place. A tab opened from the menu
+    /// joins the top row for this visit and leaves when another tab is picked or the island collapses.
+    /// </summary>
+    private void RefreshTabStrip()
+    {
+        if (_refreshingTabs) return;
+        _refreshingTabs = true;
+        try
+        {
+            if (_transientTab is not null && !_modules.Tabs.Contains(_transientTab)) _transientTab = null;
+
+            var visible = _modules.Tabs
+                .Where(tab => _modules.IsBookmarked(tab) || ReferenceEquals(tab, _transientTab))
+                .ToList();
+            var menu = _modules.Tabs
+                .Where(tab => !_modules.IsBookmarked(tab) && !ReferenceEquals(tab, _transientTab))
+                .ToList();
+
+            if (!_visibleTabs.SequenceEqual(visible))
+            {
+                var selected = Tabs.SelectedItem as ModuleTab;
+                _visibleTabs.Clear();
+                foreach (var tab in visible) _visibleTabs.Add(tab);
+                if (selected is not null && visible.Contains(selected)) Tabs.SelectedItem = selected;
+            }
+            if (!_menuTabs.SequenceEqual(menu))
+            {
+                _menuTabs.Clear();
+                foreach (var tab in menu) _menuTabs.Add(tab);
+                TabMenu.SelectedItem = null;
+            }
+
+            var hasMenu = menu.Count > 0;
+            TabMenuButton.Visibility = hasMenu ? Visibility.Visible : Visibility.Collapsed;
+            if (!hasMenu) TabMenuPopup.IsOpen = false;
+
+            if (Tabs.SelectedItem is null && _visibleTabs.Count > 0) Tabs.SelectedIndex = 0;
+            ShowSelectedTab();
+            _headerWidth = 0;
+            if (_mode == IslandMode.Expanded) Render();
+        }
+        finally
+        {
+            _refreshingTabs = false;
+        }
+    }
+
     /// <summary>Moves between tabs. The wheel stops at the ends; Ctrl+Tab wraps around, as in browsers.</summary>
     internal void StepTab(int delta, bool wrap)
     {
@@ -309,6 +530,64 @@ public partial class IslandWindow : Window
         var index = Tabs.SelectedIndex + delta;
         Tabs.SelectedIndex = wrap ? (index % count + count) % count : Math.Clamp(index, 0, count - 1);
         if (Tabs.IsKeyboardFocusWithin) FocusSelectedTab();
+    }
+
+    private void OnBluetoothClick(object sender, RoutedEventArgs e) => BluetoothPopup.IsOpen = !BluetoothPopup.IsOpen;
+
+    private void OnTabMenuClick(object sender, RoutedEventArgs e) => TabMenuPopup.IsOpen = !TabMenuPopup.IsOpen;
+
+    private void OnTabMenuOpened(object? sender, EventArgs e)
+    {
+        TabMenu.SelectedItem = null;
+        Dispatcher.BeginInvoke(DispatcherPriority.Input, new Action(() => TabMenu.Focus()));
+    }
+
+    private void OnTabMenuClickItem(object sender, MouseButtonEventArgs e)
+    {
+        if (e.OriginalSource is not DependencyObject source) return;
+        if (TabMenu.ContainerFromElement(source) is not ListBoxItem { Content: ModuleTab tab }) return;
+        OpenFromMenu(tab);
+        e.Handled = true;
+    }
+
+    private void OnTabMenuBookmark(object sender, RoutedEventArgs e)
+    {
+        if (sender is not FrameworkElement { DataContext: ModuleTab tab }) return;
+        _modules.Bookmark(tab);
+        OpenFromMenu(tab);
+        e.Handled = true;
+    }
+
+    private void OnTabMenuKeyDown(object sender, KeyEventArgs e)
+    {
+        if ((e.Key is Key.Enter or Key.Space) && TabMenu.SelectedItem is ModuleTab tab)
+        {
+            OpenFromMenu(tab);
+            e.Handled = true;
+        }
+        else if (e.Key == Key.Escape)
+        {
+            TabMenuPopup.IsOpen = false;
+            TabMenuButton.Focus();
+            e.Handled = true;
+        }
+    }
+
+    /// <summary>Opens a menu tab without pinning it; the tab leaves the top row again on the next visit.</summary>
+    private void OpenFromMenu(ModuleTab tab)
+    {
+        TabMenuPopup.IsOpen = false;
+        _transientTab = tab;
+        RefreshTabStrip();
+        Tabs.SelectedItem = tab;
+        Tabs.ScrollIntoView(tab);
+        ShowSelectedTab();
+        if (_mode == IslandMode.Expanded)
+        {
+            Render();
+            FocusSelectedTab();
+        }
+        TabMenu.SelectedItem = null;
     }
 
     private void OnHeaderWheel(object sender, MouseWheelEventArgs e)
@@ -470,6 +749,20 @@ public partial class IslandWindow : Window
 
     private void SetMode(IslandMode mode, string? moduleId = null)
     {
+        TabMenuPopup.IsOpen = false;
+        BluetoothPopup.IsOpen = false;
+        // A tab opened from the ⋯ menu only stays in the top row for its visit.
+        if (mode != IslandMode.Expanded && _transientTab is not null)
+        {
+            _transientTab = null;
+            RefreshTabStrip();
+        }
+        if (mode != IslandMode.Expanded && _paletteOpen)
+        {
+            _paletteOpen = false;
+            Palette.Visibility = Visibility.Collapsed;
+            PanelBody.Visibility = Visibility.Visible;
+        }
         // Keep the original hover region while the pill grows and pushes side activities away.
         _peekAnchor = mode == IslandMode.Peek && _mode != IslandMode.Peek ? IslandBounds() : Rect.Empty;
         if (mode == IslandMode.Expanded)
@@ -478,7 +771,18 @@ public partial class IslandWindow : Window
             SetNoActivate(false);
             Activate();
             var tab = moduleId is null ? null : _modules.Tabs.FirstOrDefault(t => t.Contains(moduleId));
-            if (tab is not null) Tabs.SelectedItem = tab;
+            if (tab is not null)
+            {
+                if (!_modules.IsBookmarked(tab) && !ReferenceEquals(_transientTab, tab))
+                {
+                    _transientTab = tab;
+                    RefreshTabStrip();
+                }
+                Tabs.SelectedItem = tab;
+                // Opening from a game activity should land on the Launcher's Games section.
+                if (tab.Panel is LauncherPanelViewModel launcher && moduleId is "games" or "launcher")
+                    launcher.SectionIndex = moduleId == "games" ? 1 : 0;
+            }
             else if (Tabs.SelectedItem is null && Tabs.Items.Count > 0) Tabs.SelectedIndex = 0;
             ShowSelectedTab();
         }
@@ -572,6 +876,8 @@ public partial class IslandWindow : Window
         Pill.BeginAnimation(OpacityProperty, new DoubleAnimation(to, FadeDuration));
         Bubble.BeginAnimation(OpacityProperty, new DoubleAnimation(to, FadeDuration));
         Bubble2.BeginAnimation(OpacityProperty, new DoubleAnimation(to, FadeDuration));
+        Bubble3.BeginAnimation(OpacityProperty, new DoubleAnimation(to, FadeDuration));
+        Bubble4.BeginAnimation(OpacityProperty, new DoubleAnimation(to, FadeDuration));
     }
 
     private bool IsCursorOverIsland()
@@ -590,8 +896,8 @@ public partial class IslandWindow : Window
         static Rect Bounds(FrameworkElement element) => new(element.PointToScreen(new Point()),
             element.PointToScreen(new Point(element.ActualWidth, element.ActualHeight)));
         var bounds = Bounds(Pill);
-        if (Bubble.IsVisible) bounds.Union(Bounds(Bubble));
-        if (Bubble2.IsVisible) bounds.Union(Bounds(Bubble2));
+        foreach (var bubble in new[] { Bubble, Bubble2, Bubble3, Bubble4 }.Where(b => b.IsVisible))
+            bounds.Union(Bounds(bubble));
         return bounds;
     }
 
@@ -616,10 +922,12 @@ public partial class IslandWindow : Window
             if (_hwnd != 0) GlassSampler.ExcludeFromCapture(_hwnd, false);
             _glassImage = null;
             _pillGlassBrush = null; _bubbleGlassBrush = null;
-            _bubble2GlassBrush = null;
+            _bubble2GlassBrush = null; _bubble3GlassBrush = null; _bubble4GlassBrush = null;
             Pill.SetResourceReference(BackgroundProperty, "Island.Background");
             Bubble.SetResourceReference(BackgroundProperty, "Island.Background");
             Bubble2.SetResourceReference(BackgroundProperty, "Island.Background");
+            Bubble3.SetResourceReference(BackgroundProperty, "Island.Background");
+            Bubble4.SetResourceReference(BackgroundProperty, "Island.Background");
         }
     }
 
@@ -632,16 +940,15 @@ public partial class IslandWindow : Window
         var targetHeight = Math.Max(1, _target.H) * dpi.DpiScaleY;
         var center = pill.Left + pill.Width / 2;
         var bounds = Rect.Union(pill, new Rect(center - targetWidth / 2, pill.Top, targetWidth, targetHeight));
-        foreach (var side in new[] { Bubble, Bubble2 }.Where(side => side.IsVisible))
+        foreach (var side in new[] { Bubble, Bubble2, Bubble3, Bubble4 }.Where(side => side.IsVisible))
         {
             var size = new Size(side.ActualWidth * dpi.DpiScaleX, side.ActualHeight * dpi.DpiScaleY);
-            var bubble = new Rect(side.PointToScreen(new Point()), size);
-            bounds.Union(bubble);
-            // Where the bubble will sit once the pill reaches its target width: first on the right, second on the left.
-            var gap = 8 * dpi.DpiScaleX;
-            var left = ReferenceEquals(side, Bubble2) ? center - targetWidth / 2 - gap - size.Width : center + targetWidth / 2 + gap;
-            bounds.Union(new Rect(new Point(left, bubble.Top), size));
+            bounds.Union(new Rect(side.PointToScreen(new Point()), size));
         }
+        // Cover where two side capsules on each side can sit once the pill reaches its target width.
+        var margin = 2 * (SideChipWidth + SideChipGap + 8) * dpi.DpiScaleX;
+        bounds.Union(new Rect(center - targetWidth / 2 - margin, pill.Top,
+            targetWidth + 2 * margin, Math.Max(pill.Height, targetHeight)));
         var moving = Math.Abs(Pill.ActualWidth - _target.W) > 1 || Math.Abs(Pill.ActualHeight - _target.H) > 1;
         bounds.Inflate((moving ? 40 : 8) * dpi.DpiScaleX, (moving ? 40 : 8) * dpi.DpiScaleY);
         var area = GlassSampler.CaptureBounds(bounds);
@@ -658,6 +965,8 @@ public partial class IslandWindow : Window
         Pill.Background = _pillGlassBrush = GlassBrush(Pill, _pillGlassBrush);
         if (Bubble.IsVisible) Bubble.Background = _bubbleGlassBrush = GlassBrush(Bubble, _bubbleGlassBrush);
         if (Bubble2.IsVisible) Bubble2.Background = _bubble2GlassBrush = GlassBrush(Bubble2, _bubble2GlassBrush);
+        if (Bubble3.IsVisible) Bubble3.Background = _bubble3GlassBrush = GlassBrush(Bubble3, _bubble3GlassBrush);
+        if (Bubble4.IsVisible) Bubble4.Background = _bubble4GlassBrush = GlassBrush(Bubble4, _bubble4GlassBrush);
     }
 
     private ImageBrush GlassBrush(FrameworkElement e, ImageBrush? previous)
@@ -716,7 +1025,7 @@ public partial class IslandWindow : Window
         {
             var expandedWidth = Math.Max(Math.Clamp(t.ExpandedWidth, 320, 900), HeaderWidth()); // every tab fits without scrolling
             var expandedHeight = Math.Clamp(t.ExpandedHeight, 140, 600);
-            if (Tabs.SelectedItem is ModuleTab { Panel: MediaPanelViewModel or SystemGroupViewModel or Atoll.Modules.Weather.WeatherViewModel or Atoll.Modules.Home.HomeViewModel or Atoll.Modules.Games.GameViewModel })
+            if (Tabs.SelectedItem is ModuleTab { Panel: MediaPanelViewModel or SystemGroupViewModel or Atoll.Modules.Weather.WeatherViewModel or Atoll.Modules.Home.HomeViewModel or Atoll.Modules.Games.GameViewModel or Atoll.Modules.Calendar.CalendarViewModel or Atoll.Modules.Notes.NotesViewModel or LauncherPanelViewModel })
                 expandedHeight = Math.Max(expandedHeight, FittedPanelHeight(expandedWidth)); // show all of it
             expandedHeight = Math.Min(expandedHeight, AvailablePanelHeight);
             // Lay out at the destination size, so opening the pill cannot create transient overflow.
@@ -727,6 +1036,8 @@ public partial class IslandWindow : Window
             Animate(expandedWidth, expandedHeight, Roundness * 32);
             RenderBubble(Bubble, BubbleContent, null, h0);
             RenderBubble(Bubble2, Bubble2Content, null, h0);
+            RenderBubble(Bubble3, Bubble3Content, null, h0);
+            RenderBubble(Bubble4, Bubble4Content, null, h0);
             return;
         }
 
@@ -763,8 +1074,10 @@ public partial class IslandWindow : Window
         }
         Animate(w, h, Roundness * Math.Min(h / 2, 28));
         var sides = t.ShowSideActivities;
-        RenderBubble(Bubble, BubbleContent, sides ? _secondary?.Content : null, h0);
-        RenderBubble(Bubble2, Bubble2Content, sides ? _tertiary?.Content : null, h0);
+        RenderBubble(Bubble, BubbleContent, sides ? _sideChips[0] : null, h0);
+        RenderBubble(Bubble2, Bubble2Content, sides ? _sideChips[1] : null, h0);
+        RenderBubble(Bubble3, Bubble3Content, sides ? _sideChips[2] : null, h0);
+        RenderBubble(Bubble4, Bubble4Content, sides ? _sideChips[3] : null, h0);
         UpdateBubbleOffset();
     }
 
@@ -774,6 +1087,7 @@ public partial class IslandWindow : Window
         {
             bubble.Visibility = Visibility.Collapsed;
             presenter.Content = null;
+            AutomationProperties.SetName(bubble, "");
             return;
         }
         if (!ReferenceEquals(presenter.Content, content))
@@ -782,18 +1096,32 @@ public partial class IslandWindow : Window
             presenter.ContentTemplate = Templates.Find(this, content, "Mini");
             presenter.Content = content;
         }
-        presenter.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
         bubble.Height = size;
-        bubble.Width = Math.Max(size, Math.Min(96, presenter.DesiredSize.Width + size * 0.6));
+        bubble.Width = SideChipWidth;
         bubble.ClipToBounds = true;
         bubble.Radius = Roundness * size / 2;
         bubble.Visibility = Visibility.Visible;
+        AutomationProperties.SetName(bubble, content is SideChipViewModel chip ? chip.Label : "");
     }
 
     private void UpdateBubbleOffset()
     {
-        if (Bubble.IsVisible) BubbleShift.X = Pill.ActualWidth / 2 + 8 + Bubble.Width / 2;
-        if (Bubble2.IsVisible) Bubble2Shift.X = -(Pill.ActualWidth / 2 + 8 + Bubble2.Width / 2);
+        var center = Math.Max(0, Pill.ActualWidth / 2);
+        var right = center;
+        if (Bubble.IsVisible)
+        {
+            BubbleShift.X = right + SideChipGap + Bubble.Width / 2;
+            right = BubbleShift.X + Bubble.Width / 2;
+        }
+        if (Bubble3.IsVisible) Bubble3Shift.X = right + SideChipGap + Bubble3.Width / 2;
+
+        var left = center;
+        if (Bubble2.IsVisible)
+        {
+            Bubble2Shift.X = -(left + SideChipGap + Bubble2.Width / 2);
+            left += SideChipGap + Bubble2.Width;
+        }
+        if (Bubble4.IsVisible) Bubble4Shift.X = -(left + SideChipGap + Bubble4.Width / 2);
     }
 
     private void Animate(double w, double h, double r)
@@ -830,18 +1158,43 @@ public partial class IslandWindow : Window
         });
     }
 
+    private void WatchPanel(object? panel)
+    {
+        if (ReferenceEquals(_watchedPanel, panel)) return;
+        if (_watchedPanel is not null) _watchedPanel.PropertyChanged -= OnPanelPropertyChanged;
+        _watchedPanel = panel as INotifyPropertyChanged;
+        if (_watchedPanel is not null) _watchedPanel.PropertyChanged += OnPanelPropertyChanged;
+    }
+
+    private void OnPanelPropertyChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        // Notes, Launcher and similar panels change height when their section changes.
+        if (e.PropertyName is not (nameof(LauncherPanelViewModel.SectionIndex) or nameof(Atoll.Modules.Notes.NotesViewModel.SectionIndex))) return;
+        Dispatcher.BeginInvoke(DispatcherPriority.Background, new Action(() =>
+        {
+            if (_mode == IslandMode.Expanded) Render();
+        }));
+    }
+
     private void ShowSelectedTab()
     {
         if (Tabs.SelectedItem is not ModuleTab tab)
         {
             if (Tabs.Items.Count > 0) Tabs.SelectedIndex = 0; // raises SelectionChanged again
-            else PanelBody.Content = null;
+            else { WatchPanel(null); PanelBody.Content = null; }
             return;
         }
+        WatchPanel(tab.Panel);
         if (ReferenceEquals(PanelBody.Content, tab.Panel)) return;
         PanelBody.Content = null;
         PanelBody.ContentTemplate = Templates.Find(this, tab.Panel, "Panel");
         PanelBody.Content = tab.Panel;
+    }
+
+    private void OpenSide(int index, MouseButtonEventArgs e)
+    {
+        if (_sideChips[index] is { } chip) SetMode(IslandMode.Expanded, ActivityTab(chip.Activity));
+        e.Handled = true;
     }
 
     private string? ActivityTab(Activity? activity) =>
@@ -859,8 +1212,9 @@ public partial class IslandWindow : Window
     {
         "notifications" => 3,
         "claude" or "providers" => 4,
-        "clock" => 5,
+        "calendar" => 5,
         "weather" => 6,
+        "clock" or "launcher" or "shelf" or "clipboard" or "notes" => 2,
         _ => 0,
     };
 

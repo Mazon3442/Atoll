@@ -17,19 +17,31 @@ public static partial class Lyrics
     [GeneratedRegex(@"\[(\d+):(\d+(?:[.:]\d+)?)\]")]
     private static partial Regex TimeTag();
 
+    [GeneratedRegex(@"\[offset:\s*([+-]?\d+)\s*\]", RegexOptions.IgnoreCase)]
+    private static partial Regex OffsetTag();
+
     /// <summary>Parses LRC text. A line may carry several time tags ("[00:12.00][01:30.50]chorus").</summary>
     public static IReadOnlyList<LyricLine> Parse(string? lrc)
     {
+        var source = lrc ?? "";
+        // LRC's positive offset makes the lyrics appear sooner, so it is subtracted from every timestamp.
+        var offset = OffsetTag().Match(source) is { Success: true } tag
+            && int.TryParse(tag.Groups[1].Value, NumberStyles.AllowLeadingSign, CultureInfo.InvariantCulture, out var milliseconds)
+                ? TimeSpan.FromMilliseconds(milliseconds)
+                : TimeSpan.Zero;
+
         var lines = new List<LyricLine>();
-        foreach (var raw in (lrc ?? "").Split('\n'))
+        foreach (var raw in source.Split('\n'))
         {
             var tags = TimeTag().Matches(raw);
             if (tags.Count == 0) continue;
             var text = raw[(tags[^1].Index + tags[^1].Length)..].Trim();
-            foreach (Match tag in tags)
+            foreach (Match match in tags)
             {
-                var seconds = double.Parse(tag.Groups[2].Value.Replace(':', '.'), CultureInfo.InvariantCulture);
-                lines.Add(new LyricLine(TimeSpan.FromMinutes(int.Parse(tag.Groups[1].Value, CultureInfo.InvariantCulture)) + TimeSpan.FromSeconds(seconds), text));
+                var seconds = double.Parse(match.Groups[2].Value.Replace(':', '.'), CultureInfo.InvariantCulture);
+                var at = TimeSpan.FromMinutes(int.Parse(match.Groups[1].Value, CultureInfo.InvariantCulture))
+                    + TimeSpan.FromSeconds(seconds) - offset;
+                lines.Add(new LyricLine(at < TimeSpan.Zero ? TimeSpan.Zero : at, text));
             }
         }
         lines.Sort((a, b) => a.At.CompareTo(b.At));

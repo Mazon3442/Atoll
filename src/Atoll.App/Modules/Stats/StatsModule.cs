@@ -89,8 +89,8 @@ public sealed class StatsModule : IIslandModule
     private readonly NetworkSampler _net = new();
     private ModuleContext? _context;
     private Timer? _timer;
+    private System.Windows.Threading.DispatcherTimer? _batteryTimer;
     private int _busy;
-    private int _ticks;
 
     public object? Panel => _vm;
 
@@ -98,6 +98,12 @@ public sealed class StatsModule : IIslandModule
     {
         _context = context;
         _timer = new Timer(_ => Sample(), null, Timeout.InfiniteTimeSpan, Timeout.InfiniteTimeSpan);
+        // Bluetooth battery levels belong to the header chip too, so keep them fresh even when the stats page is closed.
+        _batteryTimer = new System.Windows.Threading.DispatcherTimer(System.Windows.Threading.DispatcherPriority.Background)
+        { Interval = TimeSpan.FromSeconds(30) };
+        _batteryTimer.Tick += (_, _) => _ = RefreshBatteriesAsync();
+        _batteryTimer.Start();
+        _ = RefreshBatteriesAsync();
         _vm.ObservationChanged += OnObservationChanged;
         OnObservationChanged(_vm.IsObserved);
     }
@@ -109,7 +115,7 @@ public sealed class StatsModule : IIslandModule
             if (_disposed) return;
             _sampling = active;
             _timer?.Change(active ? TimeSpan.Zero : Timeout.InfiniteTimeSpan, active ? TimeSpan.FromSeconds(1) : Timeout.InfiniteTimeSpan);
-            if (!active) { _gpu?.Dispose(); _gpu = null; _ticks = 0; }
+            if (!active) { _gpu?.Dispose(); _gpu = null; }
         }
     }
 
@@ -126,7 +132,6 @@ public sealed class StatsModule : IIslandModule
                 var (usedGb, totalGb, memLoad) = MemorySampler.Sample();
                 var (down, up) = _net.Sample();
                 var netScale = _net.Scale(down + up);
-                if (_ticks++ % 30 == 0) _ = RefreshBatteriesAsync(); // battery levels change slowly; never hold up the tiles
 
                 _context?.Dispatcher.BeginInvoke(() =>
                 {
@@ -173,6 +178,7 @@ public sealed class StatsModule : IIslandModule
     public void Dispose()
     {
         _timer?.Dispose();
+        _batteryTimer?.Stop();
         _vm.ObservationChanged -= OnObservationChanged;
         lock (_sampleGate) { _disposed = true; _gpu?.Dispose(); }
     }

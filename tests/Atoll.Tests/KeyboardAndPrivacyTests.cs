@@ -49,7 +49,10 @@ public class KeyboardAndPrivacyTests
         using var vm = new SettingsViewModel(service, []);
         vm.OpenShortcut = service.Current.HideShortcut;
         Assert.Equal("Ctrl+Alt+Space", service.Current.OpenShortcut);
-        Assert.Contains("already the other shortcut", vm.ShortcutMessage);
+        Assert.Contains("already another shortcut", vm.ShortcutMessage);
+        vm.OpenShortcut = service.Current.PaletteShortcut;
+        Assert.Equal("Ctrl+Alt+Space", service.Current.OpenShortcut);
+        Assert.Contains("already another shortcut", vm.ShortcutMessage);
         vm.OpenShortcut = "Ctrl+Shift+F12";
         Assert.Equal("Ctrl+Shift+F12", service.Current.OpenShortcut);
         Assert.Equal("", vm.ShortcutMessage);

@@ -14,20 +14,36 @@ public partial class MediaTemplates : ResourceDictionary
 
     private readonly ConditionalWeakTable<Border, Action> _lyricsDetach = new();
 
-    /// <summary>Keeps the sung line a little above the middle of the lyrics box, sliding to each new line.</summary>
+    /// <summary>Keeps the sung line centered in the lyrics box, sliding smoothly to each new line.</summary>
     private void LyricsLoaded(object sender, RoutedEventArgs e)
     {
         var box = (Border)sender;
         LyricsUnloaded(box, e);
         if (box.DataContext is not MediaViewModel vm || box.Child is not Canvas { Children: [ItemsControl list] }) return;
-        var shift = (System.Windows.Media.TranslateTransform)list.RenderTransform;
+        // A transform declared in the template is frozen, so animation or setting Y throws. Own one here.
+        var shift = new System.Windows.Media.TranslateTransform();
+        list.RenderTransform = shift;
+        var queued = false;
+        var retries = 0;
 
         void Follow(bool animate)
         {
-            if (list.ItemContainerGenerator.ContainerFromIndex(Math.Max(vm.LyricIndex, 0)) is not FrameworkElement line || !line.IsArrangeValid) return;
-            var target = box.ActualHeight * 0.42 - line.TranslatePoint(default, list).Y - line.ActualHeight / 2;
-            if (animate && SystemParameters.ClientAreaAnimation)
-                shift.BeginAnimation(System.Windows.Media.TranslateTransform.YProperty, new System.Windows.Media.Animation.DoubleAnimation(target, TimeSpan.FromMilliseconds(380))
+            if (!box.IsLoaded || box.ActualHeight <= 0 || list.Items.Count == 0) return;
+            list.UpdateLayout(); // containers exist only after a layout pass
+            var index = Math.Clamp(vm.LyricIndex, 0, list.Items.Count - 1);
+            if (list.ItemContainerGenerator.ContainerFromIndex(index) is not FrameworkElement line)
+            {
+                retries++;
+                if (retries <= 3) Queue();
+                return;
+            }
+            retries = 0;
+            var point = line.TranslatePoint(new Point(), list);
+            var target = box.ActualHeight * 0.5 - point.Y - line.ActualHeight / 2;
+            // A seek can cross many lines; snap rather than sliding the whole song past the box.
+            var far = Math.Abs(target - shift.Y) > box.ActualHeight * 2;
+            if (animate && !far && SystemParameters.ClientAreaAnimation)
+                shift.BeginAnimation(System.Windows.Media.TranslateTransform.YProperty, new System.Windows.Media.Animation.DoubleAnimation(target, TimeSpan.FromMilliseconds(420))
                 { EasingFunction = new System.Windows.Media.Animation.CubicEase { EasingMode = System.Windows.Media.Animation.EasingMode.EaseOut } });
             else
             {
@@ -36,16 +52,34 @@ public partial class MediaTemplates : ResourceDictionary
             }
         }
 
+        void Queue()
+        {
+            if (queued) return;
+            queued = true;
+            box.Dispatcher.BeginInvoke(() =>
+            {
+                queued = false;
+                if (box.IsLoaded) Follow(true);
+            }, System.Windows.Threading.DispatcherPriority.Loaded);
+        }
+
         void Changed(object? s, System.ComponentModel.PropertyChangedEventArgs a)
         {
             if (a.PropertyName == nameof(MediaViewModel.LyricIndex))
-                box.Dispatcher.BeginInvoke(() => Follow(true), System.Windows.Threading.DispatcherPriority.Loaded);
+                Queue();
         }
-        void Resized(object s, SizeChangedEventArgs a) => Follow(false); // new song or the box was shown: jump, don't slide
+        // New song, new lyric list, or the box was shown/resized: jump, don't slide.
+        void Resized(object s, SizeChangedEventArgs a) { retries = 0; Follow(false); }
         vm.PropertyChanged += Changed;
         list.SizeChanged += Resized;
-        _lyricsDetach.AddOrUpdate(box, () => { vm.PropertyChanged -= Changed; list.SizeChanged -= Resized; });
-        Follow(false);
+        box.SizeChanged += Resized;
+        _lyricsDetach.AddOrUpdate(box, () =>
+        {
+            vm.PropertyChanged -= Changed;
+            list.SizeChanged -= Resized;
+            box.SizeChanged -= Resized;
+        });
+        Queue();
     }
 
     private void LyricsUnloaded(object sender, RoutedEventArgs e)

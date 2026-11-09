@@ -24,19 +24,21 @@ public static class ModuleCatalog
     [
         new("claude", "Agents", "", () => new ClaudeModule()),
         // Off until the user adds an API key in Settings.
-        new("providers", "API keys", "", () => new ProviderModule(), EnabledByDefault: false),
+        new("providers", "API keys", "", () => new ProviderModule(), EnabledByDefault: false, BookmarkedByDefault: false),
         new("media", "Media", "", () => new MediaModule()),
         new("notifications", "Notifications", "", () => new NotificationsModule()),
-        new("clock", "Clock & timer", "", () => new ClockModule()),
+        new("clock", "Clock & timer", "", () => new ClockModule(), BookmarkedByDefault: false),
         new("calendar", "Calendar", "\uE787", () => new CalendarModule()),
-        new("system", "System", "", () => new IndicatorsModule()),
+        new("notes", "Notes", "\uE70B", () => new Notes.NotesModule(), BookmarkedByDefault: false),
+        new("system", "System", "", () => new IndicatorsModule(), BookmarkedByDefault: false),
         new("shelf", "File shelf", "", () => new ShelfModule()),
         new("clipboard", "Clipboard history", "", () => new ClipboardModule()),
-        new("stats", "System stats", "", () => new StatsModule()),
+        new("stats", "System stats", "", () => new StatsModule(), BookmarkedByDefault: false),
         new("weather", "Weather", "", () => new WeatherModule()),
-        new("actions", "Quick actions", "", () => new QuickActionsModule()),
-        new("privacy", "Camera and mic in use", "", () => new PrivacyModule()),
-        new("games", "Games", "", () => new Games.GamesModule()),
+        new("actions", "Quick actions", "", () => new QuickActionsModule(), BookmarkedByDefault: false),
+        new("privacy", "Camera and mic in use", "", () => new PrivacyModule(), BookmarkedByDefault: false),
+        new("launcher", "Launcher", "\uE71D", () => new Launcher.LauncherModule(), BookmarkedByDefault: false),
+        new("games", "Games", "", () => new Games.GamesModule(), BookmarkedByDefault: false),
     ];
 }
 
@@ -59,11 +61,41 @@ public sealed class ModuleManager(
 
     public ObservableCollection<ModuleTab> Tabs { get; } = [];
 
+    /// <summary>Raised after <see cref="Apply"/>, so the island can refit the header when placement changes.</summary>
+    public event Action? LayoutChanged;
+
+    /// <summary>True when the tab sits in the island's top row rather than the ⋯ menu.</summary>
+    public bool IsBookmarked(ModuleTab tab)
+    {
+        if (tab.Descriptor.Id == "home") return settings.Current.Home.Bookmarked != false;
+        var members = settings.Current.Modules
+            .Where(entry => entry.Enabled && PanelGroups.TabId(entry.Id) == tab.Descriptor.Id)
+            .ToList();
+        // A tab supplied without settings entries (tests, embedded hosts) behaves like a new feature.
+        return members.Count == 0 || members.Any(IsEntryBookmarked);
+    }
+
+    private bool IsEntryBookmarked(ModuleEntry entry) =>
+        entry.Bookmarked ?? catalog.FirstOrDefault(d => d.Id == entry.Id)?.BookmarkedByDefault ?? true;
+
+    /// <summary>Pins a tab to the top row, including every enabled feature that shares it.</summary>
+    public void Bookmark(ModuleTab tab)
+    {
+        if (tab.Descriptor.Id == "home") settings.Current.Home.SetPlacement(FeaturePlacement.Bookmarked);
+        else
+        {
+            foreach (var entry in settings.Current.Modules.Where(entry => PanelGroups.TabId(entry.Id) == tab.Descriptor.Id))
+                entry.SetPlacement(FeaturePlacement.Bookmarked);
+        }
+        Apply();
+        settings.NotifyChanged();
+    }
+
     public void Apply()
     {
         var entries = settings.Current.Modules;
         foreach (var d in catalog.Where(d => entries.All(e => e.Id != d.Id)))
-            entries.Add(new ModuleEntry { Id = d.Id, Enabled = d.EnabledByDefault });
+            entries.Add(new ModuleEntry { Id = d.Id, Enabled = d.EnabledByDefault, Bookmarked = d.BookmarkedByDefault });
 
         var wanted = entries
             .Where(e => e.Enabled)
@@ -105,6 +137,7 @@ public sealed class ModuleManager(
             Tabs.Clear();
             tabs.ForEach(Tabs.Add);
         }
+        LayoutChanged?.Invoke();
     }
 
     private void Stop(string id)

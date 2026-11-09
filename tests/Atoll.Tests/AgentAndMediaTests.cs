@@ -134,6 +134,15 @@ public class AgentAndMediaTests
         Assert.Equal(-1, Lyrics.IndexAt(lines, TimeSpan.FromSeconds(1)));
         Assert.Equal(1, Lyrics.IndexAt(lines, TimeSpan.FromSeconds(12)));
 
+        // LRC's positive offset makes lyrics appear sooner; negative delays them, and times never go below zero.
+        var earlier = Lyrics.Parse("[offset:+500]\n[00:10.00]Line\n[00:20.00]Next");
+        Assert.Equal(TimeSpan.FromSeconds(9.5), earlier[0].At);
+        Assert.Equal(TimeSpan.FromSeconds(19.5), earlier[1].At);
+        var later = Lyrics.Parse("[offset:-2000]\n[00:01.00]Line");
+        Assert.Equal(TimeSpan.FromSeconds(3), later[0].At);
+        var clamped = Lyrics.Parse("[offset:5000]\n[00:01.00]Line");
+        Assert.Equal(TimeSpan.Zero, clamped[0].At);
+
         using var results = JsonDocument.Parse("""[{"duration":250,"syncedLyrics":null},{"duration":300,"syncedLyrics":"[00:01.00]live"},{"duration":201,"syncedLyrics":"[00:01.00]album"}]""");
         Assert.Equal("[00:01.00]album", Lyrics.Pick(results.RootElement, TimeSpan.FromSeconds(200)));
         Assert.Null(Lyrics.Pick(results.RootElement, TimeSpan.FromSeconds(100))); // no version of this length
@@ -194,10 +203,49 @@ internal static class AgentMediaUi
         game.Library.Add(new("Minecraft Launcher", "Minecraft", "x")); game.Library.Add(new("Dota 2", "Steam", "x")); game.HasLibrary = true;
         Render(game, "GameViewModel.Compact", "game-overlay", 420, 24);
         Render(game, "GameViewModel.Panel", "games-panel", 640, 210);
+        var launcher = new Atoll.Modules.Launcher.LauncherViewModel(System.Windows.Threading.Dispatcher.CurrentDispatcher);
+        launcher.SetAppsForTest([
+            new("Visual Studio Code", @"C:\ProgramData\Microsoft\Windows\Start Menu\Programs\Visual Studio Code.lnk", "Development"),
+            new("Spotify", @"C:\Users\mason\AppData\Roaming\Microsoft\Windows\Start Menu\Programs\Spotify.lnk", "Music"),
+            new("Steam", @"C:\ProgramData\Microsoft\Windows\Start Menu\Programs\Steam.lnk", "Games"),
+        ]);
+        Render(new Atoll.Modules.LauncherPanelViewModel(launcher, game), "LauncherPanelViewModel.Panel", "launcher-panel", 640, 360);
         var timer = new Atoll.Modules.Clock.TimerViewModel(TimeProvider.System);
+        var calendar = new Atoll.Modules.Calendar.CalendarViewModel(() => { }) { HasSources = true, HasEvents = true };
+        var today = DateTime.Today;
+        calendar.SelectedDate = today;
+        calendar.VisibleMonth = new DateTime(today.Year, today.Month, 1);
+        calendar.MonthCells = Atoll.Modules.Calendar.CalendarViewModel.BuildMonth(calendar.VisibleMonth, today, today,
+            new Dictionary<DateTime, Atoll.Modules.Calendar.CalendarDayMark>
+            {
+                [today] = new(2, ["#0A84FF", "#30D158"]),
+                [today.AddDays(3)] = new(1, ["#FF9F0A"]),
+            });
+        var eventStart = DateTimeOffset.Now.AddHours(1);
+        calendar.Days.Add(new Atoll.Modules.Calendar.CalendarDay
+        {
+            Label = "Today",
+            Events =
+            [
+                new(new Atoll.Modules.Calendar.CalendarEventItem("render", eventStart, eventStart.AddHours(1), false,
+                    "Design review", "Studio 2", "Work", "#0A84FF"), _ => { }, _ => { }),
+            ],
+        });
         var home = new Atoll.Modules.Home.HomeViewModel(media, null, new Atoll.Modules.Clock.ClockPanelViewModel(new Atoll.Modules.Clock.ClockViewModel(), timer),
-            new Atoll.Modules.Calendar.CalendarViewModel(() => { }), game, new HomeSettings());
+            calendar, game, new HomeSettings());
         Render(home, "HomeViewModel.Panel", "home-panel", 640, 300);
+
+        var notesSettings = new NotesSettings();
+        notesSettings.Notes.Add(new NoteItem { Text = "Ship the calendar update", Updated = DateTimeOffset.Now.AddMinutes(-20) });
+        notesSettings.Reminders.Add(new ReminderItem { Title = "Standup", Due = DateTimeOffset.Now.AddMinutes(10) });
+        notesSettings.Todos.Add(new TodoItem { Text = "Review release notes" });
+        notesSettings.Todos.Add(new TodoItem { Text = "Reply to Sam", Done = true });
+        var notes = new Atoll.Modules.Notes.NotesViewModel(notesSettings, () => { });
+        Render(notes, "NotesViewModel.Panel", "notes-panel", 640, 380);
+        notes.SectionIndex = 1;
+        Render(notes, "NotesViewModel.Panel", "notes-reminders", 640, 380);
+        notes.SectionIndex = 2;
+        Render(notes, "NotesViewModel.Panel", "notes-todos", 640, 380);
     }
 
     private static void Render(object vm, string key, string name, double width, double height = 60)
@@ -226,11 +274,37 @@ public class HomeAndGamesTests
     [Fact]
     public void Month_grid_is_six_weeks_with_today_and_event_days()
     {
-        var cells = Atoll.Modules.Home.HomeViewModel.BuildMonth(new DateTime(2026, 11, 1), new DateTime(2026, 11, 9), new HashSet<DateTime> { new(2026, 11, 12) });
+        var marks = new Dictionary<DateTime, Atoll.Modules.Calendar.CalendarDayMark>
+        {
+            [new DateTime(2026, 11, 12)] = new(1, ["#0A84FF"]),
+        };
+        var cells = Atoll.Modules.Calendar.CalendarViewModel.BuildMonth(
+            new DateTime(2026, 11, 1), new DateTime(2026, 11, 9), new DateTime(2026, 11, 9), marks);
         Assert.Equal(42, cells.Count);
-        Assert.Single(cells, c => c.IsToday && c.Day == 9);
-        Assert.Single(cells, c => c.HasEvents && c.Day == 12 && c.InMonth);
+        Assert.Single(cells, c => c.IsToday && c.Date.Day == 9 && c.IsSelected);
+        Assert.Single(cells, c => c.HasEvents && c.Date.Day == 12 && c.InMonth);
         Assert.Equal(30, cells.Count(c => c.InMonth));
+    }
+
+    [Fact]
+    public void Launcher_filters_apps_by_name_and_source()
+    {
+        var vm = new Atoll.Modules.Launcher.LauncherViewModel(System.Windows.Threading.Dispatcher.CurrentDispatcher);
+        vm.SetAppsForTest([
+            new("Visual Studio Code", @"C:\Start Menu\Visual Studio Code.lnk", "Development"),
+            new("Spotify", @"C:\Start Menu\Spotify.lnk", "Music"),
+            new("Steam", @"C:\Start Menu\Steam.lnk", "Games"),
+        ]);
+        Assert.Equal(3, vm.FilteredApps.Count);
+        Assert.True(vm.HasApps);
+
+        vm.SearchText = "studio";
+        Assert.Equal("Visual Studio Code", Assert.Single(vm.FilteredApps).Name);
+        vm.SearchText = "music";
+        Assert.Equal("Spotify", Assert.Single(vm.FilteredApps).Name);
+        vm.SearchText = "nothing here";
+        Assert.Empty(vm.FilteredApps);
+        Assert.True(vm.ShowEmpty);
     }
 
     [Fact]

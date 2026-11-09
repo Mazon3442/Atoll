@@ -48,6 +48,45 @@
                                     <TextBlock Text="{Binding Devices.BatteryShort}" FontSize="12" FontWeight="SemiBold" Margin="6,0,0,0" VerticalAlignment="Center" />
                                 </StackPanel>
                             </Border>
+                            <Button x:Name="BluetoothButton" ToolTip="Bluetooth devices" AutomationProperties.Name="Bluetooth devices"
+                                    Click="OnBluetoothClick"
+                                    Visibility="{Binding Devices, Converter={x:Static shell:NotNullToVisibility.Instance}, FallbackValue=Collapsed}">
+                                <shell:Icon Kind="bluetooth" Size="15" />
+                            </Button>
+                            <Popup x:Name="BluetoothPopup" PlacementTarget="{Binding ElementName=BluetoothButton}"
+                                   Placement="Bottom" VerticalOffset="6" StaysOpen="False" AllowsTransparency="True"
+                                   PopupAnimation="Fade" DataContext="{Binding DataContext, ElementName=StatusChips}">
+                                <Border Background="{DynamicResource Island.Menu}" BorderBrush="{DynamicResource Island.Hover}"
+                                        BorderThickness="1" CornerRadius="12" Padding="12" MinWidth="210" MaxWidth="280">
+                                    <StackPanel>
+                                        <TextBlock Text="Bluetooth" FontSize="13" FontWeight="SemiBold" Margin="0,0,0,6" />
+                                        <TextBlock Text="{Binding Devices.Bluetooth}" FontSize="12" TextWrapping="Wrap" />
+                                        <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" MaxHeight="190" Margin="0,8,0,0">
+                                            <ItemsControl ItemsSource="{Binding Stats.Devices}" Focusable="False">
+                                                <ItemsControl.ItemTemplate>
+                                                    <DataTemplate>
+                                                        <Border Background="{DynamicResource Island.Surface}" CornerRadius="8" Padding="8,5" Margin="0,0,0,4"
+                                                                AutomationProperties.Name="{Binding Description}">
+                                                            <DockPanel>
+                                                                <TextBlock x:Name="Level" DockPanel.Dock="Right" Text="{Binding Text}" FontSize="12"
+                                                                           FontWeight="SemiBold" Margin="8,0,0,0" VerticalAlignment="Center" />
+                                                                <shell:Icon DockPanel.Dock="Left" Kind="bluetooth" Size="12" Margin="0,0,7,0"
+                                                                            Foreground="{DynamicResource Island.Subtle}" VerticalAlignment="Center" />
+                                                                <TextBlock Text="{Binding Name}" FontSize="12" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
+                                                            </DockPanel>
+                                                        </Border>
+                                                        <DataTemplate.Triggers>
+                                                            <DataTrigger Binding="{Binding IsLow}" Value="True">
+                                                                <Setter TargetName="Level" Property="Foreground" Value="#FF9F0A" />
+                                                            </DataTrigger>
+                                                        </DataTemplate.Triggers>
+                                                    </DataTemplate>
+                                                </ItemsControl.ItemTemplate>
+                                            </ItemsControl>
+                                        </ScrollViewer>
+                                    </StackPanel>
+                                </Border>
+                            </Popup>
                             <Button Command="{Binding Actions.ToggleMicCommand}" ToolTip="{Binding Actions.MicLabel}" AutomationProperties.Name="{Binding Actions.MicLabel}"
                                     Visibility="{Binding Actions, Converter={x:Static shell:NotNullToVisibility.Instance}, FallbackValue=Collapsed}">
                                 <shell:Icon Size="15">
@@ -83,32 +122,79 @@
                             </Button>
                         </StackPanel>
                         <Border Background="{DynamicResource Island.Surface}" CornerRadius="18" Padding="3" HorizontalAlignment="Left">
-                        <ListBox x:Name="Tabs"
-                                 Background="Transparent" BorderThickness="0"
-                                 ItemContainerStyle="{StaticResource Island.TabItem}"
-                                 ScrollViewer.HorizontalScrollBarVisibility="Hidden"
-                                 ScrollViewer.VerticalScrollBarVisibility="Disabled"
-                                 AutomationProperties.Name="ATOLL sections">
-                            <ListBox.ItemsPanel>
-                                <ItemsPanelTemplate>
-                                    <StackPanel Orientation="Horizontal" />
-                                </ItemsPanelTemplate>
-                            </ListBox.ItemsPanel>
-                            <ListBox.ItemTemplate>
-                                <DataTemplate>
-                                    <StackPanel Orientation="Horizontal" ToolTip="{Binding Descriptor.Name}"
-                                                AutomationProperties.Name="{Binding Descriptor.Name}">
-                                        <shell:Icon Kind="{Binding Descriptor.Id, Converter={x:Static shell:TabIconConverter.Instance}}" Size="15" VerticalAlignment="Center" />
-                                        <TextBlock Text="{Binding Descriptor.Name}" FontSize="13" FontWeight="SemiBold" Margin="7,0,0,0" VerticalAlignment="Center"
-                                                   Visibility="{Binding IsSelected, RelativeSource={RelativeSource AncestorType=ListBoxItem}, Converter={StaticResource Island.BoolToVisibility}, FallbackValue=Collapsed}" />
-                                    </StackPanel>
-                                </DataTemplate>
-                            </ListBox.ItemTemplate>
-                        </ListBox>
+                            <StackPanel Orientation="Horizontal">
+                                <ListBox x:Name="Tabs"
+                                         Background="Transparent" BorderThickness="0"
+                                         ItemContainerStyle="{StaticResource Island.TabItem}"
+                                         ScrollViewer.HorizontalScrollBarVisibility="Hidden"
+                                         ScrollViewer.VerticalScrollBarVisibility="Disabled"
+                                         AutomationProperties.Name="ATOLL sections">
+                                    <ListBox.ItemsPanel>
+                                        <ItemsPanelTemplate>
+                                            <StackPanel Orientation="Horizontal" />
+                                        </ItemsPanelTemplate>
+                                    </ListBox.ItemsPanel>
+                                    <ListBox.ItemTemplate>
+                                        <DataTemplate>
+                                            <StackPanel Orientation="Horizontal" ToolTip="{Binding Descriptor.Name}"
+                                                        AutomationProperties.Name="{Binding Descriptor.Name}">
+                                                <shell:Icon Kind="{Binding Descriptor.Id, Converter={x:Static shell:TabIconConverter.Instance}}" Size="15" VerticalAlignment="Center" />
+                                                <TextBlock Text="{Binding Descriptor.Name}" FontSize="13" FontWeight="SemiBold" Margin="7,0,0,0" VerticalAlignment="Center"
+                                                           Visibility="{Binding IsSelected, RelativeSource={RelativeSource AncestorType=ListBoxItem}, Converter={StaticResource Island.BoolToVisibility}, FallbackValue=Collapsed}" />
+                                            </StackPanel>
+                                        </DataTemplate>
+                                    </ListBox.ItemTemplate>
+                                </ListBox>
+                                <Button x:Name="TabMenuButton" Style="{StaticResource Island.IconButton}" Width="32" Height="32"
+                                        Margin="2,0,0,0" Click="OnTabMenuClick" ToolTip="Sections outside the top row"
+                                        Visibility="Collapsed" AutomationProperties.Name="Sections outside the top row">
+                                    <shell:Icon Kind="more" Size="15" />
+                                </Button>
+                                <Popup x:Name="TabMenuPopup" PlacementTarget="{Binding ElementName=TabMenuButton}"
+                                       Placement="Bottom" VerticalOffset="6" StaysOpen="False" AllowsTransparency="True"
+                                       PopupAnimation="Fade" Opened="OnTabMenuOpened">
+                                    <Border Background="{DynamicResource Island.Menu}" BorderBrush="{DynamicResource Island.Hover}"
+                                            BorderThickness="1" CornerRadius="12" Padding="4" MinWidth="200" MaxHeight="360">
+                                        <StackPanel>
+                                            <TextBlock Text="Outside the top row" FontSize="10" FontWeight="Bold"
+                                                       Foreground="{DynamicResource Island.Subtle}" Margin="8,6,8,4" />
+                                            <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                                                <ListBox x:Name="TabMenu"
+                                                         ItemContainerStyle="{StaticResource Island.TabMenuItem}"
+                                                         Background="Transparent" BorderThickness="0"
+                                                         Foreground="{DynamicResource Island.Foreground}"
+                                                         KeyDown="OnTabMenuKeyDown" MouseLeftButtonUp="OnTabMenuClickItem"
+                                                         AutomationProperties.Name="Sections outside the top row">
+                                                    <ListBox.ItemTemplate>
+                                                        <DataTemplate>
+                                                            <DockPanel>
+                                                                <Button DockPanel.Dock="Right" Style="{StaticResource Island.IconButton}"
+                                                                        Width="24" Height="24" Margin="6,0,0,0"
+                                                                        Click="OnTabMenuBookmark" ToolTip="Keep in the top row"
+                                                                        AutomationProperties.Name="{Binding Descriptor.Name, StringFormat=Keep {0} in the top row}">
+                                                                    <shell:Icon Kind="pin" Size="12" />
+                                                                </Button>
+                                                                <TextBlock DockPanel.Dock="Left" Text="{Binding Descriptor.Glyph}"
+                                                                           FontFamily="{StaticResource Island.IconFont}" FontSize="15"
+                                                                           Margin="0,0,9,0" VerticalAlignment="Center" />
+                                                                <TextBlock Text="{Binding Descriptor.Name}" FontSize="13" TextTrimming="CharacterEllipsis"
+                                                                           VerticalAlignment="Center" />
+                                                            </DockPanel>
+                                                        </DataTemplate>
+                                                    </ListBox.ItemTemplate>
+                                                </ListBox>
+                                            </ScrollViewer>
+                                        </StackPanel>
+                                    </Border>
+                                </Popup>
+                            </StackPanel>
                         </Border>
                     </DockPanel>
 
-                    <ContentPresenter x:Name="PanelBody" Grid.Row="1" Margin="4,10,4,0" />
+                    <Grid Grid.Row="1" Margin="4,10,4,0">
+                        <ContentPresenter x:Name="PanelBody" />
+                        <shell:CommandPaletteView x:Name="Palette" Visibility="Collapsed" />
+                    </Grid>
                 </Grid>
             </Grid>
         </shell:PillBorder>
@@ -121,7 +207,7 @@
             <shell:PillBorder.RenderTransform>
                 <TranslateTransform x:Name="BubbleShift" />
             </shell:PillBorder.RenderTransform>
-            <ContentPresenter x:Name="BubbleContent" HorizontalAlignment="Center" VerticalAlignment="Center" />
+            <ContentPresenter x:Name="BubbleContent" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" />
         </shell:PillBorder>
         <shell:PillBorder x:Name="Bubble2"
                           Background="{DynamicResource Island.Background}" BorderBrush="{DynamicResource Island.Rim}" BorderThickness="1"
@@ -131,7 +217,27 @@
             <shell:PillBorder.RenderTransform>
                 <TranslateTransform x:Name="Bubble2Shift" />
             </shell:PillBorder.RenderTransform>
-            <ContentPresenter x:Name="Bubble2Content" HorizontalAlignment="Center" VerticalAlignment="Center" />
+            <ContentPresenter x:Name="Bubble2Content" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" />
+        </shell:PillBorder>
+        <shell:PillBorder x:Name="Bubble3"
+                          Background="{DynamicResource Island.Background}" BorderBrush="{DynamicResource Island.Rim}" BorderThickness="1"
+                          HorizontalAlignment="Center" VerticalAlignment="Top"
+                          Visibility="Collapsed" Cursor="Hand"
+                          AutomationProperties.Name="Third side activity">
+            <shell:PillBorder.RenderTransform>
+                <TranslateTransform x:Name="Bubble3Shift" />
+            </shell:PillBorder.RenderTransform>
+            <ContentPresenter x:Name="Bubble3Content" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" />
+        </shell:PillBorder>
+        <shell:PillBorder x:Name="Bubble4"
+                          Background="{DynamicResource Island.Background}" BorderBrush="{DynamicResource Island.Rim}" BorderThickness="1"
+                          HorizontalAlignment="Center" VerticalAlignment="Top"
+                          Visibility="Collapsed" Cursor="Hand"
+                          AutomationProperties.Name="Fourth side activity">
+            <shell:PillBorder.RenderTransform>
+                <TranslateTransform x:Name="Bubble4Shift" />
+            </shell:PillBorder.RenderTransform>
+            <ContentPresenter x:Name="Bubble4Content" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" />
         </shell:PillBorder>
     </Grid>
 </Window>

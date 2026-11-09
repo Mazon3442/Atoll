@@ -54,6 +54,7 @@ public sealed partial class SettingsViewModel : ObservableObject
         new("Agents", ""),
         new("Calendar", "\uE787"),
         new("Weather", "\uE753"),
+        new("Games", "\uE7FC"),
         new("About", ""),
     ];
 
@@ -71,7 +72,8 @@ public sealed partial class SettingsViewModel : ObservableObject
         4 => "Connect coding agents or your own API keys, and choose alert sounds.",
         5 => "Connect calendars and set event reminders.",
         6 => "Choose a place and explore its forecast.",
-        7 => "Version, updates, and local app data.",
+        7 => "Set how games appear, what ATOLL watches, and your Minecraft server.",
+        8 => "Version, updates, and local app data.",
         _ => "Set how ATOLL opens, behaves, and sits on your displays.",
     };
 
@@ -290,6 +292,21 @@ public sealed partial class SettingsViewModel : ObservableObject
 
     // Home tab cards
     public bool HomeEnabled { get => S.Home.Enabled; set => Set(S.Home.Enabled, value, v => S.Home.Enabled = v); }
+
+    /// <summary>On pins Home to the top row; off leaves it in the ⋯ menu while it stays enabled.</summary>
+    public bool HomeBookmarked
+    {
+        get => S.Home.Bookmarked ?? true;
+        set
+        {
+            if (HomeBookmarked == value) return;
+            S.Home.SetPlacement(value ? FeaturePlacement.Bookmarked : S.Home.Enabled ? FeaturePlacement.Menu : FeaturePlacement.Off);
+            OnPropertyChanged();
+            OnPropertyChanged(nameof(HomeEnabled));
+            Save();
+        }
+    }
+
     public bool HomeMedia { get => S.Home.Media; set => Set(S.Home.Media, value, v => S.Home.Media = v); }
     public bool HomeWeather { get => S.Home.Weather; set => Set(S.Home.Weather, value, v => S.Home.Weather = v); }
     public bool HomeTimer { get => S.Home.Timer; set => Set(S.Home.Timer, value, v => S.Home.Timer = v); }
@@ -305,7 +322,23 @@ public sealed partial class SettingsViewModel : ObservableObject
     ];
     public GameIslandMode GameMode { get => S.Games.Mode; set => Set(S.Games.Mode, value, v => S.Games.Mode = v); }
     public bool GameMuteNotifications { get => S.Games.MuteNotifications; set => Set(S.Games.MuteNotifications, value, v => S.Games.MuteNotifications = v); }
+    public bool GameShowPerformance { get => S.Games.ShowPerformance; set => Set(S.Games.ShowPerformance, value, v => S.Games.ShowPerformance = v); }
+    public bool GameShowPlayTime { get => S.Games.ShowPlayTime; set => Set(S.Games.ShowPlayTime, value, v => S.Games.ShowPlayTime = v); }
+    public bool GameAnnounceStart { get => S.Games.AnnounceGameStart; set => Set(S.Games.AnnounceGameStart, value, v => S.Games.AnnounceGameStart = v); }
+    public bool GameDetect { get => S.Games.DetectGames; set => Set(S.Games.DetectGames, value, v => S.Games.DetectGames = v); }
+    public bool GameScanSteam { get => S.Games.ScanSteam; set => Set(S.Games.ScanSteam, value, v => S.Games.ScanSteam = v); }
+    public bool GameScanEpic { get => S.Games.ScanEpic; set => Set(S.Games.ScanEpic, value, v => S.Games.ScanEpic = v); }
+    public bool GameScanMinecraft { get => S.Games.ScanMinecraft; set => Set(S.Games.ScanMinecraft, value, v => S.Games.ScanMinecraft = v); }
     public string MinecraftServer { get => S.Games.MinecraftServer; set => Set(S.Games.MinecraftServer, value.Trim(), v => S.Games.MinecraftServer = v); }
+    public bool GameShowServer { get => S.Games.ShowServer; set => Set(S.Games.ShowServer, value, v => S.Games.ShowServer = v); }
+    public IReadOnlyList<Choice<int>> GameServerIntervals { get; } =
+    [
+        new(30, "Every 30 seconds"),
+        new(60, "Every minute"),
+        new(120, "Every 2 minutes"),
+        new(300, "Every 5 minutes"),
+    ];
+    public int GameServerInterval { get => S.Games.ServerRefreshSeconds; set => Set(S.Games.ServerRefreshSeconds, value, v => S.Games.ServerRefreshSeconds = v); }
 
     public bool ShowLyrics { get => S.ShowLyrics; set => Set(S.ShowLyrics, value, v => S.ShowLyrics = v); }
 
@@ -488,14 +521,16 @@ public sealed partial class ThemeCard(ThemePreset preset, bool isCustom) : Obser
     [ObservableProperty] private bool _isSelected;
 }
 
-/// <summary>One feature's on/off switch inside a tab card on the Modules page.</summary>
-public sealed class ModuleRow(ModuleEntry entry, string name, string description, string glyph, Action toggled) : ObservableObject
+/// <summary>One feature's show/bookmark switches inside a tab card on the Modules page.</summary>
+public sealed class ModuleRow(ModuleEntry entry, string name, string description, string glyph, Action toggled,
+    bool bookmarkedByDefault = true) : ObservableObject
 {
     public ModuleEntry Entry { get; } = entry;
     public string Name { get; } = name;
     public string Description { get; } = description;
     public string Glyph { get; } = glyph;
 
+    /// <summary>On means it appears somewhere; off keeps it out of the island entirely.</summary>
     public bool Enabled
     {
         get => Entry.Enabled;
@@ -504,8 +539,29 @@ public sealed class ModuleRow(ModuleEntry entry, string name, string description
             if (Entry.Enabled == value) return;
             Entry.Enabled = value;
             OnPropertyChanged();
+            OnPropertyChanged(nameof(Bookmarked));
             toggled();
         }
+    }
+
+    /// <summary>On pins the tab to the top row; off leaves an enabled feature in the ⋯ menu.</summary>
+    public bool Bookmarked
+    {
+        get => Entry.Bookmarked ?? bookmarkedByDefault;
+        set
+        {
+            if (Bookmarked == value) return;
+            Entry.SetPlacement(value ? FeaturePlacement.Bookmarked : Entry.Enabled ? FeaturePlacement.Menu : FeaturePlacement.Off);
+            OnPropertyChanged();
+            OnPropertyChanged(nameof(Enabled));
+            toggled();
+        }
+    }
+
+    internal void Refresh()
+    {
+        OnPropertyChanged(nameof(Enabled));
+        OnPropertyChanged(nameof(Bookmarked));
     }
 }
 

@@ -21,12 +21,23 @@
 ## Features
 
 ATOLL sits at the top of your primary display as a **compact** pill that shows the most important
-thing happening. Hover over it or click it to **expand** it into grouped tabs, and press Escape to
-collapse it again. Each module can be turned on or off in Settings.
+thing happening. Up to four other live activities sit in small tinted capsules beside it. Hover over
+it or click it to **expand** it into tabs, and press Escape to collapse it again. Star a tab in
+Settings to keep it in the top row; a tab you leave on but don't star waits in the **...** menu.
+Turning a tab off removes it from both places. When every tab is starred, the **...** button
+disappears.
+
+### First run
+
+On first launch a short welcome explains the island, lets you pick the top row and asks whether
+ATOLL should start with Windows. The default top row is Home, Agents, Media, Notifications,
+Calendar, Files, Clipboard and Weather; everything else is on and waits in the **...** menu.
+Skipping keeps those defaults. Open the welcome again from Settings › About › Welcome setup.
 
 From any app, **Ctrl+Alt+Space** opens the island ready for the keyboard and **Ctrl+Alt+H** hides or
-shows it. In the open island, Ctrl+Tab or the mouse wheel over the tabs switches sections. You can
-change both shortcuts in **Settings › General › Keyboard**.
+shows it. **Ctrl+Alt+K** opens the command palette: search tabs, Start Menu apps, quick actions and
+timers. In the open island, **Ctrl+K** opens the same palette, and **Ctrl+1 to 9** jump to a
+bookmarked tab. Change all three shortcuts in **Settings › General › Keyboard**.
 
 | Feature | What it does |
 | --- | --- |
@@ -34,12 +45,14 @@ change both shortcuts in **Settings › General › Keyboard**.
 | **API providers** | An optional local gateway for OpenAI-compatible Chat Completions/Responses and official Anthropic Messages. It shows requests in progress and local token totals. OpenAI organization usage and costs are available with an optional admin key, and DeepSeek balance with a normal key. |
 | **Media** | Pick a player in the source dropdown. Five bars take their color from its cover, adjusted for your theme. Play/pause, skip and seek when the player supports it. Synced lyrics from lrclib.net (turn off in Settings › Modules), and an output picker to switch speakers or headphones (Windows). |
 | **Clock & timers** | Clock, countdown presets, stopwatch and Pomodoro. |
-| **Calendar** | Upcoming events from private HTTPS ICS links (Google, Outlook / Microsoft 365, ...), with pin and dismiss controls and alerts before events start. |
-| **Home** | A dashboard: now playing, weather, timer, this month and what's next today. Choose the cards in Settings › Modules › Home. |
-| **Games** | Game mode: while you play, a small overlay with the game, play time, CPU, GPU and GPU temperature (NVIDIA), or the island stays hidden. Notifications go quiet. Starts Steam, Epic and Minecraft games, and shows a Minecraft Java server's players and ping (Windows). |
+| **Calendar** | A month grid with colored event dots and a selected-day agenda from private HTTPS ICS links (Google, Outlook / Microsoft 365, ...). Join meeting links, pin or dismiss events, and get alerts before they start. Clicking a day on Home opens the same calendar on that date. |
+| **Notes** | Quick notes, one-off reminders and a to-do list in one tab. Reminders pop up in the island when they are due. |
+| **Home** | A dashboard: now playing, weather, timer, an interactive month and what's next today. Choose the cards in Settings › Modules › Home. |
+| **Launcher** | Start Menu apps with search, plus a Games section with game mode, play time, CPU, GPU and GPU temperature (NVIDIA), or the island stays hidden. Notifications go quiet. Starts Steam, Epic and Minecraft games, and shows a Minecraft Java server's players and ping (Windows). |
 | **Weather** | Open-Meteo city search, current conditions and a seven-day forecast. Hourly wind, rain and temperature charts cover the whole day and work with the pointer and the keyboard. |
-| **Files** | A file shelf and clipboard history. History stays in memory, and private or password formats are skipped. |
-| **System** | CPU, memory and network readings, volume and battery, and quick actions: screenshot, microphone mute, lock, display off and Downloads. Battery levels of connected Bluetooth devices (Windows). A green dot shows while an app uses the camera and an orange dot for the microphone (Windows). |
+| **Files** | A file shelf: drop files on the island to keep their paths handy without copying the files. |
+| **Clipboard** | Your recent copies, kept in memory only. Private and password formats are skipped. |
+| **System** | CPU, memory and network readings, volume and battery, and quick actions: screenshot, microphone mute, lock, display off and Downloads. A Bluetooth button in the header lists connected devices and their battery levels (Windows). A green dot shows while an app uses the camera and an orange dot for the microphone (Windows). |
 | **Notifications** | Windows notifications mirrored into the island once you set up the package identity and allow access. |
 | **Updates** | Windows installer copies download published releases in the background and apply them on restart. |
 
@@ -49,6 +62,7 @@ change both shortcuts in **Settings › General › Keyboard**.
 | --- | :---: | :---: | :---: |
 | Agents, API gateway, clock, calendar, weather, file shelf | ✅ | ✅ | ✅ |
 | Clipboard history | ✅ | ✅ | ✅ ¹ |
+| Notes, Launcher and Games | ✅ | ➖ | ➖ |
 | Media sources | Any player | Music, Spotify ² | MPRIS via `playerctl` |
 | Live audio bars | ✅ ³ | Cover color only | Cover color only |
 | Volume and battery | ✅ | ✅ | PulseAudio / PipeWire |
@@ -225,6 +239,11 @@ Add each calendar's private ICS link in **Settings › Calendar**, with a name a
 - **Outlook / Microsoft 365**: Settings › Calendar › Shared calendars › *Publish a calendar* › copy
   the ICS link. Some Microsoft 365 admins turn publishing off for work accounts.
 
+Open the **Calendar** tab for a month grid on the left and the selected day's agenda on the right.
+Pick a day to see it; use the arrows or **Today** to move around. Event colors appear as dots under
+each day, and **Join** opens a Google Meet, Zoom, Teams or Webex link found in the event. Clicking a
+day in Home's month grid opens the same calendar on that date.
+
 Pin an event to keep it in the island, or dismiss one occurrence; it stays in the list. The calendar
 is read-only: ATOLL can't create, accept or edit events. Google's links can lag by hours, and that
 delay is on Google's side.
@@ -234,6 +253,32 @@ delay is on Google's side.
 Open **Settings › Weather** and search for a city, then pick the right region. Choose a forecast day
 and switch between rain, wind and temperature. Point at the chart, or focus it and use the arrow keys
 to step through the hours. Rain timing is a forecast, not an alert service.
+
+### Launcher
+
+The **Launcher** tab has two sections. **Apps** searches your Start Menu and opens a shortcut with
+one click; **Games** holds the game library, the current session and the Minecraft server (Windows).
+Game behavior lives in **Settings > Games**: the island overlay, notifications, performance and play
+time, start announcements, game detection, library sources, and the Minecraft server check interval.
+Use the refresh button in Apps if you install something while ATOLL is open.
+
+### Notes
+
+The **Notes** tab has three sections. **Notes** keeps quick text notes, **Reminders** sets a one-off
+reminder with 10-minute to 3-hour presets or tomorrow morning, and **To-do** is a simple checklist.
+Press Enter to add a to-do, or Ctrl+Enter to save a note. Reminders pop up in the island when they
+are due. Notes, reminders and to-dos are stored in ATOLL's settings file.
+
+### Files and clipboard
+
+The **Files** tab is the file shelf: drag files onto the island and their paths stay here. The
+**Clipboard** tab keeps recent copies in memory only. They are separate tabs and separate switches
+in Settings › Modules.
+
+### Bluetooth
+
+The Bluetooth button at the right of the open island lists connected Bluetooth devices. When Live
+graphs is on in Settings › Modules › System, each device also shows its battery level.
 
 ### Windows notifications
 

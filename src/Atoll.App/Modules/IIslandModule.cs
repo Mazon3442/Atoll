@@ -19,7 +19,8 @@ public interface IIslandModule : IDisposable
 }
 
 /// <param name="EnabledByDefault">Whether the feature starts switched on when it is new to the user's settings.</param>
-public sealed record ModuleDescriptor(string Id, string Name, string Glyph, Func<IIslandModule> Create, bool EnabledByDefault = true);
+public sealed record ModuleDescriptor(string Id, string Name, string Glyph, Func<IIslandModule> Create,
+    bool EnabledByDefault = true, bool BookmarkedByDefault = true);
 
 public sealed class ModuleContext(string moduleId, ActivityHost activities, Dispatcher dispatcher, SettingsService settings)
 {

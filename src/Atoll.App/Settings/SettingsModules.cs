@@ -12,17 +12,20 @@ namespace Atoll.Settings;
 public sealed partial class SettingsViewModel
 {
     // Tab id → (name, description). Order is the default tab order.
-    private static readonly (string Id, string Name, string Description)[] TabInfo =
+    internal static readonly (string Id, string Name, string Description)[] TabInfo =
     [
         ("claude", "Agents", "Claude Code, Codex, OpenCode and Hermes sessions, with alerts when they finish or need you."),
         ("providers", "API keys", "Live requests and token totals for your own OpenAI, Anthropic, DeepSeek or compatible API keys."),
         ("media", "Media", "What's playing, with controls, seeking and the volume slider."),
         ("notifications", "Notifications", "Windows notifications, mirrored into the island."),
-        ("clock", "Clock & calendar", "The time, timers and your upcoming events."),
+        ("clock", "Timer", "The clock, countdowns, stopwatch and Pomodoro."),
+        ("calendar", "Calendar", "A month view and the selected day's events."),
+        ("notes", "Notes", "Notes, quick reminders and a to-do list."),
         ("system", "System", "Device status, live graphs and quick actions."),
-        ("shelf", "Files", "Files you drop on the island and your recent copies."),
+        ("shelf", "Files", "Files you drop on the island to keep their paths handy."),
+        ("clipboard", "Clipboard", "Your recent copies, kept in memory only."),
         ("weather", "Weather", "Current conditions and a 7-day forecast."),
-        ("games", "Games", "Game mode, play time, your game library and a Minecraft server's status."),
+        ("launcher", "Launcher", "Start Menu apps and your games, one tab away."),
     ];
 
     // Feature id → (name, description) where the catalog name alone doesn't explain it.
@@ -30,6 +33,9 @@ public sealed partial class SettingsViewModel
     {
         ["clock"] = ("Clock & timers", "Countdowns, stopwatch and Pomodoro."),
         ["calendar"] = ("Calendar", "Events from the calendars you add."),
+        ["notes"] = ("Notes", "Notes, quick reminders and a to-do list."),
+        ["launcher"] = ("App launcher", "Search and open Start Menu apps."),
+        ["games"] = ("Games", "Game mode, play time, your game library and a Minecraft server."),
         ["system"] = ("Status popups", "Volume, battery, network, Bluetooth, brightness and lock keys."),
         ["stats"] = ("Live graphs", "CPU, GPU, memory and network."),
         ["actions"] = ("Quick actions", "Screenshot, mic mute, lock, screen off and Downloads."),
@@ -44,7 +50,7 @@ public sealed partial class SettingsViewModel
     {
         // Every catalog feature gets an entry; ModuleManager adds missing ones the same way at startup.
         foreach (var d in catalog.Where(d => S.Modules.All(e => e.Id != d.Id)))
-            S.Modules.Add(new ModuleEntry { Id = d.Id, Enabled = d.EnabledByDefault });
+            S.Modules.Add(new ModuleEntry { Id = d.Id, Enabled = d.EnabledByDefault, Bookmarked = d.BookmarkedByDefault });
 
         // A tab sits where its first switched-on feature sits; the island orders tabs the same way.
         int Rank(string tab)
@@ -60,11 +66,12 @@ public sealed partial class SettingsViewModel
                 .Select(d =>
                 {
                     var info = FeatureInfo.GetValueOrDefault(d.Id, (d.Name, description));
-                    return new ModuleRow(S.Modules.First(e => e.Id == d.Id), info.Item1, info.Item2, d.Glyph, OnFeatureToggled);
+                    return new ModuleRow(S.Modules.First(e => e.Id == d.Id), info.Item1, info.Item2, d.Glyph,
+                        OnFeatureToggled, d.BookmarkedByDefault);
                 })
                 .ToList();
             if (features.Count > 0)
-                ModuleTabs.Add(new ModuleTabRow(id, name, description, features[0].Glyph, features));
+                ModuleTabs.Add(new ModuleTabRow(id, name, description, features[0].Glyph, features, OnFeatureToggled));
         }
         RefreshTabPositions();
         // Keep each tab's features together in settings so switching one on can't move a tab.
@@ -111,7 +118,8 @@ public sealed partial class SettingsViewModel
 }
 
 /// <summary>One tab of the expanded island and the features that make it up.</summary>
-public sealed partial class ModuleTabRow(string id, string name, string description, string glyph, IReadOnlyList<ModuleRow> features) : ObservableObject
+public sealed partial class ModuleTabRow(string id, string name, string description, string glyph,
+    IReadOnlyList<ModuleRow> features, Action toggled) : ObservableObject
 {
     public string Id { get; } = id;
     public string Name { get; } = name;
@@ -119,7 +127,7 @@ public sealed partial class ModuleTabRow(string id, string name, string descript
     public string Glyph { get; } = glyph;
     public IReadOnlyList<ModuleRow> Features { get; } = features;
     public bool HasSeveralFeatures => Features.Count > 1;
-    /// <summary>The switch shown on the card itself when the tab has a single feature.</summary>
+    /// <summary>The single feature a tab is made of, used by tests and one-feature cards.</summary>
     public ModuleRow OnlyFeature => Features[0];
 
     [ObservableProperty] private int _number;
@@ -128,9 +136,38 @@ public sealed partial class ModuleTabRow(string id, string name, string descript
 
     public bool IsShown => Features.Any(f => f.Enabled);
 
-    /// <summary>"2 of 3 on", or why the tab isn't in the island.</summary>
-    public string Status => !IsShown ? (HasSeveralFeatures ? "Not in the island: every feature is off" : "Not in the island")
-        : Features.All(f => f.Enabled) ? "" : $"{Features.Count(f => f.Enabled)} of {Features.Count} on";
+    /// <summary>Whole tab: on if any of its features are on.</summary>
+    public bool Enabled
+    {
+        get => IsShown;
+        set
+        {
+            if (Enabled == value) return;
+            foreach (var feature in Features) feature.Entry.Enabled = value;
+            foreach (var feature in Features) feature.Refresh();
+            Refresh();
+            toggled();
+        }
+    }
+
+    /// <summary>Whole tab: bookmarked if any of its on features are in the top row.</summary>
+    public bool Bookmarked
+    {
+        get => Features.Any(f => f.Enabled && f.Bookmarked);
+        set
+        {
+            if (Bookmarked == value) return;
+            foreach (var feature in Features) feature.Entry.Bookmarked = value;
+            foreach (var feature in Features) feature.Refresh();
+            Refresh();
+            toggled();
+        }
+    }
+
+    /// <summary>Where the whole tab sits, in two words or fewer.</summary>
+    public string Status => !IsShown ? "Off" : Bookmarked ? "Top row" : "⋯ menu";
+
+    public int BookmarkedCount => Features.Count(f => f.Bookmarked);
 
     internal void SetPosition(int index, int count)
     {
@@ -142,6 +179,9 @@ public sealed partial class ModuleTabRow(string id, string name, string descript
     internal void Refresh()
     {
         OnPropertyChanged(nameof(IsShown));
+        OnPropertyChanged(nameof(Enabled));
+        OnPropertyChanged(nameof(Bookmarked));
+        OnPropertyChanged(nameof(BookmarkedCount));
         OnPropertyChanged(nameof(Status));
     }
 }

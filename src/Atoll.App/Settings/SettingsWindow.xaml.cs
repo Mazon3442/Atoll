@@ -26,6 +26,8 @@ public partial class SettingsWindow : Window
 
     private SettingsViewModel Vm => (SettingsViewModel)DataContext;
 
+    private void OnOpenOnboarding(object sender, RoutedEventArgs e) => Navigation.OpenOnboarding?.Invoke();
+
     private void OnAddProvider(object sender, RoutedEventArgs e)
     {
         if (!Vm.AddProvider(ProviderKey.Password, ProviderMetricsKey.Password)) return;

@@ -251,7 +251,7 @@ public sealed partial class MediaModule : IIslandModule
         next.TimelinePropertiesChanged += OnTimelineChanged;
         _vm.HasSession = true;
         _vm.AppName = DisplayName(next.SourceAppUserModelId);
-        RefreshPlayback(); RefreshTimeline(); _ = RefreshPropertiesAsync(next);
+        RefreshPlayback(); _ = RefreshPropertiesAsync(next);
     }
 
     private void UnbindSession()
@@ -338,6 +338,9 @@ public sealed partial class MediaModule : IIslandModule
             _levels.Stop();
             _progressTimer?.Stop();
         }
+        // Re-read the position at the play/pause boundary: extrapolating across it would make the
+        // lyrics jump by however long the player stayed paused.
+        RefreshTimeline();
         UpdateActivity();
     }
 
@@ -405,19 +408,38 @@ public sealed partial class MediaModule : IIslandModule
         _acceptedSeek = null;
         _duration = t.EndTime - t.StartTime;
         _startTime = t.StartTime;
-        _position = t.Position - t.StartTime;
-        _positionAt = t.LastUpdatedTime;
+        // Anchor to when we received the reading instead of the player's LastUpdatedTime. Some players
+        // report an old or otherwise unreliable timestamp, which used to push the lyrics far ahead.
+        // A plausible age still compensates for a player that reports its position in one-second steps.
+        var received = DateTimeOffset.Now;
+        _position = TimelinePosition(t.Position, t.StartTime, t.LastUpdatedTime, received);
+        _positionAt = received;
         _vm.HasTimeline = _duration > TimeSpan.Zero;
         _vm.CanSeek = _vm.HasTimeline && _session?.GetPlaybackInfo()?.Controls.IsPlaybackPositionEnabled == true;
         UpdateProgress();
+    }
+
+    /// <summary>
+    /// Position at <paramref name="received"/>. A plausible reading age keeps rare-reporting players in
+    /// step; a wildly old or future timestamp is ignored instead of throwing the lyrics off by minutes.
+    /// </summary>
+    internal static TimeSpan TimelinePosition(TimeSpan position, TimeSpan startTime, DateTimeOffset lastUpdated, DateTimeOffset received)
+    {
+        var age = received - lastUpdated;
+        if (age < TimeSpan.Zero || age > TimeSpan.FromSeconds(5)) age = TimeSpan.Zero;
+        return position - startTime + age;
     }
 
     private void UpdateProgress()
     {
         if (!_vm.HasTimeline || _vm.IsScrubbing || _seekInProgress) return;
         var pos = _position;
-        if (_vm.IsPlaying && _positionAt > DateTimeOffset.MinValue)
-            pos += DateTimeOffset.Now - _positionAt; // players only report position occasionally
+        if (_vm.IsPlaying)
+        {
+            // Players only report position occasionally; advance from the moment we received it.
+            var elapsed = DateTimeOffset.Now - _positionAt;
+            if (elapsed > TimeSpan.Zero) pos += elapsed;
+        }
         if (pos > _duration) pos = _duration;
         if (pos < TimeSpan.Zero) pos = TimeSpan.Zero;
         _vm.Progress = pos / _duration;

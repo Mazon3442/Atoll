@@ -2,6 +2,7 @@ using System.Windows;
 using System.Windows.Automation.Peers;
 using System.Windows.Automation.Provider;
 using System.Windows.Controls;
+using System.Windows.Controls.Primitives;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
@@ -10,6 +11,8 @@ using Atoll.Activities;
 using Atoll.Modules;
 using Atoll.Modules.Calendar;
 using Atoll.Modules.Clock;
+using Atoll.Modules.Indicators;
+using Atoll.Modules.Stats;
 using Atoll.Settings;
 using Atoll.Shell;
 using Atoll.Theme;
@@ -29,12 +32,20 @@ internal static class CalendarUiTests
         }
         var start = new DateTimeOffset(2026, 11, 10, 9, 0, 0, TimeSpan.Zero);
         var allDay = Row(new CalendarEventItem("day", start, start.AddDays(1), true, "All-day event", null, "Test fixture", "#007AFF"));
-        vm.Days.Add(new CalendarDay { Label = "Today", Events = [allDay,
-            Row(new CalendarEventItem("timed", start, start.AddHours(1), false, "Meeting with a long title that should truncate", "Conference room", "Test fixture", "#007AFF"))] });
+        var timed = Row(new CalendarEventItem("timed", start, start.AddHours(1), false, "Meeting with a long title that should truncate", "Conference room", "Test fixture", "#007AFF"));
+        vm.SelectedDate = new DateTime(2026, 11, 10);
+        vm.VisibleMonth = new DateTime(2026, 11, 1);
+        vm.SelectedDayTitle = "Today";
+        vm.SelectedDayDate = "Nov 10";
+        vm.SelectedDayCount = "2 events";
+        vm.HasSelectedDayEvents = true;
+        vm.SelectedDayRows = [allDay, timed];
+        vm.MonthCells = CalendarViewModel.BuildMonth(new DateTime(2026, 11, 1), new DateTime(2026, 11, 10), new DateTime(2026, 11, 10),
+            new Dictionary<DateTime, CalendarDayMark> { [new DateTime(2026, 11, 10)] = new(2, ["#007AFF"]) });
         foreach (var light in new[] { false, true })
         {
             ThemeService.Apply(new ThemeSettings { Background = light ? "#F5F5F7" : "#000000", Foreground = light ? "#1C1C1E" : "#FFFFFF" });
-            foreach (var width in new[] { 210, 300 })
+            foreach (var width in new[] { 560, 720 })
             {
                 var panel = (FrameworkElement)((DataTemplate)Application.Current.Resources["CalendarViewModel.Panel"]).LoadContent();
                 panel.DataContext = vm;
@@ -58,6 +69,83 @@ internal static class CalendarUiTests
             }
         }
         VerifyIsland();
+        VerifyTabStrip();
+    }
+
+    private static void VerifyTabStrip()
+    {
+        var service = new SettingsService(new SettingsStore(Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".json")));
+        ThemeService.Apply(service.Current.Theme);
+        using var host = new ActivityHost();
+        using var manager = new ModuleManager(ModuleCatalog.All, host, Application.Current.Dispatcher, service);
+        foreach (var descriptor in ModuleCatalog.All)
+            service.Current.Modules.Add(new ModuleEntry { Id = descriptor.Id, Enabled = true });
+        var modules = PanelGroups.Combine(GroupedPanelsTests.Modules());
+        foreach (var tab in modules) manager.Tabs.Add(tab);
+        var island = new IslandWindow(Monitors.GetAll()[0], service, manager, _ => { });
+        try
+        {
+            var tabs = (ListBox)island.FindName("Tabs");
+            var menu = (ListBox)island.FindName("TabMenu");
+            var button = (Button)island.FindName("TabMenuButton");
+
+            // The default top row is Home, Agents, Media, Notifications, Calendar, Files, Clipboard and
+            // Weather. Timer, Notes, System and Launcher wait in the ⋯ menu.
+            string[] outside = ["clock", "notes", "system", "providers", "launcher"];
+            Assert.Equal(Visibility.Visible, button.Visibility);
+            Assert.Equal(outside.Length, menu.Items.Count);
+            Assert.Equal(modules.Count - outside.Length, tabs.Items.Count);
+
+            var weather = modules.Single(t => t.Contains("weather"));
+
+            // Off: gone from the strip and from the ⋯ menu.
+            service.Current.Modules.Single(entry => entry.Id == "weather").Enabled = false;
+            manager.Tabs.Remove(weather);
+            Assert.Equal(outside.Length, menu.Items.Count);
+            Assert.Equal(modules.Count - outside.Length - 1, tabs.Items.Count);
+
+            // On but not bookmarked: waits in the ⋯ menu.
+            service.Current.Modules.Single(entry => entry.Id == "weather").Enabled = true;
+            service.Current.Modules.Single(entry => entry.Id == "weather").Bookmarked = false;
+            manager.Tabs.Add(weather);
+            Assert.Equal(Visibility.Visible, button.Visibility);
+            Assert.Contains(menu.Items.Cast<ModuleTab>(), tab => tab.Contains("weather"));
+            Assert.Equal(outside.Length + 1, menu.Items.Count);
+            Assert.Equal(modules.Count - outside.Length - 1, tabs.Items.Count);
+
+            island.Show();
+            island.UpdateLayout();
+            button.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+            var popup = (Popup)island.FindName("TabMenuPopup");
+            Assert.True(popup.IsOpen);
+            if (popup.Child is FrameworkElement popupRoot)
+            {
+                popupRoot.Measure(new Size(260, 400));
+                popupRoot.Arrange(new Rect(0, 0, 260, 400));
+                popupRoot.UpdateLayout();
+                Render(popupRoot, "overflow-menu");
+            }
+            popup.IsOpen = false;
+
+            // Bookmarked again: back in the top row and out of the menu.
+            service.Current.Modules.Single(entry => entry.Id == "weather").Bookmarked = true;
+            manager.Tabs.Remove(weather);
+            manager.Tabs.Add(weather);
+            Assert.DoesNotContain(menu.Items.Cast<ModuleTab>(), tab => tab.Contains("weather"));
+            Assert.Equal(outside.Length, menu.Items.Count);
+            Assert.Equal(modules.Count - outside.Length, tabs.Items.Count);
+
+            island.ShowPalette();
+            island.UpdateLayout();
+            var palette = (FrameworkElement)island.FindName("Palette");
+            Assert.Equal(Visibility.Visible, palette.Visibility);
+            ((Control)palette).Background = Brushes.Black; // the island's dark surface is the parent, not the control
+            palette.Measure(new Size(600, 220));
+            palette.Arrange(new Rect(0, 0, 600, 220));
+            palette.UpdateLayout();
+            Render(palette, "command-palette");
+        }
+        finally { island.Close(); }
     }
 
     private static void VerifyIsland()
@@ -66,7 +154,12 @@ internal static class CalendarUiTests
         ThemeService.Apply(service.Current.Theme);
         using var host = new ActivityHost();
         using var manager = new ModuleManager([], host, Application.Current.Dispatcher, service);
-        foreach (var tab in PanelGroups.Combine(GroupedPanelsTests.Modules())) manager.Tabs.Add(tab);
+        var modules = GroupedPanelsTests.Modules();
+        var sound = (SystemPanelViewModel)modules.Single(m => m.Descriptor.Id == "system").Panel;
+        var stats = (StatsViewModel)modules.Single(m => m.Descriptor.Id == "stats").Panel;
+        sound.Bluetooth = "Headphones";
+        stats.Devices.Add(new DeviceBattery("Headphones", 80));
+        foreach (var tab in PanelGroups.Combine(modules)) manager.Tabs.Add(tab);
         var monitor = Monitors.GetAll()[0];
         var island = new IslandWindow(monitor, service, manager, _ => { });
         try
@@ -74,21 +167,45 @@ internal static class CalendarUiTests
             var next = new NextEventViewModel(() => { }, () => { }) { Title = "Calendar interaction fixture", When = "in 10 min", Subtitle = "Test fixture" };
             var timer = new TimerViewModel(TimeProvider.System);
             timer.StartCountdownCommand.Execute(5);
-            island.SetActivities(new Activity("calendar.next", "calendar", next, ActivityPriority.Ambient),
+            var mediaPanel = GroupedPanelsTests.Modules().Single(m => m.Descriptor.Id == "media").Panel;
+            island.SetActivitySnapshot(new Activity("calendar.next", "calendar", next, ActivityPriority.High),
+            [
                 new Activity("clock.timer", "clock", timer, ActivityPriority.Normal),
-                new Activity("media.song", "media", GroupedPanelsTests.Modules().Single(m => m.Descriptor.Id == "media").Panel, ActivityPriority.Normal));
+                new Activity("media.song", "media", mediaPanel, ActivityPriority.Normal),
+                new Activity("system.battery", "system", new IndicatorViewModel("", "Battery 80%"), ActivityPriority.Ambient),
+                new Activity("weather.cpu", "weather", new IndicatorViewModel("", "CPU 34%"), ActivityPriority.Ambient),
+            ]);
             island.Show();
             island.UpdateLayout();
+            var bluetooth = (Button)island.FindName("BluetoothButton");
+            Assert.Equal(Visibility.Visible, bluetooth.Visibility);
+            bluetooth.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+            var bluetoothPopup = (Popup)island.FindName("BluetoothPopup");
+            Assert.True(bluetoothPopup.IsOpen);
+            if (bluetoothPopup.Child is FrameworkElement popupRoot)
+            {
+                popupRoot.Measure(new Size(260, 400));
+                popupRoot.Arrange(new Rect(0, 0, 260, 400));
+                popupRoot.UpdateLayout();
+                Render(popupRoot, "bluetooth-popup");
+            }
+            bluetoothPopup.IsOpen = false;
             var pill = (PillBorder)island.FindName("Pill");
             var bubble = (PillBorder)island.FindName("Bubble");
             var second = (PillBorder)island.FindName("Bubble2");
+            var third = (PillBorder)island.FindName("Bubble3");
+            var fourth = (PillBorder)island.FindName("Bubble4");
             SnapCompact(pill, (ContentPresenter)island.FindName("PillContent"), service.Current.Theme.CompactHeight);
             island.UpdateLayout();
             Assert.True(bubble.IsVisible);
             Assert.True(second.IsVisible);
-            // One bubble on each side of the pill.
+            Assert.True(third.IsVisible);
+            Assert.True(fourth.IsVisible);
+            // Two capsules on each side of the pill, nearest first.
             Assert.True(bubble.PointToScreen(new Point()).X >= pill.PointToScreen(new Point(pill.ActualWidth, 0)).X);
+            Assert.True(third.PointToScreen(new Point()).X >= bubble.PointToScreen(new Point(bubble.ActualWidth, 0)).X);
             Assert.True(second.PointToScreen(new Point(second.ActualWidth, 0)).X <= pill.PointToScreen(new Point()).X);
+            Assert.True(fourth.PointToScreen(new Point(fourth.ActualWidth, 0)).X <= second.PointToScreen(new Point()).X);
             var pointer = bubble.PointToScreen(new Point(bubble.ActualWidth / 2, bubble.ActualHeight / 2));
             var compactWidth = pill.ActualWidth;
             for (var i = 0; i < 6; i++) island.OnPointerTick(pointer);
@@ -107,12 +224,14 @@ internal static class CalendarUiTests
             SnapCompact(pill, (ContentPresenter)island.FindName("PillContent"), service.Current.Theme.CompactHeight); island.UpdateLayout();
             ((ContentPresenter)island.FindName("PillContent")).BeginAnimation(UIElement.OpacityProperty, null);
             Drain(); island.UpdateLayout();
-            RenderIsland(pill, bubble, second);
+            RenderIsland(pill, bubble, third, second, fourth);
 
             second.RaiseEvent(new MouseButtonEventArgs(Mouse.PrimaryDevice, 0, MouseButton.Left) { RoutedEvent = UIElement.MouseLeftButtonUpEvent });
             Assert.True(((ModuleTab)((ListBox)island.FindName("Tabs")).SelectedItem).Contains("media"));
             Assert.False(bubble.IsVisible);
             Assert.False(second.IsVisible);
+            Assert.False(third.IsVisible);
+            Assert.False(fourth.IsVisible);
 
             service.Current.FullscreenMode = FullscreenMode.PopUp;
             island.SetEnvironment(false, ForegroundKind.Fullscreen);
@@ -186,7 +305,7 @@ internal static class CalendarUiTests
         var bitmap = new RenderTargetBitmap((int)Math.Ceiling(width), (int)Math.Ceiling(pieces.Max(p => p.ActualHeight)), 96, 96, PixelFormats.Pbgra32);
         bitmap.Render(strip);
         var encoder = new PngBitmapEncoder(); encoder.Frames.Add(BitmapFrame.Create(bitmap));
-        using var output = File.Create(Path.Combine(Path.GetTempPath(), "atoll-calendar-review", "island-two-sides.png")); encoder.Save(output);
+        using var output = File.Create(Path.Combine(Path.GetTempPath(), "atoll-calendar-review", "island-four-sides.png")); encoder.Save(output);
     }
 
     private static void Drain()

@@ -1,3 +1,8 @@
+using System.Globalization;
+using System.Text.Json.Serialization;
+using Atoll.Modules.Calendar;
+using CommunityToolkit.Mvvm.ComponentModel;
+
 namespace Atoll.Settings;
 
 public enum MonitorMode
@@ -34,6 +39,9 @@ public enum MotionStyle
 public sealed class AppSettings
 {
     public bool StartWithWindows { get; set; }
+
+    /// <summary>False until the welcome setup has been finished or skipped.</summary>
+    public bool OnboardingComplete { get; set; }
 
     /// <summary>Looks up time-synced lyrics for the playing song on lrclib.net.</summary>
     public bool ShowLyrics { get; set; } = true;
@@ -73,6 +81,9 @@ public sealed class AppSettings
     /// <summary>System-wide shortcut that hides or shows the island, like the tray's "Hide island". Empty turns it off.</summary>
     public string HideShortcut { get; set; } = "Ctrl+Alt+H";
 
+    /// <summary>System-wide shortcut that opens the command palette. Empty turns it off.</summary>
+    public string PaletteShortcut { get; set; } = "Ctrl+Alt+K";
+
     public MonitorMode MonitorMode { get; set; } = MonitorMode.Primary;
 
     /// <summary>Monitor device names (e.g. \\.\DISPLAY2) used when <see cref="MonitorMode"/> is Selected.</summary>
@@ -94,6 +105,8 @@ public sealed class AppSettings
     public WeatherSettings Weather { get; set; } = new();
 
     public CalendarSettings Calendar { get; set; } = new();
+
+    public NotesSettings Notes { get; set; } = new();
 
     /// <summary>List order = tab order in the expanded panel.</summary>
     public List<ModuleEntry> Modules { get; set; } = [];
@@ -153,6 +166,33 @@ public sealed class ThemeSettings
 public sealed class HomeSettings
 {
     public bool Enabled { get; set; } = true;
+
+    /// <summary>Null keeps Home in the top row, as it was before bookmarks existed.</summary>
+    public bool? Bookmarked { get; set; }
+
+    [JsonIgnore]
+    public FeaturePlacement Placement => !Enabled ? FeaturePlacement.Off
+        : Bookmarked == false ? FeaturePlacement.Menu
+        : FeaturePlacement.Bookmarked;
+
+    public void SetPlacement(FeaturePlacement placement)
+    {
+        switch (placement)
+        {
+            case FeaturePlacement.Off:
+                Enabled = false;
+                break;
+            case FeaturePlacement.Menu:
+                Enabled = true;
+                Bookmarked = false;
+                break;
+            default:
+                Enabled = true;
+                Bookmarked = true;
+                break;
+        }
+    }
+
     public bool Media { get; set; } = true;
     public bool Weather { get; set; } = true;
     public bool Timer { get; set; } = true;
@@ -168,8 +208,22 @@ public sealed class GameSettings
     /// <summary>Overlay: a small pill with the game, play time and CPU/GPU while you play. Hidden: out of the way until the open shortcut.</summary>
     public GameIslandMode Mode { get; set; } = GameIslandMode.Overlay;
     public bool MuteNotifications { get; set; } = true;
+    /// <summary>Show CPU, GPU and GPU temperature in the game overlay and panel.</summary>
+    public bool ShowPerformance { get; set; } = true;
+    /// <summary>Show how long the current session has run.</summary>
+    public bool ShowPlayTime { get; set; } = true;
+    /// <summary>Pop a small island when a game starts.</summary>
+    public bool AnnounceGameStart { get; set; } = true;
+    /// <summary>Notice games automatically. Off leaves the library and server available.</summary>
+    public bool DetectGames { get; set; } = true;
+    public bool ScanSteam { get; set; } = true;
+    public bool ScanEpic { get; set; } = true;
+    public bool ScanMinecraft { get; set; } = true;
     /// <summary>A Minecraft (Java) server to watch, "host" or "host:port". Empty: none.</summary>
     public string MinecraftServer { get; set; } = "";
+    public bool ShowServer { get; set; } = true;
+    /// <summary>Seconds between Minecraft server checks.</summary>
+    public int ServerRefreshSeconds { get; set; } = 60;
 }
 
 public sealed class ClaudeSettings
@@ -229,8 +283,107 @@ public sealed class CalendarSource
     public string EncryptedUrl { get; set; } = "";
 }
 
+/// <summary>Where a feature appears: pinned to the island's top row, in the ⋯ menu, or not at all.</summary>
+public enum FeaturePlacement
+{
+    Bookmarked,
+    Menu,
+    Off,
+}
+
 public sealed class ModuleEntry
 {
     public string Id { get; set; } = "";
+
+    /// <summary>False keeps the feature out of the island entirely. Kept for older settings files.</summary>
     public bool Enabled { get; set; } = true;
+
+    /// <summary>
+    /// Null means the default, which is bookmarked: settings saved before bookmarks, and new features,
+    /// keep their tab in the top row. False moves an enabled feature into the ⋯ menu.
+    /// </summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public bool? Bookmarked { get; set; }
+
+    [JsonIgnore]
+    public FeaturePlacement Placement => !Enabled ? FeaturePlacement.Off
+        : Bookmarked == false ? FeaturePlacement.Menu
+        : FeaturePlacement.Bookmarked;
+
+    /// <summary>Moves the feature without forgetting where it was, so turning it back on restores it.</summary>
+    public void SetPlacement(FeaturePlacement placement)
+    {
+        switch (placement)
+        {
+            case FeaturePlacement.Off:
+                Enabled = false;
+                break;
+            case FeaturePlacement.Menu:
+                Enabled = true;
+                Bookmarked = false;
+                break;
+            default:
+                Enabled = true;
+                Bookmarked = true;
+                break;
+        }
+    }
+}
+
+/// <summary>Notes, one-off reminders and a small to-do list, kept with the rest of the settings.</summary>
+public sealed class NotesSettings
+{
+    public List<NoteItem> Notes { get; set; } = [];
+    public List<ReminderItem> Reminders { get; set; } = [];
+    public List<TodoItem> Todos { get; set; } = [];
+}
+
+public sealed partial class NoteItem : ObservableObject
+{
+    public string Id { get; set; } = Guid.NewGuid().ToString("N");
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(UpdatedText))]
+    private string _text = "";
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(UpdatedText))]
+    private DateTimeOffset _updated = DateTimeOffset.Now;
+
+    [JsonIgnore]
+    public string UpdatedText => Updated.LocalDateTime.ToString("MMM d, h:mm tt", CultureInfo.CurrentCulture);
+}
+
+public sealed partial class ReminderItem : ObservableObject
+{
+    public string Id { get; set; } = Guid.NewGuid().ToString("N");
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsOverdue))]
+    private string _title = "";
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(DueText), nameof(IsOverdue))]
+    private DateTimeOffset _due = DateTimeOffset.Now;
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(DueText), nameof(IsOverdue))]
+    private bool _done;
+
+    [JsonIgnore] public string DueText => Done ? "Done" : IcsCalendar.Relative(Due, DateTimeOffset.Now);
+    [JsonIgnore] public bool IsOverdue => !Done && Due <= DateTimeOffset.Now;
+
+    internal void RefreshTime()
+    {
+        OnPropertyChanged(nameof(DueText));
+        OnPropertyChanged(nameof(IsOverdue));
+    }
+}
+
+public sealed partial class TodoItem : ObservableObject
+{
+    public string Id { get; set; } = Guid.NewGuid().ToString("N");
+
+    [ObservableProperty] private string _text = "";
+    [ObservableProperty] private bool _done;
 }

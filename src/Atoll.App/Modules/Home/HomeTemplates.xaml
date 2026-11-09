@@ -26,6 +26,58 @@
         </Style.Triggers>
     </Style>
 
+    <!-- Compact day cell on Home. Picking one opens the Calendar tab on that date. -->
+    <Style x:Key="Home.DayButton" TargetType="Button">
+        <Setter Property="Cursor" Value="Hand" />
+        <Setter Property="Foreground" Value="{DynamicResource Island.Foreground}" />
+        <Setter Property="FocusVisualStyle" Value="{StaticResource Island.FocusVisual}" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Button">
+                    <Grid Height="26" Background="Transparent">
+                        <Border x:Name="Hover" CornerRadius="13" Background="Transparent" Margin="1" />
+                        <Ellipse x:Name="Today" Width="22" Height="22" Fill="{DynamicResource Island.Accent}" Visibility="Collapsed" />
+                        <Border x:Name="Selected" Width="24" Height="24" CornerRadius="12" BorderThickness="1"
+                                BorderBrush="{DynamicResource Island.Foreground}" Visibility="Collapsed" />
+                        <TextBlock x:Name="Day" Text="{Binding Text}" FontSize="11.5" FontWeight="SemiBold"
+                                   HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        <ItemsControl x:Name="Dots" ItemsSource="{Binding DotColors}" VerticalAlignment="Bottom"
+                                      HorizontalAlignment="Center" Margin="0,0,0,2" Focusable="False" IsHitTestVisible="False">
+                            <ItemsControl.ItemsPanel>
+                                <ItemsPanelTemplate><StackPanel Orientation="Horizontal" /></ItemsPanelTemplate>
+                            </ItemsControl.ItemsPanel>
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Ellipse Width="4" Height="4" Margin="1,0" Fill="{Binding}" />
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </Grid>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="Hover" Property="Background" Value="{DynamicResource Island.Hover}" />
+                        </Trigger>
+                        <DataTrigger Binding="{Binding InMonth}" Value="False">
+                            <Setter TargetName="Day" Property="Opacity" Value="0.3" />
+                            <Setter TargetName="Dots" Property="Opacity" Value="0.4" />
+                        </DataTrigger>
+                        <DataTrigger Binding="{Binding IsToday}" Value="True">
+                            <Setter TargetName="Today" Property="Visibility" Value="Visible" />
+                            <Setter TargetName="Day" Property="Foreground" Value="White" />
+                            <Setter TargetName="Dots" Property="Visibility" Value="Collapsed" />
+                        </DataTrigger>
+                        <DataTrigger Binding="{Binding IsSelected}" Value="True">
+                            <Setter TargetName="Selected" Property="Visibility" Value="Visible" />
+                        </DataTrigger>
+                        <Trigger Property="IsKeyboardFocused" Value="True">
+                            <Setter TargetName="Selected" Property="Visibility" Value="Visible" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
     <DataTemplate x:Key="HomeViewModel.Panel">
         <Grid>
             <Grid.ColumnDefinitions>
@@ -80,18 +132,18 @@
                     </ContentControl.ContentTemplate>
                 </ContentControl>
 
-                <!-- This month -->
+                <!-- This month. A day is a shortcut to the Calendar tab on that date. -->
                 <StackPanel Visibility="{Binding ShowMonth, Converter={StaticResource Island.BoolToVisibility}}">
                     <DockPanel Margin="0,0,0,6">
                         <Button DockPanel.Dock="Right" Style="{StaticResource Island.RoundButton}" Width="26" Height="26" Margin="6,0,0,0"
-                                Command="{Binding NextMonthCommand}" ToolTip="Next month" AutomationProperties.Name="Next month">
+                                Command="{Binding Calendar.NextMonthCommand}" ToolTip="Next month" AutomationProperties.Name="Next month">
                             <shell:Icon Kind="chevron-right" Size="14" />
                         </Button>
                         <Button DockPanel.Dock="Right" Style="{StaticResource Island.RoundButton}" Width="26" Height="26"
-                                Command="{Binding PreviousMonthCommand}" ToolTip="Previous month" AutomationProperties.Name="Previous month">
+                                Command="{Binding Calendar.PreviousMonthCommand}" ToolTip="Previous month" AutomationProperties.Name="Previous month">
                             <shell:Icon Kind="chevron-left" Size="14" />
                         </Button>
-                        <TextBlock Text="{Binding MonthTitle}" FontSize="14" FontWeight="SemiBold" VerticalAlignment="Center" />
+                        <TextBlock Text="{Binding Calendar.MonthTitle}" FontSize="14" FontWeight="SemiBold" VerticalAlignment="Center" />
                     </DockPanel>
                     <ItemsControl ItemsSource="{x:Static home:HomeViewModel.WeekdayInitials}" Focusable="False">
                         <ItemsControl.ItemsPanel>
@@ -103,32 +155,16 @@
                             </DataTemplate>
                         </ItemsControl.ItemTemplate>
                     </ItemsControl>
-                    <ItemsControl ItemsSource="{Binding Cells}" Focusable="False" AutomationProperties.Name="{Binding MonthTitle}">
+                    <ItemsControl ItemsSource="{Binding Calendar.MonthCells}" Focusable="False"
+                                  AutomationProperties.Name="{Binding Calendar.MonthTitle}">
                         <ItemsControl.ItemsPanel>
                             <ItemsPanelTemplate><UniformGrid Columns="7" /></ItemsPanelTemplate>
                         </ItemsControl.ItemsPanel>
                         <ItemsControl.ItemTemplate>
                             <DataTemplate>
-                                <Grid Height="26">
-                                    <Ellipse x:Name="Today" Width="22" Height="22" Fill="{DynamicResource Island.Accent}" Visibility="Collapsed" />
-                                    <TextBlock x:Name="Day" Text="{Binding Text}" FontSize="12" FontWeight="SemiBold"
-                                               HorizontalAlignment="Center" VerticalAlignment="Center" />
-                                    <Ellipse x:Name="Dot" Width="4" Height="4" Fill="{DynamicResource Island.Accent}" VerticalAlignment="Bottom"
-                                             Margin="0,0,0,0" Visibility="Collapsed" />
-                                </Grid>
-                                <DataTemplate.Triggers>
-                                    <DataTrigger Binding="{Binding HasEvents}" Value="True">
-                                        <Setter TargetName="Dot" Property="Visibility" Value="Visible" />
-                                    </DataTrigger>
-                                    <DataTrigger Binding="{Binding InMonth}" Value="False">
-                                        <Setter TargetName="Day" Property="Opacity" Value="0.3" />
-                                    </DataTrigger>
-                                    <DataTrigger Binding="{Binding IsToday}" Value="True">
-                                        <Setter TargetName="Today" Property="Visibility" Value="Visible" />
-                                        <Setter TargetName="Day" Property="Foreground" Value="White" />
-                                        <Setter TargetName="Dot" Property="Visibility" Value="Collapsed" />
-                                    </DataTrigger>
-                                </DataTemplate.Triggers>
+                                <Button Style="{StaticResource Home.DayButton}" AutomationProperties.Name="{Binding AccessibleLabel}"
+                                        Command="{Binding DataContext.OpenDayCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                                        CommandParameter="{Binding}" />
                             </DataTemplate>
                         </ItemsControl.ItemTemplate>
                     </ItemsControl>
