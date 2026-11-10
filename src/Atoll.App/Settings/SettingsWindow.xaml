@@ -520,7 +520,7 @@
                             <s:ColorPicker Value="{Binding Accent}" Label="Accent color" />
                         </s:SettingCard>
                         <s:SettingCard Glyph="&#xF5EF;" Header="Frosted glass"
-                                       Description="Blurs what is behind ATOLL, tinted with the background color. ATOLL falls back to a captured blur when the system cannot blur the island.">
+                                       Description="Blurs what is behind ATOLL, tinted with the background color. The island is shaped and translucent, so the blur is sampled from the screen behind it: while this is on, ATOLL stays out of screenshots and screen shares.">
                             <CheckBox Style="{StaticResource Toggle}" IsChecked="{Binding Glass}" AutomationProperties.Name="Frosted glass" />
                         </s:SettingCard>
                         <s:SettingCard Glyph="&#xE706;" Header="Background opacity" Description="Scales the background color's own opacity.">
@@ -666,11 +666,14 @@
                             </ItemsControl.ItemTemplate>
                         </ItemsControl>
 
-                        <TextBlock Style="{StaticResource SectionHeader}" Text="Laptop battery" />
-                        <s:SettingCard Glyph="&#xE83F;" Header="Show battery"
-                                       Description="Header chip on laptops. At 20% ATOLL warns once; from 10% down the level stays in the pill until it charges or rises above 10%.">
-                            <CheckBox Style="{StaticResource Toggle}" IsChecked="{Binding ShowBattery}" AutomationProperties.Name="Show battery" />
-                        </s:SettingCard>
+                        <!-- Desktops have no battery, so there is nothing to configure: hide the whole group. -->
+                        <StackPanel Visibility="{Binding HasBattery, Converter={StaticResource BoolToVisibility}}">
+                            <TextBlock Style="{StaticResource SectionHeader}" Text="Laptop battery" />
+                            <s:SettingCard Glyph="&#xE83F;" Header="Show battery"
+                                           Description="Header chip on laptops. At 20% ATOLL warns once; from 10% down the level stays in the pill until it charges or rises above 10%.">
+                                <CheckBox Style="{StaticResource Toggle}" IsChecked="{Binding ShowBattery}" AutomationProperties.Name="Show battery" />
+                            </s:SettingCard>
+                        </StackPanel>
 
                         <TextBlock Style="{StaticResource SectionHeader}" Text="Home" />
                         <s:SettingCard Glyph="&#xE80F;" Header="Home tab" Description="A dashboard of what's playing, the weather, your timer, this month and what's next.">

@@ -26,11 +26,13 @@ public sealed partial class SystemPanelViewModel(Action<double> setVolume, Actio
     [ObservableProperty] private bool _isMuted;
     [ObservableProperty] private string _volumeGlyph = "";
     [ObservableProperty] private string _battery = "";
+    [ObservableProperty] private bool _batterySupported = BatteryPresence.Present;
     [ObservableProperty] private bool _showBattery = true;
     [ObservableProperty] private string _network = "";
     [ObservableProperty] private string _bluetooth = "None connected";
 
-    public bool HasBattery => Battery.Length > 0;
+    /// <summary>True only when this PC has a battery and we have a reading for it.</summary>
+    public bool HasBattery => BatterySupported && Battery.Length > 0;
     public bool ShowBatteryChip => HasBattery && ShowBattery;
     public bool HasBluetooth => Bluetooth is not ("None connected" or "");
 
@@ -38,6 +40,7 @@ public sealed partial class SystemPanelViewModel(Action<double> setVolume, Actio
     public string BatteryShort => Battery.Split(' ')[0];
 
     partial void OnBatteryChanged(string value) { OnPropertyChanged(nameof(HasBattery)); OnPropertyChanged(nameof(ShowBatteryChip)); OnPropertyChanged(nameof(BatteryShort)); }
+    partial void OnBatterySupportedChanged(bool value) { OnPropertyChanged(nameof(HasBattery)); OnPropertyChanged(nameof(ShowBatteryChip)); }
     partial void OnShowBatteryChanged(bool value) => OnPropertyChanged(nameof(ShowBatteryChip));
     partial void OnBluetoothChanged(string value) => OnPropertyChanged(nameof(HasBluetooth));
 
@@ -58,6 +61,23 @@ public sealed partial class SystemPanelViewModel(Action<double> setVolume, Actio
 
     [RelayCommand]
     private void ToggleMute() => toggleMute();
+}
+
+/// <summary>
+/// Whether this PC has a battery at all. Desktops have no battery anywhere: no header chip, no pill,
+/// no Settings card. Read once; the answer does not change while the app runs.
+/// </summary>
+internal static class BatteryPresence
+{
+    private static bool? _present;
+
+    public static bool Present => _present ??= Read();
+
+    private static bool Read()
+    {
+        try { return PowerManager.BatteryStatus != BatteryStatus.NotPresent; }
+        catch (Exception) { return false; } // No power API: treat it as a desktop rather than guess.
+    }
 }
 
 /// <summary>
@@ -178,7 +198,8 @@ public sealed class IndicatorsModule : IIslandModule
 
     private void StartBattery()
     {
-        if (PowerManager.BatteryStatus == BatteryStatus.NotPresent) return; // desktop PC
+        _panel.BatterySupported = BatteryPresence.Present;
+        if (!BatteryPresence.Present) return; // desktop PC: no battery surfaces at all
         PowerManager.PowerSupplyStatusChanged += OnPowerSupplyChanged;
         PowerManager.RemainingChargePercentChanged += OnChargeChanged;
         ShowBattery(announce: false);
@@ -190,6 +211,7 @@ public sealed class IndicatorsModule : IIslandModule
 
     private void ShowBattery(bool announce)
     {
+        if (!BatteryPresence.Present) return;
         var pct = PowerManager.RemainingChargePercent;
         var plugged = PowerManager.PowerSupplyStatus != PowerSupplyStatus.NotPresent;
         var glyph = char.ConvertFromUtf32((plugged ? 0xEBAB : 0xEBA0) + Math.Clamp(pct / 10, 0, 10));
