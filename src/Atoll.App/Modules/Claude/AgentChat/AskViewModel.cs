@@ -36,28 +36,64 @@ public sealed partial class AskViewModel : ObservableObject, IDisposable
     private string _draft = "";
 
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(HasAnswer))]
+    [NotifyPropertyChangedFor(nameof(HasAnswer), nameof(IsEmpty))]
     private string _answer = "";
 
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(HasError))]
+    [NotifyPropertyChangedFor(nameof(HasError), nameof(IsEmpty))]
     private string _error = "";
 
     [ObservableProperty]
     [NotifyCanExecuteChangedFor(nameof(SendCommand), nameof(StopCommand))]
+    [NotifyPropertyChangedFor(nameof(IsEmpty))]
     private bool _isRunning;
 
     /// <summary>Who answered: "Claude Code", "Codex", "OpenCode" or the saved key's name.</summary>
-    [ObservableProperty] private string _provider = "";
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(Title), nameof(SourceLine), nameof(HasSource), nameof(HasStatusLine))]
+    private string _provider = "";
 
     /// <summary>The honest tool policy for this run: chat-only, or what the CLI can't restrict.</summary>
-    [ObservableProperty] private string _note = "";
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(SourceLine), nameof(HasSource), nameof(HasStatusLine))]
+    private string _note = "";
 
-    [ObservableProperty] private string _status = "";
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HasStatusLine))]
+    private string _status = "";
 
     public bool HasAnswer => Answer.Length > 0;
     public bool HasError => Error.Length > 0;
     public bool HasDraft => Draft.Length > 0;
+
+    /// <summary>The empty state: nothing asked yet, nothing running, nothing wrong.</summary>
+    public bool IsEmpty => !HasAnswer && !HasError && !IsRunning;
+
+    public bool HasStatusLine => Status.Length > 0 || HasSource;
+
+    /// <summary>"Ask Claude anything" once an agent has answered; plain "Ask anything" before that.</summary>
+    public string Title => Provider.Length > 0 ? $"Ask {Provider} anything" : "Ask anything";
+
+    /// <summary>What stays local, said plainly. The question still goes to whichever model answers it.</summary>
+    public string Subtitle => "Chats stay in this session and are never saved.";
+
+    public string SourceLine => Provider.Length == 0 ? "" : Note.Length == 0 ? Provider : $"{Provider} · {Note}";
+
+    public bool HasSource => SourceLine.Length > 0;
+
+    /// <summary>Things worth tapping in an empty box, so the first question is not a blank page.</summary>
+    public IReadOnlyList<string> Suggestions { get; } =
+    [
+        "What can ATOLL do?",
+        "How does Ask AI work?",
+        "Convert 30 cm to inches",
+    ];
+
+    [RelayCommand]
+    private void UseSuggestion(string? suggestion)
+    {
+        if (!string.IsNullOrWhiteSpace(suggestion)) Draft = suggestion;
+    }
 
     private bool CanSend => Draft.Trim().Length > 0 && !IsRunning;
     private bool CanStop => IsRunning;

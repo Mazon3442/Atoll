@@ -1,5 +1,6 @@
 <ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:shell="clr-namespace:Atoll.Shell">
 
     <SolidColorBrush x:Key="Claude.Orange" Color="#D97757" />
 
@@ -118,6 +119,37 @@
 
     <!-- Expanded tab: Sessions (activity, usage, plan limits) and Ask (one question, one answer) -->
     <DataTemplate x:Key="ClaudeViewModel.Panel">
+        <DataTemplate.Resources>
+            <!-- Round send button inside the composer: quiet until there is something to send. -->
+            <Style x:Key="Ask.SendButton" TargetType="Button">
+                <Setter Property="Cursor" Value="Hand" />
+                <Setter Property="FocusVisualStyle" Value="{StaticResource Island.FocusVisual}" />
+                <Setter Property="VerticalAlignment" Value="Center" />
+                <Setter Property="Foreground" Value="{DynamicResource Island.Foreground}" />
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="Button">
+                            <Border x:Name="Dot" Width="30" Height="30" CornerRadius="15"
+                                    Background="{DynamicResource Island.Raised}">
+                                <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                            </Border>
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter TargetName="Dot" Property="Background" Value="{DynamicResource Island.Hover}" />
+                                </Trigger>
+                                <Trigger Property="IsEnabled" Value="False">
+                                    <Setter Property="Opacity" Value="0.45" />
+                                    <Setter Property="Cursor" Value="Arrow" />
+                                </Trigger>
+                                <DataTrigger Binding="{Binding Ask.HasDraft}" Value="True">
+                                    <Setter TargetName="Dot" Property="Background" Value="{DynamicResource Island.Accent}" />
+                                </DataTrigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
+        </DataTemplate.Resources>
         <StackPanel MinHeight="230">
             <Border Background="{DynamicResource Island.Surface}" CornerRadius="15" Padding="3"
                     HorizontalAlignment="Left" Margin="0,0,0,8">
@@ -249,63 +281,92 @@
                     <RowDefinition Height="Auto" />
                     <RowDefinition Height="Auto" />
                     <RowDefinition Height="Auto" />
-                    <RowDefinition Height="Auto" />
-                    <RowDefinition Height="34" />
-                    <RowDefinition Height="132" />
                 </Grid.RowDefinitions>
 
-                <DockPanel>
-                    <TextBlock DockPanel.Dock="Right" Text="{Binding Ask.Status}" FontSize="10"
-                               Foreground="{DynamicResource Island.Subtle}" VerticalAlignment="Center" />
-                    <TextBlock Text="{Binding Ask.Provider}" FontSize="12" FontWeight="SemiBold"
-                               Foreground="{StaticResource Claude.Orange}" TextTrimming="CharacterEllipsis" />
-                </DockPanel>
-                <TextBlock Grid.Row="1" Text="{Binding Ask.Note}" FontSize="10"
-                           Foreground="{DynamicResource Island.Subtle}" TextWrapping="Wrap" Margin="0,2,0,6" />
-
-                <Grid Grid.Row="2">
-                    <TextBox x:Name="AskInput" Style="{StaticResource Island.Input}"
-                             Text="{Binding Ask.Draft, UpdateSourceTrigger=PropertyChanged}"
-                             AcceptsReturn="True" TextWrapping="Wrap" MinHeight="58" MaxHeight="88"
-                             VerticalScrollBarVisibility="Auto" AutomationProperties.Name="Ask a question">
-                        <TextBox.InputBindings>
-                            <KeyBinding Key="Enter" Modifiers="Control" Command="{Binding Ask.SendCommand}" />
-                        </TextBox.InputBindings>
-                    </TextBox>
-                    <TextBlock Text="Ask a question…" FontSize="12" Margin="12,9,0,0" IsHitTestVisible="False"
-                               Foreground="{DynamicResource Island.Subtle}"
-                               Visibility="{Binding Ask.HasDraft, Converter={StaticResource Island.InverseBoolToVisibility}}" />
+                <!-- Empty state: who answers, what stays local, and three things to try. -->
+                <Grid Height="188" Visibility="{Binding Ask.IsEmpty, Converter={StaticResource Island.BoolToVisibility}}">
+                    <StackPanel MaxWidth="430" HorizontalAlignment="Center" VerticalAlignment="Center">
+                        <Path Width="26" Height="26" HorizontalAlignment="Center" Stretch="Uniform"
+                              Fill="{DynamicResource Island.Accent}" Opacity="0.9"
+                              Data="M12 2 C12.7 7.2 14.8 9.3 20 10 C14.8 10.7 12.7 12.8 12 18 C11.3 12.8 9.2 10.7 4 10 C9.2 9.3 11.3 7.2 12 2 Z M19 1.5 C19.25 3.4 20.1 4.25 22 4.5 C20.1 4.75 19.25 5.6 19 7.5 C18.75 5.6 17.9 4.75 16 4.5 C17.9 4.25 18.75 3.4 19 1.5 Z" />
+                        <TextBlock Text="{Binding Ask.Title}" FontSize="14" FontWeight="SemiBold"
+                                   HorizontalAlignment="Center" Margin="0,10,0,4" AutomationProperties.Name="Ask AI" />
+                        <TextBlock Text="{Binding Ask.Subtitle}" FontSize="11" TextWrapping="Wrap" TextAlignment="Center"
+                                   Foreground="{DynamicResource Island.Subtle}" LineHeight="16" />
+                        <ItemsControl ItemsSource="{Binding Ask.Suggestions}" Margin="0,13,0,0" Focusable="False">
+                            <ItemsControl.ItemsPanel>
+                                <ItemsPanelTemplate>
+                                    <WrapPanel Orientation="Horizontal" HorizontalAlignment="Center" />
+                                </ItemsPanelTemplate>
+                            </ItemsControl.ItemsPanel>
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Button Style="{StaticResource Island.ChipButton}" Content="{Binding}"
+                                            FontSize="11" Margin="3"
+                                            Command="{Binding DataContext.Ask.UseSuggestionCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                                            CommandParameter="{Binding}"
+                                            AutomationProperties.Name="{Binding}" />
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </StackPanel>
                 </Grid>
 
-                <DockPanel Grid.Row="3" Margin="0,8,0,0">
-                    <TextBlock Text="Ctrl+Enter sends · Esc stops, then clears" FontSize="10"
-                               Foreground="{DynamicResource Island.Subtle}" VerticalAlignment="Center" Margin="4,0,0,0" />
-                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
-                        <Button Style="{StaticResource Island.ChipButton}" Content="Stop" Margin="0,0,6,0"
-                                Command="{Binding Ask.StopCommand}"
-                                Visibility="{Binding Ask.IsRunning, Converter={StaticResource Island.BoolToVisibility}}"
-                                AutomationProperties.Name="Stop the answer" />
-                        <Button Style="{StaticResource Island.ChipButton}" Content="Clear" Margin="0,0,6,0"
-                                Command="{Binding Ask.ClearCommand}" AutomationProperties.Name="Clear the question and answer" />
-                        <Button Style="{StaticResource Island.ChipButton}" Content="Send" FontWeight="SemiBold"
-                                Command="{Binding Ask.SendCommand}" AutomationProperties.Name="Send the question" />
-                    </StackPanel>
-                </DockPanel>
+                <!-- The answer, or the error, fills the same space once a question has been asked. -->
+                <Grid Height="188" Visibility="{Binding Ask.HasAnswer, Converter={StaticResource Island.BoolToVisibility}}">
+                    <ScrollViewer x:Name="AskAnswerScroll" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled"
+                                  Focusable="False" AutomationProperties.Name="The answer">
+                        <TextBlock Text="{Binding Ask.Answer}" FontSize="12.5" TextWrapping="Wrap" />
+                    </ScrollViewer>
+                </Grid>
 
-                <TextBlock Grid.Row="4" Text="{Binding Ask.Error}" FontSize="11" TextWrapping="Wrap" Margin="4,6,4,0"
-                           Foreground="{StaticResource Claude.Orange}" AutomationProperties.LiveSetting="Assertive"
-                           Visibility="{Binding Ask.HasError, Converter={StaticResource Island.BoolToVisibility}}" />
+                <StackPanel Grid.Row="1">
+                    <TextBlock Text="{Binding Ask.Error}" FontSize="11" TextWrapping="Wrap" Margin="2,8,2,0"
+                               Foreground="{StaticResource Claude.Orange}" AutomationProperties.LiveSetting="Assertive"
+                               Visibility="{Binding Ask.HasError, Converter={StaticResource Island.BoolToVisibility}}" />
+                    <DockPanel Margin="2,6,2,0" Visibility="{Binding Ask.HasStatusLine, Converter={StaticResource Island.BoolToVisibility}}">
+                        <TextBlock DockPanel.Dock="Right" Text="{Binding Ask.SourceLine}" FontSize="10"
+                                   Foreground="{DynamicResource Island.Subtle}" TextTrimming="CharacterEllipsis" />
+                        <TextBlock Text="{Binding Ask.Status}" FontSize="10" Foreground="{DynamicResource Island.Subtle}" />
+                    </DockPanel>
+                </StackPanel>
 
-                <Border Grid.Row="5" Background="{DynamicResource Island.Surface}" CornerRadius="10"
-                        Padding="10,8" Margin="0,4,0,0" Height="132">
+                <!-- Composer: one line that grows, with the send button inside it. -->
+                <Border Grid.Row="2" Background="{DynamicResource Island.Surface}" CornerRadius="14"
+                        Padding="12,4,4,4" Margin="0,8,0,0">
                     <Grid>
-                        <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
-                            <TextBlock Text="{Binding Ask.Answer}" FontSize="12.5" TextWrapping="Wrap"
-                                       AutomationProperties.Name="The answer" />
-                        </ScrollViewer>
-                        <TextBlock Text="The answer appears here." FontSize="12" IsHitTestVisible="False"
-                                   Foreground="{DynamicResource Island.Subtle}"
-                                   Visibility="{Binding Ask.HasAnswer, Converter={StaticResource Island.InverseBoolToVisibility}}" />
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <Grid VerticalAlignment="Center">
+                            <TextBox x:Name="AskInput" Style="{StaticResource Island.Input}"
+                                     Text="{Binding Ask.Draft, UpdateSourceTrigger=PropertyChanged}"
+                                     Background="Transparent" Padding="0,5" FontSize="12.5"
+                                     AcceptsReturn="True" TextWrapping="Wrap" MinHeight="30" MaxHeight="84"
+                                     VerticalScrollBarVisibility="Auto" AutomationProperties.Name="Ask a question">
+                                <TextBox.InputBindings>
+                                    <KeyBinding Key="Enter" Modifiers="Control" Command="{Binding Ask.SendCommand}" />
+                                </TextBox.InputBindings>
+                            </TextBox>
+                            <TextBlock Text="Ask anything…" FontSize="12.5" Margin="1,6,0,0" IsHitTestVisible="False"
+                                       Foreground="{DynamicResource Island.Subtle}"
+                                       Visibility="{Binding Ask.HasDraft, Converter={StaticResource Island.InverseBoolToVisibility}}" />
+                        </Grid>
+
+                        <Button Grid.Column="1" Style="{StaticResource Ask.SendButton}" Margin="8,0,0,0"
+                                Command="{Binding Ask.SendCommand}" ToolTip="Send (Ctrl+Enter)"
+                                Visibility="{Binding Ask.IsRunning, Converter={StaticResource Island.InverseBoolToVisibility}}"
+                                AutomationProperties.Name="Send the question">
+                            <shell:Icon Kind="arrow-up" Size="14" />
+                        </Button>
+                        <Button Grid.Column="1" Style="{StaticResource Ask.SendButton}" Margin="8,0,0,0"
+                                Command="{Binding Ask.StopCommand}" ToolTip="Stop the answer"
+                                Visibility="{Binding Ask.IsRunning, Converter={StaticResource Island.BoolToVisibility}}"
+                                AutomationProperties.Name="Stop the answer">
+                            <Path Width="9" Height="9" Fill="{DynamicResource Island.Foreground}"
+                                  Data="M0,0 H9 V9 H0 Z" />
+                        </Button>
                     </Grid>
                 </Border>
             </Grid>

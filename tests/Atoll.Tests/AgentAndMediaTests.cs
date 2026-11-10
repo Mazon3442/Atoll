@@ -183,6 +183,7 @@ internal static class AgentMediaUi
             new("Codex · 5-hour", 5, now.AddHours(4)), new("Codex · weekly", 21, now.AddDays(5))], now);
         Render(claude, "ClaudeViewModel.Panel", "limits-panel", 560, 220);
         claude.SectionIndex = 1;
+        Render(claude, "ClaudeViewModel.Panel", "agents-ask-empty", 640, 300);
         claude.Ask.Draft = "Summarize the failing test";
         claude.Ask.Provider = "Claude Code";
         claude.Ask.Note = "Chat only. Claude's tools are blocked.";
