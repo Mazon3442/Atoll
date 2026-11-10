@@ -155,10 +155,11 @@
                                     <Setter TargetName="Bg" Property="Background" Value="{DynamicResource Island.Hover}" />
                                     <Setter Property="Foreground" Value="{DynamicResource Island.Foreground}" />
                                 </Trigger>
-                                <!-- On is a raised chip with accent text: no ring around it. -->
+                                <!-- On is a filled chip with an accent ring, so the state reads as on, not as bold text. -->
                                 <Trigger Property="IsChecked" Value="True">
                                     <Setter TargetName="Bg" Property="Background" Value="{DynamicResource Island.Raised}" />
-                                    <Setter Property="Foreground" Value="{DynamicResource Island.Accent}" />
+                                    <Setter TargetName="Bg" Property="BorderBrush" Value="{DynamicResource Island.Accent}" />
+                                    <Setter Property="Foreground" Value="{DynamicResource Island.Foreground}" />
                                 </Trigger>
                             </ControlTemplate.Triggers>
                         </ControlTemplate>
