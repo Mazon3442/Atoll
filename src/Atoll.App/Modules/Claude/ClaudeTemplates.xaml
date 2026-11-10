@@ -120,6 +120,41 @@
     <!-- Expanded tab: Sessions (activity, usage, plan limits) and Ask (one question, one answer) -->
     <DataTemplate x:Key="ClaudeViewModel.Panel">
         <DataTemplate.Resources>
+            <!-- Composer input: the hint is drawn inside the template, so it sits on the same baseline as the
+                 text and disappears the moment the box takes focus, not only when something is typed. -->
+            <Style x:Key="Ask.Input" TargetType="TextBox">
+                <Setter Property="Foreground" Value="{DynamicResource Island.Foreground}" />
+                <Setter Property="CaretBrush" Value="{DynamicResource Island.Foreground}" />
+                <Setter Property="Background" Value="Transparent" />
+                <Setter Property="BorderThickness" Value="0" />
+                <Setter Property="FontSize" Value="12.5" />
+                <Setter Property="Padding" Value="2,6" />
+                <Setter Property="MinHeight" Value="32" />
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="TextBox">
+                            <Grid>
+                                <ScrollViewer x:Name="PART_ContentHost" Margin="{TemplateBinding Padding}"
+                                              VerticalAlignment="Center" />
+                                <TextBlock x:Name="Hint" Text="{TemplateBinding Tag}" Margin="{TemplateBinding Padding}"
+                                           Foreground="{DynamicResource Island.Subtle}" IsHitTestVisible="False"
+                                           VerticalAlignment="Center" TextTrimming="CharacterEllipsis"
+                                           Visibility="Collapsed" />
+                            </Grid>
+                            <ControlTemplate.Triggers>
+                                <MultiTrigger>
+                                    <MultiTrigger.Conditions>
+                                        <Condition Property="Text" Value="" />
+                                        <Condition Property="IsKeyboardFocusWithin" Value="False" />
+                                    </MultiTrigger.Conditions>
+                                    <Setter TargetName="Hint" Property="Visibility" Value="Visible" />
+                                </MultiTrigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
+
             <!-- Round send button inside the composer: quiet until there is something to send. -->
             <Style x:Key="Ask.SendButton" TargetType="Button">
                 <Setter Property="Cursor" Value="Hand" />
@@ -316,7 +351,8 @@
                 <Grid Height="188" Visibility="{Binding Ask.HasAnswer, Converter={StaticResource Island.BoolToVisibility}}">
                     <ScrollViewer x:Name="AskAnswerScroll" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled"
                                   Focusable="False" AutomationProperties.Name="The answer">
-                        <TextBlock Text="{Binding Ask.Answer}" FontSize="12.5" TextWrapping="Wrap" />
+                        <TextBlock Text="{Binding Ask.Answer}" FontSize="12.5" TextWrapping="Wrap"
+                                   LineHeight="18" LineStackingStrategy="BlockLineHeight" />
                     </ScrollViewer>
                 </Grid>
 
@@ -331,29 +367,37 @@
                     </DockPanel>
                 </StackPanel>
 
-                <!-- Composer: one line that grows, with the send button inside it. -->
-                <Border Grid.Row="2" Background="{DynamicResource Island.Surface}" CornerRadius="14"
-                        Padding="12,4,4,4" Margin="0,8,0,0">
+                <!-- Composer: one rounded line that grows, with the send button inside it. -->
+                <Border Grid.Row="2" Margin="0,8,0,0" Padding="12,3,4,3" CornerRadius="14" BorderThickness="1">
+                    <Border.Style>
+                        <Style TargetType="Border">
+                            <Setter Property="Background" Value="{DynamicResource Island.Surface}" />
+                            <Setter Property="BorderBrush" Value="Transparent" />
+                            <Style.Triggers>
+                                <!-- The whole composer lights up on focus, so the box reads as one control. -->
+                                <DataTrigger Binding="{Binding IsKeyboardFocusWithin, ElementName=AskInput}" Value="True">
+                                    <Setter Property="Background" Value="{DynamicResource Island.Raised}" />
+                                    <Setter Property="BorderBrush" Value="{DynamicResource Island.Hover}" />
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </Border.Style>
                     <Grid>
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="*" />
                             <ColumnDefinition Width="Auto" />
                         </Grid.ColumnDefinitions>
-                        <Grid VerticalAlignment="Center">
-                            <TextBox x:Name="AskInput" Style="{StaticResource Island.Input}"
-                                     Text="{Binding Ask.Draft, UpdateSourceTrigger=PropertyChanged}"
-                                     Background="Transparent" Padding="0,5" FontSize="12.5"
-                                     AcceptsReturn="True" TextWrapping="Wrap" MinHeight="30" MaxHeight="84"
-                                     VerticalScrollBarVisibility="Auto" AutomationProperties.Name="Ask a question">
-                                <TextBox.InputBindings>
-                                    <!-- Enter sends; Shift+Enter falls through to the box and starts a new line. -->
-                                    <KeyBinding Key="Enter" Command="{Binding Ask.SendCommand}" />
-                                </TextBox.InputBindings>
-                            </TextBox>
-                            <TextBlock Text="Ask anything…" FontSize="12.5" Margin="1,6,0,0" IsHitTestVisible="False"
-                                       Foreground="{DynamicResource Island.Subtle}"
-                                       Visibility="{Binding Ask.HasDraft, Converter={StaticResource Island.InverseBoolToVisibility}}" />
-                        </Grid>
+                        <TextBox x:Name="AskInput" Style="{StaticResource Ask.Input}"
+                                 Text="{Binding Ask.Draft, UpdateSourceTrigger=PropertyChanged}"
+                                 Tag="Ask anything…"
+                                 AcceptsReturn="True" TextWrapping="Wrap" MaxHeight="84"
+                                 VerticalContentAlignment="Center" VerticalAlignment="Center"
+                                 VerticalScrollBarVisibility="Auto" AutomationProperties.Name="Ask a question">
+                            <TextBox.InputBindings>
+                                <!-- Enter sends; Shift+Enter falls through to the box and starts a new line. -->
+                                <KeyBinding Key="Enter" Command="{Binding Ask.SendCommand}" />
+                            </TextBox.InputBindings>
+                        </TextBox>
 
                         <Button Grid.Column="1" Style="{StaticResource Ask.SendButton}" Margin="8,0,0,0"
                                 Command="{Binding Ask.SendCommand}" ToolTip="Send (Enter)"

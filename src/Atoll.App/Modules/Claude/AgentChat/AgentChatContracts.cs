@@ -32,5 +32,17 @@ public interface IAgentChatProvider
 /// <summary>A settings snapshot per question, so a changed model or switch applies to the next run.</summary>
 public sealed record AgentChatOptions(AgentChatSettings Settings, IReadOnlyList<ProviderAccount> Accounts);
 
+/// <summary>
+/// What the Ask box needs from a chat service. Small on purpose: the view model can then be exercised with a
+/// stub, without probing for installed agents or touching the network.
+/// </summary>
+public interface IAgentChat
+{
+    Task<AgentChatSelection> ResolveAsync(AgentChatOptions options, CancellationToken ct = default);
+
+    IAsyncEnumerable<AgentChatDelta> StreamAsync(AgentChatSelection selection, string prompt,
+        AgentChatSettings settings, CancellationToken ct = default);
+}
+
 /// <summary>A short, user-facing failure. It carries no keys and never repeats the prompt.</summary>
 public sealed class AgentChatException(string message) : Exception(message);

@@ -13,10 +13,10 @@ public sealed partial class AskViewModel : ObservableObject, IDisposable
     private readonly Func<AgentChatOptions> _options;
     private readonly Action<Action> _post;
     private readonly bool _ownsChat;
-    private AgentChatService? _chatService;
+    private IAgentChat? _chatService;
     private CancellationTokenSource? _run;
 
-    public AskViewModel(AgentChatService? chat = null, Func<AgentChatOptions>? options = null, Action<Action>? post = null)
+    public AskViewModel(IAgentChat? chat = null, Func<AgentChatOptions>? options = null, Action<Action>? post = null)
     {
         _ownsChat = chat is null;
         _chatService = chat;
@@ -25,7 +25,7 @@ public sealed partial class AskViewModel : ObservableObject, IDisposable
     }
 
     /// <summary>The service is created on first use, so an island that never asks starts no HTTP client.</summary>
-    private AgentChatService Chat => _chatService ??= new AgentChatService();
+    private IAgentChat Chat => _chatService ??= new AgentChatService();
 
     /// <summary>Raised on the UI thread after a finished answer, so a collapsed island can show it.</summary>
     public event Action<AskViewModel>? Answered;
@@ -219,6 +219,6 @@ public sealed partial class AskViewModel : ObservableObject, IDisposable
     {
         try { _run?.Cancel(); }
         catch (ObjectDisposedException) { }
-        if (_ownsChat) _chatService?.Dispose();
+        if (_ownsChat) (_chatService as IDisposable)?.Dispose();
     }
 }

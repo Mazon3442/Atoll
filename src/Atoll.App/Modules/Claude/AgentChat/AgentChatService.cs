@@ -12,7 +12,7 @@ namespace Atoll.Modules.Claude;
 /// The Agents tab's Ask backend. It resolves the first installed CLI agent, then your own API keys, and streams the
 /// answer. It never logs prompts, answers or keys: failures leave as one readable delta.
 /// </summary>
-public sealed class AgentChatService : IDisposable
+public sealed class AgentChatService : IAgentChat, IDisposable
 {
     private readonly IProcessRunner _processes;
     private readonly HttpClient _client;
