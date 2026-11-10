@@ -55,6 +55,9 @@
     <PackageReference Include="System.Management" Version="10.0.14" />
     <PackageReference Include="System.Speech" Version="10.0.0" />
     <PackageReference Include="Velopack" Version="1.2.161" />
+    <!-- Local speech-to-text. The CPU runtime is ~18 MB; the model itself is downloaded on first use. -->
+    <PackageReference Include="Whisper.net" Version="1.9.1" />
+    <PackageReference Include="Whisper.net.Runtime" Version="1.9.1" />
   </ItemGroup>
 
 </Project>

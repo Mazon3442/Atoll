@@ -402,6 +402,32 @@ public sealed class TideSettings
 
     /// <summary>Keep the island out of screen shares while the prompter runs.</summary>
     public bool HideFromCapture { get; set; } = true;
+
+    /// <summary>Capture the microphone (the "You" side of a meeting).</summary>
+    public bool ListenMic { get; set; } = true;
+
+    /// <summary>Capture system audio, which is how the other participants are heard.</summary>
+    public bool ListenSystemAudio { get; set; } = true;
+
+    /// <summary>Language hint for Whisper; English-only models always use "en".</summary>
+    public string ListenLanguage { get; set; } = "en";
+
+    /// <summary>Whisper model name without the ggml- prefix, e.g. "base.en".</summary>
+    public string ListenModel { get; set; } = "base.en";
+
+    /// <summary>Optional custom .bin path. Empty uses %LOCALAPPDATA%\Atoll\listen.</summary>
+    public string ListenModelPath { get; set; } = "";
+
+    /// <summary>Notes provider id: "" (automatic), "ollama", or a provider account id.</summary>
+    public string ListenNotesProvider { get; set; } = "";
+
+    /// <summary>Ollama model for the notes pass. Empty uses the first installed model.</summary>
+    public string ListenNotesModel { get; set; } = "";
+
+    /// <summary>
+    /// Keeps a WAV copy of the mixed meeting audio beside the session. Off by default; audio never leaves the PC.
+    /// </summary>
+    public bool ListenKeepAudio { get; set; }
 }
 
 public sealed class TideScript
