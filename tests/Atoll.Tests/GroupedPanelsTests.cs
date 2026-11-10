@@ -174,6 +174,12 @@ public class GroupedPanelsTests
         panels.Add(("time-timer-running", new TimePanelViewModel(new ClockPanelViewModel(idleClock.Clock, runningTimer), agenda)));
         panels.Add(("time-no-calendars", new TimePanelViewModel(idleClock, new CalendarViewModel(() => { }))));
         panels.Add(("clipboard-only", new FilesPanelViewModel(null, new ClipboardViewModel(new ClipboardHistory()))));
+        var clipboardHistory = new ClipboardHistory();
+        for (var i = 0; i < 3; i++)
+            clipboardHistory.Add(new ClipItem(ClipKind.Text, _ => { }, _ => { }) { Text = $"Copied note {i}" });
+        var clipboardPanel = new ClipboardViewModel(clipboardHistory);
+        clipboardPanel.Configure(enabled: true);
+        panels.Add(("clipboard-populated", clipboardPanel));
         panels.Add(("shelf-only", new FilesPanelViewModel(new ShelfViewModel(_ => { }, () => { }), null)));
         panels.Add(("system-with-volume", PanelGroups.Combine(modules.Where(t => t.Descriptor.Id != "media").ToList())
             .Single(t => t.Contains("system")).Panel));

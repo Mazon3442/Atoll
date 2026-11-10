@@ -703,8 +703,13 @@
                         </s:SettingCard>
 
                         <TextBlock Style="{StaticResource SectionHeader}" Text="Clipboard and files" />
-                        <s:SettingCard Glyph="&#xE72E;" Header="Privacy"
-                                       Description="Clipboard history stays in memory and is cleared when ATOLL closes. Copies from password managers are skipped. The shelf stores file locations only, never the files." />
+                        <s:SettingCard Glyph="&#xE77F;" Header="Clipboard history"
+                                       Description="Off by default and off means nothing is read or written. When on, ATOLL keeps your last 100 text and image copies, up to 25 MB, in this PC's local app data encrypted for your Windows account. Turning it off or pressing Clear erases the file. Password-manager copies and images over 8 MB are skipped.">
+                            <CheckBox Style="{StaticResource Toggle}" IsChecked="{Binding ClipboardHistoryEnabled}"
+                                      AutomationProperties.Name="Save clipboard history on this PC" />
+                        </s:SettingCard>
+                        <s:SettingCard Glyph="&#xE72E;" Header="File shelf"
+                                       Description="The shelf stores file locations only, never the files themselves." />
                     </StackPanel>
 
                     <!-- ===================== Notifications ===================== -->

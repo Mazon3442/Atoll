@@ -21,5 +21,6 @@
     <Compile Include="../Atoll.Tests/ClaudeTests.cs" Link="Core/ClaudeTests.cs" />
     <Compile Include="../Atoll.Tests/AgentIntegrationTests.cs" Link="Core/AgentIntegrationTests.cs" />
     <Compile Include="../Atoll.Tests/WeatherForecastTests.cs" Link="Core/WeatherForecastTests.cs" />
+    <Compile Include="../Atoll.Tests/ClipboardStoreTests.cs" Link="Core/ClipboardStoreTests.cs" />
   </ItemGroup>
 </Project>

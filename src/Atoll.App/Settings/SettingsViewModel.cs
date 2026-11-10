@@ -351,6 +351,13 @@ public sealed partial class SettingsViewModel : ObservableObject
 
     public bool ShowLyrics { get => S.ShowLyrics; set => Set(S.ShowLyrics, value, v => S.ShowLyrics = v); }
 
+    /// <summary>Opt-in: the clipboard module reads and writes nothing while this is false.</summary>
+    public bool ClipboardHistoryEnabled
+    {
+        get => S.Clipboard.HistoryEnabled;
+        set => Set(S.Clipboard.HistoryEnabled, value, v => S.Clipboard.HistoryEnabled = v);
+    }
+
     public bool ShowNotificationContent
     {
         get => S.Notifications.ShowContent;

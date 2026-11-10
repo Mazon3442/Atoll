@@ -24,7 +24,7 @@ public sealed partial class SettingsViewModel
         ("tide", "Tide", "A local teleprompter with scripts, speed presets and voice follow."),
         ("system", "System", "Device status, live graphs and quick actions."),
         ("shelf", "Files", "Files you drop on the island to keep their paths handy."),
-        ("clipboard", "Clipboard", "Your recent copies, kept in memory only."),
+        ("clipboard", "Clipboard", "Opt-in recent copies, saved on this PC and encrypted for your Windows account."),
         ("weather", "Weather", "Current conditions and a 7-day forecast."),
         ("launcher", "Launcher", "Start Menu apps and your games, one tab away."),
     ];
@@ -42,7 +42,7 @@ public sealed partial class SettingsViewModel
         ["actions"] = ("Quick actions", "Screenshot, mic mute, lock, screen off and Downloads."),
         ["privacy"] = ("Camera and mic in use", "A green dot while an app uses your camera, orange for the microphone."),
         ["shelf"] = ("File shelf", "Drop files on the island to keep them at hand."),
-        ["clipboard"] = ("Clipboard history", "Your last 25 copies, kept in memory only."),
+        ["clipboard"] = ("Clipboard history", "Recent text and images, saved on this PC when you turn it on."),
     };
 
     public ObservableCollection<ModuleTabRow> ModuleTabs { get; } = [];

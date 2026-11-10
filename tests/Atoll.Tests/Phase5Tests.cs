@@ -3,6 +3,7 @@ using Atoll.Modules.Clipboard;
 using Atoll.Modules.Shelf;
 using Atoll.Modules.Stats;
 using Atoll.Modules.Weather;
+using Atoll.Settings;
 
 namespace Atoll.Tests;
 
@@ -57,9 +58,9 @@ public class ClipboardHistoryTests
     public void History_is_capped()
     {
         var h = new ClipboardHistory();
-        for (var i = 0; i < 40; i++) h.Add(Text($"item {i}"));
+        for (var i = 0; i < ClipboardHistory.MaxItems + 20; i++) h.Add(Text($"item {i}"));
         Assert.Equal(ClipboardHistory.MaxItems, h.Items.Count);
-        Assert.Equal("item 39", h.Items[0].Text);
+        Assert.Equal($"item {ClipboardHistory.MaxItems + 19}", h.Items[0].Text);
     }
 
     [Fact]
@@ -68,6 +69,90 @@ public class ClipboardHistoryTests
         Assert.Equal("first line second line", Text("  first line\r\n\tsecond line \n").Preview);
         Assert.Equal(200, Text(new string('x', 500)).Preview.Length);
     }
+
+    [Fact]
+    public void History_is_off_by_default() => Assert.False(new AppSettings().Clipboard.HistoryEnabled);
+
+    [WindowsFact]
+    public void Saved_text_comes_back_after_a_new_history_is_attached()
+    {
+        var directory = Path.Combine(Path.GetTempPath(), "atoll-clipboard-tests", Guid.NewGuid().ToString("N"));
+        var file = Path.Combine(directory, "clipboard.bin");
+        try
+        {
+            var first = new ClipboardHistory();
+            using (var store = new ClipboardStore(file))
+            {
+                first.Attach(store, Restore);
+                first.Add(Text("older"));
+                first.Add(Text("newer"));
+                store.Flush();
+            }
+
+            var second = new ClipboardHistory();
+            using var reopened = new ClipboardStore(file);
+            second.Attach(reopened, Restore);
+            Assert.Equal(["newer", "older"], second.Items.Select(i => i.Text));
+        }
+        finally
+        {
+            if (Directory.Exists(directory)) Directory.Delete(directory, true);
+        }
+    }
+
+    [WindowsFact]
+    public void Clear_wipes_the_saved_file_and_the_rows()
+    {
+        var directory = Path.Combine(Path.GetTempPath(), "atoll-clipboard-tests", Guid.NewGuid().ToString("N"));
+        var file = Path.Combine(directory, "clipboard.bin");
+        try
+        {
+            var h = new ClipboardHistory();
+            using var store = new ClipboardStore(file);
+            h.Attach(store, Restore);
+            h.Add(Text("one"));
+            store.Flush();
+            Assert.True(File.Exists(file));
+
+            h.Clear();
+            Assert.Empty(h.Items);
+            Assert.False(File.Exists(file));
+        }
+        finally
+        {
+            if (Directory.Exists(directory)) Directory.Delete(directory, true);
+        }
+    }
+
+    [WindowsFact]
+    public void Turning_capture_off_wipes_the_saved_file_and_the_rows()
+    {
+        var directory = Path.Combine(Path.GetTempPath(), "atoll-clipboard-tests", Guid.NewGuid().ToString("N"));
+        var file = Path.Combine(directory, "clipboard.bin");
+        try
+        {
+            var h = new ClipboardHistory();
+            using var store = new ClipboardStore(file);
+            h.Attach(store, Restore);
+            h.Add(Text("one"));
+            store.Flush();
+            Assert.True(File.Exists(file));
+
+            h.Reset();
+            Assert.Empty(h.Items);
+            Assert.False(File.Exists(file));
+            Assert.False(h.IsPersistent);
+        }
+        finally
+        {
+            if (Directory.Exists(directory)) Directory.Delete(directory, true);
+        }
+    }
+
+    private static ClipItem? Restore(ClipboardRecord record) =>
+        record.Kind == ClipboardRecordKind.Text && record.Text is { Length: > 0 } text
+            ? new ClipItem(ClipKind.Text, _ => { }, _ => { }) { Text = text }
+            : null;
 }
 
 public class StatsTests

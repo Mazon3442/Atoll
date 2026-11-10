@@ -194,6 +194,7 @@ public class MediaSeekTests
                 SettingsUiTests.VerifySettings();
                 CalendarUiTests.Verify();
                 KeyboardIslandUi.Verify();
+                ClipboardUi.Verify();
                 AgentMediaUi.Verify();
             }
             catch (Exception ex) { failure = ex; }

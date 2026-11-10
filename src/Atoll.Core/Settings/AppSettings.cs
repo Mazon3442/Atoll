@@ -118,8 +118,19 @@ public sealed class AppSettings
 
     public FocusSettings Focus { get; set; } = new();
 
+    public ClipboardSettings Clipboard { get; set; } = new();
+
     /// <summary>List order = tab order in the expanded panel.</summary>
     public List<ModuleEntry> Modules { get; set; } = [];
+}
+
+/// <summary>
+/// Opt-in clipboard history. Off by default: while false, copies are neither captured nor written to disk.
+/// The file lives in %LOCALAPPDATA% so Windows does not sync the ciphertext to another PC.
+/// </summary>
+public sealed class ClipboardSettings
+{
+    public bool HistoryEnabled { get; set; }
 }
 
 public sealed class ProviderSettings

@@ -1,5 +1,6 @@
 <ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    x:Class="Atoll.Modules.Clipboard.ClipboardTemplates">
 
     <DataTemplate x:Key="ClipboardViewModel.Panel">
         <Grid>
@@ -7,40 +8,48 @@
                         Visibility="{Binding IsEmpty, Converter={StaticResource Island.BoolToVisibility}}">
                 <TextBlock Text="&#xE77F;" FontFamily="{StaticResource Island.IconFont}" FontSize="24" HorizontalAlignment="Center"
                            Foreground="{DynamicResource Island.Subtle}" />
-                <TextBlock Text="Things you copy show up here" FontSize="13" Margin="0,8,0,0" TextWrapping="Wrap" TextAlignment="Center" />
-                <TextBlock Text="Kept in memory only. Password managers are skipped." FontSize="11" TextWrapping="Wrap" TextAlignment="Center"
+                <TextBlock Text="{Binding EmptyTitle}" FontSize="13" Margin="0,8,0,0" TextWrapping="Wrap" TextAlignment="Center" />
+                <TextBlock Text="{Binding EmptyNote}" FontSize="11" TextWrapping="Wrap" TextAlignment="Center"
                            Foreground="{DynamicResource Island.Subtle}" />
             </StackPanel>
 
             <DockPanel Visibility="{Binding IsEmpty, Converter={StaticResource Island.InverseBoolToVisibility}}">
                 <DockPanel DockPanel.Dock="Top" Margin="0,0,0,6">
                     <Button DockPanel.Dock="Right" Style="{StaticResource Island.ChipButton}" Content="Clear" Margin="0"
-                            Command="{Binding ClearCommand}" />
-                    <TextBlock Text="Click an item to copy it again" FontSize="12" Foreground="{DynamicResource Island.Subtle}"
+                            Command="{Binding ClearCommand}" AutomationProperties.Name="Clear clipboard history" />
+                    <TextBlock Text="Click or press Enter to copy again" FontSize="12" Foreground="{DynamicResource Island.Subtle}"
                                VerticalAlignment="Center" />
                 </DockPanel>
                 <ScrollViewer VerticalScrollBarVisibility="Auto">
                     <ItemsControl ItemsSource="{Binding Items}">
                         <ItemsControl.ItemTemplate>
                             <DataTemplate>
-                                <Button Command="{Binding CopyCommand}" Cursor="Hand" Margin="0,0,0,4" Focusable="False"
-                                        AutomationProperties.Name="{Binding Preview, StringFormat=Copy {0}}">
+                                <Button Command="{Binding CopyCommand}" Cursor="Hand" Margin="0,0,0,4"
+                                        FocusVisualStyle="{StaticResource Island.FocusVisual}"
+                                        AutomationProperties.Name="{Binding Preview, StringFormat=Copy {0}}"
+                                        AutomationProperties.HelpText="Press Enter or Space to copy again, Delete to remove, Up and Down to move."
+                                        PreviewKeyDown="OnRowKeyDown">
                                     <Button.Template>
                                         <ControlTemplate TargetType="Button">
-                                            <Border x:Name="Row" CornerRadius="10" Padding="10,7" Background="{DynamicResource Island.Hover}">
+                                            <Border x:Name="Row" CornerRadius="10" Padding="10,7" Background="{DynamicResource Island.Hover}"
+                                                    BorderThickness="1" BorderBrush="Transparent">
                                                 <ContentPresenter />
                                             </Border>
                                             <ControlTemplate.Triggers>
                                                 <Trigger Property="IsMouseOver" Value="True">
                                                     <Setter TargetName="Row" Property="BorderBrush" Value="{DynamicResource Island.Accent}" />
-                                                    <Setter TargetName="Row" Property="BorderThickness" Value="1" />
+                                                </Trigger>
+                                                <Trigger Property="IsKeyboardFocused" Value="True">
+                                                    <Setter TargetName="Row" Property="BorderBrush" Value="{DynamicResource Island.Accent}" />
                                                 </Trigger>
                                             </ControlTemplate.Triggers>
                                         </ControlTemplate>
                                     </Button.Template>
                                     <DockPanel>
+                                        <!-- The row owns focus; Delete is the keyboard route to removal. -->
                                         <Button DockPanel.Dock="Right" Style="{StaticResource Island.IconButton}" Width="22" Height="22" FontSize="9"
-                                                Content="&#xE711;" ToolTip="Remove" Command="{Binding RemoveCommand}" AutomationProperties.Name="Remove" />
+                                                Content="&#xE711;" ToolTip="Remove" Focusable="False" Command="{Binding RemoveCommand}"
+                                                AutomationProperties.Name="Remove" />
                                         <TextBlock DockPanel.Dock="Right" Text="{Binding TimeText}" FontSize="11" Margin="8,0"
                                                    Foreground="{DynamicResource Island.Subtle}" VerticalAlignment="Center" />
                                         <TextBlock DockPanel.Dock="Left" Text="{Binding Glyph}" FontFamily="{StaticResource Island.IconFont}"
