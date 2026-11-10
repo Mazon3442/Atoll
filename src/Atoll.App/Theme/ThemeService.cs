@@ -23,10 +23,11 @@ public static class ThemeService
         var res = Application.Current.Resources;
         if (theme.Glass)
         {
-            // The system blur sits behind the pill; this translucent tint is what the user sees over it.
-            // The screenshot fallback replaces it with a tinted image brush at runtime.
-            GlassTint = Color.FromArgb((byte)(bg.A * opacity), bg.R, bg.G, bg.B);
-            res["Island.Background"] = Frozen(new SolidColorBrush(GlassTint.Value));
+            // The blur sits behind the pill; the tint is a wash over it. Hold the wash back or the frost
+            // disappears behind the background color and the island reads as a solid block.
+            var tint = GlassTintFor(bg, opacity);
+            GlassTint = tint;
+            res["Island.Background"] = Frozen(new SolidColorBrush(tint));
             res["Island.Rim"] = Frozen(new SolidColorBrush(fg) { Opacity = 0.18 });
         }
         else
@@ -47,6 +48,17 @@ public static class ThemeService
         res["Island.SelectedBackground"] = Frozen(new SolidColorBrush(Color.FromRgb(fg.R, fg.G, fg.B)));
         res["Island.SelectedForeground"] = Frozen(new SolidColorBrush(Color.FromRgb(bg.R, bg.G, bg.B)));
     }
+
+    /// <summary>Share of the background opacity a glass tint keeps, so the blur stays visible through it.</summary>
+    private const double GlassWash = 0.6;
+
+    /// <summary>
+    /// The translucent tint painted over the blurred backdrop. Full background opacity would hide the blur,
+    /// so glass keeps a fraction of it; the color itself is unchanged.
+    /// </summary>
+    internal static Color GlassTintFor(Color background, double opacity) =>
+        Color.FromArgb((byte)Math.Round(background.A * Math.Clamp(opacity, 0.3, 1) * GlassWash),
+            background.R, background.G, background.B);
 
     internal static Color AccentTextColor(Color accent, Color background, Color foreground) =>
         accent.A == 255 && background.A == 255 && Contrast(accent, background) >= 4.5 ? accent : foreground;

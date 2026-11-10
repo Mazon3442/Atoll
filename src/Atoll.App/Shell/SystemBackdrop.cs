@@ -25,12 +25,18 @@ internal sealed class SystemBackdrop : IDisposable
 
     internal readonly record struct Shape(Rect Bounds, double Radius, bool Notch);
 
+    /// <summary>
+    /// Whether DWM will actually draw the blur. Windows 11 still answers success and then draws nothing,
+    /// which is why the island looked like a flat tint; those builds use <see cref="GlassSampler"/> instead.
+    /// </summary>
+    public static bool Supported { get; } = Environment.OSVersion.Version.Build < 22000;
+
     private nint _region;
 
     /// <summary>Applies the blur to the rounded shapes. Returns false when Windows refuses it.</summary>
     public bool Enable(nint hwnd, IReadOnlyList<Shape> shapes)
     {
-        if (hwnd == 0 || shapes.Count == 0) return false;
+        if (!Supported || hwnd == 0 || shapes.Count == 0) return false;
         var region = BuildRegion(shapes);
         if (region == 0) return false;
         var data = new BlurBehind
