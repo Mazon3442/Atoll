@@ -381,7 +381,7 @@
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="Button">
-                    <Border x:Name="Bg" Background="{DynamicResource Island.Surface}" CornerRadius="999">
+                    <Border x:Name="Bg" Background="{DynamicResource Island.Surface}" CornerRadius="{Binding ActualHeight, RelativeSource={RelativeSource Self}, Converter={x:Static shell:PillRadius.Instance}}">
                         <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
                     </Border>
                     <ControlTemplate.Triggers>
@@ -427,7 +427,7 @@
 
     <!-- A side activity capsule: module icon, short live label, and a quiet module tint. -->
     <DataTemplate x:Key="SideChipViewModel.Mini">
-        <Border x:Name="Surface" Background="{Binding SurfaceBrush}" CornerRadius="999" Padding="10,0"
+        <Border x:Name="Surface" Background="{Binding SurfaceBrush}" CornerRadius="{Binding ActualHeight, RelativeSource={RelativeSource Self}, Converter={x:Static shell:PillRadius.Instance}}" Padding="10,0"
                 ToolTip="{Binding Label}" AutomationProperties.Name="{Binding Label}">
             <Grid>
                 <StackPanel x:Name="Capsule" Orientation="Horizontal" VerticalAlignment="Center" HorizontalAlignment="Center">
