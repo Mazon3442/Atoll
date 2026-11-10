@@ -212,8 +212,7 @@
                                 </Trigger>
                                 <Trigger Property="IsChecked" Value="True">
                                     <Setter TargetName="Bg" Property="Background" Value="{DynamicResource Island.Raised}" />
-                                    <Setter TargetName="Bg" Property="BorderBrush" Value="{DynamicResource Island.Accent}" />
-                                    <Setter Property="Foreground" Value="{DynamicResource Island.Foreground}" />
+                                    <Setter Property="Foreground" Value="{DynamicResource Island.Accent}" />
                                 </Trigger>
                             </ControlTemplate.Triggers>
                         </ControlTemplate>
