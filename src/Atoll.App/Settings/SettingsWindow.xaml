@@ -423,6 +423,59 @@
                             </Grid>
                         </Border>
 
+                        <Expander Margin="0,12,0,0" IsExpanded="True" AutomationProperties.Name="Theme presets">
+                            <Expander.Header><TextBlock Text="Theme presets" FontSize="14" FontWeight="SemiBold" /></Expander.Header>
+                        <ItemsControl x:Name="ThemeGallery" ItemsSource="{Binding Themes}" Margin="0,12,0,0">
+                            <ItemsControl.ItemsPanel>
+                                <ItemsPanelTemplate>
+                                    <WrapPanel />
+                                </ItemsPanelTemplate>
+                            </ItemsControl.ItemsPanel>
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Button Style="{StaticResource ThemeTile}" Command="{Binding DataContext.ApplyThemeCommand, ElementName=ThemeGallery}"
+                                            CommandParameter="{Binding}" AutomationProperties.Name="{Binding Preset.Name, StringFormat=Use theme {0}}">
+                                        <StackPanel>
+                                            <Border Height="44" CornerRadius="5" Background="{Binding Preset.Background}"
+                                                    BorderBrush="#22808080" BorderThickness="1">
+                                                <Grid Margin="10,0">
+                                                    <TextBlock Text="Aa" Foreground="{Binding Preset.Foreground}" FontWeight="SemiBold"
+                                                               FontSize="14" VerticalAlignment="Center" />
+                                                    <Ellipse Width="12" Height="12" Fill="{Binding Preset.Accent}" HorizontalAlignment="Right" />
+                                                </Grid>
+                                            </Border>
+                                            <DockPanel Margin="2,6,0,0">
+                                                <TextBlock DockPanel.Dock="Right" Text="&#xE73E;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" FontSize="11" Margin="5,0,0,0" VerticalAlignment="Center"
+                                                           AutomationProperties.Name="Selected theme"
+                                                           Visibility="{Binding IsSelected, Converter={StaticResource BoolToVisibility}}" />
+                                                <Button DockPanel.Dock="Right" Content="&#xE74D;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets"
+                                                        FontSize="11" Padding="4" Margin="4,0,0,0" ToolTip="Delete this theme"
+                                                        Command="{Binding DataContext.DeleteThemeCommand, ElementName=ThemeGallery}" CommandParameter="{Binding}"
+                                                        Visibility="{Binding IsCustom, Converter={StaticResource BoolToVisibility}}"
+                                                        AutomationProperties.Name="{Binding Preset.Name, StringFormat=Delete theme {0}}" />
+                                                <TextBlock DockPanel.Dock="Right" Text="Glass" FontSize="11" VerticalAlignment="Center"
+                                                           Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                                           Visibility="{Binding Preset.Glass, Converter={StaticResource BoolToVisibility}}" />
+                                                <TextBlock Text="{Binding Preset.Name}" FontSize="12" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"
+                                                           Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
+                                            </DockPanel>
+                                        </StackPanel>
+                                    </Button>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                        </Expander>
+                        <s:SettingCard Glyph="&#xE74E;" Header="Save as a theme"
+                                       Description="Save these colors and the glass setting. An existing name replaces that theme.">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBox Width="180" Text="{Binding NewThemeName, UpdateSourceTrigger=PropertyChanged}"
+                                         AutomationProperties.Name="New theme name" />
+                                <Button Content="Save" Margin="8,0,0,0" Padding="16,5" Command="{Binding SaveThemeCommand}" IsDefault="False" />
+                            </StackPanel>
+                        </s:SettingCard>
+                        <TextBlock Text="{Binding ThemeMessage}" Style="{StaticResource Hint}" Margin="4,2,0,0"
+                                   Visibility="{Binding ThemeMessage, Converter={StaticResource EmptyToCollapsed}}" />
+
                         <TextBlock Style="{StaticResource SectionHeader}" Text="Shape" />
                         <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
                             <RadioButton Style="{StaticResource ShapeOption}" GroupName="Shape" IsChecked="{Binding IsPill}"
@@ -466,49 +519,6 @@
                             <CheckBox Style="{StaticResource Toggle}" IsChecked="{Binding Outline}" AutomationProperties.Name="Outline" />
                         </s:SettingCard>
 
-                        <Expander Margin="0,16,0,0" AutomationProperties.Name="Theme presets">
-                            <Expander.Header><TextBlock Text="Theme presets" FontSize="14" FontWeight="SemiBold" /></Expander.Header>
-                        <ItemsControl x:Name="ThemeGallery" ItemsSource="{Binding Themes}" Margin="0,12,0,0">
-                            <ItemsControl.ItemsPanel>
-                                <ItemsPanelTemplate>
-                                    <WrapPanel />
-                                </ItemsPanelTemplate>
-                            </ItemsControl.ItemsPanel>
-                            <ItemsControl.ItemTemplate>
-                                <DataTemplate>
-                                    <Button Style="{StaticResource ThemeTile}" Command="{Binding DataContext.ApplyThemeCommand, ElementName=ThemeGallery}"
-                                            CommandParameter="{Binding}" AutomationProperties.Name="{Binding Preset.Name, StringFormat=Use theme {0}}">
-                                        <StackPanel>
-                                            <Border Height="44" CornerRadius="5" Background="{Binding Preset.Background}"
-                                                    BorderBrush="#22808080" BorderThickness="1">
-                                                <Grid Margin="10,0">
-                                                    <TextBlock Text="Aa" Foreground="{Binding Preset.Foreground}" FontWeight="SemiBold"
-                                                               FontSize="14" VerticalAlignment="Center" />
-                                                    <Ellipse Width="12" Height="12" Fill="{Binding Preset.Accent}" HorizontalAlignment="Right" />
-                                                </Grid>
-                                            </Border>
-                                            <DockPanel Margin="2,6,0,0">
-                                                <TextBlock DockPanel.Dock="Right" Text="&#xE73E;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" FontSize="11" Margin="5,0,0,0" VerticalAlignment="Center"
-                                                           AutomationProperties.Name="Selected theme"
-                                                           Visibility="{Binding IsSelected, Converter={StaticResource BoolToVisibility}}" />
-                                                <Button DockPanel.Dock="Right" Content="&#xE74D;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets"
-                                                        FontSize="11" Padding="4" Margin="4,0,0,0" ToolTip="Delete this theme"
-                                                        Command="{Binding DataContext.DeleteThemeCommand, ElementName=ThemeGallery}" CommandParameter="{Binding}"
-                                                        Visibility="{Binding IsCustom, Converter={StaticResource BoolToVisibility}}"
-                                                        AutomationProperties.Name="{Binding Preset.Name, StringFormat=Delete theme {0}}" />
-                                                <TextBlock DockPanel.Dock="Right" Text="Glass" FontSize="11" VerticalAlignment="Center"
-                                                           Foreground="{DynamicResource TextFillColorSecondaryBrush}"
-                                                           Visibility="{Binding Preset.Glass, Converter={StaticResource BoolToVisibility}}" />
-                                                <TextBlock Text="{Binding Preset.Name}" FontSize="12" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"
-                                                           Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
-                                            </DockPanel>
-                                        </StackPanel>
-                                    </Button>
-                                </DataTemplate>
-                            </ItemsControl.ItemTemplate>
-                        </ItemsControl>
-                        </Expander>
-
                         <TextBlock Style="{StaticResource SectionHeader}" Text="Colors" />
                         <s:SettingCard Glyph="&#xE790;" Header="Background" Description="The island's fill and glass tint.">
                             <s:ColorPicker Value="{Binding Background}" Label="Background color" />
@@ -529,17 +539,6 @@
                                 <TextBlock Style="{StaticResource ValueText}" Text="{Binding Opacity, StringFormat={}{0:P0}}" />
                             </StackPanel>
                         </s:SettingCard>
-
-                        <s:SettingCard Glyph="&#xE74E;" Header="Save as a theme"
-                                       Description="Save these colors and the glass setting. An existing name replaces that theme.">
-                            <StackPanel Orientation="Horizontal">
-                                <TextBox Width="180" Text="{Binding NewThemeName, UpdateSourceTrigger=PropertyChanged}"
-                                         AutomationProperties.Name="New theme name" />
-                                <Button Content="Save" Margin="8,0,0,0" Padding="16,5" Command="{Binding SaveThemeCommand}" IsDefault="False" />
-                            </StackPanel>
-                        </s:SettingCard>
-                        <TextBlock Text="{Binding ThemeMessage}" Style="{StaticResource Hint}" Margin="4,2,0,0"
-                                   Visibility="{Binding ThemeMessage, Converter={StaticResource EmptyToCollapsed}}" />
 
                         <TextBlock Style="{StaticResource SectionHeader}" Text="Size" />
                         <s:SettingCard Glyph="&#xE740;" Header="Island height">
