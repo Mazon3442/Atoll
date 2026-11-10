@@ -8,8 +8,8 @@ public sealed record UpdateResult(bool Installed, bool Downloaded, string? Versi
 
 /// <summary>
 /// Checks the GitHub releases for a newer version and downloads it quietly in the background. The
-/// update is applied by <see cref="VelopackApp"/> the next time ATOLL starts, so the running session
-/// is never interrupted.
+/// update is applied by <see cref="VelopackApp"/> the next time ATOLL starts, or right away when the user
+/// answers the restart prompt, so the running session is never interrupted.
 /// </summary>
 public static class UpdateService
 {
@@ -25,6 +25,27 @@ public static class UpdateService
 
     /// <summary>Version already downloaded and waiting for the next restart, or null.</summary>
     public static string? PendingVersion => Create().UpdatePendingRestart?.Version?.ToString();
+
+    /// <summary>
+    /// Installs the downloaded update once this process has exited, then starts the new version. The caller must
+    /// shut ATOLL down right after; returns false when there is nothing downloaded to apply.
+    /// </summary>
+    public static bool ApplyOnExitAndRestart()
+    {
+        if (!OperatingSystem.IsWindows()) return false;
+        var manager = Create();
+        if (!manager.IsInstalled || manager.UpdatePendingRestart is not { } pending) return false;
+        try
+        {
+            manager.WaitExitThenApplyUpdates(pending, silent: false, restart: true);
+            return true;
+        }
+        catch (Exception ex)
+        {
+            Log.Error("Could not start the update", ex);
+            return false;
+        }
+    }
 
     public static async Task<UpdateResult> CheckAndDownloadAsync()
     {

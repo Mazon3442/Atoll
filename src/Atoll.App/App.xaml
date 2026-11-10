@@ -26,6 +26,7 @@
                 <ResourceDictionary Source="Modules/Tide/TideTemplates.xaml" />
                 <ResourceDictionary Source="Modules/Home/HomeTemplates.xaml" />
                 <ResourceDictionary Source="Modules/GroupedTemplates.xaml" />
+                <ResourceDictionary Source="Updates/UpdateTemplates.xaml" />
             </ResourceDictionary.MergedDictionaries>
         </ResourceDictionary>
     </Application.Resources>

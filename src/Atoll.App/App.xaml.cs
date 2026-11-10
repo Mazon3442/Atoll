@@ -173,14 +173,17 @@ public partial class App : Application
         _onboardingWindow.Activate();
     }
 
-    private static async Task CheckUpdatesLoopAsync()
+    private string? _askedAboutVersion;
+
+    private async Task CheckUpdatesLoopAsync()
     {
         try
         {
-            await Task.Delay(TimeSpan.FromSeconds(45)); // let startup settle before any network call
+            await Task.Delay(TimeSpan.FromSeconds(10)); // let the island appear before any network call
             while (true)
             {
-                await UpdateService.CheckAndDownloadAsync();
+                var result = await UpdateService.CheckAndDownloadAsync();
+                if (result is { Downloaded: true, Version: { } version }) await Dispatcher.InvokeAsync(() => AskToRestart(version));
                 await Task.Delay(TimeSpan.FromHours(1));
             }
         }
@@ -188,6 +191,21 @@ public partial class App : Application
         {
             Log.Error("Background update loop stopped", ex);
         }
+    }
+
+    /// <summary>Posts the restart question once per downloaded version; Later keeps the quiet apply-on-next-start.</summary>
+    private void AskToRestart(string version)
+    {
+        if (_activities is null || _askedAboutVersion == version) return;
+        _askedAboutVersion = version;
+        const string id = "update.ready";
+        var prompt = new UpdatePromptViewModel(version,
+            restart: () =>
+            {
+                if (UpdateService.ApplyOnExitAndRestart()) Shutdown();
+            },
+            dismiss: () => _activities.Remove(id));
+        _activities.Post(new Activity(id, "update", prompt, ActivityPriority.High, TimeSpan.FromMinutes(5), alert: true));
     }
 
     private static void OnUnhandledException(object sender, DispatcherUnhandledExceptionEventArgs e)

@@ -168,6 +168,7 @@ internal static class AgentMediaUi
     {
         var resources = Application.Current.Resources.MergedDictionaries;
         resources.Add(new ResourceDictionary { Source = new Uri("/Atoll;component/Modules/Claude/ClaudeTemplates.xaml", UriKind.Relative) });
+        resources.Add(new ResourceDictionary { Source = new Uri("/Atoll;component/Updates/UpdateTemplates.xaml", UriKind.Relative) });
         resources.Add(new StatsTemplates());
 
         var session = new ClaudeSessionViewModel("s") { Project = "atoll", Detail = "Running dotnet test", Hwnd = 1 };
@@ -197,6 +198,7 @@ internal static class AgentMediaUi
         claude.Ask.IsRunning = false;
         claude.Ask.Answer = "The test compares two timestamps and the expected value is one day behind.";
         Render(claude, "ClaudeViewModel.Panel", "agents-ask", 640, 340);
+        Render(new Atoll.Updates.UpdatePromptViewModel("1.4.0", () => { }, () => { }), "UpdatePromptViewModel.Peek", "update-ready-peek", 620);
         Render(new AskAlertViewModel(claude.Ask, "Answer from Claude Code", "The test compares two timestamps…"),
             "AskAlertViewModel.Peek", "ask-answer-peek", 620);
 
