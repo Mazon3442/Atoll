@@ -1,64 +1,32 @@
 # Planned features
 
-Status key: **done**, **building**, **planned**, **pinned** (waiting), **dropped**.
+Status key: **done**, **partial**, **planned**, **pinned** (waiting), **dropped**.
 
 ## Done
 
-- Real frosted glass: DWM blur behind the pill and side bubbles, with the captured blur as fallback. Both shapes and the one glass switch stay.
+- Real frosted glass: sampled blur of the screen behind the island, tinted with the background colour, since Windows 11 accepts the blur-behind request and draws nothing. Glass keeps the island out of screen capture while it is on.
 - Notch shoulders: small concave curves where the notch meets the top edge.
-- Do Not Disturb: timed ATOLL focus on the moon chip, tray and palette; optional Windows Focus mirroring. Silences notifications, agent-done, calendar, media and game announcements.
-- Laptop battery: Settings toggle, header chip, warning at 20%, persistent pill from 10% down.
+- Do Not Disturb: timed ATOLL focus on the moon chip, tray and palette; optional Windows Focus mirroring.
+- Laptop battery: Settings toggle, header chip, warning at 20%, persistent pill from 10% down. A desktop with no battery shows none of it.
 - API keys: island tab removed; key setup and gateway configuration live in Settings > Agents.
+- Tide prompter: local script library, reading line, speed presets, text size, mirror, voice follow, screen-capture hiding. No account, no cloud.
+- Tide Listen: microphone and system audio, labelled You and Others, local Whisper (`base.en`), transcript per VAD window, notes, action items and suggested replies from Ollama or the configured keys.
+- Ask AI: Agents tab Sessions/Ask switch, installed CLI first, API keys fallback, streaming with Stop, chat-only by default with an Allow tools switch.
+- Downloads: watches the real Downloads folder, tracks browser temp names only, live size, then an alert with Open and Show in folder.
+- Persistent clipboard: opt-in, DPAPI, text and images, 100 items / 25 MB, wiped when turned off.
+- Snappy motion preset beside Bouncy, Smooth and Off, with the fade now honouring reduced motion.
 
-## Building: Tide
+## Partial
 
-Tide is our local teleprompter, inspired by Notchy's Cuely.
-
-Done:
-- Local script library: add, rename, delete, autosave.
-- Prompter: speed presets, text size, mirror, manual wheel scroll, reading line.
-- Follow My Voice using Windows speech recognition, off by default.
-- Hide from screen capture while the prompter runs.
-- Script text stays local.
-
-Next:
-- Listen mode: live transcript, notes, action items and suggested replies.
-- Needs a decision: Windows speech or a local Whisper model.
-- Needs system-audio capture for the other side of a meeting; the microphone alone is not enough.
-- Notes can use local Ollama, or the Ask AI service with configured keys.
+- **Tide Listen** reports a transcript per 6 s window, not word-by-word. Language, model path and keep-audio are JSON-only, there is no in-app session list, and ducking is an unsmoothed per-frame switch. Nothing has been run against a real microphone, system audio or the Whisper model yet.
+- **Ask AI** has not been run against real installed CLIs. Codex has no trustworthy zero-tool flag (read-only sandbox still reads files) and OpenCode cannot be proven chat-only, so the UI says so instead of pretending.
+- **Downloads** is WPF-only. Chrome's `Unconfirmed NNNNN.crdownload` does not match its final name, so it stops without an alert rather than guessing.
 
 ## Planned
 
-### Ask AI
+### Animation
 
-- Agents tab gets **Sessions** and **Ask** sections.
-- Installed Claude Code, Codex or OpenCode first; API keys as fallback.
-- Chat-only by default, with an explicit **Allow tools** switch.
-- Shared `AgentChatService` for streaming, cancel and model choice.
-
-### Persistent clipboard
-
-- Opt-in history across restarts.
-- Text and images, DPAPI encrypted.
-- Proposed cap: 100 items or 25 MB.
-- Disable or Clear wipes the file.
-
-### Downloads activity
-
-- Watch the real Downloads folder.
-- Partial files: `.crdownload`, `.part`, `.partial`, `.download`, `.opdownload`.
-- Live size, then a completed alert with Open and Show in folder.
-- No fake percentage; browsers do not expose total size.
-
-### Animation presets
-
-- Add **Snappy** beside Bouncy, Smooth and Off.
-- Bouncy keeps the overshoot. Smooth is critically damped. Snappy is shorter and tighter.
-- Respect Windows reduced motion.
-
-### Battery
-
-Done. See above.
+- More presets if asked; Snappy covers the gap between Bouncy and Smooth.
 
 ## Pinned: home control
 
@@ -84,4 +52,4 @@ Waiting for device details.
 ## Notes
 
 - All work stays on local branches until asked to publish.
-- Tide is intentionally local-only. No account, no cloud, no telemetry.
+- Tide is local-only: no account, no cloud, no telemetry. Its notes pass is the only outbound call and only when a model is configured.
