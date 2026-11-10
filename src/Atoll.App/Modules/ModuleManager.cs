@@ -12,8 +12,10 @@ using Atoll.Modules.Clock;
 using Atoll.Modules.Indicators;
 using Atoll.Modules.Media;
 using Atoll.Modules.Notifications;
+using Atoll.Modules.Notes;
 using Atoll.Modules.Privacy;
 using Atoll.Modules.Providers;
+using Atoll.Modules.Tide;
 using Atoll.Settings;
 
 namespace Atoll.Modules;
@@ -29,7 +31,8 @@ public static class ModuleCatalog
         new("notifications", "Notifications", "", () => new NotificationsModule()),
         new("clock", "Clock & timer", "", () => new ClockModule(), BookmarkedByDefault: false),
         new("calendar", "Calendar", "\uE787", () => new CalendarModule()),
-        new("notes", "Notes", "\uE70B", () => new Notes.NotesModule(), BookmarkedByDefault: false),
+        new("notes", "Notes", "\uE70B", () => new NotesModule(), BookmarkedByDefault: false),
+        new("tide", "Tide", "\uE8A5", () => new TideModule(), BookmarkedByDefault: false),
         new("system", "System", "", () => new IndicatorsModule(), BookmarkedByDefault: false),
         new("shelf", "File shelf", "", () => new ShelfModule()),
         new("clipboard", "Clipboard history", "", () => new ClipboardModule()),

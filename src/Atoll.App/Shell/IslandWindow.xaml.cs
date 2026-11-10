@@ -93,6 +93,7 @@ public partial class IslandWindow : Window
     private bool _glassActive;
     private bool _systemGlass;
     private bool _systemGlassTried;
+    private bool _captureHidden;
     private string _glassKey = "";
     private BitmapSource? _glassImage;
     private Int32Rect _glassArea;
@@ -989,6 +990,19 @@ public partial class IslandWindow : Window
 
     // ---------- frosted glass ----------
 
+    /// <summary>Hides every island from screenshots and screen shares while a private feature runs.</summary>
+    public void SetCaptureHidden(bool hidden)
+    {
+        _captureHidden = hidden;
+        ApplyCapturePrivacy();
+    }
+
+    private void ApplyCapturePrivacy()
+    {
+        if (_hwnd == 0) return;
+        GlassSampler.ExcludeFromCapture(_hwnd, _captureHidden || _glassActive && !_systemGlass);
+    }
+
     /// <summary>Starts or stops the frosted backdrop to match the theme and visibility.</summary>
     private void UpdateGlass()
     {
@@ -1002,7 +1016,7 @@ public partial class IslandWindow : Window
             if (_systemGlass)
             {
                 Log.Info("Frosted glass: using the Windows blur behind the island");
-                GlassSampler.ExcludeFromCapture(_hwnd, false);
+                ApplyCapturePrivacy();
                 ResetGlassBackgrounds();
                 _glassKey = "";
                 UpdateSystemBackdrop();
@@ -1021,7 +1035,7 @@ public partial class IslandWindow : Window
             _backdrop.Disable(_hwnd);
             _systemGlass = false;
             _systemGlassTried = false;
-            if (_hwnd != 0) GlassSampler.ExcludeFromCapture(_hwnd, false);
+            ApplyCapturePrivacy();
             _glassImage = null;
             _pillGlassBrush = null; _bubbleGlassBrush = null;
             _bubble2GlassBrush = null; _bubble3GlassBrush = null; _bubble4GlassBrush = null;
@@ -1038,7 +1052,7 @@ public partial class IslandWindow : Window
             // The first attempt ran before layout. Switch to the real blur once the pill has a size.
             Log.Info("Frosted glass: using the Windows blur behind the island");
             _glassTimer.Stop();
-            GlassSampler.ExcludeFromCapture(_hwnd, false);
+            ApplyCapturePrivacy();
             ResetGlassBackgrounds();
             _glassKey = "";
             UpdateSystemBackdrop();
@@ -1190,7 +1204,7 @@ public partial class IslandWindow : Window
         {
             var expandedWidth = Math.Max(Math.Clamp(t.ExpandedWidth, 320, 900), HeaderWidth()); // every tab fits without scrolling
             var expandedHeight = Math.Clamp(t.ExpandedHeight, 140, 600);
-            if (Tabs.SelectedItem is ModuleTab { Panel: MediaPanelViewModel or SystemGroupViewModel or Atoll.Modules.Weather.WeatherViewModel or Atoll.Modules.Home.HomeViewModel or Atoll.Modules.Games.GameViewModel or Atoll.Modules.Calendar.CalendarViewModel or Atoll.Modules.Notes.NotesViewModel or LauncherPanelViewModel or ClockPanelViewModel })
+            if (Tabs.SelectedItem is ModuleTab { Panel: MediaPanelViewModel or SystemGroupViewModel or Atoll.Modules.Weather.WeatherViewModel or Atoll.Modules.Home.HomeViewModel or Atoll.Modules.Games.GameViewModel or Atoll.Modules.Calendar.CalendarViewModel or Atoll.Modules.Notes.NotesViewModel or LauncherPanelViewModel or ClockPanelViewModel or Atoll.Modules.Tide.TideViewModel })
                 expandedHeight = Math.Max(expandedHeight, FittedPanelHeight(expandedWidth)); // show all of it
             expandedHeight = Math.Min(expandedHeight, AvailablePanelHeight);
             // Lay out at the destination size, so opening the pill cannot create transient overflow.
@@ -1338,7 +1352,7 @@ public partial class IslandWindow : Window
     private void OnPanelPropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
         // Notes, Launcher, Timer and similar panels change height when their section changes.
-        if (e.PropertyName is not (nameof(LauncherPanelViewModel.SectionIndex) or nameof(TimerViewModel.SectionIndex) or nameof(Atoll.Modules.Notes.NotesViewModel.SectionIndex))) return;
+        if (e.PropertyName is not (nameof(LauncherPanelViewModel.SectionIndex) or nameof(TimerViewModel.SectionIndex) or nameof(Atoll.Modules.Notes.NotesViewModel.SectionIndex) or nameof(Atoll.Modules.Tide.TideViewModel.SectionIndex))) return;
         Dispatcher.BeginInvoke(DispatcherPriority.Background, new Action(() =>
         {
             if (_mode == IslandMode.Expanded) Render();
@@ -1383,7 +1397,7 @@ public partial class IslandWindow : Window
         "claude" or "providers" => 4,
         "calendar" => 5,
         "weather" => 6,
-        "clock" or "launcher" or "shelf" or "clipboard" or "notes" => 2,
+        "clock" or "launcher" or "shelf" or "clipboard" or "notes" or "tide" => 2,
         _ => 0,
     };
 

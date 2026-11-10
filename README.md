@@ -48,6 +48,7 @@ bookmarked tab. Change all three shortcuts in **Settings › General › Keyboar
 | **Clock & timers** | Clock, countdown presets, stopwatch and a Pomodoro you can tune in the timer tab. |
 | **Calendar** | A month grid with colored event dots and a selected-day agenda from private HTTPS ICS links (Google, Outlook / Microsoft 365, ...). Join meeting links, pin or dismiss events, and get alerts before they start. Clicking a day on Home opens the same calendar on that date. |
 | **Notes** | Quick notes, one-off reminders and a to-do list in one tab. Reminders pop up in the island when they are due. |
+| **Tide** | A local teleprompter: scripts, speed presets, text size, mirror, voice follow and screen-capture hiding. |
 | **Home** | A dashboard: now playing, weather, timer, an interactive month and what's next today. Choose the cards in Settings › Modules › Home. |
 | **Launcher** | Start Menu apps with search, plus a Games section with game mode, play time, CPU, GPU and GPU temperature (NVIDIA), or the island stays hidden. Notifications go quiet. Starts Steam, Epic and Minecraft games, and shows a Minecraft Java server's players and ping (Windows). |
 | **Weather** | Open-Meteo city search, current conditions and a seven-day forecast. Hourly wind, rain and temperature charts cover the whole day and work with the pointer and the keyboard. |

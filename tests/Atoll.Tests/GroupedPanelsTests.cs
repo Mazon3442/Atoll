@@ -46,6 +46,7 @@ public class GroupedPanelsTests
             ["clock"] = new ClockPanelViewModel(clock, new TimerViewModel(TimeProvider.System)),
             ["calendar"] = new CalendarViewModel(() => { }),
             ["notes"] = new Atoll.Modules.Notes.NotesViewModel(new Atoll.Settings.NotesSettings(), () => { }),
+            ["tide"] = new Atoll.Modules.Tide.TideViewModel(new Atoll.Settings.TideSettings(), () => { }),
             ["system"] = sound,
             ["shelf"] = new ShelfViewModel(_ => { }, () => { }),
             ["clipboard"] = new ClipboardViewModel(new ClipboardHistory()),
@@ -64,7 +65,7 @@ public class GroupedPanelsTests
     {
         var modules = Modules();
         var tabs = PanelGroups.Combine(modules);
-        Assert.Equal(["claude", "providers", "media", "notifications", "clock", "calendar", "notes", "system", "shelf", "clipboard", "weather", "launcher"],
+        Assert.Equal(["claude", "providers", "media", "notifications", "clock", "calendar", "notes", "tide", "system", "shelf", "clipboard", "weather", "launcher"],
             tabs.Select(t => t.Descriptor.Id));
         Assert.Equal(tabs, PanelGroups.Combine(modules));
         foreach (var module in modules)
@@ -79,6 +80,7 @@ public class GroupedPanelsTests
     [InlineData("clock", 2)]
     [InlineData("calendar", 5)]
     [InlineData("notes", 2)]
+    [InlineData("tide", 2)]
     [InlineData("launcher", 2)]
     [InlineData("shelf", 2)]
     [InlineData("clipboard", 2)]
@@ -112,6 +114,7 @@ public class GroupedPanelsTests
             "Modules/Shelf/ShelfTemplates.xaml", "Modules/Clipboard/ClipboardTemplates.xaml", "Modules/Stats/StatsTemplates.xaml",
             "Modules/Weather/WeatherTemplates.xaml", "Modules/Indicators/IndicatorsTemplates.xaml", "Modules/Calendar/CalendarTemplates.xaml",
             "Modules/Games/GamesTemplates.xaml", "Modules/Launcher/LauncherTemplates.xaml", "Modules/Notes/NotesTemplates.xaml",
+            "Modules/Tide/TideTemplates.xaml",
             "Modules/GroupedTemplates.xaml" })
             resources.MergedDictionaries.Add(new ResourceDictionary { Source = new Uri("/Atoll;component/" + file, UriKind.Relative) });
         var modules = Modules();
@@ -161,6 +164,10 @@ public class GroupedPanelsTests
             { Id = claude ? 2u : 1u, AppName = claude ? "Claude" : "Test app", Title = "Notification rendering test", Body = "Sender icon fallback", Time = DateTimeOffset.Now, IsClaude = claude });
         notifications.ItemsChanged();
         panels.Add(("notifications-populated", notifications));
+        panels.Add(("tide-prompt", new Atoll.Modules.Tide.TideViewModel(new Atoll.Settings.TideSettings(), () => { })
+        {
+            SectionIndex = 1,
+        }));
         foreach (var mode in new[] { "Compact", "Peek", "Mini" })
         {
             var icon = (FrameworkElement)((DataTemplate)resources["NotificationItemViewModel." + mode]).LoadContent();
@@ -170,8 +177,9 @@ public class GroupedPanelsTests
         foreach (var panel in panels)
         {
             var narrow = panel.Name == "time-pomodoro-narrow";
-            var frameWidth = narrow ? 330 : 476;
-            var frameHeight = narrow ? 240 : 170;
+            var tide = panel.Name.StartsWith("tide", StringComparison.Ordinal);
+            var frameWidth = tide ? 820 : narrow ? 330 : 476;
+            var frameHeight = tide ? 420 : narrow ? 240 : 170;
             var presenter = new ContentControl
             {
                 Width = frameWidth, Height = frameHeight, Content = panel.Panel,
@@ -213,6 +221,11 @@ public class GroupedPanelsTests
                 Assert.True(sessions.TranslatePoint(new Point(), background).Y > focus.TranslatePoint(new Point(), background).Y);
                 var start = Descendants<Button>(background).Single(b => AutomationProperties.GetName(b) == "Start Pomodoro");
                 Assert.InRange(start.TranslatePoint(new Point(0, start.ActualHeight), background).Y, 1, frameHeight);
+            }
+            if (panel.Name == "tide-prompt")
+            {
+                Assert.Equal(Visibility.Visible, Descendants<ScrollViewer>(background).Single(s => AutomationProperties.GetName(s) == "Teleprompter").Visibility);
+                Assert.Equal(Visibility.Visible, Descendants<Button>(background).Single(b => AutomationProperties.GetName(b) == "Start prompter").Visibility);
             }
             var bitmap = new RenderTargetBitmap((int)frameWidth, (int)frameHeight, 96, 96, PixelFormats.Pbgra32);
             bitmap.Render(background);

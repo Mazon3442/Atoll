@@ -113,6 +113,8 @@ public sealed class AppSettings
 
     public PomodoroSettings Pomodoro { get; set; } = new();
 
+    public TideSettings Tide { get; set; } = new();
+
     public FocusSettings Focus { get; set; } = new();
 
     /// <summary>List order = tab order in the expanded panel.</summary>
@@ -348,6 +350,35 @@ public sealed class FocusSettings
 
     /// <summary>Show the moon chip in the island header.</summary>
     public bool ShowChip { get; set; } = true;
+}
+
+/// <summary>Tide teleprompter scripts and the settings for reading them.</summary>
+public sealed class TideSettings
+{
+    public List<TideScript> Scripts { get; set; } = [];
+    public string SelectedScriptId { get; set; } = "";
+
+    /// <summary>Scroll speed multiplier; 1 is normal.</summary>
+    public double Speed { get; set; } = 1;
+
+    public double FontSize { get; set; } = 34;
+
+    /// <summary>Flip the script horizontally for a mirror rig.</summary>
+    public bool Mirror { get; set; }
+
+    /// <summary>Follow the reader's voice using Windows speech recognition.</summary>
+    public bool FollowVoice { get; set; }
+
+    /// <summary>Keep the island out of screen shares while the prompter runs.</summary>
+    public bool HideFromCapture { get; set; } = true;
+}
+
+public sealed class TideScript
+{
+    public string Id { get; set; } = Guid.NewGuid().ToString("N");
+    public string Title { get; set; } = "New script";
+    public string Body { get; set; } = "";
+    public DateTimeOffset Updated { get; set; } = DateTimeOffset.Now;
 }
 
 /// <summary>Timer lengths for the Pomodoro section of the timer tab.</summary>

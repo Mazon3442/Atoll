@@ -53,6 +53,7 @@
     <PackageReference Include="Ical.Net" Version="5.2.4" />
     <PackageReference Include="NAudio.Wasapi" Version="3.3.0" />
     <PackageReference Include="System.Management" Version="10.0.14" />
+    <PackageReference Include="System.Speech" Version="10.0.0" />
     <PackageReference Include="Velopack" Version="1.2.161" />
   </ItemGroup>
 

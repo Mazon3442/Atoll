@@ -21,6 +21,7 @@ public sealed partial class SettingsViewModel
         ("clock", "Timer", "The clock, countdowns, stopwatch and Pomodoro."),
         ("calendar", "Calendar", "A month view and the selected day's events."),
         ("notes", "Notes", "Notes, quick reminders and a to-do list."),
+        ("tide", "Tide", "A local teleprompter with scripts, speed presets and voice follow."),
         ("system", "System", "Device status, live graphs and quick actions."),
         ("shelf", "Files", "Files you drop on the island to keep their paths handy."),
         ("clipboard", "Clipboard", "Your recent copies, kept in memory only."),

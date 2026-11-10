@@ -30,6 +30,7 @@ public sealed class IslandManager : IDisposable
 
         _activities.Changed += OnActivitiesChanged;
         _settings.Changed += OnSettingsChanged;
+        CapturePrivacy.Changed += OnCapturePrivacyChanged;
         _fullscreen.Check += UpdateVisibility;
         SystemEvents.DisplaySettingsChanged += OnDisplaySettingsChanged;
         Rebuild();
@@ -115,6 +116,11 @@ public sealed class IslandManager : IDisposable
         foreach (var w in _windows) w.SetActivitySnapshot(snapshot.Primary, snapshot.Sides);
     });
 
+    private void OnCapturePrivacyChanged(bool hidden)
+    {
+        foreach (var w in _windows) w.SetCaptureHidden(hidden);
+    }
+
     private void OnSettingsChanged()
     {
         if (MonitorSignature(_settings.Current) != _monitorSignature)
@@ -133,6 +139,7 @@ public sealed class IslandManager : IDisposable
     public void Dispose()
     {
         SystemEvents.DisplaySettingsChanged -= OnDisplaySettingsChanged;
+        CapturePrivacy.Changed -= OnCapturePrivacyChanged;
         _activities.Changed -= OnActivitiesChanged;
         _settings.Changed -= OnSettingsChanged;
         _fullscreen.Dispose();

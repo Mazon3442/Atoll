@@ -1,0 +1,194 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:shell="clr-namespace:Atoll.Shell"
+                    x:Class="Atoll.Modules.Tide.TideTemplates">
+
+    <DataTemplate x:Key="TideViewModel.Panel">
+        <DataTemplate.Resources>
+            <Style x:Key="Tide.Chip" TargetType="Button" BasedOn="{StaticResource Island.ChipButton}">
+                <Setter Property="FontSize" Value="11" />
+                <Setter Property="MinHeight" Value="28" />
+                <Setter Property="Margin" Value="2" />
+            </Style>
+            <Style x:Key="Tide.ScriptRow" TargetType="ListBoxItem" BasedOn="{StaticResource Island.TabMenuItem}">
+                <Setter Property="AutomationProperties.Name" Value="{Binding Title}" />
+            </Style>
+            <Style x:Key="Tide.Toggle" TargetType="ToggleButton">
+                <Setter Property="Foreground" Value="{DynamicResource Island.Subtle}" />
+                <Setter Property="FontSize" Value="11" />
+                <Setter Property="MinHeight" Value="26" />
+                <Setter Property="Margin" Value="2" />
+                <Setter Property="Cursor" Value="Hand" />
+                <Setter Property="FocusVisualStyle" Value="{StaticResource Island.FocusVisual}" />
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="ToggleButton">
+                            <Border x:Name="Bg" Background="{DynamicResource Island.Surface}" CornerRadius="9" Padding="9,4">
+                                <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                            </Border>
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter TargetName="Bg" Property="Background" Value="{DynamicResource Island.Hover}" />
+                                    <Setter Property="Foreground" Value="{DynamicResource Island.Foreground}" />
+                                </Trigger>
+                                <Trigger Property="IsChecked" Value="True">
+                                    <Setter TargetName="Bg" Property="Background" Value="{DynamicResource Island.Raised}" />
+                                    <Setter Property="Foreground" Value="{DynamicResource Island.Foreground}" />
+                                    <Setter Property="FontWeight" Value="SemiBold" />
+                                </Trigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
+        </DataTemplate.Resources>
+        <StackPanel MinHeight="250">
+            <Border Background="{DynamicResource Island.Surface}" CornerRadius="15" Padding="3"
+                    HorizontalAlignment="Left" Margin="0,0,0,8">
+                <ListBox ItemsSource="{Binding Sections}" SelectedIndex="{Binding SectionIndex, Mode=TwoWay}"
+                         ItemContainerStyle="{StaticResource Island.SegmentItem}"
+                         Background="Transparent" BorderThickness="0" FontSize="12"
+                         Foreground="{DynamicResource Island.Subtle}"
+                         ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                         ScrollViewer.VerticalScrollBarVisibility="Disabled"
+                         AutomationProperties.Name="Tide section">
+                    <ListBox.ItemsPanel>
+                        <ItemsPanelTemplate><StackPanel Orientation="Horizontal" /></ItemsPanelTemplate>
+                    </ListBox.ItemsPanel>
+                </ListBox>
+            </Border>
+
+            <!-- Scripts: pick a script, edit its title and body. -->
+            <Grid Visibility="{Binding IsScripts, Converter={StaticResource Island.BoolToVisibility}}">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="170" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+                <StackPanel Margin="0,0,12,0">
+                    <DockPanel Margin="0,0,0,4">
+                        <Button DockPanel.Dock="Right" Style="{StaticResource Tide.Chip}" Content="+" Padding="10,0"
+                                Command="{Binding NewScriptCommand}" ToolTip="New script" AutomationProperties.Name="New script" />
+                        <Button Style="{StaticResource Tide.Chip}" Content="Delete" Command="{Binding DeleteScriptCommand}"
+                                ToolTip="Delete this script" AutomationProperties.Name="Delete script" />
+                    </DockPanel>
+                    <Border Background="{DynamicResource Island.Surface}" CornerRadius="10" Padding="3" MaxHeight="226">
+                        <ListBox ItemsSource="{Binding Scripts}" SelectedItem="{Binding SelectedScript, Mode=TwoWay}"
+                                 ItemContainerStyle="{StaticResource Tide.ScriptRow}"
+                                 Background="Transparent" BorderThickness="0" FontSize="12"
+                                 Foreground="{DynamicResource Island.Subtle}"
+                                 ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                                 AutomationProperties.Name="Scripts">
+                            <ListBox.ItemTemplate>
+                                <DataTemplate>
+                                    <TextBlock Text="{Binding Title}" TextTrimming="CharacterEllipsis" />
+                                </DataTemplate>
+                            </ListBox.ItemTemplate>
+                        </ListBox>
+                    </Border>
+                </StackPanel>
+                <StackPanel Grid.Column="1">
+                    <TextBox Style="{StaticResource Island.Input}" Text="{Binding Title, UpdateSourceTrigger=PropertyChanged}"
+                             FontSize="15" FontWeight="SemiBold" AutomationProperties.Name="Script title" />
+                    <TextBox Style="{StaticResource Island.Input}" Text="{Binding Body, UpdateSourceTrigger=PropertyChanged}"
+                             AcceptsReturn="True" TextWrapping="Wrap" MinHeight="170" MaxHeight="220"
+                             VerticalScrollBarVisibility="Auto" Margin="0,8,0,0" FontSize="13"
+                             AutomationProperties.Name="Script body" />
+                </StackPanel>
+            </Grid>
+
+            <!-- Prompter: the script under the camera, with the reading line near the top. -->
+            <Grid Visibility="{Binding IsPrompter, Converter={StaticResource Island.BoolToVisibility}}">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="230" />
+                    <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
+
+                <DockPanel Margin="0,0,0,6">
+                    <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
+                        <Button Style="{StaticResource Tide.Chip}" Content="Reset" Command="{Binding ResetCommand}"
+                                ToolTip="Back to the top" AutomationProperties.Name="Reset prompter" />
+                        <Button Content="Start" Command="{Binding StartCommand}" MinWidth="76" FontWeight="SemiBold"
+                                AutomationProperties.Name="Start prompter">
+                            <Button.Style>
+                                <Style TargetType="Button" BasedOn="{StaticResource Island.ChipButton}">
+                                    <Setter Property="FontSize" Value="12" />
+                                    <Setter Property="MinHeight" Value="30" />
+                                    <Setter Property="Margin" Value="2" />
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding IsRunning}" Value="True">
+                                            <Setter Property="Content" Value="Pause" />
+                                            <Setter Property="Command" Value="{Binding PauseCommand}" />
+                                            <Setter Property="AutomationProperties.Name" Value="Pause prompter" />
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </Button.Style>
+                        </Button>
+                    </StackPanel>
+                    <TextBlock Text="{Binding Title}" FontSize="13" FontWeight="SemiBold" VerticalAlignment="Center"
+                               TextTrimming="CharacterEllipsis" />
+                </DockPanel>
+
+                <Border Grid.Row="1" Background="{DynamicResource Island.Surface}" CornerRadius="12"
+                        ClipToBounds="True">
+                    <Grid>
+                        <ScrollViewer x:Name="PromptScroll" VerticalScrollBarVisibility="Hidden"
+                                      HorizontalScrollBarVisibility="Disabled" Focusable="True"
+                                      Loaded="OnPromptLoaded" Unloaded="OnPromptUnloaded"
+                                      PreviewMouseWheel="OnPromptWheel" ScrollChanged="OnPromptScroll"
+                                      AutomationProperties.Name="Teleprompter">
+                            <TextBlock x:Name="PromptText" Text="{Binding Body}" FontSize="{Binding FontSize}"
+                                       LineHeight="{Binding PrompterLineHeight}" LineStackingStrategy="BlockLineHeight"
+                                       MaxWidth="560" Foreground="{DynamicResource Island.Foreground}"
+                                       TextWrapping="Wrap" Margin="0,92,0,60" HorizontalAlignment="Center"
+                                       TextAlignment="Center" RenderTransformOrigin="0.5,0">
+                                <TextBlock.Style>
+                                    <Style TargetType="TextBlock">
+                                        <Setter Property="RenderTransform">
+                                            <Setter.Value><ScaleTransform ScaleX="1" /></Setter.Value>
+                                        </Setter>
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding Mirror}" Value="True">
+                                                <Setter Property="RenderTransform">
+                                                    <Setter.Value><ScaleTransform ScaleX="-1" /></Setter.Value>
+                                                </Setter>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </TextBlock.Style>
+                            </TextBlock>
+                        </ScrollViewer>
+                        <Border Height="1" Margin="0,92,0,0" VerticalAlignment="Top"
+                                Background="{DynamicResource Island.Accent}" Opacity="0.45" IsHitTestVisible="False" />
+                    </Grid>
+                </Border>
+
+                <DockPanel Grid.Row="2" Margin="0,8,0,0">
+                    <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
+                        <Button Style="{StaticResource Tide.Chip}" Content="A-" Width="30" Padding="0"
+                                Command="{Binding FontDownCommand}" ToolTip="Smaller text" AutomationProperties.Name="Smaller text" />
+                        <TextBlock Text="{Binding FontLabel}" FontSize="10" Foreground="{DynamicResource Island.Subtle}"
+                                   VerticalAlignment="Center" MinWidth="18" TextAlignment="Center" />
+                        <Button Style="{StaticResource Tide.Chip}" Content="A+" Width="30" Padding="0"
+                                Command="{Binding FontUpCommand}" ToolTip="Larger text" AutomationProperties.Name="Larger text" />
+                        <ToggleButton Style="{StaticResource Tide.Toggle}" Content="Mirror" IsChecked="{Binding Mirror}"
+                                      AutomationProperties.Name="Mirror the script" />
+                        <ToggleButton Style="{StaticResource Tide.Toggle}" Content="Voice" IsChecked="{Binding FollowVoice}"
+                                      ToolTip="{Binding VoiceStatus}" AutomationProperties.Name="Follow my voice" />
+                        <ToggleButton Style="{StaticResource Tide.Toggle}" Content="Hide" IsChecked="{Binding HideFromCapture}"
+                                      ToolTip="Keep the island out of screen shares" AutomationProperties.Name="Hide from screen capture" />
+                    </StackPanel>
+                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                        <Button Style="{StaticResource Tide.Chip}" Content="Slow" Command="{Binding SlowCommand}" />
+                        <Button Style="{StaticResource Tide.Chip}" Content="Normal" Command="{Binding NormalCommand}" />
+                        <Button Style="{StaticResource Tide.Chip}" Content="Fast" Command="{Binding FastCommand}" />
+                        <Button Style="{StaticResource Tide.Chip}" Content="Sprint" Command="{Binding SprintCommand}" />
+                        <TextBlock Text="{Binding SpeedLabel}" FontSize="10" Foreground="{DynamicResource Island.Subtle}"
+                                   VerticalAlignment="Center" Margin="6,0,0,0" />
+                    </StackPanel>
+                </DockPanel>
+            </Grid>
+        </StackPanel>
+    </DataTemplate>
+</ResourceDictionary>
