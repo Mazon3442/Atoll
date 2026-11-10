@@ -4,6 +4,7 @@ using System.Windows.Controls;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Threading;
+using Atoll.Activities;
 using Atoll.Modules;
 using Atoll.Modules.Actions;
 using Atoll.Modules.Calendar;
@@ -92,6 +93,29 @@ public class GroupedPanelsTests
     [InlineData(null, 0)]
     public void The_header_settings_button_opens_the_page_for_the_current_tab(string? tab, int page) =>
         Assert.Equal(page, Atoll.Shell.IslandWindow.SettingsPageFor(tab));
+
+    [Fact]
+    public void The_idle_clock_opens_home_not_the_timer()
+    {
+        var clock = new Activity("time", "clock", new IndicatorViewModel("", "14:20", "Wednesday, 10 November"), ActivityPriority.Idle);
+        Assert.Equal("home", Atoll.Shell.IslandWindow.ActivityTabFor(clock, hasMediaTab: true));
+
+        // A running countdown is a real timer, so clicking it belongs on the Timer tab.
+        var countdown = new Activity("timer", "clock", new IndicatorViewModel("", "04:12", "Focus"), ActivityPriority.Normal);
+        Assert.Equal("clock", Atoll.Shell.IslandWindow.ActivityTabFor(countdown, hasMediaTab: true));
+    }
+
+    [Fact]
+    public void Volume_opens_media_and_other_activities_open_their_own_tab()
+    {
+        var volume = new Activity("volume", "system", new IndicatorViewModel("", "40", "Volume"), ActivityPriority.Normal);
+        Assert.Equal("media", Atoll.Shell.IslandWindow.ActivityTabFor(volume, hasMediaTab: true));
+        Assert.Equal("system", Atoll.Shell.IslandWindow.ActivityTabFor(volume, hasMediaTab: false));
+
+        var media = new Activity("media", "media", new IndicatorViewModel("", "Song", "Artist"), ActivityPriority.Normal);
+        Assert.Equal("media", Atoll.Shell.IslandWindow.ActivityTabFor(media, hasMediaTab: true));
+        Assert.Null(Atoll.Shell.IslandWindow.ActivityTabFor(null, hasMediaTab: true));
+    }
 
     [Fact]
     public void Disabled_modules_leave_their_partners_and_volume_accessible()

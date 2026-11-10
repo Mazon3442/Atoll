@@ -1380,9 +1380,19 @@ public partial class IslandWindow : Window
         e.Handled = true;
     }
 
+    /// <summary>
+    /// The tab that belongs to what the compact pill is showing. The idle clock is the resting state, not a
+    /// request for the timer, so it opens Home; a running countdown still opens the Timer tab.
+    /// </summary>
     private string? ActivityTab(Activity? activity) =>
-        activity?.Content is IndicatorViewModel { Detail: "Volume" }
-            && _modules.Tabs.Any(t => t.Contains("media")) ? "media" : activity?.ModuleId;
+        ActivityTabFor(activity, _modules.Tabs.Any(t => t.Contains("media")));
+
+    internal static string? ActivityTabFor(Activity? activity, bool hasMediaTab)
+    {
+        if (activity is { Priority: ActivityPriority.Idle } && activity.ModuleId == "clock") return "home";
+        if (activity?.Content is IndicatorViewModel { Detail: "Volume" } && hasMediaTab) return "media";
+        return activity?.ModuleId;
+    }
 
     private void OnSettingsClick(object sender, RoutedEventArgs e)
     {
