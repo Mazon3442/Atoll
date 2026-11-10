@@ -117,6 +117,7 @@ public sealed class Icon : FrameworkElement
         "calendar" => "calendar",
         "system" => "cpu",
         "shelf" => "folder",
+        "downloads" => "download",
         "clipboard" => "clipboard",
         "notes" => "notebook",
         "tide" => "scroll",

@@ -5,6 +5,7 @@ using Atoll.Modules.Actions;
 using Atoll.Modules.Calendar;
 using Atoll.Modules.Claude;
 using Atoll.Modules.Clipboard;
+using Atoll.Modules.Downloads;
 using Atoll.Modules.Shelf;
 using Atoll.Modules.Stats;
 using Atoll.Modules.Weather;
@@ -35,6 +36,7 @@ public static class ModuleCatalog
         new("tide", "Tide", "\uE8A5", () => new TideModule(), BookmarkedByDefault: false),
         new("system", "System", "", () => new IndicatorsModule(), BookmarkedByDefault: false),
         new("shelf", "File shelf", "", () => new ShelfModule()),
+        new("downloads", "Downloads", "\uE896", () => new DownloadsModule(), BookmarkedByDefault: false),
         new("clipboard", "Clipboard history", "", () => new ClipboardModule()),
         new("stats", "System stats", "", () => new StatsModule(), BookmarkedByDefault: false),
         new("weather", "Weather", "", () => new WeatherModule()),

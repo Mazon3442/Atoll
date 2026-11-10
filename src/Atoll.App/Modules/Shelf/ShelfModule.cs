@@ -91,9 +91,15 @@ public sealed partial class ShelfItem(string path, Action<ShelfItem> remove) : O
     private void Reveal()
     {
         if (!Exists) return;
+        RevealInFolder(Path);
+    }
+
+    /// <summary>Shows a file selected in Explorer, or opens its folder elsewhere.</summary>
+    internal static void RevealInFolder(string path)
+    {
         if (OperatingSystem.IsWindows())
-            Process.Start(new ProcessStartInfo("explorer.exe", $"/select,\"{Path}\"") { UseShellExecute = true });
-        else Start(Directory.Exists(Path) ? Path : System.IO.Path.GetDirectoryName(Path)!);
+            Process.Start(new ProcessStartInfo("explorer.exe", $"/select,\"{path}\"") { UseShellExecute = true });
+        else Start(Directory.Exists(path) ? path : System.IO.Path.GetDirectoryName(path)!);
     }
 
     [RelayCommand]

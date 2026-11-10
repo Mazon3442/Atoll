@@ -13,6 +13,7 @@
                 <ResourceDictionary Source="Modules/Media/MediaTemplates.xaml" />
                 <ResourceDictionary Source="Modules/Notifications/NotificationTemplates.xaml" />
                 <ResourceDictionary Source="Modules/Shelf/ShelfTemplates.xaml" />
+                <ResourceDictionary Source="Modules/Downloads/DownloadsTemplates.xaml" />
                 <ResourceDictionary Source="Modules/Clipboard/ClipboardTemplates.xaml" />
                 <ResourceDictionary Source="Modules/Stats/StatsTemplates.xaml" />
                 <ResourceDictionary Source="Modules/Weather/WeatherTemplates.xaml" />

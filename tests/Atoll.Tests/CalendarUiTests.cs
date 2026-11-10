@@ -90,9 +90,9 @@ internal static class CalendarUiTests
             var menu = (ListBox)island.FindName("TabMenu");
             var button = (Button)island.FindName("TabMenuButton");
 
-            // The default top row is Home, Agents, Media, Notifications, Calendar, Files, Clipboard and
-            // Weather. Timer, Notes, System and Launcher wait in the ⋯ menu.
-            string[] outside = ["clock", "notes", "tide", "system", "providers", "launcher"];
+            // The default top row is Home, Agents, Media, Notifications, Calendar, Files and Weather.
+            // Timer, Notes, Tide, System, API keys, Downloads and Launcher wait in the ⋯ menu.
+            string[] outside = ["clock", "notes", "tide", "system", "providers", "downloads", "launcher"];
             Assert.Equal(Visibility.Visible, button.Visibility);
             Assert.Equal(outside.Length, menu.Items.Count);
             Assert.Equal(modules.Count - outside.Length, tabs.Items.Count);

@@ -55,6 +55,7 @@ public class GroupedPanelsTests
             ["weather"] = new object(),
             ["actions"] = new QuickActionsViewModel(new QuickActionsModule()),
             ["privacy"] = new object(), // no panel of its own; it belongs to the System tab
+            ["downloads"] = new object(), // no panel of its own; it only posts activities
             ["launcher"] = launcher,
             ["games"] = new Atoll.Modules.Games.GameViewModel(),
         };
@@ -66,7 +67,7 @@ public class GroupedPanelsTests
     {
         var modules = Modules();
         var tabs = PanelGroups.Combine(modules);
-        Assert.Equal(["claude", "providers", "media", "notifications", "clock", "calendar", "notes", "tide", "system", "shelf", "clipboard", "weather", "launcher"],
+        Assert.Equal(["claude", "providers", "media", "notifications", "clock", "calendar", "notes", "tide", "system", "shelf", "downloads", "clipboard", "weather", "launcher"],
             tabs.Select(t => t.Descriptor.Id));
         Assert.Equal(tabs, PanelGroups.Combine(modules));
         foreach (var module in modules)
@@ -135,7 +136,7 @@ public class GroupedPanelsTests
         Application.Current.Resources = resources;
         foreach (var file in new[] { "Theme/Theme.xaml", "Theme/Indicators.xaml", "Modules/Claude/ClaudeTemplates.xaml", "Modules/Providers/ProviderTemplates.xaml",
             "Modules/Clock/ClockTemplates.xaml", "Modules/Media/MediaTemplates.xaml", "Modules/Notifications/NotificationTemplates.xaml",
-            "Modules/Shelf/ShelfTemplates.xaml", "Modules/Clipboard/ClipboardTemplates.xaml", "Modules/Stats/StatsTemplates.xaml",
+            "Modules/Shelf/ShelfTemplates.xaml", "Modules/Downloads/DownloadsTemplates.xaml", "Modules/Clipboard/ClipboardTemplates.xaml", "Modules/Stats/StatsTemplates.xaml",
             "Modules/Weather/WeatherTemplates.xaml", "Modules/Indicators/IndicatorsTemplates.xaml", "Modules/Calendar/CalendarTemplates.xaml",
             "Modules/Games/GamesTemplates.xaml", "Modules/Launcher/LauncherTemplates.xaml", "Modules/Notes/NotesTemplates.xaml",
             "Modules/Tide/TideTemplates.xaml",
@@ -204,6 +205,26 @@ public class GroupedPanelsTests
             icon.DataContext = notifications.Items[0];
             icon.Measure(new Size(400, 120)); icon.Arrange(new Rect(0, 0, 400, 120)); icon.UpdateLayout();
         }
+
+        // Downloads: the live line, the side dot, and the finished alert with its two actions.
+        var downloading = new Atoll.Modules.Downloads.DownloadsViewModel();
+        downloading.Update("report.pdf", 1, 45L * 1024 * 1024);
+        var finished = new Atoll.Modules.Downloads.DownloadCompleteViewModel(
+            Path.Combine(Path.GetTempPath(), "report.pdf"), 45L * 1024 * 1024);
+        foreach (var (model, type) in new (object, string)[] { (downloading, "DownloadsViewModel"), (finished, "DownloadCompleteViewModel") })
+        foreach (var mode in new[] { "Compact", "Peek", "Mini" })
+        {
+            var view = (FrameworkElement)((DataTemplate)resources[type + "." + mode]).LoadContent();
+            view.DataContext = model;
+            view.Measure(new Size(400, 120)); view.Arrange(new Rect(0, 0, 400, 120)); view.UpdateLayout();
+            Assert.True(view.ActualWidth > 0, $"{type}.{mode} renders");
+        }
+        var finishedPeek = (FrameworkElement)((DataTemplate)resources["DownloadCompleteViewModel.Peek"]).LoadContent();
+        finishedPeek.DataContext = finished;
+        finishedPeek.Measure(new Size(400, 120)); finishedPeek.Arrange(new Rect(0, 0, 400, 120)); finishedPeek.UpdateLayout();
+        Assert.Equal(["Open report.pdf", "Show report.pdf in its folder"],
+            Descendants<Button>(finishedPeek).Select(AutomationProperties.GetName));
+
         foreach (var panel in panels)
         {
             var narrow = panel.Name == "time-pomodoro-narrow";

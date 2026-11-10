@@ -5,6 +5,7 @@ using Atoll.Activities;
 using Atoll.Modules.Calendar;
 using Atoll.Modules.Claude;
 using Atoll.Modules.Clock;
+using Atoll.Modules.Downloads;
 using Atoll.Modules.Games;
 using Atoll.Modules.Media;
 using Atoll.Modules.Notifications;
@@ -113,6 +114,7 @@ public sealed partial class SideChipViewModel : ObservableObject, IDisposable
         GameViewModel => property == nameof(GameViewModel.GameName),
         NotificationItemViewModel => property is nameof(NotificationItemViewModel.Title) or nameof(NotificationItemViewModel.AppName),
         ProviderViewModel => property == nameof(ProviderViewModel.Activity),
+        DownloadsViewModel => property == nameof(DownloadsViewModel.Summary),
         PrivacyViewModel => property == nameof(PrivacyViewModel.Title),
         ClaudeSessionViewModel => property == nameof(ClaudeSessionViewModel.AgentName),
         _ => true,
@@ -152,6 +154,7 @@ public sealed partial class SideChipViewModel : ObservableObject, IDisposable
         ProviderViewModel provider => ("plug", provider.Activity, _accent, null, 0),
         PrivacyViewModel privacy => (privacy.Camera ? "video" : "mic", privacy.Title,
             privacy.Camera ? CameraGreen : MicrophoneOrange, null, 0),
+        DownloadsViewModel downloads => ("download", downloads.Summary, _accent, null, 0),
         IndicatorViewModel indicator => (Icon.ForTab(_activity.ModuleId), indicator.Title, _accent, null, 0),
         CalendarAlertViewModel alert => ("calendar", alert.Title, Parse(alert.Color, _accent), null, 0),
         _ => (Icon.ForTab(_activity.ModuleId), ModuleName(_activity.ModuleId), _accent, null, 0),
@@ -220,6 +223,7 @@ public sealed partial class SideChipViewModel : ObservableObject, IDisposable
         "providers" => "API",
         "privacy" => "Privacy",
         "shelf" => "Files",
+        "downloads" => "Downloads",
         "system" => "System",
         "weather" => "Weather",
         "launcher" => "Launcher",

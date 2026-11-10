@@ -81,15 +81,15 @@ public class SettingsInteractionTests
 
         // One card per tab, placed where the island puts it: at its first switched-on feature.
         // API keys is new to these saved settings, so it is added switched off at the end.
-        Assert.Equal(["System", "Agents", "Media", "Clipboard", "Notifications", "Timer", "Calendar", "Files", "Notes", "Tide", "Launcher", "Weather", "API keys"], vm.ModuleTabs.Select(t => t.Name));
+        Assert.Equal(["System", "Agents", "Media", "Clipboard", "Notifications", "Timer", "Calendar", "Files", "Notes", "Tide", "Downloads", "Launcher", "Weather", "API keys"], vm.ModuleTabs.Select(t => t.Name));
         Assert.False(vm.ModuleTabs.Single(t => t.Id == "providers").IsShown);
-        Assert.Equal(["System", "Agents", "Media", "Clipboard", "Notifications", "Timer", "Calendar", "Files", "Notes", "Tide", "Launcher"], vm.ModuleTabs.Where(t => t.IsShown).Select(t => t.Name));
+        Assert.Equal(["System", "Agents", "Media", "Clipboard", "Notifications", "Timer", "Calendar", "Files", "Notes", "Tide", "Downloads", "Launcher"], vm.ModuleTabs.Where(t => t.IsShown).Select(t => t.Name));
         Assert.Equal(["Status popups", "Live graphs", "Quick actions", "Camera and mic in use"], vm.ModuleTabs[0].Features.Select(f => f.Name));
         Assert.True(vm.ModuleTabs[0].IsFirst);
 
         // Each tab's features are kept together, so the island's order is exactly the card order.
-        Assert.Equal(["system", "stats", "actions", "privacy", "claude", "media", "clipboard", "notifications", "clock", "calendar", "shelf", "notes", "tide", "launcher", "games", "weather", "providers"],
-            service.Current.Modules.Take(17).Select(m => m.Id));
+        Assert.Equal(["system", "stats", "actions", "privacy", "claude", "media", "clipboard", "notifications", "clock", "calendar", "shelf", "notes", "tide", "downloads", "launcher", "games", "weather", "providers"],
+            service.Current.Modules.Take(18).Select(m => m.Id));
         Assert.Same(unknown, service.Current.Modules.Last());
 
         var weather = vm.ModuleTabs.Single(t => t.Id == "weather");
