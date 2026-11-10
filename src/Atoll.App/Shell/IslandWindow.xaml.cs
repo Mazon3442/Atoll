@@ -1200,6 +1200,9 @@ public partial class IslandWindow : Window
     /// </summary>
     private double HeaderWidth()
     {
+        // Measure the row as it would naturally be. The tab list is capped during layout so it cannot push the
+        // ⋯ button out; measuring that capped width back would make the pill shrink a little on every pass.
+        Tabs.MaxWidth = double.PositiveInfinity;
         Header.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
         var needed = Header.DesiredSize.Width + PanelRoot.Margin.Left + PanelRoot.Margin.Right + Pill.BorderThickness.Left + Pill.BorderThickness.Right + 2;
         _headerWidth = Math.Max(_headerWidth, needed);
