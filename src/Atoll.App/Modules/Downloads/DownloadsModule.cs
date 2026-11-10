@@ -19,6 +19,7 @@ public sealed class DownloadsModule : IIslandModule
     private readonly SizeUpdateGate _gate = new();
     private readonly DownloadsViewModel _vm = new();
     private readonly object _state = new();
+    private readonly Func<string?> _resolveFolder;
     private ModuleContext? _context;
     private FileSystemWatcher? _watcher;
     private DispatcherTimer? _sweep;
@@ -27,6 +28,9 @@ public sealed class DownloadsModule : IIslandModule
     private int _shownCount;
 
     public object? Panel => null;
+
+    /// <param name="folder">Test seam: the Downloads folder to watch. Defaults to the shell's known folder.</param>
+    public DownloadsModule(Func<string?>? folder = null) => _resolveFolder = folder ?? DownloadFolder.Resolve;
 
     public void Start(ModuleContext context)
     {
@@ -41,7 +45,7 @@ public sealed class DownloadsModule : IIslandModule
     private void Reopen()
     {
         if (_context is null) return;
-        var folder = DownloadFolder.Resolve();
+        var folder = _resolveFolder();
         if (_watcher is not null && string.Equals(folder, _folder, StringComparison.OrdinalIgnoreCase)) return;
 
         StopWatching();
