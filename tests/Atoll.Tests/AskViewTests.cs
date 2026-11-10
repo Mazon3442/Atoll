@@ -41,13 +41,13 @@ public sealed class AskViewTests
         var saves = 0;
         using var vm = new AskViewModel(options: () => new AgentChatOptions(settings, []), save: () => saves++);
 
-        Assert.Equal("Ask · Auto", vm.SourceLabel);
+        Assert.Equal("Auto", vm.SourceLabel);
         Assert.Equal(AgentChatKind.ClaudeCode, vm.ModelKind);
         Assert.Contains(vm.Models, m => m.Value == "sonnet");
 
         vm.ChooseSourceCommand.Execute(vm.Sources.Single(s => s.Value == "codex"));
 
-        Assert.Equal("Ask · Codex", vm.SourceLabel);
+        Assert.Equal("Codex", vm.SourceLabel);
         Assert.Equal(AgentChatKind.Codex, vm.ModelKind);
         Assert.Equal("codex", settings.Preferred);
         Assert.DoesNotContain(vm.Models, m => m.Value == "sonnet"); // Claude aliases would be wrong here
@@ -61,7 +61,7 @@ public sealed class AskViewTests
         var account = new ProviderAccount { Id = "deep", Name = "DeepSeek", BaseUrl = "https://api.deepseek.com/v1/" };
         using var vm = new AskViewModel(options: () => new AgentChatOptions(settings, [account]));
 
-        Assert.Equal("Ask · DeepSeek", vm.SourceLabel);
+        Assert.Equal("DeepSeek", vm.SourceLabel);
         Assert.Contains(vm.Models, m => m.Value == "deepseek-chat");
         Assert.Contains(vm.Models, m => m.Value == "deepseek-reasoner");
     }
@@ -73,10 +73,10 @@ public sealed class AskViewTests
         var saves = 0;
         using var vm = new AskViewModel(options: () => new AgentChatOptions(settings, []), save: () => saves++);
 
-        Assert.False(vm.AllowTools);
-        vm.AllowTools = true;
+        Assert.True(vm.AllowTools); // on by default
+        vm.AllowTools = false;
 
-        Assert.True(settings.AllowTools);
+        Assert.False(settings.AllowTools);
         Assert.True(saves > 0);
     }
 
@@ -89,14 +89,14 @@ public sealed class AskViewTests
         Assert.Equal(expected, string.Join(",", AgentChatService.Order(preferred)));
 
     [Fact]
-    public async Task Sending_keeps_what_you_typed_in_the_box()
+    public async Task Sending_empties_the_box()
     {
         using var vm = new AskViewModel(new FakeChat(), () => new AgentChatOptions(new AgentChatSettings(), []));
         vm.Draft = "hello";
 
         await vm.SendCommand.ExecuteAsync(null);
 
-        Assert.Equal("hello", vm.Draft); // the question stays put so it can be edited or asked again
+        Assert.Equal("", vm.Draft);
         Assert.Equal("Hello back.", vm.Answer);
         Assert.Equal("Claude Code", vm.Provider);
         Assert.True(vm.IsEmpty == false);
@@ -141,36 +141,6 @@ public sealed class AskViewTests
             await Task.Yield();
             yield break;
         }
-    }
-
-    [Fact]
-    public void The_empty_state_offers_three_questions_that_fill_the_box()
-    {
-        using var vm = new AskViewModel();
-
-        Assert.True(vm.IsEmpty);
-        Assert.Equal(3, vm.Suggestions.Count);
-        Assert.Empty(vm.Draft);
-
-        vm.UseSuggestionCommand.Execute(vm.Suggestions[1]);
-
-        Assert.Equal("How does Ask AI work?", vm.Draft);
-        Assert.True(vm.HasDraft);
-        Assert.True(vm.IsEmpty); // typing alone does not replace the empty state
-    }
-
-    [Fact]
-    public void The_title_names_who_answers_once_an_agent_has_replied()
-    {
-        using var vm = new AskViewModel();
-        Assert.Equal("Ask anything", vm.Title);
-
-        vm.Provider = "Claude Code";
-        Assert.Equal("Ask Claude Code anything", vm.Title);
-
-        vm.Note = "chat only";
-        Assert.Equal("Claude Code · chat only", vm.SourceLine);
-        Assert.True(vm.HasStatusLine);
     }
 
     [Fact]

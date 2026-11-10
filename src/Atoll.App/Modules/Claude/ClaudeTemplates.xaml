@@ -225,7 +225,7 @@
                 <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
                     <Button x:Name="SourceButton" Style="{StaticResource Ask.ToolbarButton}"
                             Content="{Binding Ask.SourceLabel}" Command="{Binding Ask.ToggleSourceMenuCommand}"
-                            ToolTip="Which agent or saved key answers" AutomationProperties.Name="Choose which agent answers" />
+                            ToolTip="Which agent answers" AutomationProperties.Name="Choose which agent answers" />
                     <Popup x:Name="SourceMenu" PlacementTarget="{Binding ElementName=SourceButton}" Placement="Bottom"
                            VerticalOffset="6" StaysOpen="False" AllowsTransparency="True" PopupAnimation="Fade"
                            IsOpen="{Binding Ask.IsSourceMenuOpen, Mode=TwoWay}">
@@ -265,7 +265,7 @@
                     </Popup>
                     <ToggleButton Style="{StaticResource Ask.ToolsToggle}" Content="Tools" Margin="6,0,0,0"
                                   IsChecked="{Binding Ask.AllowTools}"
-                                  ToolTip="Let the agent run commands and edit files. Codex always runs read-only."
+                                  ToolTip="Let the agent run commands and edit files"
                                   AutomationProperties.Name="Allow agent tools" />
                 </StackPanel>
                 <Border Background="{DynamicResource Island.Surface}" CornerRadius="15" Padding="3"
@@ -393,65 +393,39 @@
                 </DockPanel>
             </Grid>
 
-            <!-- Ask: the first installed CLI agent, then your own API keys. -->
+            <!-- Ask. One fixed-height answer area, so the composer never moves between states. -->
             <Grid Visibility="{Binding IsAsk, Converter={StaticResource Island.BoolToVisibility}}">
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto" />
                     <RowDefinition Height="Auto" />
-                    <RowDefinition Height="Auto" />
                 </Grid.RowDefinitions>
 
-                <!-- Empty state: who answers, what stays local, and three things to try. -->
-                <Grid Height="188" Visibility="{Binding Ask.IsEmpty, Converter={StaticResource Island.BoolToVisibility}}">
-                    <StackPanel MaxWidth="430" HorizontalAlignment="Center" VerticalAlignment="Center">
-                        <Path Width="26" Height="26" HorizontalAlignment="Center" Stretch="Uniform"
-                              Fill="{DynamicResource Island.Accent}" Opacity="0.9"
-                              Data="M12 2 C12.7 7.2 14.8 9.3 20 10 C14.8 10.7 12.7 12.8 12 18 C11.3 12.8 9.2 10.7 4 10 C9.2 9.3 11.3 7.2 12 2 Z M19 1.5 C19.25 3.4 20.1 4.25 22 4.5 C20.1 4.75 19.25 5.6 19 7.5 C18.75 5.6 17.9 4.75 16 4.5 C17.9 4.25 18.75 3.4 19 1.5 Z" />
-                        <TextBlock Text="{Binding Ask.Title}" FontSize="14" FontWeight="SemiBold"
-                                   HorizontalAlignment="Center" Margin="0,10,0,4" AutomationProperties.Name="Ask AI" />
-                        <TextBlock Text="{Binding Ask.Subtitle}" FontSize="11" TextWrapping="Wrap" TextAlignment="Center"
-                                   Foreground="{DynamicResource Island.Subtle}" LineHeight="16" />
-                        <ItemsControl ItemsSource="{Binding Ask.Suggestions}" Margin="0,13,0,0" Focusable="False">
-                            <ItemsControl.ItemsPanel>
-                                <ItemsPanelTemplate>
-                                    <WrapPanel Orientation="Horizontal" HorizontalAlignment="Center" />
-                                </ItemsPanelTemplate>
-                            </ItemsControl.ItemsPanel>
-                            <ItemsControl.ItemTemplate>
-                                <DataTemplate>
-                                    <Button Style="{StaticResource Island.ChipButton}" Content="{Binding}"
-                                            FontSize="11" Margin="3"
-                                            Command="{Binding DataContext.Ask.UseSuggestionCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
-                                            CommandParameter="{Binding}"
-                                            AutomationProperties.Name="{Binding}" />
-                                </DataTemplate>
-                            </ItemsControl.ItemTemplate>
-                        </ItemsControl>
-                    </StackPanel>
-                </Grid>
+                <Grid Height="188">
+                    <Path Width="26" Height="26" HorizontalAlignment="Center" VerticalAlignment="Center" Stretch="Uniform"
+                          Fill="{DynamicResource Island.Accent}" Opacity="0.55"
+                          Visibility="{Binding Ask.IsEmpty, Converter={StaticResource Island.BoolToVisibility}}"
+                          Data="M12 2 C12.7 7.2 14.8 9.3 20 10 C14.8 10.7 12.7 12.8 12 18 C11.3 12.8 9.2 10.7 4 10 C9.2 9.3 11.3 7.2 12 2 Z M19 1.5 C19.25 3.4 20.1 4.25 22 4.5 C20.1 4.75 19.25 5.6 19 7.5 C18.75 5.6 17.9 4.75 16 4.5 C17.9 4.25 18.75 3.4 19 1.5 Z" />
 
-                <!-- The answer, or the error, fills the same space once a question has been asked. -->
-                <Grid Height="188" Visibility="{Binding Ask.HasAnswer, Converter={StaticResource Island.BoolToVisibility}}">
-                    <ScrollViewer x:Name="AskAnswerScroll" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled"
-                                  Focusable="False" AutomationProperties.Name="The answer">
-                        <TextBlock Text="{Binding Ask.Answer}" FontSize="12.5" TextWrapping="Wrap"
-                                   LineHeight="18" LineStackingStrategy="BlockLineHeight" />
-                    </ScrollViewer>
-                </Grid>
+                    <TextBlock Text="Thinking…" FontSize="13" Margin="2,2,0,0" VerticalAlignment="Top"
+                               Foreground="{DynamicResource Island.Subtle}" AutomationProperties.LiveSetting="Polite"
+                               Visibility="{Binding Ask.IsThinking, Converter={StaticResource Island.BoolToVisibility}}" />
 
-                <StackPanel Grid.Row="1">
-                    <TextBlock Text="{Binding Ask.Error}" FontSize="11" TextWrapping="Wrap" Margin="2,8,2,0"
-                               Foreground="{StaticResource Claude.Orange}" AutomationProperties.LiveSetting="Assertive"
-                               Visibility="{Binding Ask.HasError, Converter={StaticResource Island.BoolToVisibility}}" />
-                    <DockPanel Margin="2,6,2,0" Visibility="{Binding Ask.HasStatusLine, Converter={StaticResource Island.BoolToVisibility}}">
-                        <TextBlock DockPanel.Dock="Right" Text="{Binding Ask.SourceLine}" FontSize="10"
-                                   Foreground="{DynamicResource Island.Subtle}" TextTrimming="CharacterEllipsis" />
-                        <TextBlock Text="{Binding Ask.Status}" FontSize="10" Foreground="{DynamicResource Island.Subtle}" />
+                    <DockPanel>
+                        <TextBlock DockPanel.Dock="Bottom" Text="{Binding Ask.Error}" FontSize="12" TextWrapping="Wrap"
+                                   Margin="2,6,2,0" Foreground="{StaticResource Claude.Orange}"
+                                   AutomationProperties.LiveSetting="Assertive"
+                                   Visibility="{Binding Ask.HasError, Converter={StaticResource Island.BoolToVisibility}}" />
+                        <ScrollViewer x:Name="AskAnswerScroll" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled"
+                                      Focusable="False" AutomationProperties.Name="The answer"
+                                      Visibility="{Binding Ask.HasAnswer, Converter={StaticResource Island.BoolToVisibility}}">
+                            <TextBlock Text="{Binding Ask.Answer}" FontSize="13" TextWrapping="Wrap"
+                                       LineHeight="19" LineStackingStrategy="BlockLineHeight" />
+                        </ScrollViewer>
                     </DockPanel>
-                </StackPanel>
+                </Grid>
 
                 <!-- Composer: one rounded line that grows, with the send button inside it. -->
-                <Border Grid.Row="2" Margin="0,8,0,0" Padding="12,3,4,3" CornerRadius="14" BorderThickness="1">
+                <Border Grid.Row="1" Margin="0,8,0,0" Padding="14,3,4,3" CornerRadius="18" BorderThickness="1">
                     <Border.Style>
                         <Style TargetType="Border">
                             <Setter Property="Background" Value="{DynamicResource Island.Surface}" />

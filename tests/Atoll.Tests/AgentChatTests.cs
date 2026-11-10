@@ -10,10 +10,10 @@ namespace Atoll.Tests;
 public sealed class AgentChatTests
 {
     [Fact]
-    public void Settings_default_to_chat_only_and_clamp_the_timeout()
+    public void Settings_default_to_tools_on_and_clamp_the_timeout()
     {
         var settings = new AgentChatSettings();
-        Assert.False(settings.AllowTools);
+        Assert.True(settings.AllowTools);
         Assert.Equal(120, settings.TimeoutSeconds);
         Assert.Equal("", settings.ClaudeModel);
         Assert.Equal(15, AgentChatService.TimeoutSeconds(new AgentChatSettings { TimeoutSeconds = 1 }));
@@ -41,7 +41,7 @@ public sealed class AgentChatTests
 
         using (var chat = new AgentChatService(new FakeRunner().Install("codex").Install("opencode"), new NoHttp()))
         {
-            var selection = await chat.ResolveAsync(Options());
+            var selection = await chat.ResolveAsync(Options(new AgentChatSettings { AllowTools = false }));
             Assert.Equal(AgentChatKind.Codex, selection.Provider.Kind);
             Assert.Contains("read-only", selection.Note);
             Assert.Contains("read files", selection.Note);
@@ -49,7 +49,7 @@ public sealed class AgentChatTests
 
         using (var chat = new AgentChatService(new FakeRunner().Install("opencode"), new NoHttp()))
         {
-            var selection = await chat.ResolveAsync(Options());
+            var selection = await chat.ResolveAsync(Options(new AgentChatSettings { AllowTools = false }));
             Assert.Equal(AgentChatKind.OpenCode, selection.Provider.Kind);
             Assert.Contains("can't be restricted", selection.Note);
         }
@@ -67,14 +67,14 @@ public sealed class AgentChatTests
     }
 
     [Fact]
-    public async Task Claude_streams_partial_text_once_and_blocks_every_tool_by_default()
+    public async Task Claude_streams_partial_text_once_and_blocks_every_tool_when_tools_are_off()
     {
         var runner = new FakeRunner().Install("claude",
             """{"type":"stream_event","event":{"type":"content_block_delta","delta":{"type":"text_delta","text":"Hel"}}}""",
             """{"type":"stream_event","event":{"type":"content_block_delta","delta":{"type":"text_delta","text":"lo"}}}""",
             """{"type":"result","subtype":"success","is_error":false,"result":"Hello"}""");
         using var chat = new AgentChatService(runner, new NoHttp());
-        var options = Options();
+        var options = Options(new AgentChatSettings { AllowTools = false });
         var selection = await chat.ResolveAsync(options);
         Assert.Equal("Chat only. Claude's tools are blocked.", selection.Note);
 
@@ -103,16 +103,17 @@ public sealed class AgentChatTests
 
         var arguments = Assert.Single(runner.Started).Command.Arguments;
         Assert.DoesNotContain("--disallowedTools", arguments);
+        Assert.Equal("bypassPermissions", arguments[arguments.ToList().IndexOf("--permission-mode") + 1]);
         Assert.Equal("opus", arguments[arguments.ToList().IndexOf("--model") + 1]);
     }
 
     [Fact]
-    public async Task Codex_uses_a_read_only_sandbox_and_reads_stdin()
+    public async Task Codex_uses_a_read_only_sandbox_when_tools_are_off_and_reads_stdin()
     {
         var runner = new FakeRunner().Install("codex",
             """{"type":"item.completed","item":{"type":"agent_message","text":"Read-only answer"}}""");
         using var chat = new AgentChatService(runner, new NoHttp());
-        var options = Options();
+        var options = Options(new AgentChatSettings { AllowTools = false });
         var selection = await chat.ResolveAsync(options);
         Assert.Contains("Chat only request", selection.Note);
         Assert.Contains("can still read files", selection.Note);
@@ -126,11 +127,25 @@ public sealed class AgentChatTests
     }
 
     [Fact]
+    public async Task Codex_can_edit_its_working_folder_when_tools_are_on()
+    {
+        var runner = new FakeRunner().Install("codex",
+            """{"type":"item.completed","item":{"type":"agent_message","text":"Done"}}""");
+        using var chat = new AgentChatService(runner, new NoHttp());
+        var options = Options();
+        var selection = await chat.ResolveAsync(options);
+        await CollectAsync(chat.StreamAsync(selection, "Fix it", options.Settings));
+
+        var arguments = Assert.Single(runner.Started).Command.Arguments;
+        Assert.Equal("workspace-write", arguments[arguments.ToList().IndexOf("--sandbox") + 1]);
+    }
+
+    [Fact]
     public async Task OpenCode_streams_plain_stdout_and_admits_tools_cannot_be_turned_off()
     {
         var runner = new FakeRunner().Install("opencode", "line one", "line two");
         using var chat = new AgentChatService(runner, new NoHttp());
-        var options = Options();
+        var options = Options(new AgentChatSettings { AllowTools = false });
         var selection = await chat.ResolveAsync(options);
         Assert.Contains("can't be restricted", selection.Note);
         Assert.Equal("line one\nline two\n", await CollectAsync(chat.StreamAsync(selection, "List", options.Settings)));
@@ -253,9 +268,9 @@ public sealed class AgentChatTests
         Assert.True(vm.HandleEscape()); // stop the run, not collapse the island
         await sending;
         Assert.False(vm.IsRunning);
-        Assert.Equal("Stopped.", vm.Status);
         Assert.Equal("partial\n", vm.Answer);
 
+        vm.Draft = "Next question";
         Assert.True(vm.HandleEscape()); // clears the draft next
         Assert.Equal("", vm.Draft);
         Assert.True(vm.HandleEscape()); // then the leftover answer

@@ -41,7 +41,7 @@ public sealed partial class AskViewModel : ObservableObject, IDisposable
     private string _draft = "";
 
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(HasAnswer), nameof(IsEmpty))]
+    [NotifyPropertyChangedFor(nameof(HasAnswer), nameof(IsEmpty), nameof(IsThinking))]
     private string _answer = "";
 
     [ObservableProperty]
@@ -50,22 +50,12 @@ public sealed partial class AskViewModel : ObservableObject, IDisposable
 
     [ObservableProperty]
     [NotifyCanExecuteChangedFor(nameof(SendCommand), nameof(StopCommand))]
-    [NotifyPropertyChangedFor(nameof(IsEmpty))]
+    [NotifyPropertyChangedFor(nameof(IsEmpty), nameof(IsThinking))]
     private bool _isRunning;
 
     /// <summary>Who answered: "Claude Code", "Codex", "OpenCode" or the saved key's name.</summary>
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(Title), nameof(SourceLine), nameof(HasSource), nameof(HasStatusLine))]
     private string _provider = "";
-
-    /// <summary>The honest tool policy for this run: chat-only, or what the CLI can't restrict.</summary>
-    [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(SourceLine), nameof(HasSource), nameof(HasStatusLine))]
-    private string _note = "";
-
-    [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(HasStatusLine))]
-    private string _status = "";
 
     public bool HasAnswer => Answer.Length > 0;
     public bool HasError => Error.Length > 0;
@@ -73,6 +63,9 @@ public sealed partial class AskViewModel : ObservableObject, IDisposable
 
     /// <summary>The empty state: nothing asked yet, nothing running, nothing wrong.</summary>
     public bool IsEmpty => !HasAnswer && !HasError && !IsRunning;
+
+    /// <summary>Waiting for the first words. The answer area shows one quiet line instead of collapsing.</summary>
+    public bool IsThinking => IsRunning && !HasAnswer && !HasError;
 
     /// <summary>Which agent answers, once one has been resolved. Claude is first, so it is the assumed default.</summary>
     [ObservableProperty]
@@ -92,7 +85,7 @@ public sealed partial class AskViewModel : ObservableObject, IDisposable
     {
         get
         {
-            var list = new List<ModelOption> { new("Auto · first available", "") };
+            var list = new List<ModelOption> { new("Auto", "") };
             list.Add(new ModelOption("Claude Code", "claude"));
             list.Add(new ModelOption("Codex", "codex"));
             list.Add(new ModelOption("OpenCode", "opencode"));
@@ -102,9 +95,7 @@ public sealed partial class AskViewModel : ObservableObject, IDisposable
         }
     }
 
-    public string SourceLabel => SourceValue.Length == 0
-        ? "Ask · Auto"
-        : $"Ask · {Sources.FirstOrDefault(s => s.Value == SourceValue)?.Label ?? "Auto"}";
+    public string SourceLabel => Sources.FirstOrDefault(s => s.Value == SourceValue)?.Label ?? "Auto";
 
     /// <summary>A chosen source decides the model list; on Auto it follows whatever answered last.</summary>
     public AgentChatKind ModelKind => SourceValue switch
@@ -130,19 +121,19 @@ public sealed partial class AskViewModel : ObservableObject, IDisposable
             if (models.Count > 0 && models[0].Value == ModelValue) return models;
             return ModelValue.Length == 0
                 ? models
-                : [models[0], new($"Current · {ModelValue}", ModelValue), .. models.Skip(1)];
+                : [models[0], new(ModelValue, ModelValue), .. models.Skip(1)];
         }
     }
 
     private static readonly ModelOption[] ClaudeModels =
     [
-        new("Auto · agent default", ""),
+        new("Default", ""),
         new("Opus", "opus"),
         new("Sonnet", "sonnet"),
         new("Haiku", "haiku"),
     ];
 
-    private static readonly ModelOption[] OtherModels = [new("Auto · agent default", "")];
+    private static readonly ModelOption[] OtherModels = [new("Default", "")];
 
     /// <summary>Model ids worth offering for a saved key, by host; anything else stays in Settings.</summary>
     private IReadOnlyList<ModelOption> ApiModels()
@@ -150,7 +141,7 @@ public sealed partial class AskViewModel : ObservableObject, IDisposable
         var accounts = _options().Accounts;
         var chosen = SourceValue.StartsWith("api:", StringComparison.Ordinal) ? SourceValue[4..] : "";
         var host = (accounts.FirstOrDefault(a => a.Id == chosen) ?? accounts.FirstOrDefault())?.BaseUrl ?? "";
-        var auto = new ModelOption("Auto · provider default", "");
+        var auto = new ModelOption("Default", "");
         if (host.Contains("deepseek", StringComparison.OrdinalIgnoreCase))
             return [auto, new("DeepSeek Chat", "deepseek-chat"), new("DeepSeek Reasoner", "deepseek-reasoner")];
         if (host.Contains("anthropic", StringComparison.OrdinalIgnoreCase))
@@ -186,7 +177,7 @@ public sealed partial class AskViewModel : ObservableObject, IDisposable
         }
     }
 
-    public string ModelLabel => ModelValue.Length == 0 ? "Model · Auto" : $"Model · {ModelValue}";
+    public string ModelLabel => Models.FirstOrDefault(m => m.Value == ModelValue)?.Label ?? ModelValue;
 
     public string ModelTitle => ModelKind switch
     {
@@ -196,7 +187,7 @@ public sealed partial class AskViewModel : ObservableObject, IDisposable
         _ => "API model. Blank picks a default for the provider; type any id in Settings.",
     };
 
-    /// <summary>Tools are off by default; the note under the box says what each agent can do with them.</summary>
+    /// <summary>Tools are on by default; the toggle on the toolbar turns them off for the next question.</summary>
     public bool AllowTools
     {
         get => _options().Settings.AllowTools;
@@ -235,32 +226,6 @@ public sealed partial class AskViewModel : ObservableObject, IDisposable
         _save();
     }
 
-    public bool HasStatusLine => Status.Length > 0 || HasSource;
-
-    /// <summary>"Ask Claude anything" once an agent has answered; plain "Ask anything" before that.</summary>
-    public string Title => Provider.Length > 0 ? $"Ask {Provider} anything" : "Ask anything";
-
-    /// <summary>What stays local, said plainly. The question still goes to whichever model answers it.</summary>
-    public string Subtitle => "Chats stay in this session and are never saved.";
-
-    public string SourceLine => Provider.Length == 0 ? "" : Note.Length == 0 ? Provider : $"{Provider} · {Note}";
-
-    public bool HasSource => SourceLine.Length > 0;
-
-    /// <summary>Things worth tapping in an empty box, so the first question is not a blank page.</summary>
-    public IReadOnlyList<string> Suggestions { get; } =
-    [
-        "What can ATOLL do?",
-        "How does Ask AI work?",
-        "Convert 30 cm to inches",
-    ];
-
-    [RelayCommand]
-    private void UseSuggestion(string? suggestion)
-    {
-        if (!string.IsNullOrWhiteSpace(suggestion)) Draft = suggestion;
-    }
-
     private bool CanSend => Draft.Trim().Length > 0 && !IsRunning;
     private bool CanStop => IsRunning;
 
@@ -272,11 +237,10 @@ public sealed partial class AskViewModel : ObservableObject, IDisposable
         var run = new CancellationTokenSource();
         _run = run;
         IsRunning = true;
+        Draft = ""; // the box empties on send; the question is not kept (a single turn has no history to show)
         Answer = "";
         Error = "";
         Provider = "";
-        Note = "";
-        Status = "Finding an agent…";
         var options = _options();
         var text = new StringBuilder();
         var failed = false;
@@ -289,8 +253,6 @@ public sealed partial class AskViewModel : ObservableObject, IDisposable
             {
                 Kind = selection.Provider.Kind;
                 Provider = selection.Provider.Name;
-                Note = selection.Note;
-                Status = "Thinking…";
             });
             await foreach (var delta in Chat.StreamAsync(selection, prompt, options.Settings, run.Token))
             {
@@ -298,39 +260,37 @@ public sealed partial class AskViewModel : ObservableObject, IDisposable
                 {
                     failed = true;
                     var message = delta.Text;
-                    _post(() => { Error = message; Status = ""; });
+                    _post(() => Error = message);
                     continue;
                 }
                 text.Append(delta.Text);
                 var snapshot = text.ToString();
-                _post(() => { Answer = snapshot; Status = "Answering…"; });
+                _post(() => Answer = snapshot);
             }
         }
         catch (OperationCanceledException) when (run.IsCancellationRequested)
         {
             cancelled = true;
-            _post(() => Status = "Stopped.");
         }
         catch (AgentChatException ex)
         {
             failed = true;
             var message = ex.Message;
-            _post(() => { Error = message; Status = ""; Answer = ""; });
+            _post(() => { Error = message; Answer = ""; });
         }
         catch (Exception)
         {
             failed = true;
-            _post(() => { Error = "The agent could not answer. Check Settings › Agents."; Status = ""; });
+            _post(() => Error = "The agent could not answer. Check Settings › Agents.");
         }
         finally
         {
             var answered = !cancelled && !failed && text.ToString().Trim().Length > 0;
             if (!answered && !run.IsCancellationRequested && !failed)
-                _post(() => { Error = "The agent returned no text."; Status = ""; });
+                _post(() => Error = "The agent returned no text.");
             _post(() =>
             {
                 IsRunning = false;
-                if (answered) Status = "";
                 if (answered) Answered?.Invoke(this);
             });
             if (ReferenceEquals(_run, run)) _run = null;
@@ -343,7 +303,6 @@ public sealed partial class AskViewModel : ObservableObject, IDisposable
     {
         var run = _run;
         if (run is null) return;
-        Status = "Stopping…";
         try { run.Cancel(); }
         catch (ObjectDisposedException) { }
     }
@@ -354,7 +313,6 @@ public sealed partial class AskViewModel : ObservableObject, IDisposable
         Draft = "";
         Answer = "";
         Error = "";
-        Status = "";
     }
 
     /// <summary>

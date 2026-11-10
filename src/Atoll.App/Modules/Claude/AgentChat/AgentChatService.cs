@@ -49,9 +49,9 @@ public sealed class AgentChatService : IAgentChat, IDisposable
             }
             if (id == "codex" && Command(AgentCli.Codex) is { } codex)
             {
-                var provider = new CodexChatProvider(_processes, codex, settings.CodexModel);
+                var provider = new CodexChatProvider(_processes, codex, settings.CodexModel, settings.AllowTools);
                 return Task.FromResult(new AgentChatSelection(provider, settings.AllowTools
-                    ? "Codex runs in a read-only sandbox: it can read files and run read-only commands."
+                    ? "Tools are on: Codex can edit files in its working folder and run commands."
                     : "Chat only request, but Codex always runs in a read-only sandbox and can still read files."));
             }
             if (id == "opencode" && Command(AgentCli.OpenCode) is { } openCode)

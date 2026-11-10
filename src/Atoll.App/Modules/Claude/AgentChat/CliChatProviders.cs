@@ -91,7 +91,13 @@ public sealed class ClaudeCodeChatProvider(IProcessRunner runner, ProcessCommand
             "-p", "--output-format", "stream-json", "--verbose", "--include-partial-messages", "--no-session-persistence",
         };
         if (!string.IsNullOrWhiteSpace(model)) { arguments.Add("--model"); arguments.Add(model.Trim()); }
-        if (!allowTools)
+        if (allowTools)
+        {
+            // -p cannot ask, so without this every edit or command is denied and "tools on" would do nothing.
+            arguments.Add("--permission-mode");
+            arguments.Add("bypassPermissions");
+        }
+        else
         {
             // A single turn with every tool blocked is the only honest chat-only mode Claude Code exposes.
             arguments.Add("--disallowedTools");
@@ -160,10 +166,10 @@ public sealed class ClaudeCodeChatProvider(IProcessRunner runner, ProcessCommand
 }
 
 /// <summary>
-/// Codex: JSONL events. There is no trustworthy zero-tool flag, so even chat-only runs in a read-only sandbox
-/// that can still read files. The service says so in the UI.
+/// Codex: JSONL events. There is no trustworthy zero-tool flag, so chat-only runs in a read-only sandbox that can
+/// still read files; with tools on it may also edit files in the working folder.
 /// </summary>
-public sealed class CodexChatProvider(IProcessRunner runner, ProcessCommand command, string? model) : IAgentChatProvider
+public sealed class CodexChatProvider(IProcessRunner runner, ProcessCommand command, string? model, bool allowTools = false) : IAgentChatProvider
 {
     public string Name => "Codex";
 
@@ -171,7 +177,7 @@ public sealed class CodexChatProvider(IProcessRunner runner, ProcessCommand comm
 
     public IAsyncEnumerable<AgentChatDelta> StreamAsync(string prompt, CancellationToken ct)
     {
-        var arguments = new List<string> { "exec", "--json", "--skip-git-repo-check", "--sandbox", "read-only" };
+        var arguments = new List<string> { "exec", "--json", "--skip-git-repo-check", "--sandbox", allowTools ? "workspace-write" : "read-only" };
         if (!string.IsNullOrWhiteSpace(model)) { arguments.Add("--model"); arguments.Add(model.Trim()); }
         arguments.Add("-"); // prompt on stdin
         var parser = new CodexParser();

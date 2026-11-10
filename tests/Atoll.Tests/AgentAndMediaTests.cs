@@ -192,7 +192,9 @@ internal static class AgentMediaUi
         Assert.Equal(System.Windows.Input.ModifierKeys.None, gesture.Modifiers);
         claude.Ask.Draft = "Summarize the failing test";
         claude.Ask.Provider = "Claude Code";
-        claude.Ask.Note = "Chat only. Claude's tools are blocked.";
+        claude.Ask.IsRunning = true;
+        Render(claude, "ClaudeViewModel.Panel", "agents-ask-thinking", 640, 340);
+        claude.Ask.IsRunning = false;
         claude.Ask.Answer = "The test compares two timestamps and the expected value is one day behind.";
         Render(claude, "ClaudeViewModel.Panel", "agents-ask", 640, 340);
         Render(new AskAlertViewModel(claude.Ask, "Answer from Claude Code", "The test compares two timestamps…"),

@@ -259,8 +259,8 @@ public sealed class ClaudeSettings
 /// <summary>How the Agents tab's Ask section runs a question. Answers are never stored here.</summary>
 public sealed class AgentChatSettings
 {
-    /// <summary>Off keeps the agent chat-only wherever the CLI allows it. Codex is always a read-only sandbox.</summary>
-    public bool AllowTools { get; set; }
+    /// <summary>On lets the agent run commands and edit files; off keeps it chat-only wherever the CLI allows it.</summary>
+    public bool AllowTools { get; set; } = true;
 
     /// <summary>
     /// Which source answers Ask. Empty tries Claude Code, then Codex, then OpenCode, then a saved key.
