@@ -266,9 +266,11 @@ public partial class IslandWindow : Window
 
     private double AvailablePanelHeight => Math.Max(140, Monitor.WorkArea.Height / Monitor.Scale - TopGap - 24);
 
-    /// <summary>Pass clicks through only when a maximized or fullscreen app sits behind the island (tabs, toolbars).</summary>
-    private bool ClickThrough =>
-        _settings.Current.ClickThrough && _foreground is ForegroundKind.Maximized or ForegroundKind.Fullscreen;
+    /// <summary>Pass clicks through only when a maximized app sits behind the island (tabs, toolbars).</summary>
+    private bool ClickThrough => PassesThrough(_settings.Current, _foreground);
+
+    internal static bool PassesThrough(AppSettings settings, ForegroundKind foreground) =>
+        settings.ClickThrough && foreground == ForegroundKind.Maximized;
 
     /// <summary>Compatibility overload for tests and the two-slot callers.</summary>
     public void SetActivities(Activity? primary, Activity? secondary, Activity? tertiary = null) =>

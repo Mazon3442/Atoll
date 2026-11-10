@@ -68,7 +68,7 @@ public sealed class AppSettings
     public int EdgeHoldMs { get; set; } = 1000;
 
     /// <summary>
-    /// The compact island lets clicks through to the app behind it (e.g. browser tabs) and fades
+    /// The compact island lets clicks through to a maximized app behind it (e.g. browser tabs) and fades
     /// while the cursor passes over; resting on it for the hover delay makes it usable.
     /// </summary>
     public bool ClickThrough { get; set; } = true;

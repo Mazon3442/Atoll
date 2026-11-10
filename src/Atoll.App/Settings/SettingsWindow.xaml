@@ -329,9 +329,9 @@
                                 <TextBlock Style="{StaticResource ValueText}" Text="{Binding HoverDelayMs, StringFormat={}{0} ms}" />
                             </StackPanel>
                         </s:SettingCard>
-                        <s:SettingCard Glyph="&#xE8B0;" Header="Click through over full-size windows"
-                                       Description="Clicks on ATOLL reach the app behind it, like its browser tabs. Rest the pointer on ATOLL to use it.">
-                            <CheckBox Style="{StaticResource Toggle}" IsChecked="{Binding ClickThrough}" AutomationProperties.Name="Click through over full-size windows" />
+                        <s:SettingCard Glyph="&#xE8B0;" Header="Click through over maximized windows"
+                                       Description="Clicks on ATOLL reach the maximized app behind it, like its browser tabs. Rest the pointer on ATOLL to use it.">
+                            <CheckBox Style="{StaticResource Toggle}" IsChecked="{Binding ClickThrough}" AutomationProperties.Name="Click through over maximized windows" />
                         </s:SettingCard>
 
                         <TextBlock Style="{StaticResource SectionHeader}" Text="Keyboard" />

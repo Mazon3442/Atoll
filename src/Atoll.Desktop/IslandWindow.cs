@@ -152,7 +152,7 @@ public sealed class IslandWindow : Window, IDisposable
         var mode = _settings.Current.FullscreenMode;
         IsVisible = !overlay || revealed || _foreground != Atoll.Shell.ForegroundKind.Game && (mode is FullscreenMode.Stay or FullscreenMode.Dim || mode == FullscreenMode.PopUp && now < _alertUntil);
         Opacity = overlay && !revealed && mode == FullscreenMode.Dim ? .5 : 1;
-        var pass = _settings.Current.ClickThrough && !_expanded && _foreground is Atoll.Shell.ForegroundKind.Maximized or Atoll.Shell.ForegroundKind.Fullscreen;
+        var pass = _settings.Current.ClickThrough && !_expanded && _foreground == Atoll.Shell.ForegroundKind.Maximized;
         if (Atoll.Shell.Native.GetCursorPos(out var cursor))
         {
             if (Monitor is { } monitor && Math.Abs(cursor.X - (monitor.Bounds.X + monitor.Bounds.Width / 2)) < 150 && cursor.Y <= monitor.Bounds.Y + 3 && cursor.Y >= monitor.Bounds.Y)

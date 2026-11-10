@@ -36,6 +36,19 @@ public class IslandVisibilityTests
     }
 
     [Fact]
+    public void Click_through_is_only_for_maximized_windows()
+    {
+        var settings = new AppSettings { ClickThrough = true };
+        Assert.True(IslandWindow.PassesThrough(settings, ForegroundKind.Maximized));
+        Assert.False(IslandWindow.PassesThrough(settings, ForegroundKind.Fullscreen));
+        Assert.False(IslandWindow.PassesThrough(settings, ForegroundKind.Game));
+        Assert.False(IslandWindow.PassesThrough(settings, ForegroundKind.Normal));
+
+        settings.ClickThrough = false;
+        Assert.False(IslandWindow.PassesThrough(settings, ForegroundKind.Maximized));
+    }
+
+    [Fact]
     public void Pop_up_mode_shows_only_notifications_and_alerts()
     {
         var steady = new Activity("now", "media", new object(), ActivityPriority.Normal);
