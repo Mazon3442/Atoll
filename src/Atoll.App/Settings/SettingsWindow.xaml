@@ -717,6 +717,18 @@
                             <CheckBox Style="{StaticResource Toggle}" IsChecked="{Binding NotificationModuleEnabled}" AutomationProperties.Name="Enable the Notifications feature" />
                         </s:SettingCard>
 
+                        <TextBlock Style="{StaticResource SectionHeader}" Text="Focus" />
+                        <s:SettingCard Glyph="&#xE708;" Header="Do Not Disturb"
+                                       Description="Silence ATOLL's popups and sounds. Start it from the moon chip, the tray, or the command palette.">
+                            <CheckBox Style="{StaticResource Toggle}" IsChecked="{Binding FocusEnabled}" AutomationProperties.Name="Do Not Disturb" />
+                        </s:SettingCard>
+                        <s:SettingCard Glyph="&#xE7B3;" Header="Focus behavior" IsEnabled="{Binding FocusEnabled}">
+                            <WrapPanel MaxWidth="330">
+                                <CheckBox Content="Show the moon chip" IsChecked="{Binding ShowFocusChip}" Margin="0,0,18,6" />
+                                <CheckBox Content="Follow Windows Focus" IsChecked="{Binding FollowWindowsFocus}" Margin="0,0,18,6" />
+                            </WrapPanel>
+                        </s:SettingCard>
+
                         <TextBlock Style="{StaticResource SectionHeader}" Text="Privacy" />
                         <s:SettingCard Glyph="&#xE890;" Header="Show message text"
                                        Description="Turn off while screen sharing so ATOLL shows only the app name.">

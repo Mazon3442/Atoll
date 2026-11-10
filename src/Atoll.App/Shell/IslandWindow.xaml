@@ -40,6 +40,27 @@
                                     <Setter Property="Height" Value="30" />
                                 </Style>
                             </StackPanel.Resources>
+                            <Button x:Name="FocusButton" Click="OnFocusClick" ToolTip="Do Not Disturb"
+                                    AutomationProperties.Name="Do Not Disturb" Visibility="Collapsed">
+                                <shell:Icon Kind="moon" Size="15" />
+                            </Button>
+                            <Popup x:Name="FocusPopup" PlacementTarget="{Binding ElementName=FocusButton}"
+                                   Placement="Bottom" VerticalOffset="6" StaysOpen="False" AllowsTransparency="True"
+                                   PopupAnimation="Fade">
+                                <Border Background="{DynamicResource Island.Menu}" BorderBrush="{DynamicResource Island.Hover}"
+                                        BorderThickness="1" CornerRadius="12" Padding="6" MinWidth="210">
+                                    <StackPanel>
+                                        <TextBlock x:Name="FocusPopupTitle" Text="Do Not Disturb" FontSize="10" FontWeight="Bold"
+                                                   Foreground="{DynamicResource Island.Subtle}" Margin="8,6,8,4" TextWrapping="Wrap" />
+                                        <Button Style="{StaticResource Island.RowButton}" Content="For 30 minutes" Click="OnFocus30" />
+                                        <Button Style="{StaticResource Island.RowButton}" Content="For 1 hour" Click="OnFocus60" />
+                                        <Button Style="{StaticResource Island.RowButton}" Content="For 2 hours" Click="OnFocus120" />
+                                        <Button Style="{StaticResource Island.RowButton}" Content="Until tomorrow" Click="OnFocusTomorrow" />
+                                        <Button x:Name="FocusOffButton" Style="{StaticResource Island.RowButton}" Content="Turn off focus"
+                                                Click="OnFocusOff" Visibility="Collapsed" />
+                                    </StackPanel>
+                                </Border>
+                            </Popup>
                             <Border Height="30" CornerRadius="15" Padding="10,0" Background="{DynamicResource Island.Surface}"
                                     ToolTip="{Binding Devices.Battery}" AutomationProperties.Name="{Binding Devices.Battery, StringFormat=Battery {0}}"
                                     Visibility="{Binding Devices.HasBattery, Converter={StaticResource Island.BoolToVisibility}, FallbackValue=Collapsed}">

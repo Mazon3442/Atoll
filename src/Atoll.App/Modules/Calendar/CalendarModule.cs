@@ -545,6 +545,7 @@ public sealed class CalendarModule : IIslandModule
         {
             if (e.AllDay || e.Start <= now || e.Start - now > window || settings.DismissedOccurrences.ContainsKey(e.OccurrenceKey)) continue;
             if (!_alerted.Add(e.OccurrenceKey)) continue;
+            if (FocusService.IsQuietNow) continue; // Do Not Disturb: no popup or sound
             var minutes = Math.Max(1, (int)Math.Ceiling((e.Start - now).TotalMinutes));
             _context.Post("alert", new CalendarAlertViewModel(e.DisplayTitle, $"starts in {minutes} min", e.Color),
                 ActivityPriority.High, TimeSpan.FromSeconds(8), alert: true);

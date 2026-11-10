@@ -7,8 +7,9 @@ public sealed class TrayIcon : IDisposable
 {
     private readonly TaskbarIcon _icon;
     private readonly MenuItem _pauseItem;
+    private readonly MenuItem _focusItem;
 
-    public TrayIcon(Action openSettings, Action<bool> setPaused, Action quit)
+    public TrayIcon(Action openSettings, Action<bool> setPaused, Action<bool> setFocus, Action quit)
     {
         var settingsItem = new MenuItem { Header = "Settings" };
         settingsItem.Click += (_, _) => openSettings();
@@ -16,12 +17,16 @@ public sealed class TrayIcon : IDisposable
         var pauseItem = _pauseItem = new MenuItem { Header = "Hide island", IsCheckable = true };
         pauseItem.Click += (_, _) => setPaused(pauseItem.IsChecked);
 
+        var focusItem = _focusItem = new MenuItem { Header = "Do Not Disturb", IsCheckable = true };
+        focusItem.Click += (_, _) => setFocus(focusItem.IsChecked);
+
         var quitItem = new MenuItem { Header = "Quit" };
         quitItem.Click += (_, _) => quit();
 
         var menu = new ContextMenu();
         menu.Items.Add(settingsItem);
         menu.Items.Add(pauseItem);
+        menu.Items.Add(focusItem);
         menu.Items.Add(new Separator());
         menu.Items.Add(quitItem);
 
@@ -48,6 +53,9 @@ public sealed class TrayIcon : IDisposable
 
     /// <summary>Keeps the "Hide island" check in step when the hide shortcut changes it.</summary>
     public bool Paused { set => _pauseItem.IsChecked = value; }
+
+    /// <summary>Keeps the Do Not Disturb check in step with the focus service.</summary>
+    public bool Focus { set => _focusItem.IsChecked = value; }
 
     public void Dispose() => _icon.Dispose();
 }

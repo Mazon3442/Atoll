@@ -278,6 +278,7 @@ public sealed class NotificationsModule : IIslandModule
         while (_vm.Items.Count > MaxHistory) _vm.Items.RemoveAt(_vm.Items.Count - 1);
         _vm.ItemsChanged();
 
+        if (FocusService.IsQuietNow) return; // ATOLL Do Not Disturb: history only
         if (Native.SHQueryUserNotificationState(out var state) == 0 && state != Native.QUNS_ACCEPTS_NOTIFICATIONS)
             return; // Do Not Disturb, fullscreen, presentation: history only
         if (GameState.Playing && _context.Settings.Current.Games.MuteNotifications) return; // game mode: history only

@@ -311,7 +311,7 @@ public sealed partial class MediaModule : IIslandModule
                 var hadTrack = _trackKey.Length > 0;
                 _trackKey = key; _acceptedSeek = null; _seekVersion++;
                 _ = LoadLyricsAsync(_vm.Artist, _vm.Title);
-                if (hadTrack && _vm.IsPlaying && _vm.Title.Length > 0)
+                if (hadTrack && _vm.IsPlaying && _vm.Title.Length > 0 && !FocusService.IsQuietNow)
                     _context?.Post("track", _vm, ActivityPriority.High, TrackPeek, alert: true);
             }
             UpdateActivity();

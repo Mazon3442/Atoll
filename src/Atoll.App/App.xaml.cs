@@ -19,6 +19,8 @@ public partial class App : Application
     private IslandManager? _islands;
     private TrayIcon? _tray;
     private HotkeyService? _hotkeys;
+    private FocusService? _focus;
+    private DispatcherTimer? _focusTimer;
     private SettingsWindow? _settingsWindow;
     private Onboarding.OnboardingWindow? _onboardingWindow;
     private int? _restartSettingsPage;
@@ -57,19 +59,35 @@ public partial class App : Application
             ClaudeHookInstaller.Install();
 
         _activities = new ActivityHost();
+        _focus = new FocusService(TimeProvider.System);
+        FocusService.Current = _focus;
+        _focus.Configure(_settings.Current.Focus.Enabled, _settings.Current.Focus.FollowWindowsFocus);
+        _focus.SetWindowsFocus(WindowsFocus());
         _modules = new ModuleManager(ModuleCatalog.All, _activities, Dispatcher, _settings);
         _modules.Apply();
 
         _settings.Changed += () =>
         {
             ThemeService.Apply(_settings.Current.Theme);
+            _focus?.Configure(_settings.Current.Focus.Enabled, _settings.Current.Focus.FollowWindowsFocus);
             _modules.Apply();
         };
 
         _islands = new IslandManager(_settings, _activities, _modules, OpenSettings, Dispatcher);
         Navigation.OpenModule = _islands.OpenModule;
         Navigation.OpenOnboarding = ShowOnboarding;
-        _tray = new TrayIcon(OpenSettings, SetPaused, Shutdown);
+        _tray = new TrayIcon(OpenSettings, SetPaused, SetFocus, Shutdown) { Focus = _focus.IsActive };
+        _focus.PropertyChanged += (_, e) =>
+        {
+            if (e.PropertyName == nameof(FocusService.IsActive) && _tray is not null) _tray.Focus = _focus.IsActive;
+        };
+        _focusTimer = new DispatcherTimer(DispatcherPriority.Background) { Interval = TimeSpan.FromSeconds(10) };
+        _focusTimer.Tick += (_, _) =>
+        {
+            _focus.Tick();
+            _focus.SetWindowsFocus(WindowsFocus());
+        };
+        _focusTimer.Start();
         _hotkeys = new HotkeyService(_settings, _islands.ToggleFromKeyboard, () => SetPaused(!_islands.Paused), _islands.OpenPalette);
 
         // First run: explain the island and let the user choose the top row. Skipping still marks it done.
@@ -96,6 +114,17 @@ public partial class App : Application
         _islands.Paused = paused;
         _tray.Paused = paused;
     }
+
+    /// <summary>Tray toggle: indefinite focus, or back to normal.</summary>
+    private void SetFocus(bool on)
+    {
+        if (_focus is null) return;
+        if (on) _focus.FocusIndefinitely();
+        else _focus.Clear();
+    }
+
+    private static bool WindowsFocus() =>
+        Native.SHQueryUserNotificationState(out var state) == 0 && state == Native.QUNS_QUIET_TIME;
 
     internal void RestartToSettings(int page)
     {
@@ -170,6 +199,9 @@ public partial class App : Application
 
     protected override void OnExit(ExitEventArgs e)
     {
+        _focusTimer?.Stop();
+        _focusTimer = null;
+        FocusService.Current = null;
         _hotkeys?.Dispose();
         _tray?.Dispose();
         _islands?.Dispose();

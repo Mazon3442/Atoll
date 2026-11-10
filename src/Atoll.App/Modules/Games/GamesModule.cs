@@ -171,7 +171,7 @@ public sealed class GamesModule : IIslandModule
         _vm.IsPlaying = true;
         GameState.Playing = true;
         Log.Info($"Game started: {_vm.GameName}");
-        if (_context?.Settings.Current.Games.AnnounceGameStart == true)
+        if (_context?.Settings.Current.Games.AnnounceGameStart == true && !FocusService.IsQuietNow)
             _context.Post("game.start", new IndicatorViewModel("\uE7FC", _vm.GameName, "Game started"),
                 ActivityPriority.Ambient, TimeSpan.FromSeconds(5));
     }

@@ -290,6 +290,10 @@ public sealed partial class SettingsViewModel : ObservableObject
     public bool CanRequestNotifications => _notificationAccess == NotificationAccess.NeedsPermission;
     public bool NotificationsAllowed => _notificationAccess == NotificationAccess.Allowed;
 
+    public bool FocusEnabled { get => S.Focus.Enabled; set => Set(S.Focus.Enabled, value, v => S.Focus.Enabled = v); }
+    public bool FollowWindowsFocus { get => S.Focus.FollowWindowsFocus; set => Set(S.Focus.FollowWindowsFocus, value, v => S.Focus.FollowWindowsFocus = v); }
+    public bool ShowFocusChip { get => S.Focus.ShowChip; set => Set(S.Focus.ShowChip, value, v => S.Focus.ShowChip = v); }
+
     // Home tab cards
     public bool HomeEnabled { get => S.Home.Enabled; set => Set(S.Home.Enabled, value, v => S.Home.Enabled = v); }
 

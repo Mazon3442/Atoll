@@ -110,6 +110,8 @@ public sealed class AppSettings
 
     public PomodoroSettings Pomodoro { get; set; } = new();
 
+    public FocusSettings Focus { get; set; } = new();
+
     /// <summary>List order = tab order in the expanded panel.</summary>
     public List<ModuleEntry> Modules { get; set; } = [];
 }
@@ -330,6 +332,19 @@ public sealed class ModuleEntry
                 break;
         }
     }
+}
+
+/// <summary>Quiet-mode switches for ATOLL's Do Not Disturb.</summary>
+public sealed class FocusSettings
+{
+    /// <summary>Shows the focus controls. Off hides the moon chip and the follow option.</summary>
+    public bool Enabled { get; set; } = true;
+
+    /// <summary>Stay quiet whenever Windows Focus/Do Not Disturb is on.</summary>
+    public bool FollowWindowsFocus { get; set; } = true;
+
+    /// <summary>Show the moon chip in the island header.</summary>
+    public bool ShowChip { get; set; } = true;
 }
 
 /// <summary>Timer lengths for the Pomodoro section of the timer tab.</summary>

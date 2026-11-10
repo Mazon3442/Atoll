@@ -133,6 +133,7 @@ public partial class IslandWindow : Window
         modules.LayoutChanged += OnModulesLayoutChanged;
         modules.Tabs.CollectionChanged += OnTabsChanged;
         BindStatusChips();
+        if (FocusService.Current is { } focus) focus.PropertyChanged += OnFocusServiceChanged;
         Tabs.SelectionChanged += (_, _) =>
         {
             if (_refreshingTabs) return;
@@ -226,6 +227,7 @@ public partial class IslandWindow : Window
         {
             _modules.LayoutChanged -= OnModulesLayoutChanged;
             _modules.Tabs.CollectionChanged -= OnTabsChanged;
+            if (FocusService.Current is { } focus) focus.PropertyChanged -= OnFocusServiceChanged;
             _palette.CloseRequested -= ClosePalette;
             Watch(null);
             WatchPanel(null);
@@ -239,8 +241,63 @@ public partial class IslandWindow : Window
     }
 
     /// <summary>The header's status chips use the System group's sound, battery and quick actions.</summary>
-    private void BindStatusChips() =>
+    private void BindStatusChips()
+    {
         StatusChips.DataContext = _modules.Tabs.Select(t => t.Panel).OfType<SystemGroupViewModel>().FirstOrDefault();
+        UpdateFocusChip();
+    }
+
+    private void OnFocusServiceChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName is nameof(FocusService.IsActive) or nameof(FocusService.Status)) UpdateFocusChip();
+    }
+
+    /// <summary>Shows the moon chip only when focus is enabled and the chip setting is on.</summary>
+    private void UpdateFocusChip()
+    {
+        var focus = FocusService.Current;
+        var show = focus is not null && _settings.Current.Focus.Enabled && _settings.Current.Focus.ShowChip;
+        FocusButton.Visibility = show ? Visibility.Visible : Visibility.Collapsed;
+        if (!show)
+        {
+            FocusPopup.IsOpen = false;
+            return;
+        }
+        FocusButton.SetResourceReference(Control.ForegroundProperty, focus!.IsActive ? "Island.Accent" : "Island.Foreground");
+        FocusButton.ToolTip = focus.Status;
+        AutomationProperties.SetName(FocusButton, focus.Status);
+        FocusPopupTitle.Text = focus.IsActive ? focus.Status : "Do Not Disturb";
+        FocusOffButton.Visibility = focus.IsActive ? Visibility.Visible : Visibility.Collapsed;
+    }
+
+    private void OnFocusClick(object sender, RoutedEventArgs e)
+    {
+        if (FocusService.Current is null || !_settings.Current.Focus.Enabled) return;
+        UpdateFocusChip();
+        FocusPopup.IsOpen = !FocusPopup.IsOpen;
+    }
+
+    private void OnFocus30(object sender, RoutedEventArgs e) => FocusFor(TimeSpan.FromMinutes(30));
+    private void OnFocus60(object sender, RoutedEventArgs e) => FocusFor(TimeSpan.FromHours(1));
+    private void OnFocus120(object sender, RoutedEventArgs e) => FocusFor(TimeSpan.FromHours(2));
+
+    private void OnFocusTomorrow(object sender, RoutedEventArgs e)
+    {
+        FocusService.Current?.FocusUntil(new DateTimeOffset(DateTime.Today.AddDays(1)));
+        FocusPopup.IsOpen = false;
+    }
+
+    private void OnFocusOff(object sender, RoutedEventArgs e)
+    {
+        FocusService.Current?.Clear();
+        FocusPopup.IsOpen = false;
+    }
+
+    private void FocusFor(TimeSpan duration)
+    {
+        FocusService.Current?.FocusFor(duration);
+        FocusPopup.IsOpen = false;
+    }
 
     private void OnModulesLayoutChanged()
     {
@@ -466,6 +523,21 @@ public partial class IslandWindow : Window
             if (clock.Timer.IsActive)
                 items.Add(new CommandItem("Stop the timer", "Timer", "\uE916", "", CommandKind.Timer,
                     () => RunAndTuck(() => clock.Timer.ResetCommand.Execute(null))));
+        }
+
+        if (FocusService.Current is { } focus)
+        {
+            items.Add(new CommandItem("Do Not Disturb for 30 minutes", "Focus", "\uE708", "", CommandKind.Action,
+                () => RunAndTuck(() => focus.FocusFor(TimeSpan.FromMinutes(30)))));
+            items.Add(new CommandItem("Do Not Disturb for 1 hour", "Focus", "\uE708", "", CommandKind.Action,
+                () => RunAndTuck(() => focus.FocusFor(TimeSpan.FromHours(1)))));
+            items.Add(new CommandItem("Do Not Disturb for 2 hours", "Focus", "\uE708", "", CommandKind.Action,
+                () => RunAndTuck(() => focus.FocusFor(TimeSpan.FromHours(2)))));
+            items.Add(new CommandItem("Do Not Disturb until tomorrow", "Focus", "\uE708", "", CommandKind.Action,
+                () => RunAndTuck(() => focus.FocusUntil(new DateTimeOffset(DateTime.Today.AddDays(1))))));
+            if (focus.IsActive)
+                items.Add(new CommandItem("Turn off Do Not Disturb", "Focus", "\uE708", "", CommandKind.Action,
+                    () => RunAndTuck(focus.Clear)));
         }
 
         items.Add(new CommandItem("Open Settings", "Action", "\uE713", "", CommandKind.Action,

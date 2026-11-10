@@ -237,6 +237,7 @@ public sealed class ClaudeModule : IIslandModule
                 if (settings.SoundOnAttention) SystemSounds.Exclamation.Play();
                 break;
             case ClaudeTransition.Finished:
+                if (FocusService.IsQuietNow) break;
                 _context.Post("done", new ClaudeAlertViewModel(session, $"{session.Project} is done", session.Detail),
                     ActivityPriority.High, TimeSpan.FromSeconds(6), alert: true);
                 if (settings.SoundOnDone) SystemSounds.Asterisk.Play();
@@ -267,7 +268,7 @@ public sealed class ClaudeModule : IIslandModule
     /// <summary>A long PowerShell command finished while its terminal was in the background.</summary>
     private void OnCommandFinished(HookMessage m)
     {
-        if (_context is null) return; // the hook already skipped commands whose terminal is in front
+        if (_context is null || FocusService.IsQuietNow) return; // the hook already skipped commands whose terminal is in front
         var failed = m.NotificationType is { } code && code != "0";
         var project = m.Cwd is { Length: > 0 } cwd ? Path.GetFileName(Path.TrimEndingDirectorySeparator(cwd)) : "";
         var session = new ClaudeSessionViewModel("shell:" + m.SessionId) { Agent = "shell", Hwnd = m.Hwnd, Project = project.Length > 0 ? project : "PowerShell" };
