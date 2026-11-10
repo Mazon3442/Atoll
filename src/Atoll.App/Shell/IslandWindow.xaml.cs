@@ -66,6 +66,7 @@ public partial class IslandWindow : Window
     private Activity? _primary;
     private IReadOnlyList<Activity> _sideActivities = [];
     private readonly SideChipViewModel?[] _sideChips = new SideChipViewModel?[4];
+    private readonly SideChipPair?[] _sidePairs = new SideChipPair?[2]; // [0] right (chips 0 and 2), [1] left (chips 1 and 3)
     private readonly ObservableCollection<ModuleTab> _visibleTabs = [];
     private readonly ObservableCollection<ModuleTab> _menuTabs = [];
     private ModuleTab? _transientTab;
@@ -384,12 +385,20 @@ public partial class IslandWindow : Window
             chip.SetWide(wide);
             _sideChips[i] = chip;
         }
+        // Two on the same side share one longer pill.
+        _sidePairs[0] = Pair(0, 2);
+        _sidePairs[1] = Pair(1, 3);
     }
+
+    private SideChipPair? Pair(int first, int second) => _sideChips[first] is { } a && _sideChips[second] is { } b
+        ? new SideChipPair(a, b, () => OpenSideChip(first), () => OpenSideChip(second))
+        : null;
 
     private void DisposeSideChips()
     {
         foreach (var chip in _sideChips) chip?.Dispose();
         Array.Clear(_sideChips, 0, _sideChips.Length);
+        Array.Clear(_sidePairs, 0, _sidePairs.Length);
     }
 
     private Color AccentColor() =>
@@ -1303,12 +1312,31 @@ public partial class IslandWindow : Window
         }
         Animate(w, h, Roundness * Math.Min(h / 2, 28));
         var sides = t.ShowSideActivities;
-        RenderBubble(Bubble, BubbleContent, sides ? _sideChips[0] : null, h0);
-        RenderBubble(Bubble2, Bubble2Content, sides ? _sideChips[1] : null, h0);
-        RenderBubble(Bubble3, Bubble3Content, sides ? _sideChips[2] : null, h0);
-        RenderBubble(Bubble4, Bubble4Content, sides ? _sideChips[3] : null, h0);
+        RenderSide(Bubble, BubbleContent, Bubble3, Bubble3Content, sides ? _sidePairs[0] : null, sides ? _sideChips[0] : null, sides ? _sideChips[2] : null, h0);
+        RenderSide(Bubble2, Bubble2Content, Bubble4, Bubble4Content, sides ? _sidePairs[1] : null, sides ? _sideChips[1] : null, sides ? _sideChips[3] : null, h0);
         UpdateBubbleOffset();
     }
+
+    /// <summary>One side of the island: a lone activity gets its own pill; two share the nearer pill and the far one hides.</summary>
+    private void RenderSide(PillBorder near, ContentPresenter nearContent, PillBorder far, ContentPresenter farContent,
+        SideChipPair? pair, SideChipViewModel? first, SideChipViewModel? second, double size)
+    {
+        if (pair is not null)
+        {
+            RenderBubble(near, nearContent, pair, size);
+            RenderBubble(far, farContent, null, size);
+            return;
+        }
+        RenderBubble(near, nearContent, first, size);
+        RenderBubble(far, farContent, second, size);
+    }
+
+    private void OpenSideChip(int index)
+    {
+        if (_sideChips[index] is { } chip) SetMode(IslandMode.Expanded, ActivityTab(chip.Activity));
+    }
+
+    private double CellWidth(SideChipViewModel chip) => chip.IsRing ? 30 : SideChipWidth - 12;
 
     private void RenderBubble(PillBorder bubble, ContentPresenter presenter, object? content, double size)
     {
@@ -1326,15 +1354,22 @@ public partial class IslandWindow : Window
             presenter.Content = content;
         }
         var chip = content as SideChipViewModel;
+        var pair = content as SideChipPair;
         var ring = chip?.IsRing == true;
-        var height = ring ? Math.Max(size, 34) : size;
+        var height = ring || pair is { HasRing: true } ? Math.Max(size, 34) : size;
         var wide = _sideActivities.Count >= 3;
         bubble.Height = height;
-        bubble.Width = ring ? height : wide ? SideChipWidth : size;
+        if (pair is not null)
+        {
+            pair.FirstWidth = CellWidth(pair.First);
+            pair.SecondWidth = CellWidth(pair.Second);
+            bubble.Width = pair.FirstWidth + pair.SecondWidth + 8; // two cells with a 2 px margin around each
+        }
+        else bubble.Width = ring ? height : wide ? SideChipWidth : size;
         bubble.ClipToBounds = true;
         bubble.Radius = Roundness * height / 2;
         bubble.Visibility = Visibility.Visible;
-        AutomationProperties.SetName(bubble, chip?.Label ?? "");
+        AutomationProperties.SetName(bubble, pair?.Label ?? chip?.Label ?? "");
     }
 
     private void UpdateBubbleOffset()

@@ -460,6 +460,32 @@
         </DataTemplate.Triggers>
     </DataTemplate>
 
+    <!-- Two side activities on one side: one longer pill, each activity in its own tappable cell. -->
+    <Style x:Key="SideChip.Cell" TargetType="Button">
+        <Setter Property="Cursor" Value="Hand" />
+        <Setter Property="Margin" Value="2" />
+        <Setter Property="FocusVisualStyle" Value="{StaticResource Island.FocusVisual}" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Button">
+                    <ContentPresenter />
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+    <DataTemplate x:Key="SideChipPair.Mini">
+        <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+            <Button Style="{StaticResource SideChip.Cell}" Width="{Binding FirstWidth}" Command="{Binding OpenFirstCommand}"
+                    ToolTip="{Binding First.Label}" AutomationProperties.Name="{Binding First.Label}">
+                <ContentPresenter Content="{Binding First}" ContentTemplate="{StaticResource SideChipViewModel.Mini}" />
+            </Button>
+            <Button Style="{StaticResource SideChip.Cell}" Width="{Binding SecondWidth}" Command="{Binding OpenSecondCommand}"
+                    ToolTip="{Binding Second.Label}" AutomationProperties.Name="{Binding Second.Label}">
+                <ContentPresenter Content="{Binding Second}" ContentTemplate="{StaticResource SideChipViewModel.Mini}" />
+            </Button>
+        </StackPanel>
+    </DataTemplate>
+
     <!-- Used when an activity's view model has no ".Mini" template. -->
     <DataTemplate x:Key="Fallback.Mini">
         <Ellipse Width="8" Height="8" Fill="{DynamicResource Island.Accent}" />

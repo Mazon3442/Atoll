@@ -200,13 +200,13 @@ internal static class CalendarUiTests
             island.UpdateLayout();
             Assert.True(bubble.IsVisible);
             Assert.True(second.IsVisible);
-            Assert.True(third.IsVisible);
-            Assert.True(fourth.IsVisible);
-            // Two capsules on each side of the pill, nearest first.
+            // Four activities: two share one longer pill on each side, so the far pills stay hidden.
+            Assert.False(third.IsVisible);
+            Assert.False(fourth.IsVisible);
             Assert.True(bubble.PointToScreen(new Point()).X >= pill.PointToScreen(new Point(pill.ActualWidth, 0)).X);
-            Assert.True(third.PointToScreen(new Point()).X >= bubble.PointToScreen(new Point(bubble.ActualWidth, 0)).X);
             Assert.True(second.PointToScreen(new Point(second.ActualWidth, 0)).X <= pill.PointToScreen(new Point()).X);
-            Assert.True(fourth.PointToScreen(new Point(fourth.ActualWidth, 0)).X <= second.PointToScreen(new Point()).X);
+            Assert.True(bubble.ActualWidth > 130); // longer than any single capsule
+            Assert.Equal(2, Descendants<Button>(bubble).Count(b => System.Windows.Automation.AutomationProperties.GetName(b).Length > 0));
             var pointer = bubble.PointToScreen(new Point(bubble.ActualWidth / 2, bubble.ActualHeight / 2));
             var compactWidth = pill.ActualWidth;
             for (var i = 0; i < 6; i++) island.OnPointerTick(pointer);
@@ -225,11 +225,10 @@ internal static class CalendarUiTests
             SnapCompact(pill, (ContentPresenter)island.FindName("PillContent"), service.Current.Theme.CompactHeight); island.UpdateLayout();
             ((ContentPresenter)island.FindName("PillContent")).BeginAnimation(UIElement.OpacityProperty, null);
             Drain(); island.UpdateLayout();
-            RenderIsland(pill, bubble, third, second, fourth);
+            RenderIsland(pill, bubble, second);
 
-            // Four activities: non-ring chips use wide capsules, the timer stays a circle.
-            Assert.InRange(bubble.Width, 33, 35);
-            Assert.InRange(third.Width, 117, 119);
+            // Four activities: each side's pill holds a ring (the timer) and a wide capsule: 30 + 106 + 8.
+            Assert.InRange(bubble.Width, 143, 145);
 
             // Two activities: plain dots, no wide capsules. The timer remains a ring.
             island.SetActivitySnapshot(new Activity("calendar.next", "calendar", next, ActivityPriority.High),
