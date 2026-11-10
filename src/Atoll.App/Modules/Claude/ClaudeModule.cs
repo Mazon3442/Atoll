@@ -172,8 +172,12 @@ public sealed class ClaudeModule : IIslandModule
             else action();
         },
         () => _context?.Settings.NotifyChanged(),
+#if AVALONIA
+        () => false)); // the Avalonia shell has no Ask box, so nothing types out
+#else
         () => System.Windows.SystemParameters.ClientAreaAnimation
             && _context?.Settings.Current.Theme.Motion != Settings.MotionStyle.Off));
+#endif
 
     public object? Panel => _vm;
 

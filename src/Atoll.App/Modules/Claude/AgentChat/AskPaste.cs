@@ -1,3 +1,5 @@
+// Clipboard paste and thumbnails are WPF; the Avalonia shell compiles this folder but has no Ask box to paste into.
+#if !AVALONIA
 using System.Globalization;
 using System.IO;
 using System.Windows;
@@ -117,3 +119,4 @@ public sealed class AskImageThumbnail : IValueConverter
 
     public object ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture) => throw new NotSupportedException();
 }
+#endif
