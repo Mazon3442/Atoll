@@ -36,7 +36,7 @@
                     TextElement.Foreground="{DynamicResource TextFillColorPrimaryBrush}"
                     PreviewKeyDown="OnFlyoutKeyDown" KeyboardNavigation.TabNavigation="Cycle">
                 <StackPanel>
-                    <TextBlock Text="{Binding Label, ElementName=Picker}" FontSize="15" FontWeight="SemiBold" Margin="0,0,0,14" />
+                    <TextBlock Text="{Binding Label, ElementName=Picker}" FontSize="14" FontWeight="SemiBold" Margin="0,0,0,14" />
                     <s:ColorSquare x:Name="Square" Height="150" ColorChanged="OnSquareChanged" Margin="0,0,0,14"
                                    AutomationProperties.Name="Saturation and brightness"
                                    AutomationProperties.HelpText="Left and right adjust saturation. Up and down adjust brightness. RGB fields are also available." />

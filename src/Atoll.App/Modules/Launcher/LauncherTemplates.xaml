@@ -51,12 +51,12 @@
                     </DockPanel>
                 </Border>
 
-                <TextBlock Grid.Row="1" Text="{Binding Apps.Status}" FontSize="10" Margin="4,0,0,5"
-                           Foreground="{DynamicResource Island.Subtle}" />
-
-                <Grid Grid.Row="2">
+                <Grid Grid.Row="2" Margin="0,6,0,0">
                     <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Focusable="False" MaxHeight="240">
                         <ItemsControl ItemsSource="{Binding Apps.FilteredApps}" Focusable="False" Margin="0,0,6,0">
+                            <ItemsControl.ItemsPanel>
+                                <ItemsPanelTemplate><UniformGrid Columns="2" /></ItemsPanelTemplate>
+                            </ItemsControl.ItemsPanel>
                             <ItemsControl.ItemTemplate>
                                 <DataTemplate>
                                     <Button Style="{StaticResource Island.RowButton}"
@@ -64,15 +64,24 @@
                                             CommandParameter="{Binding}"
                                             AutomationProperties.Name="{Binding Name, StringFormat=Open {0}}">
                                         <DockPanel>
-                                            <Border DockPanel.Dock="Left" Width="28" Height="28" CornerRadius="7"
-                                                    Background="{DynamicResource Island.Surface}" Margin="0,0,9,0">
-                                                <TextBlock Text="{Binding Initial}" FontSize="13" FontWeight="SemiBold"
-                                                           HorizontalAlignment="Center" VerticalAlignment="Center" />
-                                            </Border>
-                                            <TextBlock DockPanel.Dock="Right" Text="{Binding Source}" FontSize="10"
-                                                       Foreground="{DynamicResource Island.Subtle}" VerticalAlignment="Center"
-                                                       Margin="8,0,0,0" TextTrimming="CharacterEllipsis" MaxWidth="90" />
-                                            <TextBlock Text="{Binding Name}" FontSize="12.5" TextTrimming="CharacterEllipsis"
+                                            <Grid DockPanel.Dock="Left" Width="28" Height="28" Margin="0,0,10,0">
+                                                <Border CornerRadius="7" Background="{DynamicResource Island.Surface}">
+                                                    <Border.Style>
+                                                        <Style TargetType="Border">
+                                                            <Setter Property="Visibility" Value="Collapsed" />
+                                                            <Style.Triggers>
+                                                                <DataTrigger Binding="{Binding Icon}" Value="{x:Null}">
+                                                                    <Setter Property="Visibility" Value="Visible" />
+                                                                </DataTrigger>
+                                                            </Style.Triggers>
+                                                        </Style>
+                                                    </Border.Style>
+                                                    <TextBlock Text="{Binding Initial}" FontSize="13" FontWeight="SemiBold"
+                                                               HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                                </Border>
+                                                <Image Source="{Binding Icon}" Stretch="Uniform" RenderOptions.BitmapScalingMode="HighQuality" />
+                                            </Grid>
+                                            <TextBlock Text="{Binding Name}" FontSize="13" TextTrimming="CharacterEllipsis"
                                                        VerticalAlignment="Center" />
                                         </DockPanel>
                                     </Button>

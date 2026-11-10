@@ -19,7 +19,7 @@
                 </ListBox>
             </Border>
 
-            <TextBlock Text="{Binding Message}" FontSize="10" Foreground="{DynamicResource Island.Subtle}" Margin="4,0,0,6">
+            <TextBlock Text="{Binding Message}" FontSize="11" Foreground="{DynamicResource Island.Subtle}" Margin="4,0,0,6">
                 <TextBlock.Style>
                     <Style TargetType="TextBlock">
                         <Style.Triggers>
@@ -53,8 +53,6 @@
                 </Grid>
 
                 <DockPanel Grid.Row="1" Margin="0,8,0,8">
-                    <TextBlock Text="{Binding NoteHint}" FontSize="10" Foreground="{DynamicResource Island.Subtle}"
-                               VerticalAlignment="Center" Margin="4,0,0,0" />
                     <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
                         <Button Style="{StaticResource Island.ChipButton}" Content="{Binding NoteButtonLabel}"
                                 Command="{Binding SaveNoteCommand}" Margin="0,0,6,0" />
@@ -81,8 +79,8 @@
                                                         CommandParameter="{Binding}" ToolTip="Delete note" AutomationProperties.Name="Delete note" />
                                             </StackPanel>
                                             <StackPanel Margin="0,0,8,0">
-                                                <TextBlock Text="{Binding Text}" FontSize="12.5" TextWrapping="Wrap" MaxHeight="54" TextTrimming="CharacterEllipsis" />
-                                                <TextBlock Text="{Binding UpdatedText}" FontSize="10" Foreground="{DynamicResource Island.Subtle}" Margin="0,3,0,0" />
+                                                <TextBlock Text="{Binding Text}" FontSize="13" TextWrapping="Wrap" MaxHeight="54" TextTrimming="CharacterEllipsis" />
+                                                <TextBlock Text="{Binding UpdatedText}" FontSize="11" Foreground="{DynamicResource Island.Subtle}" Margin="0,3,0,0" />
                                             </StackPanel>
                                         </DockPanel>
                                     </Border>
@@ -135,7 +133,7 @@
                                                       VerticalAlignment="Center" Margin="0,0,9,0"
                                                       AutomationProperties.Name="{Binding Title, StringFormat=Complete {0}}" />
                                             <StackPanel VerticalAlignment="Center">
-                                                <TextBlock Text="{Binding Title}" FontSize="12.5" TextTrimming="CharacterEllipsis">
+                                                <TextBlock Text="{Binding Title}" FontSize="13" TextTrimming="CharacterEllipsis">
                                                     <TextBlock.Style>
                                                         <Style TargetType="TextBlock">
                                                             <Style.Triggers>
@@ -147,7 +145,7 @@
                                                         </Style>
                                                     </TextBlock.Style>
                                                 </TextBlock>
-                                                <TextBlock Text="{Binding DueText}" FontSize="10" Margin="0,2,0,0">
+                                                <TextBlock Text="{Binding DueText}" FontSize="11" Margin="0,2,0,0">
                                                     <TextBlock.Style>
                                                         <Style TargetType="TextBlock">
                                                             <Setter Property="Foreground" Value="{DynamicResource Island.Subtle}" />
@@ -210,7 +208,7 @@
                                             <CheckBox Style="{StaticResource Island.Check}" IsChecked="{Binding Done, Mode=TwoWay}"
                                                       VerticalAlignment="Center" Margin="0,0,9,0"
                                                       AutomationProperties.Name="{Binding Text, StringFormat=Complete {0}}" />
-                                            <TextBlock Text="{Binding Text}" FontSize="12.5" VerticalAlignment="Center" TextTrimming="CharacterEllipsis">
+                                            <TextBlock Text="{Binding Text}" FontSize="13" VerticalAlignment="Center" TextTrimming="CharacterEllipsis">
                                                 <TextBlock.Style>
                                                     <Style TargetType="TextBlock">
                                                         <Style.Triggers>

@@ -17,8 +17,6 @@
                 <DockPanel DockPanel.Dock="Top" Margin="0,0,0,6">
                     <Button DockPanel.Dock="Right" Style="{StaticResource Island.ChipButton}" Content="Clear" Margin="0"
                             Command="{Binding ClearCommand}" AutomationProperties.Name="Clear clipboard history" />
-                    <TextBlock Text="Click or press Enter to copy again" FontSize="12" Foreground="{DynamicResource Island.Subtle}"
-                               VerticalAlignment="Center" />
                 </DockPanel>
                 <ScrollViewer VerticalScrollBarVisibility="Auto">
                     <ItemsControl ItemsSource="{Binding Items}">
@@ -47,7 +45,7 @@
                                     </Button.Template>
                                     <DockPanel>
                                         <!-- The row owns focus; Delete is the keyboard route to removal. -->
-                                        <Button DockPanel.Dock="Right" Style="{StaticResource Island.IconButton}" Width="22" Height="22" FontSize="9"
+                                        <Button DockPanel.Dock="Right" Style="{StaticResource Island.IconButton}" Width="22" Height="22" FontSize="11"
                                                 Content="&#xE711;" ToolTip="Remove" Focusable="False" Command="{Binding RemoveCommand}"
                                                 AutomationProperties.Name="Remove" />
                                         <TextBlock DockPanel.Dock="Right" Text="{Binding TimeText}" FontSize="11" Margin="8,0"

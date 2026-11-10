@@ -74,7 +74,7 @@ public sealed partial class NotesViewModel : ObservableObject, IDisposable
     private string _todoDraft = "";
 
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(NoteButtonLabel), nameof(NoteHint))]
+    [NotifyPropertyChangedFor(nameof(NoteButtonLabel))]
     private bool _editingNote;
 
     [ObservableProperty] private string _message = "";
@@ -86,7 +86,6 @@ public sealed partial class NotesViewModel : ObservableObject, IDisposable
     public bool HasReminderTitle => ReminderTitle.Length > 0;
     public bool HasTodoDraft => TodoDraft.Length > 0;
     public string NoteButtonLabel => EditingNote ? "Save note" : "Add note";
-    public string NoteHint => EditingNote ? "Editing a saved note · Ctrl+Enter saves" : "Ctrl+Enter saves";
 
     [RelayCommand(CanExecute = nameof(CanSaveNote))]
     private void SaveNote()

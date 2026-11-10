@@ -50,7 +50,7 @@
                                 <Border Background="{DynamicResource Island.Menu}" BorderBrush="{DynamicResource Island.Hover}"
                                         BorderThickness="1" CornerRadius="12" Padding="6" MinWidth="210">
                                     <StackPanel>
-                                        <TextBlock x:Name="FocusPopupTitle" Text="Do Not Disturb" FontSize="10" FontWeight="Bold"
+                                        <TextBlock x:Name="FocusPopupTitle" Text="Do Not Disturb" FontSize="11" FontWeight="Bold"
                                                    Foreground="{DynamicResource Island.Subtle}" Margin="8,6,8,4" TextWrapping="Wrap" />
                                         <Button Style="{StaticResource Island.RowButton}" Content="For 30 minutes" Click="OnFocus30" />
                                         <Button Style="{StaticResource Island.RowButton}" Content="For 1 hour" Click="OnFocus60" />
@@ -177,7 +177,7 @@
                                     <Border Background="{DynamicResource Island.Menu}" BorderBrush="{DynamicResource Island.Hover}"
                                             BorderThickness="1" CornerRadius="12" Padding="4" MinWidth="200" MaxHeight="360">
                                         <StackPanel>
-                                            <TextBlock Text="Outside the top row" FontSize="10" FontWeight="Bold"
+                                            <TextBlock Text="Outside the top row" FontSize="11" FontWeight="Bold"
                                                        Foreground="{DynamicResource Island.Subtle}" Margin="8,6,8,4" />
                                             <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
                                                 <ListBox x:Name="TabMenu"

@@ -70,7 +70,7 @@
                                     <Border CornerRadius="10" Padding="10,6" Margin="0,0,0,4" Background="{DynamicResource Island.Hover}">
                                         <DockPanel>
                                             <Button DockPanel.Dock="Right" Style="{StaticResource Island.IconButton}" Content="&#xE711;"
-                                                    Width="24" Height="24" FontSize="10" ToolTip="Dismiss"
+                                                    Width="24" Height="24" FontSize="11" ToolTip="Dismiss"
                                                     Command="{Binding DismissCommand}" AutomationProperties.Name="Dismiss" />
                                             <Button DockPanel.Dock="Right" Style="{StaticResource Island.IconButton}" Content="&#xE7ED;"
                                                     Width="24" Height="24" FontSize="11" ToolTip="Mute this app"

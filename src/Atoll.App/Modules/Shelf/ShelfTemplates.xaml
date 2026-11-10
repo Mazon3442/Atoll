@@ -14,8 +14,6 @@
                         <TextBlock Text="&#xE7B8;" FontFamily="{StaticResource Island.IconFont}" FontSize="26"
                                    HorizontalAlignment="Center" Foreground="{DynamicResource Island.Subtle}" />
                         <TextBlock Text="Drop files here to keep them handy" FontSize="13" Margin="0,8,0,0" TextWrapping="Wrap" TextAlignment="Center" />
-                        <TextBlock Text="Drag them back out to any app" FontSize="11" TextWrapping="Wrap" TextAlignment="Center"
-                                   Foreground="{DynamicResource Island.Subtle}" />
                     </StackPanel>
                 </Grid>
 
@@ -46,14 +44,12 @@
                                                 <Image Source="{Binding Icon}" Width="32" Height="32" Margin="0,4,0,4" />
                                                 <TextBlock Text="{Binding Name}" FontSize="11" TextAlignment="Center" TextTrimming="CharacterEllipsis"
                                                            TextWrapping="Wrap" MaxHeight="30" />
-                                                <TextBlock Text="{Binding Detail}" FontSize="10" TextAlignment="Center" TextTrimming="CharacterEllipsis"
-                                                           Foreground="{DynamicResource Island.Subtle}" />
                                             </StackPanel>
                                             <StackPanel x:Name="Actions" Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Top"
                                                         Margin="0,-4,-4,0" Visibility="Collapsed">
-                                                <Button Style="{StaticResource Island.IconButton}" Width="20" Height="20" FontSize="9" Content="&#xE838;"
+                                                <Button Style="{StaticResource Island.IconButton}" Width="20" Height="20" FontSize="11" Content="&#xE838;"
                                                         ToolTip="Show in folder" Command="{Binding RevealCommand}" AutomationProperties.Name="Show in folder" />
-                                                <Button Style="{StaticResource Island.IconButton}" Width="20" Height="20" FontSize="9" Content="&#xE711;"
+                                                <Button Style="{StaticResource Island.IconButton}" Width="20" Height="20" FontSize="11" Content="&#xE711;"
                                                         ToolTip="Remove from shelf" Command="{Binding RemoveCommand}" AutomationProperties.Name="Remove from shelf" />
                                             </StackPanel>
                                         </Grid>

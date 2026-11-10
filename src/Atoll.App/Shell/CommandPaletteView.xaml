@@ -12,7 +12,7 @@
             <DockPanel>
                 <TextBlock DockPanel.Dock="Left" Text="&#xE721;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" FontSize="14"
                            Foreground="{DynamicResource Island.Subtle}" VerticalAlignment="Center" />
-                <TextBlock DockPanel.Dock="Right" Text="Esc" FontSize="10" Foreground="{DynamicResource Island.Subtle}"
+                <TextBlock DockPanel.Dock="Right" Text="Esc" FontSize="11" Foreground="{DynamicResource Island.Subtle}"
                            VerticalAlignment="Center" Margin="10,0,2,0" />
                 <Grid Margin="10,0,8,0">
                     <TextBox x:Name="SearchBox" Background="Transparent" BorderThickness="0" FontSize="14"
@@ -61,7 +61,7 @@
                                                Visibility="{Binding ShowInitial, Converter={StaticResource Island.BoolToVisibility}}" />
                                 </Grid>
                             </Border>
-                            <TextBlock DockPanel.Dock="Right" Text="{Binding Detail}" FontSize="10"
+                            <TextBlock DockPanel.Dock="Right" Text="{Binding Detail}" FontSize="11"
                                        Foreground="{DynamicResource Island.Subtle}" VerticalAlignment="Center" Margin="10,0,2,0" />
                             <TextBlock Text="{Binding Title}" FontSize="13" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
                         </DockPanel>

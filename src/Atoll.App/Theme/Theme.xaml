@@ -192,7 +192,7 @@
                                 <Border x:Name="Bg" Background="Transparent" CornerRadius="6" Padding="8,5">
                                     <DockPanel>
                                         <TextBlock x:Name="Check" DockPanel.Dock="Right" Text="&#xE73E;" FontFamily="{StaticResource Island.IconFont}"
-                                                   FontSize="10" Margin="12,0,0,0" VerticalAlignment="Center"
+                                                   FontSize="11" Margin="12,0,0,0" VerticalAlignment="Center"
                                                    Foreground="{DynamicResource Island.AccentText}" Visibility="Hidden" />
                                         <ContentPresenter VerticalAlignment="Center" />
                                     </DockPanel>

@@ -30,7 +30,7 @@
         <s:EmptyToCollapsedConverter x:Key="EmptyToCollapsed" />
 
         <Style x:Key="SectionHeader" TargetType="TextBlock">
-            <Setter Property="FontSize" Value="15" />
+            <Setter Property="FontSize" Value="14" />
             <Setter Property="FontWeight" Value="SemiBold" />
             <Setter Property="Margin" Value="2,26,0,10" />
         </Style>
@@ -262,7 +262,7 @@
                 <Border Width="30" Height="30" CornerRadius="6.6" BorderThickness="1" BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}">
                     <Image Source="{StaticResource Atoll.LogoSmall}" AutomationProperties.Name="ATOLL logo" />
                 </Border>
-                <TextBlock Text="ATOLL" FontSize="17" FontWeight="SemiBold" Margin="12,0,0,0" VerticalAlignment="Center" />
+                <TextBlock Text="ATOLL" FontSize="16" FontWeight="SemiBold" Margin="12,0,0,0" VerticalAlignment="Center" />
             </StackPanel>
             <TextBlock DockPanel.Dock="Bottom" Text="Settings" Style="{StaticResource Hint}" Margin="14,12,0,0" />
             <ListBox ItemsSource="{Binding Pages}" SelectedIndex="{Binding PageIndex}" ItemContainerStyle="{StaticResource NavItem}"
@@ -284,7 +284,7 @@
         <!-- Page -->
         <DockPanel Grid.Column="1">
             <StackPanel DockPanel.Dock="Top" Margin="28,26,28,12">
-                <TextBlock Text="{Binding PageTitle}" FontSize="28" FontWeight="SemiBold" />
+                <TextBlock Text="{Binding PageTitle}" FontSize="24" FontWeight="SemiBold" />
                 <TextBlock Text="{Binding PageDescription}" Style="{StaticResource Hint}" Margin="0,6,0,0" />
             </StackPanel>
             <ScrollViewer x:Name="PageScroll" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Padding="0,0,6,0">
@@ -467,7 +467,7 @@
                         </s:SettingCard>
 
                         <Expander Margin="0,16,0,0" AutomationProperties.Name="Theme presets">
-                            <Expander.Header><TextBlock Text="Theme presets" FontSize="15" FontWeight="SemiBold" /></Expander.Header>
+                            <Expander.Header><TextBlock Text="Theme presets" FontSize="14" FontWeight="SemiBold" /></Expander.Header>
                         <ItemsControl x:Name="ThemeGallery" ItemsSource="{Binding Themes}" Margin="0,12,0,0">
                             <ItemsControl.ItemsPanel>
                                 <ItemsPanelTemplate>
@@ -483,7 +483,7 @@
                                                     BorderBrush="#22808080" BorderThickness="1">
                                                 <Grid Margin="10,0">
                                                     <TextBlock Text="Aa" Foreground="{Binding Preset.Foreground}" FontWeight="SemiBold"
-                                                               FontSize="15" VerticalAlignment="Center" />
+                                                               FontSize="14" VerticalAlignment="Center" />
                                                     <Ellipse Width="12" Height="12" Fill="{Binding Preset.Accent}" HorizontalAlignment="Right" />
                                                 </Grid>
                                             </Border>
@@ -496,7 +496,7 @@
                                                         Command="{Binding DataContext.DeleteThemeCommand, ElementName=ThemeGallery}" CommandParameter="{Binding}"
                                                         Visibility="{Binding IsCustom, Converter={StaticResource BoolToVisibility}}"
                                                         AutomationProperties.Name="{Binding Preset.Name, StringFormat=Delete theme {0}}" />
-                                                <TextBlock DockPanel.Dock="Right" Text="Glass" FontSize="10" VerticalAlignment="Center"
+                                                <TextBlock DockPanel.Dock="Right" Text="Glass" FontSize="11" VerticalAlignment="Center"
                                                            Foreground="{DynamicResource TextFillColorSecondaryBrush}"
                                                            Visibility="{Binding Preset.Glass, Converter={StaticResource BoolToVisibility}}" />
                                                 <TextBlock Text="{Binding Preset.Name}" FontSize="12" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"

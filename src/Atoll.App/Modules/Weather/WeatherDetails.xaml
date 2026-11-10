@@ -105,7 +105,7 @@
                         </Grid>
                     </DataTemplate></ListBox.ItemTemplate>
                 </ListBox>
-                <TextBlock Text="{Binding Updated}" FontSize="10" Opacity="0.8" TextWrapping="Wrap" Margin="8,8,4,0" ToolTip="Forecast times are local to this place." />
+                <TextBlock Text="{Binding Updated}" FontSize="11" Opacity="0.8" TextWrapping="Wrap" Margin="8,8,4,0" ToolTip="Forecast times are local to this place." />
             </StackPanel>
         </StackPanel>
     </ScrollViewer>

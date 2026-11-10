@@ -31,6 +31,11 @@ public static class ShellIcons
 
     public static BitmapSource? For(string path)
     {
+        lock (Cache) return Load(path); // the Launcher scans on a background thread, the Shelf asks on the UI thread
+    }
+
+    private static BitmapSource? Load(string path)
+    {
         var ext = Path.GetExtension(path);
         var key = Directory.Exists(path) || ext is ".exe" or ".lnk" or ".ico" or ".url" || ext.Length == 0 ? path : ext;
         if (Cache.TryGetValue(key, out var cached)) return cached;

@@ -13,6 +13,9 @@ namespace Atoll.Modules.Launcher;
 /// <summary>One Start Menu shortcut. The path is a .lnk or .url opened through the shell.</summary>
 public sealed record LauncherApp(string Name, string LaunchPath, string Source)
 {
+    /// <summary>The shortcut's own icon, read while scanning; null shows the initial instead.</summary>
+    public System.Windows.Media.ImageSource? Icon { get; init; }
+
     public string Initial => Name.Length > 0 ? Name[..1].ToUpper(CultureInfo.CurrentCulture) : "?";
 }
 
@@ -60,7 +63,7 @@ internal static class LauncherScanner
                 var source = string.IsNullOrEmpty(folder) || folder == "."
                     ? "Start Menu"
                     : folder.Split(Path.DirectorySeparatorChar, StringSplitOptions.RemoveEmptyEntries)[0];
-                apps.TryAdd(name, new LauncherApp(name, file, source));
+                apps.TryAdd(name, new LauncherApp(name, file, source) { Icon = Atoll.Shell.ShellIcons.For(file) });
             }
         }
         return apps.Values.OrderBy(app => app.Name, StringComparer.CurrentCultureIgnoreCase).ToList();

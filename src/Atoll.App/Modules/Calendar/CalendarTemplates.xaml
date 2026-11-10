@@ -153,7 +153,7 @@
                                           TextElement.FontFamily="{StaticResource Island.IconFont}" TextElement.FontSize="11"
                                           TextElement.Foreground="{DynamicResource Island.AccentText}"
                                           Margin="6,0,0,0" VerticalAlignment="Center" Visibility="Collapsed" />
-                        <TextBlock x:Name="Title" Text="{Binding Event.DisplayTitle}" FontSize="12.5" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
+                        <TextBlock x:Name="Title" Text="{Binding Event.DisplayTitle}" FontSize="13" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
                     </DockPanel>
                     <TextBlock x:Name="Detail" Text="{Binding Event.Detail}" FontSize="11" TextTrimming="CharacterEllipsis"
                                Foreground="{DynamicResource Island.Subtle}" />
@@ -220,7 +220,7 @@
                 <StackPanel VerticalAlignment="Top" Margin="0,1,10,0">
                     <TextBlock x:Name="Time" Text="{Binding Event.StartText}" FontSize="12" FontWeight="SemiBold"
                                TextTrimming="CharacterEllipsis" />
-                    <TextBlock x:Name="Duration" Text="{Binding Event.DurationText}" FontSize="10" Margin="0,2,0,0"
+                    <TextBlock x:Name="Duration" Text="{Binding Event.DurationText}" FontSize="11" Margin="0,2,0,0"
                                Foreground="{DynamicResource Island.Subtle}" />
                 </StackPanel>
                 <Border Grid.Column="1" Width="3" CornerRadius="1.5" Background="{Binding Event.Color}" Margin="0,1,10,1" />
@@ -310,7 +310,7 @@
                                 Command="{Binding PreviousMonthCommand}" ToolTip="Previous month" AutomationProperties.Name="Previous month" />
                         <Button DockPanel.Dock="Right" Style="{StaticResource Island.ChipButton}" Content="Today" Margin="0,0,6,0"
                                 Padding="10,3" FontSize="11" Command="{Binding TodayCommand}" AutomationProperties.Name="Go to today" />
-                        <TextBlock Text="{Binding MonthTitle}" FontSize="17" FontWeight="SemiBold" VerticalAlignment="Center" />
+                        <TextBlock Text="{Binding MonthTitle}" FontSize="16" FontWeight="SemiBold" VerticalAlignment="Center" />
                     </DockPanel>
 
                     <ItemsControl ItemsSource="{x:Static cal:CalendarViewModel.WeekdayInitials}" Focusable="False" Margin="0,0,0,4">
@@ -339,7 +339,7 @@
                         </ListBox.ItemsPanel>
                     </ListBox>
 
-                    <TextBlock Text="{Binding Status}" FontSize="10" TextWrapping="Wrap" Margin="2,6,4,0"
+                    <TextBlock Text="{Binding Status}" FontSize="11" TextWrapping="Wrap" Margin="2,6,4,0"
                                Foreground="{DynamicResource Island.Subtle}">
                         <TextBlock.Style>
                             <Style TargetType="TextBlock">

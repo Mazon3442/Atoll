@@ -111,7 +111,7 @@
                             <ItemsControl.ItemTemplate>
                                 <DataTemplate>
                                     <!-- The sung line reads like Apple Music: bold and bright, the rest still legible. -->
-                                    <TextBlock Text="{Binding Text}" FontSize="15" TextWrapping="Wrap" Margin="0,4"
+                                    <TextBlock Text="{Binding Text}" FontSize="14" TextWrapping="Wrap" Margin="0,4"
                                                Foreground="{DynamicResource Island.Foreground}">
                                         <TextBlock.Style>
                                             <Style TargetType="TextBlock">
@@ -149,16 +149,8 @@
 
                 <StackPanel Grid.Column="1" Margin="16,0,0,0" VerticalAlignment="Center">
                     <DockPanel>
-                        <ContentPresenter DockPanel.Dock="Right" Content="{Binding}" ContentTemplate="{StaticResource Media.Bars}"
-                                          VerticalAlignment="Center" />
-                        <TextBlock Text="{Binding Title}" FontSize="17" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
-                    </DockPanel>
-                    <TextBlock Text="{Binding Artist}" FontSize="13" Foreground="{DynamicResource Island.Subtle}"
-                               TextTrimming="CharacterEllipsis" />
-                    <DockPanel Margin="-6,1,0,0">
-                        <!-- Lyrics on/off: the same switch as Settings › Modules › Media. -->
                         <Button DockPanel.Dock="Right" Command="{Binding ToggleLyricsCommand}"
-                                      Width="26" Height="26" Margin="4,0,0,0" Cursor="Hand" ToolTip="Show or hide synced lyrics"
+                                      Width="26" Height="26" Margin="8,0,0,0" VerticalAlignment="Center" Cursor="Hand" ToolTip="Show or hide synced lyrics"
                                       Foreground="{DynamicResource Island.Foreground}" Background="Transparent"
                                       AutomationProperties.Name="Lyrics" FocusVisualStyle="{StaticResource Island.FocusVisual}">
                             <Button.Template>
@@ -182,20 +174,27 @@
                                 </ControlTemplate>
                             </Button.Template>
                         </Button>
-                        <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="{Binding Title}" FontSize="16" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
+                    </DockPanel>
+                    <TextBlock Text="{Binding Artist}" FontSize="13" Foreground="{DynamicResource Island.Subtle}"
+                               TextTrimming="CharacterEllipsis" />
+                    <Grid Margin="-6,8,0,0">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
                         <ContentPresenter Content="{Binding}" ContentTemplate="{StaticResource Media.SourcePicker}" />
-                        <ComboBox Style="{StaticResource Island.Picker}" ItemsSource="{Binding Outputs}" Margin="4,0,0,0"
-                                  SelectedItem="{Binding SelectedOutput, Mode=TwoWay}" Tag="Output" MaxWidth="150"
+                        <ComboBox Grid.Column="1" Style="{StaticResource Island.Picker}" ItemsSource="{Binding Outputs}" Margin="4,0,0,0"
+                                  HorizontalAlignment="Left" SelectedItem="{Binding SelectedOutput, Mode=TwoWay}" Tag="Output" MaxWidth="200"
                                   AutomationProperties.Name="Audio output" ToolTip="Play through another speaker or headphones"
                                   Visibility="{Binding HasOutputs, Converter={StaticResource Island.BoolToVisibility}}">
                             <ComboBox.ItemTemplate>
                                 <DataTemplate><TextBlock Text="{Binding Name}" TextTrimming="CharacterEllipsis" /></DataTemplate>
                             </ComboBox.ItemTemplate>
                         </ComboBox>
-                        </StackPanel>
-                    </DockPanel>
+                    </Grid>
 
-                    <StackPanel Margin="0,6,0,0" Visibility="{Binding HasTimeline, Converter={StaticResource Island.BoolToVisibility}}">
+                    <StackPanel Margin="0,10,0,0" Visibility="{Binding HasTimeline, Converter={StaticResource Island.BoolToVisibility}}">
                         <Slider Minimum="0" Maximum="1"
                                 IsMoveToPointEnabled="True" Loaded="SeekLoaded"
                                 Value="{Binding Progress, Mode=OneWay}" IsEnabled="{Binding CanSeek}"
@@ -222,7 +221,7 @@
                         </DockPanel>
                     </StackPanel>
 
-                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,4,0,0">
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,6,0,0">
                         <Button Style="{StaticResource Island.IconButton}" Content="&#xE892;" Width="36" Height="36" FontSize="16"
                                 Command="{Binding PreviousCommand}" ToolTip="Previous" AutomationProperties.Name="Previous track" />
                         <Button Width="34" Height="34" FontSize="20" Margin="10,0"

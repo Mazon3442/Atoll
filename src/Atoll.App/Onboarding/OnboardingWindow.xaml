@@ -163,7 +163,7 @@
             <Border Width="30" Height="30" CornerRadius="8" BorderThickness="1" BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}">
                 <Image Source="{StaticResource Atoll.Logo}" />
             </Border>
-            <TextBlock Text="ATOLL" FontSize="15" FontWeight="SemiBold" VerticalAlignment="Center" Margin="10,0,0,0" />
+            <TextBlock Text="ATOLL" FontSize="14" FontWeight="SemiBold" VerticalAlignment="Center" Margin="10,0,0,0" />
         </StackPanel>
 
         <!-- Welcome: the island itself is the hero, not a row of feature cards. -->
@@ -179,8 +179,8 @@
                                     <shell:Icon Kind="music" Size="14" Foreground="#ECECF1" />
                                 </Border>
                                 <StackPanel Margin="9,0,14,0" VerticalAlignment="Center">
-                                    <TextBlock Text="Now playing" FontSize="11.5" FontWeight="SemiBold" Foreground="#F4F4F7" />
-                                    <TextBlock Text="Media" FontSize="10" Foreground="#8D8D96" />
+                                    <TextBlock Text="Now playing" FontSize="11" FontWeight="SemiBold" Foreground="#F4F4F7" />
+                                    <TextBlock Text="Media" FontSize="11" Foreground="#8D8D96" />
                                 </StackPanel>
                                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                                     <Rectangle Width="2" Height="8" RadiusX="1" RadiusY="1" Margin="1,0" Fill="{DynamicResource AccentFillColorDefaultBrush}" />
@@ -207,7 +207,7 @@
                             </StackPanel>
                         </Border>
                     </StackPanel>
-                    <TextBlock Text="The island at the top edge" FontSize="10.5" Foreground="#787881"
+                    <TextBlock Text="The island at the top edge" FontSize="11" Foreground="#787881"
                                HorizontalAlignment="Left" VerticalAlignment="Bottom" Margin="18,0,0,14" />
                 </Grid>
             </Border>
@@ -229,7 +229,7 @@
                 <StackPanel Grid.Column="0" Margin="0,0,24,0">
                     <StackPanel Orientation="Horizontal">
                         <shell:Icon Kind="activity" Size="15" Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
-                        <TextBlock Text="Live" FontWeight="SemiBold" FontSize="12.5" Margin="8,0,0,0" />
+                        <TextBlock Text="Live" FontWeight="SemiBold" FontSize="13" Margin="8,0,0,0" />
                     </StackPanel>
                     <TextBlock Style="{StaticResource Hint}" FontSize="12" LineHeight="17" Margin="0,6,0,0"
                                Text="Music, timers and calls share one pill." />
@@ -239,7 +239,7 @@
                 <StackPanel Grid.Column="2" Margin="24,0">
                     <StackPanel Orientation="Horizontal">
                         <shell:Icon Kind="grid" Size="15" Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
-                        <TextBlock Text="Yours" FontWeight="SemiBold" FontSize="12.5" Margin="8,0,0,0" />
+                        <TextBlock Text="Yours" FontWeight="SemiBold" FontSize="13" Margin="8,0,0,0" />
                     </StackPanel>
                     <TextBlock Style="{StaticResource Hint}" FontSize="12" LineHeight="17" Margin="0,6,0,0"
                                Text="Star tabs for the top row. The rest wait in the ⋯ menu." />
@@ -249,7 +249,7 @@
                 <StackPanel Grid.Column="4" Margin="24,0,0,0">
                     <StackPanel Orientation="Horizontal">
                         <shell:Icon Kind="lock" Size="15" Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
-                        <TextBlock Text="On this PC" FontWeight="SemiBold" FontSize="12.5" Margin="8,0,0,0" />
+                        <TextBlock Text="On this PC" FontWeight="SemiBold" FontSize="13" Margin="8,0,0,0" />
                     </StackPanel>
                     <TextBlock Style="{StaticResource Hint}" FontSize="12" LineHeight="17" Margin="0,6,0,0"
                                Text="Notes, files and settings never leave your machine." />
@@ -266,7 +266,7 @@
             </Grid.RowDefinitions>
 
             <StackPanel Margin="0,0,0,14">
-                <TextBlock Text="Pick your top row" FontSize="26" FontWeight="SemiBold" />
+                <TextBlock Text="Pick your top row" FontSize="24" FontWeight="SemiBold" />
                 <TextBlock Style="{StaticResource Hint}" MaxWidth="680" HorizontalAlignment="Left" TextAlignment="Left" Margin="0,6,0,0"
                            Text="Star the tabs you want at the top. Unstarred tabs stay on in the ⋯ menu, and you can change this any time in Settings › Modules." />
             </StackPanel>
@@ -294,7 +294,7 @@
                             </ItemsControl.ItemTemplate>
                         </ItemsControl>
                     </Viewbox>
-                    <TextBlock Text="Star a tab below to start the top row." FontSize="11.5" Foreground="#787881"
+                    <TextBlock Text="Star a tab below to start the top row." FontSize="11" Foreground="#787881"
                                VerticalAlignment="Center" Margin="2,0,0,0"
                                Visibility="{Binding HasTopRow, Converter={StaticResource Island.InverseBoolToVisibility}}" />
                 </Grid>
@@ -339,7 +339,7 @@
             <Border CornerRadius="16" Background="#0A0A0D" BorderBrush="#26262D" BorderThickness="1"
                     Padding="18,16" AutomationProperties.Name="Your top row">
                 <StackPanel>
-                    <TextBlock Text="Your top row" FontSize="10.5" Foreground="#787881" Margin="0,0,0,10" />
+                    <TextBlock Text="Your top row" FontSize="11" Foreground="#787881" Margin="0,0,0,10" />
                     <ItemsControl ItemsSource="{Binding TopRowPreview}" Focusable="False">
                         <ItemsControl.ItemsPanel>
                             <ItemsPanelTemplate><WrapPanel /></ItemsPanelTemplate>
@@ -358,7 +358,7 @@
                             </DataTemplate>
                         </ItemsControl.ItemTemplate>
                     </ItemsControl>
-                    <TextBlock Text="No tabs starred. Everything stays in the ⋯ menu." FontSize="11.5" Foreground="#787881"
+                    <TextBlock Text="No tabs starred. Everything stays in the ⋯ menu." FontSize="11" Foreground="#787881"
                                Visibility="{Binding HasTopRow, Converter={StaticResource Island.InverseBoolToVisibility}}" />
                 </StackPanel>
             </Border>
