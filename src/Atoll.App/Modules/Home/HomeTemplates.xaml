@@ -211,7 +211,7 @@
                                                Visibility="{Binding IsActive, Converter={StaticResource Island.BoolToVisibility}}" />
                                     <StackPanel Orientation="Horizontal" Margin="0,8,0,0" Visibility="{Binding IsActive, Converter={StaticResource Island.InverseBoolToVisibility}}">
                                         <Button Style="{StaticResource Island.ChipButton}" Content="5m" Command="{Binding StartCountdownCommand}" CommandParameter="5" Margin="0,0,4,0" AutomationProperties.Name="Start a 5 minute timer" />
-                                        <Button Style="{StaticResource Island.ChipButton}" Content="25m" Command="{Binding StartPomodoroCommand}" Margin="0" AutomationProperties.Name="Start a Pomodoro" />
+                                        <Button Style="{StaticResource Island.ChipButton}" Content="{Binding PomodoroShortcut}" Command="{Binding StartPomodoroCommand}" Margin="0" AutomationProperties.Name="Start a Pomodoro" />
                                     </StackPanel>
                                     <Button Style="{StaticResource Island.ChipButton}" Margin="0,4,0,0" HorizontalAlignment="Left" Command="{Binding PauseResumeCommand}"
                                             Content="{Binding IsRunning, Converter={x:Static shell:PauseLabel.Instance}}"

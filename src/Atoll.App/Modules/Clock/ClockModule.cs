@@ -10,6 +10,7 @@ using System.Windows.Threading;
 #endif
 using CommunityToolkit.Mvvm.ComponentModel;
 using Atoll.Activities;
+using Atoll.Settings;
 
 namespace Atoll.Modules.Clock;
 
@@ -43,6 +44,8 @@ public sealed class ClockModule : IIslandModule
     public void Start(ModuleContext context)
     {
         _context = context;
+        var pomodoro = context.Settings.Current.Pomodoro ??= new PomodoroSettings();
+        _timer.UsePomodoroSettings(pomodoro, context.Settings.NotifyChanged);
         _clock.Update(DateTime.Now);
         context.Post("time", _clock, ActivityPriority.Idle);
 

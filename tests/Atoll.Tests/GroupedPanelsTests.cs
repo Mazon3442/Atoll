@@ -139,7 +139,9 @@ public class GroupedPanelsTests
             new Dictionary<DateTime, CalendarDayMark> { [new DateTime(2026, 11, 6)] = new(2, ["#0A84FF", "#30D158"]) });
         var runningTimer = new TimerViewModel(TimeProvider.System);
         runningTimer.StartCountdownCommand.Execute(5);
+        var pomodoroTimer = new TimerViewModel(TimeProvider.System) { SectionIndex = 1, FocusMinutes = 40 };
         panels.Add(("time-timer-idle", new TimePanelViewModel(idleClock, agenda)));
+        panels.Add(("time-pomodoro", new ClockPanelViewModel(idleClock.Clock, pomodoroTimer)));
         panels.Add(("time-timer-running", new TimePanelViewModel(new ClockPanelViewModel(idleClock.Clock, runningTimer), agenda)));
         panels.Add(("time-no-calendars", new TimePanelViewModel(idleClock, new CalendarViewModel(() => { }))));
         panels.Add(("clipboard-only", new FilesPanelViewModel(null, new ClipboardViewModel(new ClipboardHistory()))));
@@ -189,6 +191,14 @@ public class GroupedPanelsTests
                     var button = Descendants<Button>(background).Single(b => AutomationProperties.GetName(b) == name);
                     Assert.InRange(button.TranslatePoint(new Point(0, button.ActualHeight), background).Y, 1, 170);
                 }
+            }
+            if (panel.Name == "time-pomodoro")
+            {
+                // The Pomodoro section replaces the timer presets and starts with the configured length.
+                Assert.Equal(Visibility.Collapsed, Descendants<StackPanel>(background).Single(p => p.Name == "TimerSection").Visibility);
+                Assert.Equal(Visibility.Visible, Descendants<StackPanel>(background).Single(p => p.Name == "PomodoroSection").Visibility);
+                var start = Descendants<Button>(background).Single(b => AutomationProperties.GetName(b) == "Start Pomodoro");
+                Assert.Equal("Start 40 min focus", start.Content);
             }
             var bitmap = new RenderTargetBitmap(476, 170, 96, 96, PixelFormats.Pbgra32);
             bitmap.Render(background);

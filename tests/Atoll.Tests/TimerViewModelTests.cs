@@ -71,6 +71,59 @@ public class TimerViewModelTests
     }
 
     [Fact]
+    public void Pomodoro_uses_saved_lengths_and_break_cadence()
+    {
+        var settings = new Atoll.Settings.PomodoroSettings
+        {
+            FocusMinutes = 40,
+            ShortBreakMinutes = 2,
+            LongBreakMinutes = 8,
+            SessionsBeforeLongBreak = 2,
+        };
+        var timer = new TimerViewModel(_time, settings);
+        timer.StartPomodoroCommand.Execute(null);
+        Assert.Equal("40:00", timer.Display);
+
+        _time.Advance(TimeSpan.FromMinutes(40) + TimeSpan.FromMilliseconds(1));
+        timer.Tick();
+        Assert.Equal("Break", timer.Label);
+        Assert.Equal("2:00", timer.Display);
+
+        _time.Advance(TimeSpan.FromMinutes(2) + TimeSpan.FromMilliseconds(1));
+        timer.Tick();
+        Assert.Equal("Focus", timer.Label);
+        Assert.Equal("40:00", timer.Display);
+
+        _time.Advance(TimeSpan.FromMinutes(40) + TimeSpan.FromMilliseconds(1));
+        timer.Tick();
+        Assert.Equal("Long break", timer.Label);
+        Assert.Equal("8:00", timer.Display);
+    }
+
+    [Fact]
+    public void Pomodoro_settings_clamp_and_save()
+    {
+        var settings = new Atoll.Settings.PomodoroSettings();
+        var saved = 0;
+        var timer = new TimerViewModel(_time);
+        timer.UsePomodoroSettings(settings, () => saved++);
+
+        timer.FocusMinutes = 40;
+        Assert.Equal(40, settings.FocusMinutes);
+        Assert.Equal("Start 40 min focus", timer.PomodoroStartLabel);
+        Assert.Equal(1, saved);
+
+        timer.ShortBreakMinutes = 0;
+        Assert.Equal(1, settings.ShortBreakMinutes);
+
+        timer.SessionsBeforeLongBreak = 99;
+        Assert.Equal(12, settings.SessionsBeforeLongBreak);
+
+        timer.FocusMinutes = 999;
+        Assert.Equal(120, settings.FocusMinutes);
+    }
+
+    [Fact]
     public void Stopwatch_counts_up()
     {
         var timer = new TimerViewModel(_time);

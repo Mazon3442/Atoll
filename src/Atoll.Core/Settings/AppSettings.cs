@@ -108,6 +108,8 @@ public sealed class AppSettings
 
     public NotesSettings Notes { get; set; } = new();
 
+    public PomodoroSettings Pomodoro { get; set; } = new();
+
     /// <summary>List order = tab order in the expanded panel.</summary>
     public List<ModuleEntry> Modules { get; set; } = [];
 }
@@ -328,6 +330,22 @@ public sealed class ModuleEntry
                 break;
         }
     }
+}
+
+/// <summary>Timer lengths for the Pomodoro section of the timer tab.</summary>
+public sealed class PomodoroSettings
+{
+    /// <summary>Minutes in one focus session (5-120).</summary>
+    public int FocusMinutes { get; set; } = 25;
+
+    /// <summary>Minutes in a short break (1-60).</summary>
+    public int ShortBreakMinutes { get; set; } = 5;
+
+    /// <summary>Minutes in a long break (5-120).</summary>
+    public int LongBreakMinutes { get; set; } = 15;
+
+    /// <summary>Focus sessions before a long break instead of a short one (1-12).</summary>
+    public int SessionsBeforeLongBreak { get; set; } = 4;
 }
 
 /// <summary>Notes, one-off reminders and a small to-do list, kept with the rest of the settings.</summary>
