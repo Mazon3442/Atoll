@@ -458,6 +458,12 @@ public sealed class PomodoroSettings
 
     /// <summary>Focus sessions before a long break instead of a short one (1-12).</summary>
     public int SessionsBeforeLongBreak { get; set; } = 4;
+
+    /// <summary>Finished focus sessions per local day ("yyyy-MM-dd"), the last year only. Feeds today and the streak.</summary>
+    public Dictionary<string, int> FocusDays { get; set; } = [];
+
+    /// <summary>Every focus session ever finished, kept apart so trimming old days never lowers it.</summary>
+    public int TotalFocus { get; set; }
 }
 
 /// <summary>Notes, one-off reminders and a small to-do list, kept with the rest of the settings.</summary>

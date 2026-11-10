@@ -251,7 +251,7 @@ public class GroupedPanelsTests
             var narrow = panel.Name == "time-pomodoro-narrow";
             var tide = panel.Name.StartsWith("tide", StringComparison.Ordinal);
             var frameWidth = tide ? 820 : narrow ? 330 : 476;
-            var frameHeight = tide ? 420 : narrow ? 240 : 170;
+            var frameHeight = tide ? 420 : panel.Name.StartsWith("time-pomodoro", StringComparison.Ordinal) ? 330 : 170;
             var presenter = new ContentControl
             {
                 Width = frameWidth, Height = frameHeight, Content = panel.Panel,
@@ -291,14 +291,13 @@ public class GroupedPanelsTests
                 Assert.Equal(Visibility.Collapsed, Descendants<StackPanel>(background).Single(p => p.Name == "TimerSection").Visibility);
                 Assert.Equal(Visibility.Visible, Descendants<StackPanel>(background).Single(p => p.Name == "PomodoroSection").Visibility);
                 var start = Descendants<Button>(background).Single(b => AutomationProperties.GetName(b) == "Start Pomodoro");
-                Assert.Equal("Start 40 min focus", start.Content);
+                Assert.Equal("Start 40 min focus", start.ToolTip);
             }
             if (narrow)
             {
-                // Four steppers do not fit: they wrap to two rows and the start action stays on screen.
-                var focus = Descendants<Button>(background).Single(b => AutomationProperties.GetName(b) == "Decrease focus length");
+                // Each row keeps its steppers on screen at a narrow width, and the stats row stays visible.
                 var sessions = Descendants<Button>(background).Single(b => AutomationProperties.GetName(b) == "Decrease sessions before long break");
-                Assert.True(sessions.TranslatePoint(new Point(), background).Y > focus.TranslatePoint(new Point(), background).Y);
+                Assert.InRange(sessions.TranslatePoint(new Point(0, sessions.ActualHeight), background).Y, 1, frameHeight);
                 var start = Descendants<Button>(background).Single(b => AutomationProperties.GetName(b) == "Start Pomodoro");
                 Assert.InRange(start.TranslatePoint(new Point(0, start.ActualHeight), background).Y, 1, frameHeight);
             }

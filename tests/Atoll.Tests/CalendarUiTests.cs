@@ -269,7 +269,7 @@ internal static class CalendarUiTests
             var switchCenter = modeSwitch.TranslatePoint(new Point(modeSwitch.ActualWidth / 2, 0), pill).X;
             Assert.InRange(switchCenter, pill.ActualWidth / 2 - 2, pill.ActualWidth / 2 + 2);
             var start = Descendants<Button>(island).Single(b => AutomationProperties.GetName(b) == "Start Pomodoro");
-            Assert.Equal("Start 40 min focus", start.Content);
+            Assert.Equal("Start 40 min focus", start.ToolTip); // the Focus row starts the session
             Assert.InRange(start.TranslatePoint(new Point(0, start.ActualHeight), pill).Y, 1, pill.ActualHeight - 1);
             Render(pill, "island-timer-pomodoro");
 

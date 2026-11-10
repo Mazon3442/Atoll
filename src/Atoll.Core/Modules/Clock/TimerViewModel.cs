@@ -47,6 +47,7 @@ public sealed partial class TimerViewModel : ObservableObject
                  {
                      nameof(FocusMinutes), nameof(ShortBreakMinutes), nameof(LongBreakMinutes),
                      nameof(SessionsBeforeLongBreak), nameof(PomodoroStartLabel), nameof(PomodoroShortcut),
+                     nameof(TodayFocus), nameof(FocusStreak), nameof(TotalFocus),
                  })
             OnPropertyChanged(name);
     }
@@ -91,6 +92,45 @@ public sealed partial class TimerViewModel : ObservableObject
 
     /// <summary>Label for the primary action under the Pomodoro settings.</summary>
     public string PomodoroStartLabel => $"Start {FocusMinutes} min focus";
+
+    private static string DayKey(DateTimeOffset day) => day.ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture);
+
+    /// <summary>Focus sessions finished today.</summary>
+    public int TodayFocus => _pomodoro.FocusDays.GetValueOrDefault(DayKey(_time.GetLocalNow()));
+
+    /// <summary>Days in a row with a finished session. Today not having one yet does not break it.</summary>
+    public int FocusStreak
+    {
+        get
+        {
+            var day = _time.GetLocalNow();
+            if (!_pomodoro.FocusDays.ContainsKey(DayKey(day))) day = day.AddDays(-1);
+            var days = 0;
+            while (_pomodoro.FocusDays.GetValueOrDefault(DayKey(day)) > 0)
+            {
+                days++;
+                day = day.AddDays(-1);
+            }
+            return days;
+        }
+    }
+
+    public int TotalFocus => _pomodoro.TotalFocus;
+
+    private void RecordFocus()
+    {
+        var now = _time.GetLocalNow();
+        var key = DayKey(now);
+        _pomodoro.FocusDays[key] = _pomodoro.FocusDays.GetValueOrDefault(key) + 1;
+        _pomodoro.TotalFocus++;
+        var oldest = DayKey(now.AddDays(-366));
+        foreach (var old in _pomodoro.FocusDays.Keys.Where(day => string.CompareOrdinal(day, oldest) < 0).ToList())
+            _pomodoro.FocusDays.Remove(old);
+        OnPropertyChanged(nameof(TodayFocus));
+        OnPropertyChanged(nameof(FocusStreak));
+        OnPropertyChanged(nameof(TotalFocus));
+        _save?.Invoke();
+    }
 
     /// <summary>Home's timer card shows this instead of a hard-coded 25 minutes.</summary>
     public string PomodoroShortcut => $"{FocusMinutes}m";
@@ -161,6 +201,23 @@ public sealed partial class TimerViewModel : ObservableObject
         Begin(TimerKind.Pomodoro, TimeSpan.FromMinutes(FocusMinutes), "Focus");
     }
 
+    /// <summary>A break on its own, without a focus session first; focus follows when it ends, as in a normal cycle.</summary>
+    [RelayCommand]
+    private void StartBreak()
+    {
+        _focusDone = 0;
+        _onBreak = true;
+        Begin(TimerKind.Pomodoro, TimeSpan.FromMinutes(ShortBreakMinutes), "Break");
+    }
+
+    [RelayCommand]
+    private void StartLongBreak()
+    {
+        _focusDone = 0;
+        _onBreak = true;
+        Begin(TimerKind.Pomodoro, TimeSpan.FromMinutes(LongBreakMinutes), "Long break");
+    }
+
     [RelayCommand(CanExecute = nameof(IsActive))]
     private void PauseResume()
     {
@@ -228,6 +285,7 @@ public sealed partial class TimerViewModel : ObservableObject
             return;
         }
         _focusDone++;
+        RecordFocus();
         _onBreak = true;
         var isLong = _focusDone % SessionsBeforeLongBreak == 0;
         var minutes = isLong ? LongBreakMinutes : ShortBreakMinutes;
