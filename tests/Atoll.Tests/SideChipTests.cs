@@ -27,7 +27,7 @@ public sealed class SideChipTests
     }
 
     [Fact]
-    public void Claude_plan_limit_shows_percent_left_in_the_ring()
+    public void Claude_plan_limit_shows_percent_used_in_the_ring()
     {
         var claude = new ClaudeViewModel(new ClaudeSessionTracker(TimeProvider.System));
         claude.Usage.SetLimits([new PlanLimit("5-hour", 42, null)], DateTimeOffset.Now);
@@ -35,9 +35,21 @@ public sealed class SideChipTests
             new Activity("claude.work", "claude", claude, ActivityPriority.Normal), Colors.White);
 
         Assert.True(chip.IsRing);
-        Assert.Equal("58%", chip.RingText);
-        Assert.Contains("5-hour", chip.Label);
-        Assert.Contains("58% left", chip.Label);
+        Assert.Equal("42%", chip.RingText);
+        Assert.Equal(0.42, chip.RingProgress, 3);
+        Assert.Contains("Claude 5-hour limit", chip.Label);
+        Assert.Contains("42% used", chip.Label);
+    }
+
+    [Fact]
+    public void A_Codex_limit_never_fills_the_Claude_ring()
+    {
+        var claude = new ClaudeViewModel(new ClaudeSessionTracker(TimeProvider.System));
+        claude.Usage.SetLimits([new PlanLimit("5-hour", 20, null), new PlanLimit("Codex · weekly", 90, null)], DateTimeOffset.Now);
+        using var chip = new SideChipViewModel(
+            new Activity("claude.work", "claude", claude, ActivityPriority.Normal), Colors.White);
+
+        Assert.Equal("20%", chip.RingText);
     }
 
     [Fact]

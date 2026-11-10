@@ -143,8 +143,8 @@ public sealed partial class SideChipViewModel : ObservableObject, IDisposable
         TimerViewModel timer => ("timer", timer.Display, TimerOrange, CompactTime(timer),
             timer.Kind == TimerKind.Stopwatch ? 1 : 1 - timer.Progress),
         ClaudeViewModel claude when BestLimit(claude.Usage) is { } limit => ("bot",
-            $"{limit.Name} · {Math.Round((1 - limit.Progress) * 100):0}% left", ClaudeOrange,
-            $"{Math.Round((1 - limit.Progress) * 100):0}%", 1 - limit.Progress),
+            $"Claude {limit.Name} limit · {Math.Round(limit.Progress * 100):0}% used", ClaudeOrange,
+            $"{Math.Round(limit.Progress * 100):0}%", limit.Progress),
         NextEventViewModel next => ("calendar", next.Title, Parse(next.Color, _accent), null, 0),
         ClaudeViewModel claude => ("bot", claude.Current?.AgentName ?? "Claude", ClaudeOrange, null, 0),
         ClaudeAlertViewModel alert => ("bot", alert.Title, ClaudeOrange, null, 0),
@@ -160,8 +160,9 @@ public sealed partial class SideChipViewModel : ObservableObject, IDisposable
         _ => (Icon.ForTab(_activity.ModuleId), ModuleName(_activity.ModuleId), _accent, null, 0),
     };
 
+    /// <summary>The Claude limit closest to its cap. Codex limits share the list but belong to another agent.</summary>
     private static PlanLimitRow? BestLimit(UsageViewModel usage) =>
-        usage.Limits.Count == 0 ? null : usage.Limits.MaxBy(limit => limit.Progress);
+        usage.Limits.Where(limit => !limit.Name.StartsWith("Codex", StringComparison.Ordinal)).MaxBy(limit => limit.Progress);
 
     /// <summary>Short enough to sit inside a 30 px ring.</summary>
     private static string CompactTime(TimerViewModel timer)
