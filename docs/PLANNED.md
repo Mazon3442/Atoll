@@ -15,6 +15,8 @@ Status key: **done**, **partial**, **planned**, **pinned** (waiting), **dropped*
 - Downloads: watches the real Downloads folder, tracks browser temp names only, live size, then an alert with Open and Show in folder.
 - Persistent clipboard: opt-in, DPAPI, text and images, 100 items / 25 MB, wiped when turned off.
 - Snappy motion preset beside Bouncy, Smooth and Off, with the fade now honouring reduced motion.
+- Media: shuffle and repeat (off, all, one) on the panel, driven by the player's own Windows media controls. They stay disabled for players that do not offer them.
+- Updates: after a background download finishes, the island asks Restart or Later; each version is asked about once.
 
 ## Partial
 
@@ -37,6 +39,28 @@ Waiting for device details.
 - Corsair iCUE SDK is feasible for lighting, while iCUE runs.
 - Also practical: Philips Hue, LIFX, WLED, Nanoleaf, Kasa, Shelly.
 - Needs: Govee models, Corsair devices, Home Assistant yes/no, and where controls should live.
+
+## Pinned: Discord tab
+
+Parked on purpose; build when asked. Mockup: `docs/assets/mockups/discord-tab.png`.
+
+- Layout from the mockup: header with connection state, a voice-call card, Mic / Audio / Leave tiles, Share screen and Toggle camera, and a voice members list with a green ring on whoever is speaking. Drop the footer sentence; it repeats the controls.
+- Real state needs Discord's local RPC (named pipe to the desktop app). That needs a Discord developer application, the user added as a tester on it, and a one-time Authorize prompt in Discord. The client ID and secret would live in Settings, encrypted for the Windows account like Clipboard history. Nothing leaves the PC except Discord's own local connection.
+- RPC covers voice channel, members, speaking, mute, deafen and leave. It has no screen share or camera command, so those two send the user's own Discord shortcut keys and stay disabled until a key is set.
+- A shortcut-only version needs no setup but cannot show members or whether the mic is muted.
+- Also wanted: a call side-capsule while in a voice channel. Before the tab is connected it shows a Connect Discord state, not an empty pane.
+- Open question: RPC (live state, five minutes of setup) or shortcuts only (no setup, no state).
+
+## Pinned: phone transfer tab
+
+Parked on purpose; build when asked. The mockup was shared in chat and is not saved in the repo.
+
+- Layout from the mockup: header "Transfer to phone" with the subline "Same Wi-Fi · Phone ↔ Computer" and a Stop button, a QR code, "Scan QR · Valid for 15 minutes", a network picker (for example `192.168.1.102`), Choose files / Received files / Copy link / Clear list, and a "Send to phone" list showing each file with its size.
+- Approach: a small local web server bound only to the chosen private network address. The QR holds a link with a random one-time token. The phone opens it in its browser, downloads what the computer is sending and can upload files back. No app, account or cloud.
+- Stopping, or the 15 minutes running out, closes the server and invalidates the link. Received files go to a known folder, never straight to Desktop, and the page refuses anything without the token.
+- Be honest in the UI: the transfer is plain HTTP on the local network, so anyone on the same Wi-Fi who sees the link could use it until it expires. Windows Firewall will ask the first time.
+- Drop the duplicate "Same Wi-Fi" line under the list; keep it once in the header.
+- Questions for later: where Received files should live, a size limit, and whether the Shelf should be able to send into it.
 
 ## Hold: translations
 

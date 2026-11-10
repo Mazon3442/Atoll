@@ -210,6 +210,7 @@ internal static class AgentMediaUi
         media.Sources.Add(new("media:spotify", "Spotify")); media.Follow("media:spotify");
         media.SetOutputs([new("a", "Speakers (Realtek Audio)"), new("b", "Headphones (MX Sound)")], "b");
         Assert.True(media.HasOutputs);
+        media.CanShuffle = true; media.IsShuffling = true; media.CanRepeat = true; media.Repeat = MediaRepeat.One;
         Render(media, "MediaViewModel.Panel", "media-panel", 600, 180);
 
         var stats = new StatsViewModel();

@@ -222,6 +222,20 @@
                     </StackPanel>
 
                     <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,6,0,0">
+                        <Button Width="30" Height="30" Margin="0,0,6,0" Command="{Binding ToggleShuffleCommand}" ToolTip="Shuffle"
+                                AutomationProperties.Name="Shuffle">
+                            <Button.Style>
+                                <Style TargetType="Button" BasedOn="{StaticResource Island.IconButton}">
+                                    <Setter Property="Foreground" Value="{DynamicResource Island.Subtle}" />
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding IsShuffling}" Value="True">
+                                            <Setter Property="Foreground" Value="{DynamicResource Island.Accent}" />
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </Button.Style>
+                            <shell:Icon Kind="shuffle" Size="15" />
+                        </Button>
                         <Button Style="{StaticResource Island.IconButton}" Content="&#xE892;" Width="36" Height="36" FontSize="16"
                                 Command="{Binding PreviousCommand}" ToolTip="Previous" AutomationProperties.Name="Previous track" />
                         <Button Width="34" Height="34" FontSize="20" Margin="10,0"
@@ -239,6 +253,31 @@
                         </Button>
                         <Button Style="{StaticResource Island.IconButton}" Content="&#xE893;" Width="36" Height="36" FontSize="16"
                                 Command="{Binding NextCommand}" ToolTip="Next" AutomationProperties.Name="Next track" />
+                        <Button Width="30" Height="30" Margin="6,0,0,0" Command="{Binding CycleRepeatCommand}" ToolTip="Repeat"
+                                AutomationProperties.Name="Repeat">
+                            <Button.Style>
+                                <Style TargetType="Button" BasedOn="{StaticResource Island.IconButton}">
+                                    <Setter Property="Foreground" Value="{DynamicResource Island.Subtle}" />
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding IsRepeating}" Value="True">
+                                            <Setter Property="Foreground" Value="{DynamicResource Island.Accent}" />
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </Button.Style>
+                            <shell:Icon Size="15">
+                                <shell:Icon.Style>
+                                    <Style TargetType="shell:Icon">
+                                        <Setter Property="Kind" Value="repeat" />
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding IsRepeatingOne}" Value="True">
+                                                <Setter Property="Kind" Value="repeat-1" />
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </shell:Icon.Style>
+                            </shell:Icon>
+                        </Button>
                     </StackPanel>
                 </StackPanel>
             </Grid>

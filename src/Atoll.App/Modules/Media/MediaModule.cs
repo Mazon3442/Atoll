@@ -62,7 +62,14 @@ public sealed partial class MediaModule : IIslandModule
             () => Control(s => s.TryTogglePlayPauseAsync().AsTask()),
             () => Control(s => s.TrySkipNextAsync().AsTask()),
             () => Control(s => s.TrySkipPreviousAsync().AsTask()),
-            SeekAsync);
+            SeekAsync,
+            on => Control(session => session.TryChangeShuffleActiveAsync(on).AsTask()),
+            mode => Control(session => session.TryChangeAutoRepeatModeAsync(mode switch
+            {
+                MediaRepeat.All => Windows.Media.MediaPlaybackAutoRepeatMode.List,
+                MediaRepeat.One => Windows.Media.MediaPlaybackAutoRepeatMode.Track,
+                _ => Windows.Media.MediaPlaybackAutoRepeatMode.None,
+            }).AsTask()));
         _levels.LevelsAvailable += levels =>
             _context?.Dispatcher.BeginInvoke(DispatcherPriority.Render, () => _vm.Visualizer.Set(levels));
         _levels.Unavailable += () => OnUi(() => _vm.VisualizerNote = "Audio visualization is unavailable for this source on this Windows version.");
@@ -212,6 +219,7 @@ public sealed partial class MediaModule : IIslandModule
                     UnbindSession(); _audioOnlyId = selected; _captureProcess = pid;
                     _vm.Title = source.Name + " audio"; _vm.AppName = source.Name; _vm.Artist = ""; _vm.Art = null;
                     _vm.HasSession = true; _vm.HasTimeline = false; _vm.CanSeek = false; _vm.CanControl = false;
+                    _vm.CanShuffle = false; _vm.CanRepeat = false; _vm.IsShuffling = false; _vm.Repeat = MediaRepeat.Off;
                     _vm.VisualizerNote = "Audio from " + source.Name; _trackKey = selected;
                     _vm.Status = "This app exposes audio without track or playback controls.";
                 }
@@ -328,6 +336,15 @@ public sealed partial class MediaModule : IIslandModule
         var playback = _session?.GetPlaybackInfo();
         _vm.CanSeek = _vm.HasTimeline && playback?.Controls.IsPlaybackPositionEnabled == true;
         _vm.IsPlaying = playback?.PlaybackStatus == GlobalSystemMediaTransportControlsSessionPlaybackStatus.Playing;
+        _vm.CanShuffle = playback?.Controls.IsShuffleEnabled == true;
+        _vm.IsShuffling = playback?.IsShuffleActive == true;
+        _vm.CanRepeat = playback?.Controls.IsRepeatEnabled == true;
+        _vm.Repeat = playback?.AutoRepeatMode switch
+        {
+            Windows.Media.MediaPlaybackAutoRepeatMode.Track => MediaRepeat.One,
+            Windows.Media.MediaPlaybackAutoRepeatMode.List => MediaRepeat.All,
+            _ => MediaRepeat.Off,
+        };
         if (_vm.IsPlaying)
         {
             _levels.Start(_captureProcess);

@@ -38,8 +38,16 @@ public sealed partial class VisualizerViewModel : ObservableObject
 
 public sealed record MediaSourceChoice(string Id, string Name);
 
+/// <summary>What the player does at the end of a track or playlist.</summary>
+public enum MediaRepeat
+{
+    Off,
+    All,
+    One,
+}
+
 public sealed partial class MediaViewModel(Func<Task> playPause, Func<Task> next, Func<Task> previous,
-    Func<double, Task> seek) : ObservableObject
+    Func<double, Task> seek, Func<bool, Task>? shuffle = null, Func<MediaRepeat, Task>? repeat = null) : ObservableObject
 {
     private ThemeSettings _theme = new();
     private string? _artworkColor;
@@ -59,6 +67,22 @@ public sealed partial class MediaViewModel(Func<Task> playPause, Func<Task> next
     [ObservableProperty]
     [NotifyCanExecuteChangedFor(nameof(PlayPauseCommand), nameof(NextCommand), nameof(PreviousCommand))]
     private bool _canControl;
+
+    /// <summary>The player offers shuffle; the buttons stay on screen but quiet when it does not.</summary>
+    [ObservableProperty]
+    [NotifyCanExecuteChangedFor(nameof(ToggleShuffleCommand))]
+    private bool _canShuffle;
+    [ObservableProperty] private bool _isShuffling;
+
+    [ObservableProperty]
+    [NotifyCanExecuteChangedFor(nameof(CycleRepeatCommand))]
+    private bool _canRepeat;
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsRepeating), nameof(IsRepeatingOne))]
+    private MediaRepeat _repeat;
+    public bool IsRepeating => Repeat != MediaRepeat.Off;
+    public bool IsRepeatingOne => Repeat == MediaRepeat.One;
+
     [ObservableProperty] private string _visualizerNote = "System output";
     [ObservableProperty] private string _title = "";
     [ObservableProperty] private string _artist = "";
@@ -214,6 +238,18 @@ public sealed partial class MediaViewModel(Func<Task> playPause, Func<Task> next
 
     [RelayCommand(CanExecute = nameof(CanControl))]
     private Task Previous() => previous();
+
+    [RelayCommand(CanExecute = nameof(CanShuffle))]
+    private Task ToggleShuffle() => shuffle?.Invoke(!IsShuffling) ?? Task.CompletedTask;
+
+    /// <summary>Off, then the whole playlist, then the current track, then off again.</summary>
+    [RelayCommand(CanExecute = nameof(CanRepeat))]
+    private Task CycleRepeat() => repeat?.Invoke(Repeat switch
+    {
+        MediaRepeat.Off => MediaRepeat.All,
+        MediaRepeat.All => MediaRepeat.One,
+        _ => MediaRepeat.Off,
+    }) ?? Task.CompletedTask;
 }
 
 public sealed partial class LyricRow(string text) : ObservableObject
