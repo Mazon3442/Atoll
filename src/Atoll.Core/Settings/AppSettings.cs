@@ -33,6 +33,7 @@ public enum MotionStyle
 {
     Bouncy,
     Smooth,
+    Snappy,
     Off,
 }
 

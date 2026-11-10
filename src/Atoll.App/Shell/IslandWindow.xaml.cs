@@ -31,10 +31,9 @@ public enum IslandMode
 /// </summary>
 public partial class IslandWindow : Window
 {
-    private static readonly IEasingFunction Spring = Freeze(new SpringEase());
-    private static readonly IEasingFunction SmoothSpring = Freeze(new SpringEase(1));
-    private static readonly Duration MorphDuration = TimeSpan.FromMilliseconds(320);
-    private static readonly Duration FadeDuration = TimeSpan.FromMilliseconds(140);
+    private MotionPreset Motion => MotionPreset.For(_settings.Current.Theme.Motion);
+    private Duration MorphDuration => TimeSpan.FromMilliseconds(Motion.MorphMs);
+    private Duration FadeDuration => TimeSpan.FromMilliseconds(Motion.FadeMs);
 
     private const int PointerTickMs = 60;
     private const int CollapseAfterMs = 900;
@@ -325,7 +324,7 @@ public partial class IslandWindow : Window
     /// <summary>Windows' animation effects switch wins over the island's own motion setting.</summary>
     private bool Animated => SystemParameters.ClientAreaAnimation && _settings.Current.Theme.Motion != MotionStyle.Off;
 
-    private IEasingFunction Ease => _settings.Current.Theme.Motion == MotionStyle.Smooth ? SmoothSpring : Spring;
+    private IEasingFunction Ease => Motion.Ease;
 
     private double AvailablePanelHeight => Math.Max(140, Monitor.WorkArea.Height / Monitor.Scale - TopGap - 24);
 
@@ -955,11 +954,22 @@ public partial class IslandWindow : Window
         }
     }
 
-    private void SetFaded(bool faded)
+    // Internal so the reduced-motion UI test can drive the click-through fade directly.
+    internal void SetFaded(bool faded)
     {
         if (_faded == faded) return;
         _faded = faded;
         var to = faded ? PassThroughOpacity : 1;
+        if (!Animated)
+        {
+            // With motion off this used to fade for 140 ms anyway, ignoring the setting and Windows.
+            foreach (var element in new UIElement[] { Pill, Bubble, Bubble2, Bubble3, Bubble4 })
+            {
+                element.BeginAnimation(OpacityProperty, null);
+                element.Opacity = to;
+            }
+            return;
+        }
         Pill.BeginAnimation(OpacityProperty, new DoubleAnimation(to, FadeDuration));
         Bubble.BeginAnimation(OpacityProperty, new DoubleAnimation(to, FadeDuration));
         Bubble2.BeginAnimation(OpacityProperty, new DoubleAnimation(to, FadeDuration));
@@ -1235,7 +1245,7 @@ public partial class IslandWindow : Window
             _shownTemplateMode = templateMode;
             Watch(content);
             if (isNewContent && Animated)
-                PillContent.BeginAnimation(OpacityProperty, new DoubleAnimation(0, 1, TimeSpan.FromMilliseconds(200)));
+                PillContent.BeginAnimation(OpacityProperty, new DoubleAnimation(0, 1, FadeDuration));
         }
 
         PillContent.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
@@ -1410,10 +1420,4 @@ public partial class IslandWindow : Window
         "clock" or "launcher" or "shelf" or "clipboard" or "notes" or "tide" => 2,
         _ => 0,
     };
-
-    private static T Freeze<T>(T f) where T : Freezable
-    {
-        f.Freeze();
-        return f;
-    }
 }

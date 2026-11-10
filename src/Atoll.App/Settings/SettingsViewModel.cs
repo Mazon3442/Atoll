@@ -169,6 +169,7 @@ public sealed partial class SettingsViewModel : ObservableObject
     [
         new(MotionStyle.Bouncy, "Bouncy"),
         new(MotionStyle.Smooth, "Smooth, no bounce"),
+        new(MotionStyle.Snappy, "Snappy, quick settle"),
         new(MotionStyle.Off, "Off"),
     ];
 

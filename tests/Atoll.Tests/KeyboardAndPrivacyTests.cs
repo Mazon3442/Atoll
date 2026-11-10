@@ -170,6 +170,14 @@ internal static class KeyboardIslandUi
             Assert.InRange(pill.ActualWidth, header.DesiredSize.Width, header.DesiredSize.Width + 120);
             island.ToggleFromKeyboard();
             Assert.False(island.IsExpanded);
+
+            // Reduced motion: the click-through fade snaps to its end state instead of animating.
+            Assert.False(pill.HasAnimatedProperties);
+            island.SetFaded(true);
+            Assert.Equal(0.25, pill.Opacity, 3);
+            Assert.False(pill.HasAnimatedProperties);
+            island.SetFaded(false);
+            Assert.Equal(1, pill.Opacity, 3);
         }
         finally { island.Close(); }
     }

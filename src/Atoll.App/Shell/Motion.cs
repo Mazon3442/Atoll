@@ -2,6 +2,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
 using System.Windows.Media.Animation;
+using Atoll.Settings;
 
 namespace Atoll.Shell;
 
@@ -10,13 +11,15 @@ namespace Atoll.Shell;
 /// </summary>
 public sealed class SpringEase : EasingFunctionBase
 {
-    private const double Frequency = 10;
     private readonly double Damping;
+    private readonly double Frequency;
 
     /// <param name="damping">Below 1 overshoots; 1 settles without bouncing.</param>
-    public SpringEase(double damping = 0.72)
+    /// <param name="frequency">Stiffness: higher settles sooner, with smaller and quicker waves.</param>
+    public SpringEase(double damping = 0.72, double frequency = 10)
     {
         Damping = Math.Clamp(damping, 0.1, 1);
+        Frequency = Math.Max(frequency, 0.1);
         EasingMode = EasingMode.EaseIn; // EaseIn = use EaseInCore as-is
     }
 
@@ -29,7 +32,39 @@ public sealed class SpringEase : EasingFunctionBase
         return 1 - decay * (Math.Cos(damped * t) + Damping * Frequency / damped * Math.Sin(damped * t));
     }
 
-    protected override Freezable CreateInstanceCore() => new SpringEase(Damping);
+    protected override Freezable CreateInstanceCore() => new SpringEase(Damping, Frequency);
+}
+
+/// <summary>
+/// The numbers behind each <see cref="MotionStyle"/>. Bouncy and Smooth keep the tuning the island
+/// shipped with, so an existing settings file animates exactly as before; Snappy is shorter and tighter.
+/// </summary>
+internal sealed class MotionPreset
+{
+    private MotionPreset(double damping, double frequency, int morphMs, int fadeMs)
+    {
+        var ease = new SpringEase(damping, frequency);
+        ease.Freeze(); // one shared instance; WPF clones it per animation
+        Ease = ease;
+        MorphMs = morphMs;
+        FadeMs = fadeMs;
+    }
+
+    internal static MotionPreset Bouncy { get; } = new(0.72, 10, 320, 140);
+    internal static MotionPreset Smooth { get; } = new(1, 10, 320, 140);
+    internal static MotionPreset Snappy { get; } = new(0.82, 16, 220, 110);
+
+    internal IEasingFunction Ease { get; }
+    internal int MorphMs { get; }
+    internal int FadeMs { get; }
+
+    /// <summary>Off snaps instead of animating, so it never reads these numbers.</summary>
+    internal static MotionPreset For(MotionStyle style) => style switch
+    {
+        MotionStyle.Snappy => Snappy,
+        MotionStyle.Smooth => Smooth,
+        _ => Bouncy,
+    };
 }
 
 /// <summary>Border whose corner radius is a single animatable double. As a notch it hangs from the top edge.</summary>
