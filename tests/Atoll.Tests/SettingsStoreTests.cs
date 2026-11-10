@@ -26,6 +26,10 @@ public sealed class SettingsStoreTests : IDisposable
         s.Games.ShowPerformance = false;
         s.Games.ScanEpic = false;
         s.Games.ServerRefreshSeconds = 120;
+        s.Pomodoro.FocusMinutes = 50;
+        s.Pomodoro.ShortBreakMinutes = 3;
+        s.Pomodoro.LongBreakMinutes = 20;
+        s.Pomodoro.SessionsBeforeLongBreak = 2;
         store.Save(s);
 
         var loaded = store.Load();
@@ -37,6 +41,10 @@ public sealed class SettingsStoreTests : IDisposable
         Assert.False(loaded.Games.ShowPerformance);
         Assert.False(loaded.Games.ScanEpic);
         Assert.Equal(120, loaded.Games.ServerRefreshSeconds);
+        Assert.Equal(50, loaded.Pomodoro.FocusMinutes);
+        Assert.Equal(3, loaded.Pomodoro.ShortBreakMinutes);
+        Assert.Equal(20, loaded.Pomodoro.LongBreakMinutes);
+        Assert.Equal(2, loaded.Pomodoro.SessionsBeforeLongBreak);
         Assert.Contains("\"All\"", File.ReadAllText(FilePath)); // enums stored as names
     }
 

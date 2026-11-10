@@ -62,42 +62,123 @@
         <DataTemplate.Resources>
             <Style x:Key="Clock.Button" TargetType="Button" BasedOn="{StaticResource Island.ChipButton}">
                 <Setter Property="FontSize" Value="12" />
+                <Setter Property="MinHeight" Value="28" />
                 <Setter Property="Margin" Value="2" />
+            </Style>
+            <Style x:Key="Clock.Step" TargetType="Button" BasedOn="{StaticResource Island.IconButton}">
+                <Setter Property="Width" Value="24" />
+                <Setter Property="Height" Value="24" />
+                <Setter Property="FontSize" Value="12" />
             </Style>
         </DataTemplate.Resources>
         <StackPanel>
-            <TextBlock Text="{Binding Clock.Time}" FontSize="30" FontWeight="Light" />
-            <TextBlock Text="{Binding Clock.Date}" FontSize="12" Margin="0,0,0,14"
-                       Foreground="{DynamicResource Island.Subtle}" />
+            <StackPanel Margin="0,0,0,6">
+                <TextBlock Text="{Binding Clock.Time}" FontSize="30" FontWeight="Light" />
+                <TextBlock Text="{Binding Clock.Date}" FontSize="12"
+                           Foreground="{DynamicResource Island.Subtle}" />
+            </StackPanel>
 
-            <!-- Timer idle: presets -->
+            <!-- Timer idle: one segmented switch for the two sections, then that section's controls. -->
             <StackPanel DataContext="{Binding Timer}"
                         Visibility="{Binding IsActive, Converter={StaticResource Island.InverseBoolToVisibility}}">
-                <TextBlock Text="Timer (minutes)" FontSize="11" FontWeight="SemiBold" Margin="0,0,0,6"
-                           Foreground="{DynamicResource Island.Subtle}" />
-                <UniformGrid Columns="4" Margin="-2,0">
-                    <Button Style="{StaticResource Clock.Button}" Content="1" Command="{Binding StartCountdownCommand}"
-                            ToolTip="1 minute timer" AutomationProperties.Name="1 minute timer">
-                        <Button.CommandParameter><sys:Double>1</sys:Double></Button.CommandParameter>
-                    </Button>
-                    <Button Style="{StaticResource Clock.Button}" Content="5" Command="{Binding StartCountdownCommand}"
-                            ToolTip="5 minute timer" AutomationProperties.Name="5 minute timer">
-                        <Button.CommandParameter><sys:Double>5</sys:Double></Button.CommandParameter>
-                    </Button>
-                    <Button Style="{StaticResource Clock.Button}" Content="10" Command="{Binding StartCountdownCommand}"
-                            ToolTip="10 minute timer" AutomationProperties.Name="10 minute timer">
-                        <Button.CommandParameter><sys:Double>10</sys:Double></Button.CommandParameter>
-                    </Button>
-                    <Button Style="{StaticResource Clock.Button}" Content="30" Command="{Binding StartCountdownCommand}"
-                            ToolTip="30 minute timer" AutomationProperties.Name="30 minute timer">
-                        <Button.CommandParameter><sys:Double>30</sys:Double></Button.CommandParameter>
-                    </Button>
-                </UniformGrid>
-                <UniformGrid Columns="2" Margin="-2,0">
-                    <Button Style="{StaticResource Clock.Button}" Content="Stopwatch" Command="{Binding StartStopwatchCommand}" />
-                    <Button Style="{StaticResource Clock.Button}" Content="Pomodoro" Command="{Binding StartPomodoroCommand}"
-                            ToolTip="25 minutes of focus, then a 5 minute break" />
-                </UniformGrid>
+                <Border Background="{DynamicResource Island.Surface}" CornerRadius="13" Padding="3"
+                        HorizontalAlignment="Left" Margin="0,0,0,4">
+                    <ListBox ItemsSource="{Binding Sections}" SelectedIndex="{Binding SectionIndex, Mode=TwoWay}"
+                             ItemContainerStyle="{StaticResource Island.SegmentItem}"
+                             Background="Transparent" BorderThickness="0" FontSize="11"
+                             Foreground="{DynamicResource Island.Subtle}"
+                             ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                             ScrollViewer.VerticalScrollBarVisibility="Disabled"
+                             AutomationProperties.Name="Timer mode">
+                        <ListBox.ItemsPanel>
+                            <ItemsPanelTemplate><StackPanel Orientation="Horizontal" /></ItemsPanelTemplate>
+                        </ListBox.ItemsPanel>
+                    </ListBox>
+                </Border>
+
+                <StackPanel x:Name="TimerSection" Visibility="{Binding IsTimerSection, Converter={StaticResource Island.BoolToVisibility}}">
+                    <UniformGrid Columns="4" Margin="-2,0">
+                        <Button Style="{StaticResource Clock.Button}" Content="1" Command="{Binding StartCountdownCommand}"
+                                ToolTip="1 minute timer" AutomationProperties.Name="1 minute timer">
+                            <Button.CommandParameter><sys:Double>1</sys:Double></Button.CommandParameter>
+                        </Button>
+                        <Button Style="{StaticResource Clock.Button}" Content="5" Command="{Binding StartCountdownCommand}"
+                                ToolTip="5 minute timer" AutomationProperties.Name="5 minute timer">
+                            <Button.CommandParameter><sys:Double>5</sys:Double></Button.CommandParameter>
+                        </Button>
+                        <Button Style="{StaticResource Clock.Button}" Content="10" Command="{Binding StartCountdownCommand}"
+                                ToolTip="10 minute timer" AutomationProperties.Name="10 minute timer">
+                            <Button.CommandParameter><sys:Double>10</sys:Double></Button.CommandParameter>
+                        </Button>
+                        <Button Style="{StaticResource Clock.Button}" Content="30" Command="{Binding StartCountdownCommand}"
+                                ToolTip="30 minute timer" AutomationProperties.Name="30 minute timer">
+                            <Button.CommandParameter><sys:Double>30</sys:Double></Button.CommandParameter>
+                        </Button>
+                    </UniformGrid>
+                    <Button Style="{StaticResource Clock.Button}" Content="Stopwatch" Command="{Binding StartStopwatchCommand}"
+                            HorizontalAlignment="Left" Margin="2,0,2,0" />
+                </StackPanel>
+
+                <!-- Pomodoro: four short steppers, then one clear start action. -->
+                <StackPanel x:Name="PomodoroSection" Visibility="{Binding IsPomodoroSection, Converter={StaticResource Island.BoolToVisibility}}">
+                    <WrapPanel ItemWidth="110" Margin="-2,0">
+                        <StackPanel Margin="2">
+                            <TextBlock Text="Focus" FontSize="10" Foreground="{DynamicResource Island.Subtle}" Margin="4,0,0,2" />
+                            <DockPanel>
+                                <Button DockPanel.Dock="Left" Style="{StaticResource Clock.Step}" Content="&#xE738;"
+                                        Command="{Binding SubtractFocusCommand}" ToolTip="Five minutes less"
+                                        AutomationProperties.Name="Decrease focus length" />
+                                <Button DockPanel.Dock="Right" Style="{StaticResource Clock.Step}" Content="&#xE710;"
+                                        Command="{Binding AddFocusCommand}" ToolTip="Five minutes more"
+                                        AutomationProperties.Name="Increase focus length" />
+                                <TextBlock Text="{Binding FocusMinutes, StringFormat={}{0} min}" FontSize="11"
+                                           HorizontalAlignment="Center" VerticalAlignment="Center" />
+                            </DockPanel>
+                        </StackPanel>
+                        <StackPanel Margin="2">
+                            <TextBlock Text="Short break" FontSize="10" Foreground="{DynamicResource Island.Subtle}" Margin="4,0,0,2" />
+                            <DockPanel>
+                                <Button DockPanel.Dock="Left" Style="{StaticResource Clock.Step}" Content="&#xE738;"
+                                        Command="{Binding SubtractShortBreakCommand}" ToolTip="One minute less"
+                                        AutomationProperties.Name="Decrease short break" />
+                                <Button DockPanel.Dock="Right" Style="{StaticResource Clock.Step}" Content="&#xE710;"
+                                        Command="{Binding AddShortBreakCommand}" ToolTip="One minute more"
+                                        AutomationProperties.Name="Increase short break" />
+                                <TextBlock Text="{Binding ShortBreakMinutes, StringFormat={}{0} min}" FontSize="11"
+                                           HorizontalAlignment="Center" VerticalAlignment="Center" />
+                            </DockPanel>
+                        </StackPanel>
+                        <StackPanel Margin="2">
+                            <TextBlock Text="Long break" FontSize="10" Foreground="{DynamicResource Island.Subtle}" Margin="4,0,0,2" />
+                            <DockPanel>
+                                <Button DockPanel.Dock="Left" Style="{StaticResource Clock.Step}" Content="&#xE738;"
+                                        Command="{Binding SubtractLongBreakCommand}" ToolTip="Five minutes less"
+                                        AutomationProperties.Name="Decrease long break" />
+                                <Button DockPanel.Dock="Right" Style="{StaticResource Clock.Step}" Content="&#xE710;"
+                                        Command="{Binding AddLongBreakCommand}" ToolTip="Five minutes more"
+                                        AutomationProperties.Name="Increase long break" />
+                                <TextBlock Text="{Binding LongBreakMinutes, StringFormat={}{0} min}" FontSize="11"
+                                           HorizontalAlignment="Center" VerticalAlignment="Center" />
+                            </DockPanel>
+                        </StackPanel>
+                        <StackPanel Margin="2">
+                            <TextBlock Text="Long break after" FontSize="10" Foreground="{DynamicResource Island.Subtle}" Margin="4,0,0,2" />
+                            <DockPanel>
+                                <Button DockPanel.Dock="Left" Style="{StaticResource Clock.Step}" Content="&#xE738;"
+                                        Command="{Binding SubtractSessionCommand}" ToolTip="One session less"
+                                        AutomationProperties.Name="Decrease sessions before long break" />
+                                <Button DockPanel.Dock="Right" Style="{StaticResource Clock.Step}" Content="&#xE710;"
+                                        Command="{Binding AddSessionCommand}" ToolTip="One session more"
+                                        AutomationProperties.Name="Increase sessions before long break" />
+                                <TextBlock Text="{Binding SessionsBeforeLongBreak, StringFormat={}{0} sessions}" FontSize="11"
+                                           HorizontalAlignment="Center" VerticalAlignment="Center" />
+                            </DockPanel>
+                        </StackPanel>
+                    </WrapPanel>
+                    <Button Style="{StaticResource Clock.Button}" Margin="2,6,2,0" HorizontalAlignment="Stretch"
+                            Content="{Binding PomodoroStartLabel}" Command="{Binding StartPomodoroCommand}"
+                            AutomationProperties.Name="Start Pomodoro" />
+                </StackPanel>
             </StackPanel>
 
             <!-- Timer running: the time, with its controls beside it and progress underneath. -->

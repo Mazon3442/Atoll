@@ -1,3 +1,4 @@
+using Atoll.Settings;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 
@@ -15,18 +16,103 @@ public enum TimerKind
 /// Countdown, stopwatch and Pomodoro in one state machine. Time comes from <see cref="TimeProvider"/>
 /// so elapsed time stays exact however often <see cref="Tick"/> runs. UI thread only.
 /// </summary>
-public sealed partial class TimerViewModel(TimeProvider time) : ObservableObject
+public sealed partial class TimerViewModel : ObservableObject
 {
-    public static readonly TimeSpan FocusLength = TimeSpan.FromMinutes(25);
-    public static readonly TimeSpan ShortBreak = TimeSpan.FromMinutes(5);
-    public static readonly TimeSpan LongBreak = TimeSpan.FromMinutes(15);
-    private const int FocusSessionsPerLongBreak = 4;
+    private const int MinFocus = 5, MaxFocus = 120;
+    private const int MinShortBreak = 1, MaxShortBreak = 60;
+    private const int MinLongBreak = 5, MaxLongBreak = 120;
+    private const int MinSessions = 1, MaxSessions = 12;
 
+    private readonly TimeProvider _time;
+    private PomodoroSettings _pomodoro;
+    private Action? _save;
     private TimeSpan _accumulated;
     private DateTimeOffset? _runningSince;
     private TimeSpan _target;
     private bool _onBreak;
     private int _focusDone;
+
+    public TimerViewModel(TimeProvider time, PomodoroSettings? pomodoro = null)
+    {
+        _time = time;
+        _pomodoro = pomodoro ?? new PomodoroSettings();
+    }
+
+    /// <summary>Uses the saved Pomodoro lengths; edits are written back through <paramref name="save"/>.</summary>
+    public void UsePomodoroSettings(PomodoroSettings settings, Action? save = null)
+    {
+        _pomodoro = settings;
+        _save = save;
+        foreach (var name in new[]
+                 {
+                     nameof(FocusMinutes), nameof(ShortBreakMinutes), nameof(LongBreakMinutes),
+                     nameof(SessionsBeforeLongBreak), nameof(PomodoroStartLabel), nameof(PomodoroShortcut),
+                 })
+            OnPropertyChanged(name);
+    }
+
+    /// <summary>The timer tab's two sections: plain timers, then the Pomodoro setup.</summary>
+    public IReadOnlyList<string> Sections { get; } = ["Timer", "Pomodoro"];
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsTimerSection), nameof(IsPomodoroSection))]
+    private int _sectionIndex;
+
+    public bool IsTimerSection => SectionIndex == 0;
+    public bool IsPomodoroSection => SectionIndex == 1;
+
+    public int FocusMinutes
+    {
+        get => Clamp(_pomodoro.FocusMinutes, MinFocus, MaxFocus);
+        set => SetPomodoro(Clamp(_pomodoro.FocusMinutes, MinFocus, MaxFocus), Clamp(value, MinFocus, MaxFocus),
+            v => _pomodoro.FocusMinutes = v, nameof(FocusMinutes), nameof(PomodoroStartLabel), nameof(PomodoroShortcut));
+    }
+
+    public int ShortBreakMinutes
+    {
+        get => Clamp(_pomodoro.ShortBreakMinutes, MinShortBreak, MaxShortBreak);
+        set => SetPomodoro(Clamp(_pomodoro.ShortBreakMinutes, MinShortBreak, MaxShortBreak), Clamp(value, MinShortBreak, MaxShortBreak),
+            v => _pomodoro.ShortBreakMinutes = v, nameof(ShortBreakMinutes));
+    }
+
+    public int LongBreakMinutes
+    {
+        get => Clamp(_pomodoro.LongBreakMinutes, MinLongBreak, MaxLongBreak);
+        set => SetPomodoro(Clamp(_pomodoro.LongBreakMinutes, MinLongBreak, MaxLongBreak), Clamp(value, MinLongBreak, MaxLongBreak),
+            v => _pomodoro.LongBreakMinutes = v, nameof(LongBreakMinutes));
+    }
+
+    public int SessionsBeforeLongBreak
+    {
+        get => Clamp(_pomodoro.SessionsBeforeLongBreak, MinSessions, MaxSessions);
+        set => SetPomodoro(Clamp(_pomodoro.SessionsBeforeLongBreak, MinSessions, MaxSessions), Clamp(value, MinSessions, MaxSessions),
+            v => _pomodoro.SessionsBeforeLongBreak = v, nameof(SessionsBeforeLongBreak));
+    }
+
+    /// <summary>Label for the primary action under the Pomodoro settings.</summary>
+    public string PomodoroStartLabel => $"Start {FocusMinutes} min focus";
+
+    /// <summary>Home's timer card shows this instead of a hard-coded 25 minutes.</summary>
+    public string PomodoroShortcut => $"{FocusMinutes}m";
+
+    private static int Clamp(int value, int min, int max) => Math.Clamp(value, min, max);
+
+    private void SetPomodoro(int current, int value, Action<int> assign, params string[] properties)
+    {
+        if (current == value) return;
+        assign(value);
+        foreach (var property in properties) OnPropertyChanged(property);
+        _save?.Invoke();
+    }
+
+    [RelayCommand] private void AddFocus() => FocusMinutes += 5;
+    [RelayCommand] private void SubtractFocus() => FocusMinutes -= 5;
+    [RelayCommand] private void AddShortBreak() => ShortBreakMinutes += 1;
+    [RelayCommand] private void SubtractShortBreak() => ShortBreakMinutes -= 1;
+    [RelayCommand] private void AddLongBreak() => LongBreakMinutes += 5;
+    [RelayCommand] private void SubtractLongBreak() => LongBreakMinutes -= 5;
+    [RelayCommand] private void AddSession() => SessionsBeforeLongBreak += 1;
+    [RelayCommand] private void SubtractSession() => SessionsBeforeLongBreak -= 1;
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(IsActive), nameof(IsCountingDown))]
@@ -47,7 +133,7 @@ public sealed partial class TimerViewModel(TimeProvider time) : ObservableObject
     public bool IsActive => Kind != TimerKind.None;
     public bool IsCountingDown => Kind is TimerKind.Countdown or TimerKind.Pomodoro;
 
-    public TimeSpan Elapsed => _accumulated + (_runningSince is { } since ? time.GetUtcNow() - since : TimeSpan.Zero);
+    public TimeSpan Elapsed => _accumulated + (_runningSince is { } since ? _time.GetUtcNow() - since : TimeSpan.Zero);
     public TimeSpan Remaining
     {
         get
@@ -72,7 +158,7 @@ public sealed partial class TimerViewModel(TimeProvider time) : ObservableObject
     {
         _focusDone = 0;
         _onBreak = false;
-        Begin(TimerKind.Pomodoro, FocusLength, "Focus");
+        Begin(TimerKind.Pomodoro, TimeSpan.FromMinutes(FocusMinutes), "Focus");
     }
 
     [RelayCommand(CanExecute = nameof(IsActive))]
@@ -81,13 +167,13 @@ public sealed partial class TimerViewModel(TimeProvider time) : ObservableObject
         if (!IsActive) return;
         if (_runningSince is { } since)
         {
-            _accumulated += time.GetUtcNow() - since;
+            _accumulated += _time.GetUtcNow() - since;
             _runningSince = null;
             IsRunning = false;
         }
         else
         {
-            _runningSince = time.GetUtcNow();
+            _runningSince = _time.GetUtcNow();
             IsRunning = true;
         }
         Refresh();
@@ -137,15 +223,16 @@ public sealed partial class TimerViewModel(TimeProvider time) : ObservableObject
         if (_onBreak)
         {
             _onBreak = false;
-            Restart(FocusLength, "Focus");
+            Restart(TimeSpan.FromMinutes(FocusMinutes), "Focus");
             Completed?.Invoke("Break over", "Time to focus");
             return;
         }
         _focusDone++;
         _onBreak = true;
-        var isLong = _focusDone % FocusSessionsPerLongBreak == 0;
-        Restart(isLong ? LongBreak : ShortBreak, isLong ? "Long break" : "Break");
-        Completed?.Invoke("Focus session done", isLong ? "Take a 15 minute break" : "Take a 5 minute break");
+        var isLong = _focusDone % SessionsBeforeLongBreak == 0;
+        var minutes = isLong ? LongBreakMinutes : ShortBreakMinutes;
+        Restart(TimeSpan.FromMinutes(minutes), isLong ? "Long break" : "Break");
+        Completed?.Invoke("Focus session done", $"Take a {minutes} minute break");
     }
 
     private void Begin(TimerKind kind, TimeSpan target, string label)
@@ -160,7 +247,7 @@ public sealed partial class TimerViewModel(TimeProvider time) : ObservableObject
     {
         _target = target;
         _accumulated = TimeSpan.Zero;
-        _runningSince = time.GetUtcNow();
+        _runningSince = _time.GetUtcNow();
         IsRunning = true;
         Label = label;
         Refresh();
