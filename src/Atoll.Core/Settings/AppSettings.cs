@@ -400,7 +400,7 @@ public sealed class TideSettings
     /// <summary>Follow the reader's voice using Windows speech recognition.</summary>
     public bool FollowVoice { get; set; }
 
-    /// <summary>Keep the island out of screen shares while the prompter runs.</summary>
+    /// <summary>Keep the island out of screen shares while the prompter or Listen runs.</summary>
     public bool HideFromCapture { get; set; } = true;
 
     /// <summary>Capture the microphone (the "You" side of a meeting).</summary>

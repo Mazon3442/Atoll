@@ -65,11 +65,11 @@ public sealed partial class ListenViewModel : ObservableObject, IDisposable
     public ObservableCollection<ListenNotesSource> NotesSources { get; } = [];
 
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(StartLabel), nameof(CanChangeCapture))]
+    [NotifyPropertyChangedFor(nameof(CanChangeCapture))]
     private bool _isListening;
 
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(StartLabel), nameof(CanChangeCapture))]
+    [NotifyPropertyChangedFor(nameof(CanChangeCapture))]
     private bool _isPreparing;
 
     [ObservableProperty] private bool _isTranscribing;
@@ -91,8 +91,6 @@ public sealed partial class ListenViewModel : ObservableObject, IDisposable
 
     /// <summary>Capture switches only take effect on the next start; the button reads that honestly.</summary>
     public bool CanChangeCapture => !IsListening && !IsPreparing;
-
-    public string StartLabel => IsListening ? "Stop" : "Listen";
 
     public bool HasTranscript => Transcript.Count > 0;
 
@@ -133,6 +131,8 @@ public sealed partial class ListenViewModel : ObservableObject, IDisposable
         _run = new CancellationTokenSource();
         var ct = _run.Token;
         var captureStarted = false;
+        var downloading = false;
+        var model = _settings.ListenModel;
         IsPreparing = true;
         NeedsNotesModel = false;
         NotesStatus = "";
@@ -140,11 +140,11 @@ public sealed partial class ListenViewModel : ObservableObject, IDisposable
         RefreshNotesSources();
         try
         {
-            var model = _settings.ListenModel;
             var path = ListenModel.Resolve(_settings.ListenModelPath, model);
             var exact = ListenModel.IsCoreModel(_settings.ListenModelPath);
             if (!ListenModel.IsComplete(path, model, exact))
             {
+                downloading = true;
                 IsDownloadingModel = true;
                 ModelProgress = 0;
                 Status = "Downloading the speech model";
@@ -156,6 +156,7 @@ public sealed partial class ListenViewModel : ObservableObject, IDisposable
                 });
                 await ListenModel.DownloadAsync(path, model, progress, ct);
                 IsDownloadingModel = false;
+                downloading = false;
             }
 
             ct.ThrowIfCancellationRequested();
@@ -217,9 +218,11 @@ public sealed partial class ListenViewModel : ObservableObject, IDisposable
         {
             Atoll.Log.Error("Listen could not start", ex);
             await StopAsync("Listen could not start.");
-            StatusDetail = captureStarted
-                ? "Audio capture could not start."
-                : "The speech model could not be loaded. Check %LOCALAPPDATA%\\Atoll\\listen.";
+            StatusDetail = downloading
+                ? $"Could not download the speech model. Check your connection, or put {ListenModel.FileName(model)} in {ListenModel.Directory}."
+                : captureStarted
+                    ? "Audio capture could not start."
+                    : "The speech model could not be loaded. Check " + ListenModel.Directory + ".";
         }
     }
 
