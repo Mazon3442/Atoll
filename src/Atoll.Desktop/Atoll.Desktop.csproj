@@ -42,6 +42,7 @@
     <PackageReference Include="System.Management" Version="10.0.14" />
     <Compile Include="../Atoll.App/Modules/Media/MediaModule.cs" Link="Modules/MediaModule.cs" />
     <Compile Include="../Atoll.App/Modules/Media/AudioLevels.cs" Link="Modules/AudioLevels.cs" />
+    <Compile Include="../Atoll.App/Modules/Media/PcmAudio.cs" Link="Modules/PcmAudio.cs" />
     <Compile Include="../Atoll.App/Modules/Media/AudioSources.cs" Link="Modules/AudioSources.cs" />
     <Compile Include="../Atoll.App/Modules/Media/AudioOutputs.cs" Link="Modules/AudioOutputs.cs" />
     <Compile Include="../Atoll.App/Modules/Indicators/IndicatorsModule.cs" Link="Modules/IndicatorsModule.cs" />
