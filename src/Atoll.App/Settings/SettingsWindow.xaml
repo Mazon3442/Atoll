@@ -520,7 +520,7 @@
                             <s:ColorPicker Value="{Binding Accent}" Label="Accent color" />
                         </s:SettingCard>
                         <s:SettingCard Glyph="&#xF5EF;" Header="Frosted glass"
-                                       Description="Blurs what is behind ATOLL, tinted with the background color. While on, ATOLL is hidden from screenshots and screen recordings.">
+                                       Description="Blurs what is behind ATOLL, tinted with the background color. ATOLL falls back to a captured blur when the system cannot blur the island.">
                             <CheckBox Style="{StaticResource Toggle}" IsChecked="{Binding Glass}" AutomationProperties.Name="Frosted glass" />
                         </s:SettingCard>
                         <s:SettingCard Glyph="&#xE706;" Header="Background opacity" Description="Scales the background color's own opacity.">

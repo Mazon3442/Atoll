@@ -7,10 +7,9 @@ using System.Windows.Media.Imaging;
 namespace Atoll.Shell;
 
 /// <summary>
-/// Frosted glass for the island: captures the screen behind it at 1/<see cref="Downscale"/> size,
+/// Fallback frosted glass for the island: captures the screen behind it at 1/<see cref="Downscale"/> size,
 /// blurs and tints that tiny image, and the island paints it back scaled up (which smooths it further).
-/// Windows' own acrylic cannot be used: it does not work on per-pixel-alpha windows, and a separate
-/// acrylic window ignores window regions, so it could only ever be a sharp rectangle.
+/// Used only when <see cref="SystemBackdrop"/> cannot apply the Windows blur to a per-pixel-alpha window.
 /// The island window must be excluded from capture (<see cref="ExcludeFromCapture"/>) or it would sample itself.
 /// </summary>
 internal static class GlassSampler

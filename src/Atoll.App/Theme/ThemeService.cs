@@ -23,9 +23,10 @@ public static class ThemeService
         var res = Application.Current.Resources;
         if (theme.Glass)
         {
-            // The blur window behind the pill carries the tint; the pill itself only adds a rim.
+            // The system blur sits behind the pill; this translucent tint is what the user sees over it.
+            // The screenshot fallback replaces it with a tinted image brush at runtime.
             GlassTint = Color.FromArgb((byte)(bg.A * opacity), bg.R, bg.G, bg.B);
-            res["Island.Background"] = Frozen(new SolidColorBrush(Color.FromArgb(1, 0, 0, 0))); // alpha 1: still hit-testable
+            res["Island.Background"] = Frozen(new SolidColorBrush(GlassTint.Value));
             res["Island.Rim"] = Frozen(new SolidColorBrush(fg) { Opacity = 0.18 });
         }
         else

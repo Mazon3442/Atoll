@@ -87,9 +87,13 @@ public partial class IslandWindow : Window
     private TimeSpan? _edgeHoverSince;
     private bool _revealed;
 
-    // Frosted glass: the screen behind the window, blurred, painted as the pill/bubble background.
+    // Frosted glass: the system blur behind the pill and bubbles, or a captured blur fallback.
     private readonly DispatcherTimer _glassTimer;
+    private readonly SystemBackdrop _backdrop = new();
     private bool _glassActive;
+    private bool _systemGlass;
+    private bool _systemGlassTried;
+    private string _glassKey = "";
     private BitmapSource? _glassImage;
     private Int32Rect _glassArea;
     private ImageBrush? _pillGlassBrush;
@@ -165,7 +169,7 @@ public partial class IslandWindow : Window
                 && _modules.Tabs.Any(t => t.Contains("shelf")))
                 SetMode(IslandMode.Expanded, "shelf");
         };
-        LayoutUpdated += (_, _) => ApplyGlassBrushes(); // follows the pill through every animation frame
+        LayoutUpdated += (_, _) => UpdateGlassFrame(); // follows the pill through every animation frame
 
         SourceInitialized += (_, _) =>
         {
@@ -229,6 +233,7 @@ public partial class IslandWindow : Window
             _edgeTimer.Stop();
             _hint?.Close();
             _glassTimer.Stop();
+            _backdrop.Dispose();
             DisposeSideChips();
         };
     }
@@ -912,7 +917,7 @@ public partial class IslandWindow : Window
 
     // ---------- frosted glass ----------
 
-    /// <summary>Starts or stops glass sampling to match the theme and visibility.</summary>
+    /// <summary>Starts or stops the frosted backdrop to match the theme and visibility.</summary>
     private void UpdateGlass()
     {
         var wanted = ThemeService.GlassTint is not null && IsVisible && _hwnd != 0;
@@ -920,23 +925,102 @@ public partial class IslandWindow : Window
         _glassActive = wanted;
         if (wanted)
         {
-            if (!GlassSampler.ExcludeFromCapture(_hwnd, true))
-                Log.Info("Frosted glass: this Windows build cannot exclude the island from capture; the glass may show the island itself");
-            SampleGlass();
-            _glassTimer.Start();
+            _systemGlassTried = false;
+            _systemGlass = TrySystemGlass();
+            if (_systemGlass)
+            {
+                Log.Info("Frosted glass: using the Windows blur behind the island");
+                GlassSampler.ExcludeFromCapture(_hwnd, false);
+                ResetGlassBackgrounds();
+                _glassKey = "";
+                UpdateSystemBackdrop();
+            }
+            else
+            {
+                if (!GlassSampler.ExcludeFromCapture(_hwnd, true))
+                    Log.Info("Frosted glass: this Windows build cannot exclude the island from capture; the glass may show the island itself");
+                SampleGlass();
+                _glassTimer.Start();
+            }
         }
         else
         {
             _glassTimer.Stop();
+            _backdrop.Disable(_hwnd);
+            _systemGlass = false;
+            _systemGlassTried = false;
             if (_hwnd != 0) GlassSampler.ExcludeFromCapture(_hwnd, false);
             _glassImage = null;
             _pillGlassBrush = null; _bubbleGlassBrush = null;
             _bubble2GlassBrush = null; _bubble3GlassBrush = null; _bubble4GlassBrush = null;
-            Pill.SetResourceReference(BackgroundProperty, "Island.Background");
-            Bubble.SetResourceReference(BackgroundProperty, "Island.Background");
-            Bubble2.SetResourceReference(BackgroundProperty, "Island.Background");
-            Bubble3.SetResourceReference(BackgroundProperty, "Island.Background");
-            Bubble4.SetResourceReference(BackgroundProperty, "Island.Background");
+            ResetGlassBackgrounds();
+        }
+    }
+
+    /// <summary>Follows the pill through every layout frame; the system region or the captured brush must track it.</summary>
+    private void UpdateGlassFrame()
+    {
+        if (!_glassActive) return;
+        if (!_systemGlass && !_systemGlassTried && TrySystemGlass())
+        {
+            // The first attempt ran before layout. Switch to the real blur once the pill has a size.
+            Log.Info("Frosted glass: using the Windows blur behind the island");
+            _glassTimer.Stop();
+            GlassSampler.ExcludeFromCapture(_hwnd, false);
+            ResetGlassBackgrounds();
+            _glassKey = "";
+            UpdateSystemBackdrop();
+            return;
+        }
+        if (_systemGlass) UpdateSystemBackdrop();
+        else ApplyGlassBrushes();
+    }
+
+    private bool TrySystemGlass()
+    {
+        if (_hwnd == 0 || Pill.ActualWidth <= 0 || Pill.ActualHeight <= 0) return false;
+        _systemGlassTried = true;
+        var enabled = _backdrop.Enable(_hwnd, GlassShapes());
+        if (!enabled) Log.Info("Frosted glass: Windows blur unavailable; using the captured blur");
+        return enabled;
+    }
+
+    private void ResetGlassBackgrounds()
+    {
+        Pill.SetResourceReference(BackgroundProperty, "Island.Background");
+        Bubble.SetResourceReference(BackgroundProperty, "Island.Background");
+        Bubble2.SetResourceReference(BackgroundProperty, "Island.Background");
+        Bubble3.SetResourceReference(BackgroundProperty, "Island.Background");
+        Bubble4.SetResourceReference(BackgroundProperty, "Island.Background");
+    }
+
+    private void UpdateSystemBackdrop()
+    {
+        if (!_systemGlass || _hwnd == 0) return;
+        var shapes = GlassShapes();
+        var key = string.Join(";", shapes.Select(s =>
+            $"{s.Bounds.X:0},{s.Bounds.Y:0},{s.Bounds.Width:0},{s.Bounds.Height:0},{s.Radius:0},{s.Notch}"));
+        if (key == _glassKey) return;
+        if (_backdrop.Enable(_hwnd, shapes)) _glassKey = key;
+    }
+
+    /// <summary>The pill and visible side bubbles, in window pixels, for the blur region.</summary>
+    private IReadOnlyList<SystemBackdrop.Shape> GlassShapes()
+    {
+        var dpi = VisualTreeHelper.GetDpi(this);
+        var shapes = new List<SystemBackdrop.Shape>(5);
+        Add(Pill);
+        foreach (var bubble in new[] { Bubble, Bubble2, Bubble3, Bubble4 }.Where(b => b.IsVisible)) Add(bubble);
+        return shapes;
+
+        void Add(PillBorder element)
+        {
+            if (element.ActualWidth <= 0 || element.ActualHeight <= 0) return;
+            var origin = element.TranslatePoint(new Point(), this);
+            shapes.Add(new SystemBackdrop.Shape(
+                new Rect(origin.X * dpi.DpiScaleX, origin.Y * dpi.DpiScaleY,
+                    element.ActualWidth * dpi.DpiScaleX, element.ActualHeight * dpi.DpiScaleY),
+                element.Radius * dpi.DpiScaleX, element.Notch));
         }
     }
 
