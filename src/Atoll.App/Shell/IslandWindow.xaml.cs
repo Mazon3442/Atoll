@@ -302,8 +302,13 @@ public partial class IslandWindow : Window
     {
         DisposeSideChips();
         var accent = AccentColor();
+        var wide = _sideActivities.Count >= 3;
         for (var i = 0; i < _sideActivities.Count && i < _sideChips.Length; i++)
-            _sideChips[i] = new SideChipViewModel(_sideActivities[i], accent);
+        {
+            var chip = new SideChipViewModel(_sideActivities[i], accent);
+            chip.SetWide(wide);
+            _sideChips[i] = chip;
+        }
     }
 
     private void DisposeSideChips()
@@ -1096,12 +1101,16 @@ public partial class IslandWindow : Window
             presenter.ContentTemplate = Templates.Find(this, content, "Mini");
             presenter.Content = content;
         }
-        bubble.Height = size;
-        bubble.Width = SideChipWidth;
+        var chip = content as SideChipViewModel;
+        var ring = chip?.IsRing == true;
+        var height = ring ? Math.Max(size, 34) : size;
+        var wide = _sideActivities.Count >= 3;
+        bubble.Height = height;
+        bubble.Width = ring ? height : wide ? SideChipWidth : size;
         bubble.ClipToBounds = true;
-        bubble.Radius = Roundness * size / 2;
+        bubble.Radius = Roundness * height / 2;
         bubble.Visibility = Visibility.Visible;
-        AutomationProperties.SetName(bubble, content is SideChipViewModel chip ? chip.Label : "");
+        AutomationProperties.SetName(bubble, chip?.Label ?? "");
     }
 
     private void UpdateBubbleOffset()

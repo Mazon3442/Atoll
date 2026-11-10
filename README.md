@@ -21,8 +21,9 @@
 ## Features
 
 ATOLL sits at the top of your primary display as a **compact** pill that shows the most important
-thing happening. Up to four other live activities sit in small tinted capsules beside it. Hover over
-it or click it to **expand** it into tabs, and press Escape to collapse it again. Star a tab in
+thing happening. Up to four other live activities sit beside it: round dots for one or two, wide
+capsules when three or four need labels, and timer or agent usage as a ring with the time or percent
+left. Hover over the island or click it to **expand** it into tabs, and press Escape to collapse it again. Star a tab in
 Settings to keep it in the top row; a tab you leave on but don't star waits in the **...** menu.
 Turning a tab off removes it from both places. When every tab is starred, the **...** button
 disappears.

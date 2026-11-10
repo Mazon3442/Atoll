@@ -226,6 +226,26 @@ internal static class CalendarUiTests
             Drain(); island.UpdateLayout();
             RenderIsland(pill, bubble, third, second, fourth);
 
+            // Four activities: non-ring chips use wide capsules, the timer stays a circle.
+            Assert.InRange(bubble.Width, 33, 35);
+            Assert.InRange(third.Width, 117, 119);
+
+            // Two activities: plain dots, no wide capsules. The timer remains a ring.
+            island.SetActivitySnapshot(new Activity("calendar.next", "calendar", next, ActivityPriority.High),
+            [
+                new Activity("clock.timer", "clock", timer, ActivityPriority.Normal),
+                new Activity("media.song", "media", mediaPanel, ActivityPriority.Normal),
+            ]);
+            SnapCompact(pill, (ContentPresenter)island.FindName("PillContent"), service.Current.Theme.CompactHeight);
+            island.UpdateLayout();
+            Assert.True(bubble.IsVisible);
+            Assert.True(second.IsVisible);
+            Assert.False(third.IsVisible);
+            Assert.False(fourth.IsVisible);
+            Assert.InRange(bubble.Width, 33, 35);
+            Assert.InRange(second.Width, 33, 35);
+            Assert.True(second.Width < 60); // dot, not the 118 wide capsule
+
             second.RaiseEvent(new MouseButtonEventArgs(Mouse.PrimaryDevice, 0, MouseButton.Left) { RoutedEvent = UIElement.MouseLeftButtonUpEvent });
             Assert.True(((ModuleTab)((ListBox)island.FindName("Tabs")).SelectedItem).Contains("media"));
             Assert.False(bubble.IsVisible);
