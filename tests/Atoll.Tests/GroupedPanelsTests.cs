@@ -199,9 +199,22 @@ public class GroupedPanelsTests
             { Id = claude ? 2u : 1u, AppName = claude ? "Claude" : "Test app", Title = "Notification rendering test", Body = "Sender icon fallback", Time = DateTimeOffset.Now, IsClaude = claude });
         notifications.ItemsChanged();
         panels.Add(("notifications-populated", notifications));
-        panels.Add(("tide-prompt", new Atoll.Modules.Tide.TideViewModel(new Atoll.Settings.TideSettings(), () => { })
+        var demoScripts = new Atoll.Settings.TideSettings
+        {
+            HideFromCapture = false,
+            Scripts =
+            [
+                new() { Title = "Q3 launch kickoff", Body = "Good morning, everyone, and thanks for joining.\n\nThree months ago we set out to make the weekly planning call shorter.\n\nToday the median team spends eleven minutes on it — down from thirty-four.\n\nSo let's talk about what changed, and what comes next." },
+                new() { Title = "Podcast intro", Body = "Welcome back." },
+                new() { Title = "Standup notes", Body = "Yesterday, today, blockers." },
+            ],
+        };
+        demoScripts.SelectedScriptId = demoScripts.Scripts[0].Id;
+        panels.Add(("tide-scripts", new Atoll.Modules.Tide.TideViewModel(demoScripts, () => { })));
+        panels.Add(("tide-prompt", new Atoll.Modules.Tide.TideViewModel(demoScripts, () => { })
         {
             SectionIndex = 1,
+            Offset = 60,
         }));
         panels.Add(("tide-listen", new Atoll.Modules.Tide.TideViewModel(new Atoll.Settings.TideSettings(), () => { })
         {
@@ -292,7 +305,7 @@ public class GroupedPanelsTests
             if (panel.Name == "tide-prompt")
             {
                 Assert.Equal(Visibility.Visible, Descendants<ScrollViewer>(background).Single(s => AutomationProperties.GetName(s) == "Teleprompter").Visibility);
-                Assert.Equal(Visibility.Visible, Descendants<Button>(background).Single(b => AutomationProperties.GetName(b) == "Start prompter").Visibility);
+                Assert.Equal(Visibility.Visible, Descendants<Button>(background).Single(b => AutomationProperties.GetName(b) == "Start or pause the prompter").Visibility);
             }
             var bitmap = new RenderTargetBitmap((int)frameWidth, (int)frameHeight, 96, 96, PixelFormats.Pbgra32);
             bitmap.Render(background);

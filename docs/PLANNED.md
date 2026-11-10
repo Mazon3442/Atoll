@@ -62,6 +62,15 @@ Parked on purpose; build when asked. The mockup was shared in chat and is not sa
 - Drop the duplicate "Same Wi-Fi" line under the list; keep it once in the header.
 - Questions for later: where Received files should live, a size limit, and whether the Shelf should be able to send into it.
 
+## Pinned: AirDrop
+
+Parked on purpose; build when asked. Reference: https://github.com/t4t5/owly
+
+- Owly is a Linux tool, written in Rust under the MIT license, that talks AirDrop with iPhones. Its README names Linux distributions and Wi-Fi cards that are not Apple's Broadcom parts.
+- Not checked yet: whether any of it works on Windows. AirDrop rides on Apple's AWDL Wi-Fi link, and Windows Wi-Fi drivers do not normally expose it. Expect this to depend on specific adapters, or to be a non-starter.
+- Start by reading its README and source for the AWDL requirement, then decide. If it cannot work on Windows, the phone transfer tab above (local web page and QR code) is the fallback for iPhones too.
+- If it does work, it belongs in the phone transfer tab as a second way to send, not a separate tab.
+
 ## Hold: translations
 
 - JSON language packs with English fallback.

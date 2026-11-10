@@ -61,7 +61,8 @@ public sealed partial class TideViewModel : ObservableObject, IDisposable
     public IReadOnlyList<string> Speeds { get; } = ["Slow", "Normal", "Fast", "Sprint"];
 
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(IsScripts), nameof(IsPrompter), nameof(IsListen))]
+    [NotifyPropertyChangedFor(nameof(IsScripts), nameof(IsPrompter), nameof(IsListen), nameof(ShowsPrompterBar),
+        nameof(PrimaryLabel), nameof(PrimaryIsPause))]
     private int _sectionIndex;
 
     public bool IsScripts => SectionIndex == 0;
@@ -88,8 +89,12 @@ public sealed partial class TideViewModel : ObservableObject, IDisposable
     [ObservableProperty] private double _fontSize = 34;
     [ObservableProperty] private bool _mirror;
     [ObservableProperty] private bool _followVoice;
-    [ObservableProperty] private bool _hideFromCapture = true;
-    [ObservableProperty] private bool _isRunning;
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(ShowCaptureBanner))]
+    private bool _hideFromCapture = true;
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsPaused), nameof(PrimaryLabel), nameof(PrimaryIsPause))]
+    private bool _isRunning;
     [ObservableProperty] private double _offset;
     [ObservableProperty] private double _maxOffset;
     [ObservableProperty] private string _voiceStatus = "";
@@ -111,6 +116,29 @@ public sealed partial class TideViewModel : ObservableObject, IDisposable
     }
 
     public string FontLabel => $"{FontSize:0}";
+
+    /// <summary>Scripts and Prompter share one bar: reading speed, voice follow and the main button.</summary>
+    public bool ShowsPrompterBar => SectionIndex < 2;
+
+    /// <summary>Started and then stopped part-way: the prompter shows its Paused pill.</summary>
+    public bool IsPaused => !IsRunning && Offset > 0;
+
+    /// <summary>Only while the island is not hidden from capture: a warning that has a one-click answer.</summary>
+    public bool ShowCaptureBanner => !HideFromCapture;
+
+    /// <summary>Start from Scripts; then Pause and Resume once the prompter is up.</summary>
+    public string PrimaryLabel => IsScripts ? "Start" : IsRunning ? "Pause" : IsPaused ? "Resume" : "Start";
+
+    public bool PrimaryIsPause => IsPrompter && IsRunning;
+
+    partial void OnOffsetChanged(double oldValue, double newValue)
+    {
+        if ((oldValue > 0) != (newValue > 0))
+        {
+            OnPropertyChanged(nameof(IsPaused));
+            OnPropertyChanged(nameof(PrimaryLabel));
+        }
+    }
 
     /// <summary>The Hide chip names the action: hide the island from capture, or bring it back.</summary>
     public string CaptureLabel => HideFromCapture ? "Show" : "Hide";
@@ -182,16 +210,63 @@ public sealed partial class TideViewModel : ObservableObject, IDisposable
         SelectedScript = script;
     }
 
+    /// <summary>Deletes the script on a row, or the selected one when no row is given.</summary>
     [RelayCommand]
-    private void DeleteScript()
+    private void DeleteScript(TideScript? script = null)
     {
-        if (_selectedScript is null) return;
-        var index = Scripts.IndexOf(_selectedScript);
-        Scripts.Remove(_selectedScript);
+        script ??= _selectedScript;
+        if (script is null || !Scripts.Contains(script)) return;
+        var wasSelected = ReferenceEquals(script, _selectedScript);
+        var index = Scripts.IndexOf(script);
+        Scripts.Remove(script);
         if (Scripts.Count == 0) Scripts.Add(new TideScript { Title = "New script", Body = "" });
+        if (!wasSelected)
+        {
+            SaveNow();
+            return;
+        }
         _selectedScript = null;
         SelectedScript = Scripts[Math.Clamp(index, 0, Scripts.Count - 1)];
     }
+
+    /// <summary>The main button: Start opens the prompter and runs it; in the prompter it pauses and resumes.</summary>
+    [RelayCommand]
+    private void Primary()
+    {
+        if (IsScripts)
+        {
+            if (Body.Length == 0) return;
+            SectionIndex = 1;
+            Start();
+        }
+        else if (IsRunning) Pause();
+        else Start();
+    }
+
+    /// <summary>Tap the script to pause or resume, like the buttons do.</summary>
+    [RelayCommand]
+    private void TogglePause()
+    {
+        if (IsRunning) Pause();
+        else if (Body.Length > 0) Start();
+    }
+
+    /// <summary>Ends the run, rewinds, and goes back to the script.</summary>
+    [RelayCommand]
+    private void StopPrompter()
+    {
+        Reset();
+        SectionIndex = 0;
+    }
+
+    [RelayCommand]
+    private void HideNow() => HideFromCapture = true;
+
+    [RelayCommand]
+    private void LargerText() => FontSize = Math.Min(72, FontSize + 2);
+
+    [RelayCommand]
+    private void SmallerText() => FontSize = Math.Max(20, FontSize - 2);
 
     [RelayCommand]
     private void Start()
