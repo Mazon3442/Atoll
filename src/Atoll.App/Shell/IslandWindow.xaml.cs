@@ -401,6 +401,8 @@ public partial class IslandWindow : Window
         var t = _settings.Current.Theme;
         var offset = TopGap;
         foreach (var b in new[] { Pill, Bubble, Bubble2, Bubble3, Bubble4 }) b.Notch = Notch;
+        // The shoulders sit inside the pill's width, so the content keeps clear of them.
+        Pill.Padding = Notch ? new Thickness(PillBorder.MaxShoulder, 0, PillBorder.MaxShoulder, 0) : new Thickness(0);
         Stage.Margin = new Thickness(0, offset, 0, 0);
         var desiredWidth = Math.Max(1200, Math.Clamp(t.ExpandedWidth, 320, 900) + 4 * (SideChipWidth + 8));
         Width = Math.Min(desiredWidth, Math.Max(760, Monitor.WorkArea.Width / Monitor.Scale - 24));
@@ -1207,7 +1209,7 @@ public partial class IslandWindow : Window
         // ⋯ button out; measuring that capped width back would make the pill shrink a little on every pass.
         Tabs.MaxWidth = double.PositiveInfinity;
         Header.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
-        var needed = Header.DesiredSize.Width + PanelRoot.Margin.Left + PanelRoot.Margin.Right + Pill.BorderThickness.Left + Pill.BorderThickness.Right + 2;
+        var needed = Header.DesiredSize.Width + PanelRoot.Margin.Left + PanelRoot.Margin.Right + PillChrome.Left + PillChrome.Right + 2;
         _headerWidth = Math.Max(_headerWidth, needed);
         return Math.Min(_headerWidth, Monitor.WorkArea.Width / Monitor.Scale - 32);
     }
@@ -1228,9 +1230,13 @@ public partial class IslandWindow : Window
         Tabs.MaxWidth = Math.Max(80, available - chrome);
     }
 
+    /// <summary>The pill's rim plus, for a notch, the room its shoulders take at the sides.</summary>
+    private Thickness PillChrome => new(Pill.BorderThickness.Left + Pill.Padding.Left, Pill.BorderThickness.Top + Pill.Padding.Top,
+        Pill.BorderThickness.Right + Pill.Padding.Right, Pill.BorderThickness.Bottom + Pill.Padding.Bottom);
+
     private double FittedPanelHeight(double expandedWidth)
     {
-        var border = Pill.BorderThickness;
+        var border = PillChrome;
         PanelRoot.Visibility = Visibility.Visible; // collapsed elements measure as zero
         PanelRoot.Width = expandedWidth - PanelRoot.Margin.Left - PanelRoot.Margin.Right - border.Left - border.Right;
         PanelRoot.Height = double.NaN;
@@ -1252,8 +1258,8 @@ public partial class IslandWindow : Window
                 expandedHeight = Math.Max(expandedHeight, FittedPanelHeight(expandedWidth)); // show all of it
             expandedHeight = Math.Min(expandedHeight, AvailablePanelHeight);
             // Lay out at the destination size, so opening the pill cannot create transient overflow.
-            PanelRoot.Width = expandedWidth - PanelRoot.Margin.Left - PanelRoot.Margin.Right - Pill.BorderThickness.Left - Pill.BorderThickness.Right;
-            PanelRoot.Height = expandedHeight - PanelRoot.Margin.Top - PanelRoot.Margin.Bottom - Pill.BorderThickness.Top - Pill.BorderThickness.Bottom;
+            PanelRoot.Width = expandedWidth - PanelRoot.Margin.Left - PanelRoot.Margin.Right - PillChrome.Left - PillChrome.Right;
+            PanelRoot.Height = expandedHeight - PanelRoot.Margin.Top - PanelRoot.Margin.Bottom - PillChrome.Top - PillChrome.Bottom;
             PillContent.Visibility = Visibility.Collapsed;
             PanelRoot.Visibility = Visibility.Visible;
             Animate(expandedWidth, expandedHeight, Roundness * 32);

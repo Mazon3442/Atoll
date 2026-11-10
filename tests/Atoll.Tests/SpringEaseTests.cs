@@ -68,8 +68,33 @@ public class SpringEaseTests
         Assert.Equal(new System.Windows.CornerRadius(12), border.CornerRadius);
         border.Notch = true;
         Assert.Equal(new System.Windows.CornerRadius(0, 0, 12, 12), border.CornerRadius);
-        Assert.Equal(new System.Windows.Thickness(1, 0, 1, 1), border.BorderThickness);
+        Assert.Equal(new System.Windows.Thickness(0), border.BorderThickness); // the rim is drawn along the shoulders instead
         border.Notch = false;
         Assert.Equal(new System.Windows.Thickness(1), border.BorderThickness);
+    }
+
+    [Fact]
+    public void Notch_shoulders_flare_to_the_screen_edge_and_the_body_sits_inside_them()
+    {
+        Exception? error = null;
+        var thread = new Thread(() => { try { CheckShoulders(); } catch (Exception e) { error = e; } });
+        thread.SetApartmentState(ApartmentState.STA);
+        thread.Start();
+        thread.Join();
+        if (error is not null) throw error;
+    }
+
+    private static void CheckShoulders()
+    {
+        var shape = PillBorder.NotchGeometry(400, 200, 20, outline: false);
+        var s = PillBorder.MaxShoulder;
+        Assert.True(shape.FillContains(new System.Windows.Point(200, 1)));        // the top edge is solid
+        Assert.False(shape.FillContains(new System.Windows.Point(1, 100)));       // below the shoulder the body is inset
+        Assert.False(shape.FillContains(new System.Windows.Point(2, 1)));         // the flare tapers to a point at the corner
+        Assert.True(shape.FillContains(new System.Windows.Point(s - 1, 2)));      // and fills in toward the body
+        Assert.True(shape.FillContains(new System.Windows.Point(s + 2, 100)));
+        Assert.True(shape.FillContains(new System.Windows.Point(400 - s - 2, 100)));
+        Assert.False(shape.FillContains(new System.Windows.Point(400 - 1, 100)));
+        Assert.True(shape.Bounds.Width <= 400.001);
     }
 }

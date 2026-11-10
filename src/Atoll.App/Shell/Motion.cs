@@ -92,8 +92,10 @@ public sealed class PillBorder : Border
     {
         var r = Math.Max(0, Radius);
         CornerRadius = Notch ? new CornerRadius(0, 0, r, r) : new CornerRadius(r);
-        BorderThickness = Notch ? new Thickness(1, 0, 1, 1) : new Thickness(1); // no rim along the screen edge
+        // A notch draws its own rim along the shoulders (see OnRender); the border's would be cut off by the clip.
+        BorderThickness = Notch ? new Thickness(0) : new Thickness(1);
         UpdateClip();
+        InvalidateVisual();
     }
 
     protected override void OnRenderSizeChanged(SizeChangedInfo sizeInfo)
@@ -102,10 +104,54 @@ public sealed class PillBorder : Border
         UpdateClip();
     }
 
+    /// <summary>How far each shoulder flares: a visible curve on a tall panel, still tidy on a short pill.</summary>
+    internal const double MaxShoulder = 14;
+
+    private static double ShoulderFor(double w, double h) => Math.Max(0, Math.Min(MaxShoulder, Math.Min(h / 3, w / 8)));
+
     /// <summary>
-    /// A notch is flush with the screen edge. A small concave shoulder on each top corner makes it
-    /// read as attached to the edge instead of a plain rectangle.
+    /// The notch outline. The top corners flare out to meet the screen edge in a smooth concave curve, like a laptop
+    /// notch, and the bottom corners are round. <paramref name="outline"/> leaves the top edge out, for the rim.
     /// </summary>
+    internal static Geometry NotchGeometry(double w, double h, double radius, bool outline)
+    {
+        var s = ShoulderFor(w, h);
+        var r = Math.Max(0, Math.Min(radius, Math.Min((w - 2 * s) / 2, h - s)));
+        var geometry = new StreamGeometry();
+        using (var context = geometry.Open())
+        {
+            if (outline) context.BeginFigure(new Point(0, 0), false, false);
+            else
+            {
+                context.BeginFigure(new Point(0, 0), true, true);
+                context.LineTo(new Point(w, 0), true, false);
+            }
+            if (outline)
+            {
+                // Left shoulder, down the left side, round the bottom, up the right side, right shoulder.
+                if (s > 0) context.ArcTo(new Point(s, s), new Size(s, s), 0, false, SweepDirection.Clockwise, true, false);
+                context.LineTo(new Point(s, h - r), true, false);
+                if (r > 0) context.ArcTo(new Point(s + r, h), new Size(r, r), 0, false, SweepDirection.Counterclockwise, true, false);
+                context.LineTo(new Point(w - s - r, h), true, false);
+                if (r > 0) context.ArcTo(new Point(w - s, h - r), new Size(r, r), 0, false, SweepDirection.Counterclockwise, true, false);
+                context.LineTo(new Point(w - s, s), true, false);
+                if (s > 0) context.ArcTo(new Point(w, 0), new Size(s, s), 0, false, SweepDirection.Clockwise, true, false);
+            }
+            else
+            {
+                if (s > 0) context.ArcTo(new Point(w - s, s), new Size(s, s), 0, false, SweepDirection.Counterclockwise, true, false);
+                context.LineTo(new Point(w - s, h - r), true, false);
+                if (r > 0) context.ArcTo(new Point(w - s - r, h), new Size(r, r), 0, false, SweepDirection.Clockwise, true, false);
+                context.LineTo(new Point(s + r, h), true, false);
+                if (r > 0) context.ArcTo(new Point(s, h - r), new Size(r, r), 0, false, SweepDirection.Clockwise, true, false);
+                context.LineTo(new Point(s, s), true, false);
+                if (s > 0) context.ArcTo(new Point(0, 0), new Size(s, s), 0, false, SweepDirection.Counterclockwise, true, false);
+            }
+        }
+        geometry.Freeze();
+        return geometry;
+    }
+
     private void UpdateClip()
     {
         if (!Notch || ActualWidth <= 0 || ActualHeight <= 0)
@@ -113,34 +159,15 @@ public sealed class PillBorder : Border
             Clip = null;
             return;
         }
+        Clip = NotchGeometry(ActualWidth, ActualHeight, Radius, outline: false);
+    }
 
-        var w = ActualWidth;
-        var h = ActualHeight;
-        var shoulder = Math.Min(8, Math.Min(w, h) / 6);
-        var r = Math.Min(Math.Max(0, Radius), Math.Min((w - 2 * shoulder) / 2, h / 2));
-        var geometry = new StreamGeometry();
-        using (var context = geometry.Open())
-        {
-            context.BeginFigure(new Point(0, 0), true, true);
-            context.LineTo(new Point(w, 0), true, false);
-            context.QuadraticBezierTo(new Point(w, shoulder), new Point(w - shoulder, shoulder), true, false);
-            if (r > 0)
-            {
-                context.LineTo(new Point(w - shoulder, h - r), true, false);
-                context.ArcTo(new Point(w - shoulder - r, h), new Size(r, r), 0, false, SweepDirection.Clockwise, true, false);
-                context.LineTo(new Point(shoulder + r, h), true, false);
-                context.ArcTo(new Point(shoulder, h - r), new Size(r, r), 0, false, SweepDirection.Clockwise, true, false);
-            }
-            else
-            {
-                context.LineTo(new Point(w - shoulder, h), true, false);
-                context.LineTo(new Point(shoulder, h), true, false);
-            }
-            context.LineTo(new Point(shoulder, shoulder), true, false);
-            context.QuadraticBezierTo(new Point(shoulder, 0), new Point(0, 0), true, false);
-        }
-        geometry.Freeze();
-        Clip = geometry;
+    protected override void OnRender(DrawingContext dc)
+    {
+        base.OnRender(dc);
+        if (!Notch || ActualWidth <= 0 || ActualHeight <= 0 || BorderBrush is not { } brush) return;
+        // Two pixels centred on the edge: the clip keeps the inner one, so the rim is one pixel along the whole outline.
+        dc.DrawGeometry(null, new Pen(brush, 2), NotchGeometry(ActualWidth, ActualHeight, Radius, outline: true));
     }
 }
 
