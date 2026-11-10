@@ -427,15 +427,37 @@
 
     <!-- A side activity capsule: module icon, short live label, and a quiet module tint. -->
     <DataTemplate x:Key="SideChipViewModel.Mini">
-        <Border Background="{Binding SurfaceBrush}" CornerRadius="999" Padding="10,0"
+        <Border x:Name="Surface" Background="{Binding SurfaceBrush}" CornerRadius="999" Padding="10,0"
                 ToolTip="{Binding Label}" AutomationProperties.Name="{Binding Label}">
-            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                <shell:Icon Kind="{Binding Glyph}" Size="14" Foreground="{Binding TintBrush}" VerticalAlignment="Center" />
-                <TextBlock Text="{Binding Label}" FontSize="12" FontWeight="SemiBold" Margin="6,0,0,0"
-                           MaxWidth="74" TextTrimming="CharacterEllipsis" VerticalAlignment="Center"
-                           Foreground="{DynamicResource Island.Foreground}" />
-            </StackPanel>
+            <Grid>
+                <StackPanel x:Name="Capsule" Orientation="Horizontal" VerticalAlignment="Center" HorizontalAlignment="Center">
+                    <shell:Icon Kind="{Binding Glyph}" Size="14" Foreground="{Binding TintBrush}" VerticalAlignment="Center" />
+                    <TextBlock x:Name="Label" Text="{Binding Label}" FontSize="12" FontWeight="SemiBold" Margin="6,0,0,0"
+                               MaxWidth="74" TextTrimming="CharacterEllipsis" VerticalAlignment="Center"
+                               Foreground="{DynamicResource Island.Foreground}" />
+                </StackPanel>
+                <Grid x:Name="Ring" Width="30" Height="30" HorizontalAlignment="Center" VerticalAlignment="Center"
+                      Visibility="Collapsed">
+                    <Ellipse Width="26" Height="26" Stroke="{DynamicResource Island.Hover}" StrokeThickness="2.5" />
+                    <Path Data="{Binding RingArc}" Stroke="{Binding TintBrush}" StrokeThickness="2.5"
+                          StrokeStartLineCap="Round" StrokeEndLineCap="Round" />
+                    <TextBlock Text="{Binding RingText}" FontSize="8.5" FontWeight="SemiBold"
+                               HorizontalAlignment="Center" VerticalAlignment="Center"
+                               Foreground="{DynamicResource Island.Foreground}" />
+                </Grid>
+            </Grid>
         </Border>
+        <DataTemplate.Triggers>
+            <DataTrigger Binding="{Binding IsRing}" Value="True">
+                <Setter TargetName="Capsule" Property="Visibility" Value="Collapsed" />
+                <Setter TargetName="Ring" Property="Visibility" Value="Visible" />
+                <Setter TargetName="Surface" Property="Padding" Value="0" />
+            </DataTrigger>
+            <DataTrigger Binding="{Binding ShowLabel}" Value="False">
+                <Setter TargetName="Label" Property="Visibility" Value="Collapsed" />
+                <Setter TargetName="Surface" Property="Padding" Value="0" />
+            </DataTrigger>
+        </DataTemplate.Triggers>
     </DataTemplate>
 
     <!-- Used when an activity's view model has no ".Mini" template. -->
