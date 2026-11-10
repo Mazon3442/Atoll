@@ -63,7 +63,7 @@
                             </Popup>
                             <Border Height="30" CornerRadius="15" Padding="10,0" Background="{DynamicResource Island.Surface}"
                                     ToolTip="{Binding Devices.Battery}" AutomationProperties.Name="{Binding Devices.Battery, StringFormat=Battery {0}}"
-                                    Visibility="{Binding Devices.HasBattery, Converter={StaticResource Island.BoolToVisibility}, FallbackValue=Collapsed}">
+                                    Visibility="{Binding Devices.ShowBatteryChip, Converter={StaticResource Island.BoolToVisibility}, FallbackValue=Collapsed}">
                                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                                     <shell:Icon Kind="battery" Size="16" VerticalAlignment="Center" />
                                     <TextBlock Text="{Binding Devices.BatteryShort}" FontSize="12" FontWeight="SemiBold" Margin="6,0,0,0" VerticalAlignment="Center" />

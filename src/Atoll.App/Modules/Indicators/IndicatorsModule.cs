@@ -26,16 +26,19 @@ public sealed partial class SystemPanelViewModel(Action<double> setVolume, Actio
     [ObservableProperty] private bool _isMuted;
     [ObservableProperty] private string _volumeGlyph = "";
     [ObservableProperty] private string _battery = "";
+    [ObservableProperty] private bool _showBattery = true;
     [ObservableProperty] private string _network = "";
     [ObservableProperty] private string _bluetooth = "None connected";
 
     public bool HasBattery => Battery.Length > 0;
+    public bool ShowBatteryChip => HasBattery && ShowBattery;
     public bool HasBluetooth => Bluetooth is not ("None connected" or "");
 
     /// <summary>"80%" for the header chip.</summary>
     public string BatteryShort => Battery.Split(' ')[0];
 
-    partial void OnBatteryChanged(string value) { OnPropertyChanged(nameof(HasBattery)); OnPropertyChanged(nameof(BatteryShort)); }
+    partial void OnBatteryChanged(string value) { OnPropertyChanged(nameof(HasBattery)); OnPropertyChanged(nameof(ShowBatteryChip)); OnPropertyChanged(nameof(BatteryShort)); }
+    partial void OnShowBatteryChanged(bool value) => OnPropertyChanged(nameof(ShowBatteryChip));
     partial void OnBluetoothChanged(string value) => OnPropertyChanged(nameof(HasBluetooth));
 
     partial void OnVolumeChanged(double value)
@@ -79,6 +82,7 @@ public sealed class IndicatorsModule : IIslandModule
     private bool _caps;
     private bool _num;
     private int _lastBatteryAlert = 100;
+    private bool _lowPosted;
 
     public IndicatorsModule() => _panel = new SystemPanelViewModel(SetVolume, ToggleMute);
 
@@ -87,6 +91,8 @@ public sealed class IndicatorsModule : IIslandModule
     public void Start(ModuleContext context)
     {
         _context = context;
+        _panel.ShowBattery = context.Settings.Current.ShowBattery;
+        context.Settings.Changed += OnSettingsChanged;
         StartVolume();
         StartBattery();
         StartNetwork();
@@ -188,22 +194,60 @@ public sealed class IndicatorsModule : IIslandModule
         var plugged = PowerManager.PowerSupplyStatus != PowerSupplyStatus.NotPresent;
         var glyph = char.ConvertFromUtf32((plugged ? 0xEBAB : 0xEBA0) + Math.Clamp(pct / 10, 0, 10));
         _panel.Battery = $"{pct}% {(plugged ? "· plugged in" : "· on battery")}";
+        var show = _context?.Settings.Current.ShowBattery ?? true;
+        _panel.ShowBattery = show;
+
+        if (!show)
+        {
+            ClearLowBattery();
+            return;
+        }
+
+        if (plugged || pct > 10)
+        {
+            ClearLowBattery();
+            _lastBatteryAlert = 100;
+        }
 
         if (announce)
         {
             Show(new IndicatorViewModel(glyph, plugged ? "Charging" : "On battery", $"{pct}%", pct / 100.0), LongShow);
-            if (plugged) _lastBatteryAlert = 100;
             return;
         }
-        // Warn once when dropping through 20% and again through 10%.
-        var threshold = pct <= 10 ? 10 : pct <= 20 ? 20 : 100;
-        if (!plugged && threshold < _lastBatteryAlert)
+
+        if (pct <= 10)
         {
-            _lastBatteryAlert = threshold;
+            if (!plugged && !_lowPosted)
+            {
+                _lowPosted = true;
+                _lastBatteryAlert = 10;
+                _context?.Post("battery-low", new IndicatorViewModel(glyph, "Battery low", $"{pct}% remaining", pct / 100.0),
+                    ActivityPriority.Critical, alert: true); // stays in the pill until charging or above 10%
+            }
+            return;
+        }
+
+        // Warn once when dropping through 20%.
+        if (!plugged && pct <= 20 && _lastBatteryAlert > 20)
+        {
+            _lastBatteryAlert = 20;
             _context?.Post("battery-low", new IndicatorViewModel(glyph, "Battery low", $"{pct}% remaining", pct / 100.0),
                 ActivityPriority.Critical, TimeSpan.FromSeconds(6), alert: true);
         }
     }
+
+    private void ClearLowBattery()
+    {
+        if (!_lowPosted) return;
+        _lowPosted = false;
+        _context?.Remove("battery-low");
+    }
+
+    private void OnSettingsChanged() => OnUi(() =>
+    {
+        _panel.ShowBattery = _context?.Settings.Current.ShowBattery ?? true;
+        ShowBattery(announce: false);
+    });
 
     // ---------- Network ----------
 
@@ -314,6 +358,7 @@ public sealed class IndicatorsModule : IIslandModule
     public void Dispose()
     {
         _keyPoll?.Stop();
+        if (_context is not null) _context.Settings.Changed -= OnSettingsChanged;
         PowerManager.PowerSupplyStatusChanged -= OnPowerSupplyChanged;
         PowerManager.RemainingChargePercentChanged -= OnChargeChanged;
         NetworkChange.NetworkAvailabilityChanged -= OnNetworkAvailabilityChanged;

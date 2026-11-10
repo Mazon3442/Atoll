@@ -666,6 +666,12 @@
                             </ItemsControl.ItemTemplate>
                         </ItemsControl>
 
+                        <TextBlock Style="{StaticResource SectionHeader}" Text="Laptop battery" />
+                        <s:SettingCard Glyph="&#xE83F;" Header="Show battery"
+                                       Description="Header chip on laptops. At 20% ATOLL warns once; from 10% down the level stays in the pill until it charges or rises above 10%.">
+                            <CheckBox Style="{StaticResource Toggle}" IsChecked="{Binding ShowBattery}" AutomationProperties.Name="Show battery" />
+                        </s:SettingCard>
+
                         <TextBlock Style="{StaticResource SectionHeader}" Text="Home" />
                         <s:SettingCard Glyph="&#xE80F;" Header="Home tab" Description="A dashboard of what's playing, the weather, your timer, this month and what's next.">
                             <StackPanel Orientation="Horizontal">

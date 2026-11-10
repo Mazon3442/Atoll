@@ -45,7 +45,8 @@ public sealed class ProviderModule : IIslandModule
     private bool _refreshing;
     private int _revision;
     private string? _configuration;
-    public object Panel => _vm;
+    // The gateway runs in the background; keys and status live in Settings > Agents.
+    public object? Panel => null;
     public void Start(ModuleContext context)
     {
         _context = context;

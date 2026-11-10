@@ -53,7 +53,7 @@ bookmarked tab. Change all three shortcuts in **Settings › General › Keyboar
 | **Weather** | Open-Meteo city search, current conditions and a seven-day forecast. Hourly wind, rain and temperature charts cover the whole day and work with the pointer and the keyboard. |
 | **Files** | A file shelf: drop files on the island to keep their paths handy without copying the files. |
 | **Clipboard** | Your recent copies, kept in memory only. Private and password formats are skipped. |
-| **System** | CPU, memory and network readings, volume and battery, and quick actions: screenshot, microphone mute, lock, display off and Downloads. A Bluetooth button in the header lists connected devices and their battery levels (Windows). A green dot shows while an app uses the camera and an orange dot for the microphone (Windows). |
+| **System** | CPU, memory and network readings, volume and battery, and quick actions: screenshot, microphone mute, lock, display off and Downloads. The header shows laptop battery; it warns at 20% and keeps the level in the pill from 10% down. A Bluetooth button in the header lists connected devices and their battery levels (Windows). A green dot shows while an app uses the camera and an orange dot for the microphone (Windows). |
 | **Notifications** | Windows notifications mirrored into the island once you set up the package identity and allow access. A moon chip starts a timed Do Not Disturb, and can follow Windows Focus. |
 | **Updates** | Windows installer copies download published releases in the background and apply them on restart. |
 

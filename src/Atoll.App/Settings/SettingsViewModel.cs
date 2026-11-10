@@ -90,6 +90,7 @@ public sealed partial class SettingsViewModel : ObservableObject
     }
 
     public bool ClickThrough { get => S.ClickThrough; set => Set(S.ClickThrough, value, v => S.ClickThrough = v); }
+    public bool ShowBattery { get => S.ShowBattery; set => Set(S.ShowBattery, value, v => S.ShowBattery = v); }
 
     public IReadOnlyList<Choice<FullscreenMode>> FullscreenModes { get; } =
     [

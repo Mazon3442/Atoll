@@ -75,6 +75,9 @@ public sealed class AppSettings
 
     public int HoverDelayMs { get; set; } = 200;
 
+    /// <summary>Header battery chip and low-battery behavior on laptops. Desktops have no battery to show.</summary>
+    public bool ShowBattery { get; set; } = true;
+
     /// <summary>System-wide shortcut that opens the island with keyboard focus, or closes it. Empty turns it off.</summary>
     public string OpenShortcut { get; set; } = "Ctrl+Alt+Space";
 
