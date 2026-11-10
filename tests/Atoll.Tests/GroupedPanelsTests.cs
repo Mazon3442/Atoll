@@ -140,8 +140,10 @@ public class GroupedPanelsTests
         var runningTimer = new TimerViewModel(TimeProvider.System);
         runningTimer.StartCountdownCommand.Execute(5);
         var pomodoroTimer = new TimerViewModel(TimeProvider.System) { SectionIndex = 1, FocusMinutes = 40 };
+        var narrowPomodoro = new TimerViewModel(TimeProvider.System) { SectionIndex = 1, FocusMinutes = 40 };
         panels.Add(("time-timer-idle", new TimePanelViewModel(idleClock, agenda)));
         panels.Add(("time-pomodoro", new ClockPanelViewModel(idleClock.Clock, pomodoroTimer)));
+        panels.Add(("time-pomodoro-narrow", new ClockPanelViewModel(idleClock.Clock, narrowPomodoro)));
         panels.Add(("time-timer-running", new TimePanelViewModel(new ClockPanelViewModel(idleClock.Clock, runningTimer), agenda)));
         panels.Add(("time-no-calendars", new TimePanelViewModel(idleClock, new CalendarViewModel(() => { }))));
         panels.Add(("clipboard-only", new FilesPanelViewModel(null, new ClipboardViewModel(new ClipboardHistory()))));
@@ -167,17 +169,20 @@ public class GroupedPanelsTests
         }
         foreach (var panel in panels)
         {
+            var narrow = panel.Name == "time-pomodoro-narrow";
+            var frameWidth = narrow ? 330 : 476;
+            var frameHeight = narrow ? 240 : 170;
             var presenter = new ContentControl
             {
-                Width = 476, Height = 170, Content = panel.Panel,
+                Width = frameWidth, Height = frameHeight, Content = panel.Panel,
                 ContentTemplate = (DataTemplate)resources[panel.Panel.GetType().Name + ".Panel"],
                 Foreground = Brushes.White, FontFamily = new FontFamily("Segoe UI"),
                 Background = Brushes.Black, HorizontalContentAlignment = HorizontalAlignment.Stretch,
                 VerticalContentAlignment = VerticalAlignment.Stretch,
             };
             var background = new Border { Background = Brushes.Black, Child = presenter };
-            background.Measure(new Size(476, 170));
-            background.Arrange(new Rect(0, 0, 476, 170));
+            background.Measure(new Size(frameWidth, frameHeight));
+            background.Arrange(new Rect(0, 0, frameWidth, frameHeight));
             background.UpdateLayout();
             Assert.True(presenter.ActualWidth > 0);
             if (panel.Name == "media")
@@ -189,7 +194,7 @@ public class GroupedPanelsTests
                 foreach (var name in new[] { "Previous track", "Play or pause", "Next track" })
                 {
                     var button = Descendants<Button>(background).Single(b => AutomationProperties.GetName(b) == name);
-                    Assert.InRange(button.TranslatePoint(new Point(0, button.ActualHeight), background).Y, 1, 170);
+                    Assert.InRange(button.TranslatePoint(new Point(0, button.ActualHeight), background).Y, 1, frameHeight);
                 }
             }
             if (panel.Name == "time-pomodoro")
@@ -200,7 +205,16 @@ public class GroupedPanelsTests
                 var start = Descendants<Button>(background).Single(b => AutomationProperties.GetName(b) == "Start Pomodoro");
                 Assert.Equal("Start 40 min focus", start.Content);
             }
-            var bitmap = new RenderTargetBitmap(476, 170, 96, 96, PixelFormats.Pbgra32);
+            if (narrow)
+            {
+                // Four steppers do not fit: they wrap to two rows and the start action stays on screen.
+                var focus = Descendants<Button>(background).Single(b => AutomationProperties.GetName(b) == "Decrease focus length");
+                var sessions = Descendants<Button>(background).Single(b => AutomationProperties.GetName(b) == "Decrease sessions before long break");
+                Assert.True(sessions.TranslatePoint(new Point(), background).Y > focus.TranslatePoint(new Point(), background).Y);
+                var start = Descendants<Button>(background).Single(b => AutomationProperties.GetName(b) == "Start Pomodoro");
+                Assert.InRange(start.TranslatePoint(new Point(0, start.ActualHeight), background).Y, 1, frameHeight);
+            }
+            var bitmap = new RenderTargetBitmap((int)frameWidth, (int)frameHeight, 96, 96, PixelFormats.Pbgra32);
             bitmap.Render(background);
             var encoder = new PngBitmapEncoder();
             encoder.Frames.Add(BitmapFrame.Create(bitmap));

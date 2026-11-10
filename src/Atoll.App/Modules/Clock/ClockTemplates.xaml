@@ -72,17 +72,22 @@
             </Style>
         </DataTemplate.Resources>
         <StackPanel>
-            <StackPanel Margin="0,0,0,6">
-                <TextBlock Text="{Binding Clock.Time}" FontSize="30" FontWeight="Light" />
-                <TextBlock Text="{Binding Clock.Date}" FontSize="12"
-                           Foreground="{DynamicResource Island.Subtle}" />
-            </StackPanel>
-
-            <!-- Timer idle: one segmented switch for the two sections, then that section's controls. -->
-            <StackPanel DataContext="{Binding Timer}"
+            <Grid Margin="0,0,0,6">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+                <TextBlock Grid.Row="0" Grid.Column="0" Text="{Binding Clock.Time}" FontSize="30" FontWeight="Light"
+                           TextTrimming="CharacterEllipsis" ToolTip="{Binding Clock.Time}" />
+                <!-- Timer and Pomodoro sit centred on the clock line; the date keeps the left edge. -->
+                <Border Grid.Row="0" Grid.Column="1" VerticalAlignment="Center" DataContext="{Binding Timer}"
+                        Background="{DynamicResource Island.Surface}" CornerRadius="13" Padding="3"
                         Visibility="{Binding IsActive, Converter={StaticResource Island.InverseBoolToVisibility}}">
-                <Border Background="{DynamicResource Island.Surface}" CornerRadius="13" Padding="3"
-                        HorizontalAlignment="Left" Margin="0,0,0,4">
                     <ListBox ItemsSource="{Binding Sections}" SelectedIndex="{Binding SectionIndex, Mode=TwoWay}"
                              ItemContainerStyle="{StaticResource Island.SegmentItem}"
                              Background="Transparent" BorderThickness="0" FontSize="11"
@@ -95,7 +100,13 @@
                         </ListBox.ItemsPanel>
                     </ListBox>
                 </Border>
+                <TextBlock Grid.Row="1" Grid.Column="0" Text="{Binding Clock.Date}" FontSize="12"
+                           Foreground="{DynamicResource Island.Subtle}" />
+            </Grid>
 
+            <!-- Timer idle: the selected section's controls. -->
+            <StackPanel DataContext="{Binding Timer}"
+                        Visibility="{Binding IsActive, Converter={StaticResource Island.InverseBoolToVisibility}}">
                 <StackPanel x:Name="TimerSection" Visibility="{Binding IsTimerSection, Converter={StaticResource Island.BoolToVisibility}}">
                     <UniformGrid Columns="4" Margin="-2,0">
                         <Button Style="{StaticResource Clock.Button}" Content="1" Command="{Binding StartCountdownCommand}"

@@ -1,3 +1,4 @@
+using System.ComponentModel;
 using System.Globalization;
 #if !AVALONIA
 using System.Media;
@@ -27,7 +28,20 @@ public sealed partial class ClockViewModel : ObservableObject
 }
 
 /// <summary>Expanded tab: clock on the left, timer controls on the right.</summary>
-public sealed record ClockPanelViewModel(ClockViewModel Clock, TimerViewModel Timer);
+public sealed class ClockPanelViewModel : INotifyPropertyChanged
+{
+    public ClockPanelViewModel(ClockViewModel clock, TimerViewModel timer)
+    {
+        Clock = clock;
+        Timer = timer;
+        // The island watches the panel to refit when Timer/Pomodoro change height.
+        Timer.PropertyChanged += (_, e) => PropertyChanged?.Invoke(this, e);
+    }
+
+    public ClockViewModel Clock { get; }
+    public TimerViewModel Timer { get; }
+    public event PropertyChangedEventHandler? PropertyChanged;
+}
 
 /// <summary>Idle clock, plus timer / stopwatch / Pomodoro as live activities.</summary>
 public sealed class ClockModule : IIslandModule

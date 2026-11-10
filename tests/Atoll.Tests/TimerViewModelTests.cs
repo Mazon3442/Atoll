@@ -124,6 +124,19 @@ public class TimerViewModelTests
     }
 
     [Fact]
+    public void Clock_panel_forwards_timer_section_changes()
+    {
+        var timer = new TimerViewModel(_time);
+        var panel = new ClockPanelViewModel(new ClockViewModel(), timer);
+        var changed = new List<string?>();
+        ((System.ComponentModel.INotifyPropertyChanged)panel).PropertyChanged += (_, e) => changed.Add(e.PropertyName);
+
+        timer.SectionIndex = 1;
+
+        Assert.Contains(nameof(TimerViewModel.SectionIndex), changed);
+    }
+
+    [Fact]
     public void Stopwatch_counts_up()
     {
         var timer = new TimerViewModel(_time);

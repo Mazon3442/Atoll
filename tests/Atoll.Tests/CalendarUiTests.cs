@@ -1,4 +1,5 @@
 using System.Windows;
+using System.Windows.Automation;
 using System.Windows.Automation.Peers;
 using System.Windows.Automation.Provider;
 using System.Windows.Controls;
@@ -252,6 +253,25 @@ internal static class CalendarUiTests
             Assert.False(second.IsVisible);
             Assert.False(third.IsVisible);
             Assert.False(fourth.IsVisible);
+
+            // A ⋯ tab joins the end of the row, and the timer tab grows to fit its Pomodoro settings.
+            service.Current.Theme.Motion = MotionStyle.Off;
+            var clockTab = manager.Tabs.Single(t => t.Contains("clock"));
+            island.OpenFromMenu(clockTab);
+            var clockPanel = (ClockPanelViewModel)clockTab.Panel;
+            clockPanel.Timer.SectionIndex = 1;
+            clockPanel.Timer.FocusMinutes = 40;
+            island.ApplySettings();
+            Drain(); island.UpdateLayout();
+            var tabs = (ListBox)island.FindName("Tabs");
+            Assert.Same(clockTab, tabs.Items[^1]);
+            var modeSwitch = Descendants<ListBox>(island).Single(l => AutomationProperties.GetName(l) == "Timer mode");
+            var switchCenter = modeSwitch.TranslatePoint(new Point(modeSwitch.ActualWidth / 2, 0), pill).X;
+            Assert.InRange(switchCenter, pill.ActualWidth / 2 - 2, pill.ActualWidth / 2 + 2);
+            var start = Descendants<Button>(island).Single(b => AutomationProperties.GetName(b) == "Start Pomodoro");
+            Assert.Equal("Start 40 min focus", start.Content);
+            Assert.InRange(start.TranslatePoint(new Point(0, start.ActualHeight), pill).Y, 1, pill.ActualHeight - 1);
+            Render(pill, "island-timer-pomodoro");
 
             service.Current.FullscreenMode = FullscreenMode.PopUp;
             island.SetEnvironment(false, ForegroundKind.Fullscreen);

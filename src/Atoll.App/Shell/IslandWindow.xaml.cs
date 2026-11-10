@@ -494,8 +494,10 @@ public partial class IslandWindow : Window
             if (_transientTab is not null && !_modules.Tabs.Contains(_transientTab)) _transientTab = null;
 
             var visible = _modules.Tabs
-                .Where(tab => _modules.IsBookmarked(tab) || ReferenceEquals(tab, _transientTab))
+                .Where(tab => _modules.IsBookmarked(tab) && !ReferenceEquals(tab, _transientTab))
                 .ToList();
+            // A tab opened from the ⋯ menu joins the end of the row, so it never looks starred in its old slot.
+            if (_transientTab is not null) visible.Add(_transientTab);
             var menu = _modules.Tabs
                 .Where(tab => !_modules.IsBookmarked(tab) && !ReferenceEquals(tab, _transientTab))
                 .ToList();
@@ -581,7 +583,7 @@ public partial class IslandWindow : Window
     }
 
     /// <summary>Opens a menu tab without pinning it; the tab leaves the top row again on the next visit.</summary>
-    private void OpenFromMenu(ModuleTab tab)
+    internal void OpenFromMenu(ModuleTab tab)
     {
         TabMenuPopup.IsOpen = false;
         _transientTab = tab;
@@ -1032,7 +1034,7 @@ public partial class IslandWindow : Window
         {
             var expandedWidth = Math.Max(Math.Clamp(t.ExpandedWidth, 320, 900), HeaderWidth()); // every tab fits without scrolling
             var expandedHeight = Math.Clamp(t.ExpandedHeight, 140, 600);
-            if (Tabs.SelectedItem is ModuleTab { Panel: MediaPanelViewModel or SystemGroupViewModel or Atoll.Modules.Weather.WeatherViewModel or Atoll.Modules.Home.HomeViewModel or Atoll.Modules.Games.GameViewModel or Atoll.Modules.Calendar.CalendarViewModel or Atoll.Modules.Notes.NotesViewModel or LauncherPanelViewModel })
+            if (Tabs.SelectedItem is ModuleTab { Panel: MediaPanelViewModel or SystemGroupViewModel or Atoll.Modules.Weather.WeatherViewModel or Atoll.Modules.Home.HomeViewModel or Atoll.Modules.Games.GameViewModel or Atoll.Modules.Calendar.CalendarViewModel or Atoll.Modules.Notes.NotesViewModel or LauncherPanelViewModel or ClockPanelViewModel })
                 expandedHeight = Math.Max(expandedHeight, FittedPanelHeight(expandedWidth)); // show all of it
             expandedHeight = Math.Min(expandedHeight, AvailablePanelHeight);
             // Lay out at the destination size, so opening the pill cannot create transient overflow.
@@ -1179,8 +1181,8 @@ public partial class IslandWindow : Window
 
     private void OnPanelPropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
-        // Notes, Launcher and similar panels change height when their section changes.
-        if (e.PropertyName is not (nameof(LauncherPanelViewModel.SectionIndex) or nameof(Atoll.Modules.Notes.NotesViewModel.SectionIndex))) return;
+        // Notes, Launcher, Timer and similar panels change height when their section changes.
+        if (e.PropertyName is not (nameof(LauncherPanelViewModel.SectionIndex) or nameof(TimerViewModel.SectionIndex) or nameof(Atoll.Modules.Notes.NotesViewModel.SectionIndex))) return;
         Dispatcher.BeginInvoke(DispatcherPriority.Background, new Action(() =>
         {
             if (_mode == IslandMode.Expanded) Render();
