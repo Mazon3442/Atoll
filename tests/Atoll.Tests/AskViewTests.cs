@@ -1,3 +1,4 @@
+using Atoll.Modules;
 using Atoll.Modules.Claude;
 using Atoll.Settings;
 
@@ -5,6 +6,88 @@ namespace Atoll.Tests;
 
 public sealed class AskViewTests
 {
+    [Fact]
+    public void Opening_a_panel_tells_its_module()
+    {
+        var service = new SettingsService(new SettingsStore(Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".json")));
+        using var host = new Atoll.Activities.ActivityHost();
+        var module = new Watcher();
+        using var manager = new ModuleManager(
+            [new ModuleDescriptor("watcher", "Watcher", "?", () => module)], host, System.Windows.Threading.Dispatcher.CurrentDispatcher, service);
+        manager.Apply();
+
+        manager.NotifyPanelShown("watcher");
+        Assert.True(module.Shown);
+
+        manager.NotifyPanelHidden("watcher");
+        Assert.True(module.Hidden);
+    }
+
+    private sealed class Watcher : IIslandModule
+    {
+        public object? Panel => null;
+        public bool Shown { get; private set; }
+        public bool Hidden { get; private set; }
+        public void Start(ModuleContext context) { }
+        public void OnPanelShown() => Shown = true;
+        public void OnPanelHidden() => Hidden = true;
+        public void Dispose() { }
+    }
+
+    [Fact]
+    public void Choosing_a_source_switches_the_model_list()
+    {
+        var settings = new AgentChatSettings();
+        var saves = 0;
+        using var vm = new AskViewModel(options: () => new AgentChatOptions(settings, []), save: () => saves++);
+
+        Assert.Equal("Ask · Auto", vm.SourceLabel);
+        Assert.Equal(AgentChatKind.ClaudeCode, vm.ModelKind);
+        Assert.Contains(vm.Models, m => m.Value == "sonnet");
+
+        vm.ChooseSourceCommand.Execute(vm.Sources.Single(s => s.Value == "codex"));
+
+        Assert.Equal("Ask · Codex", vm.SourceLabel);
+        Assert.Equal(AgentChatKind.Codex, vm.ModelKind);
+        Assert.Equal("codex", settings.Preferred);
+        Assert.DoesNotContain(vm.Models, m => m.Value == "sonnet"); // Claude aliases would be wrong here
+        Assert.True(saves > 0);
+    }
+
+    [Fact]
+    public void A_saved_key_offers_models_for_that_provider()
+    {
+        var settings = new AgentChatSettings { Preferred = "api:deep" };
+        var account = new ProviderAccount { Id = "deep", Name = "DeepSeek", BaseUrl = "https://api.deepseek.com/v1/" };
+        using var vm = new AskViewModel(options: () => new AgentChatOptions(settings, [account]));
+
+        Assert.Equal("Ask · DeepSeek", vm.SourceLabel);
+        Assert.Contains(vm.Models, m => m.Value == "deepseek-chat");
+        Assert.Contains(vm.Models, m => m.Value == "deepseek-reasoner");
+    }
+
+    [Fact]
+    public void The_tools_switch_is_saved()
+    {
+        var settings = new AgentChatSettings();
+        var saves = 0;
+        using var vm = new AskViewModel(options: () => new AgentChatOptions(settings, []), save: () => saves++);
+
+        Assert.False(vm.AllowTools);
+        vm.AllowTools = true;
+
+        Assert.True(settings.AllowTools);
+        Assert.True(saves > 0);
+    }
+
+    [Theory]
+    [InlineData("", "claude,codex,opencode")]
+    [InlineData("claude", "claude,codex,opencode")]
+    [InlineData("codex", "codex,claude,opencode")]
+    [InlineData("opencode", "opencode,claude,codex")]
+    public void The_chosen_agent_is_tried_first(string preferred, string expected) =>
+        Assert.Equal(expected, string.Join(",", AgentChatService.Order(preferred)));
+
     [Fact]
     public async Task Sending_keeps_what_you_typed_in_the_box()
     {

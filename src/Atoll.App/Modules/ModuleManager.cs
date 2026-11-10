@@ -145,9 +145,26 @@ public sealed class ModuleManager(
         LayoutChanged?.Invoke();
     }
 
-    private void Stop(string id)
+    /// <summary>Tells the module whose tab is on screen that the user can see it now.</summary>
+    public void NotifyPanelShown(string tabId)
     {
-        try { _running[id].Dispose(); }
+        if (_running.TryGetValue(tabId, out var module)) Invoke(() => module.OnPanelShown());
+    }
+
+    /// <summary>Tells the module whose tab was on screen that it no longer is.</summary>
+    public void NotifyPanelHidden(string tabId)
+    {
+        if (_running.TryGetValue(tabId, out var module)) Invoke(() => module.OnPanelHidden());
+    }
+
+    private static void Invoke(Action action)
+    {
+        try { action(); }
+        catch (Exception ex) { Log.Error("A module failed while being shown or hidden", ex); }
+    }
+
+    private void Stop(string id)
+    {        try { _running[id].Dispose(); }
         catch (Exception ex) { Log.Error($"Module '{id}' failed to stop", ex); }
         _running.Remove(id);
         activities.RemoveModule(id);

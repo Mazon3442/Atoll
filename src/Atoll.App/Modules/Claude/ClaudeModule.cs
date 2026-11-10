@@ -170,7 +170,8 @@ public sealed class ClaudeModule : IIslandModule
         {
             if (_context is { } context) context.Dispatcher.BeginInvoke(action);
             else action();
-        }));
+        },
+        () => _context?.Settings.NotifyChanged()));
 
     public object? Panel => _vm;
 
@@ -178,6 +179,7 @@ public sealed class ClaudeModule : IIslandModule
     {
         _context = context;
         _vm.Ask.Answered += OnAnswered;
+        _vm.PropertyChanged += OnPanelPropertyChanged;
         _server.Received += m => context.Dispatcher.BeginInvoke(() =>
         {
             if (m.Agent == "codex") _codexHooks[m.SessionId] = DateTimeOffset.UtcNow;
@@ -310,6 +312,12 @@ public sealed class ClaudeModule : IIslandModule
     private void OnAnswered(AskViewModel ask)
     {
         if (_disposed || _context is null) return;
+        // Already looking at the answer: nothing to announce, and any older alert is stale.
+        if (_panelShown && _vm.IsAsk)
+        {
+            _context.Remove("ask");
+            return;
+        }
         var preview = ask.Answer.ReplaceLineEndings(" ").Trim();
         if (preview.Length > 110) preview = preview[..110] + "…";
         var who = ask.Provider.Length > 0 ? ask.Provider : "the agent";
@@ -317,9 +325,31 @@ public sealed class ClaudeModule : IIslandModule
             ActivityPriority.High, TimeSpan.FromMinutes(2));
     }
 
+    private bool _panelShown;
+
+    /// <summary>Seeing the answer clears the alert that announced it.</summary>
+    public void OnPanelShown()
+    {
+        _panelShown = true;
+        ClearAskAlert();
+    }
+
+    public void OnPanelHidden() => _panelShown = false;
+
+    private void ClearAskAlert()
+    {
+        if (_vm.IsAsk) _context?.Remove("ask");
+    }
+
+    private void OnPanelPropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName == nameof(ClaudeViewModel.SectionIndex)) ClearAskAlert();
+    }
+
     public void Dispose()
     {
         _disposed = true;
+        _vm.PropertyChanged -= OnPanelPropertyChanged;
         _vm.Ask.Answered -= OnAnswered;
         _vm.Ask.Dispose();
         _chat.Dispose();

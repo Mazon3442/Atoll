@@ -893,6 +893,8 @@ public partial class IslandWindow : Window
         _alertPeek = false;
         _heldOpen = false;
         _mode = mode;
+        if (mode == IslandMode.Expanded) NotifyShownTab(Tabs.SelectedItem as ModuleTab);
+        else HideShownTab();
         _outsideMs = 0;
         _dwellMs = 0;
         SetFaded(false);
@@ -1193,6 +1195,7 @@ public partial class IslandWindow : Window
 
     /// <summary>The panel height that shows all of the selected tab's content without scrolling or clipping.</summary>
     private double _headerWidth;
+    private ModuleTab? _shownTab;
 
     /// <summary>
     /// Width the open island needs for every tab and status chip. Remembers the widest seen (the selected tab's name
@@ -1430,11 +1433,23 @@ public partial class IslandWindow : Window
             return;
         }
         WatchPanel(tab.Panel);
+        if (_mode == IslandMode.Expanded) NotifyShownTab(tab);
         if (ReferenceEquals(PanelBody.Content, tab.Panel)) return;
         PanelBody.Content = null;
         PanelBody.ContentTemplate = Templates.Find(this, tab.Panel, "Panel");
         PanelBody.Content = tab.Panel;
     }
+
+    /// <summary>Tells the modules when their panel comes into view or leaves it, so an alert can be cleared.</summary>
+    private void NotifyShownTab(ModuleTab? tab)
+    {
+        if (ReferenceEquals(_shownTab, tab)) return;
+        if (_shownTab is not null) _modules.NotifyPanelHidden(_shownTab.Descriptor.Id);
+        _shownTab = tab;
+        if (tab is not null) _modules.NotifyPanelShown(tab.Descriptor.Id);
+    }
+
+    private void HideShownTab() => NotifyShownTab(null);
 
     private void OpenSide(int index, MouseButtonEventArgs e)
     {

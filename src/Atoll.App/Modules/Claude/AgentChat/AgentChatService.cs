@@ -31,35 +31,39 @@ public sealed class AgentChatService : IAgentChat, IDisposable
         { Timeout = Timeout.InfiniteTimeSpan };
     }
 
-    /// <summary>Claude Code, then Codex, then OpenCode, then the first usable saved API key.</summary>
+    /// <summary>The chosen source first, otherwise Claude Code, Codex, OpenCode, then a saved API key.</summary>
     public Task<AgentChatSelection> ResolveAsync(AgentChatOptions options, CancellationToken ct = default)
     {
         ct.ThrowIfCancellationRequested();
         var settings = options.Settings;
+        var order = Order(settings.Preferred);
 
-        if (Command(AgentCli.Claude) is { } claude)
+        foreach (var id in order)
         {
-            var provider = new ClaudeCodeChatProvider(_processes, claude, settings.ClaudeModel, settings.AllowTools);
-            return Task.FromResult(new AgentChatSelection(provider, settings.AllowTools
-                ? "Tools are on: Claude can run commands and edit files."
-                : "Chat only. Claude's tools are blocked."));
-        }
-        if (Command(AgentCli.Codex) is { } codex)
-        {
-            var provider = new CodexChatProvider(_processes, codex, settings.CodexModel);
-            return Task.FromResult(new AgentChatSelection(provider, settings.AllowTools
-                ? "Codex runs in a read-only sandbox: it can read files and run read-only commands."
-                : "Chat only request, but Codex always runs in a read-only sandbox and can still read files."));
-        }
-        if (Command(AgentCli.OpenCode) is { } openCode)
-        {
-            var provider = new OpenCodeChatProvider(_processes, openCode, settings.OpenCodeModel);
-            return Task.FromResult(new AgentChatSelection(provider, settings.AllowTools
-                ? "Tools are on."
-                : "OpenCode can't be restricted in one-shot runs, so it may still use its tools."));
+            if (id == "claude" && Command(AgentCli.Claude) is { } claude)
+            {
+                var provider = new ClaudeCodeChatProvider(_processes, claude, settings.ClaudeModel, settings.AllowTools);
+                return Task.FromResult(new AgentChatSelection(provider, settings.AllowTools
+                    ? "Tools are on: Claude can run commands and edit files."
+                    : "Chat only. Claude's tools are blocked."));
+            }
+            if (id == "codex" && Command(AgentCli.Codex) is { } codex)
+            {
+                var provider = new CodexChatProvider(_processes, codex, settings.CodexModel);
+                return Task.FromResult(new AgentChatSelection(provider, settings.AllowTools
+                    ? "Codex runs in a read-only sandbox: it can read files and run read-only commands."
+                    : "Chat only request, but Codex always runs in a read-only sandbox and can still read files."));
+            }
+            if (id == "opencode" && Command(AgentCli.OpenCode) is { } openCode)
+            {
+                var provider = new OpenCodeChatProvider(_processes, openCode, settings.OpenCodeModel);
+                return Task.FromResult(new AgentChatSelection(provider, settings.AllowTools
+                    ? "Tools are on."
+                    : "OpenCode can't be restricted in one-shot runs, so it may still use its tools."));
+            }
         }
 
-        foreach (var account in options.Accounts)
+        foreach (var account in AccountsFor(options))
         {
             ProviderEndpoint endpoint;
             try { endpoint = ProviderEndpoint.From(account); }
@@ -146,6 +150,25 @@ public sealed class AgentChatService : IAgentChat, IDisposable
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or InvalidOperationException) { }
         _commands[cli] = command;
         return command;
+    }
+
+    /// <summary>Claude, Codex, OpenCode in the usual order, with the chosen agent pulled to the front.</summary>
+    internal static IReadOnlyList<string> Order(string preferred)
+    {
+        var order = new List<string> { "claude", "codex", "opencode" };
+        var index = order.IndexOf(preferred);
+        if (index > 0) order.Insert(0, order[index]); // the loop skips the duplicate by id
+        if (index > 0) order.RemoveAt(index + 1);
+        return order;
+    }
+
+    /// <summary>The chosen API account first, then the rest in settings order.</summary>
+    private static IEnumerable<ProviderAccount> AccountsFor(AgentChatOptions options)
+    {
+        var preferred = options.Settings.Preferred;
+        if (!preferred.StartsWith("api:", StringComparison.Ordinal)) return options.Accounts;
+        var id = preferred[4..];
+        return options.Accounts.OrderBy(account => account.Id == id ? 0 : 1);
     }
 
     internal static int TimeoutSeconds(AgentChatSettings settings) => Math.Clamp(settings.TimeoutSeconds, 15, 600);

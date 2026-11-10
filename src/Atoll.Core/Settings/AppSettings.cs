@@ -262,6 +262,12 @@ public sealed class AgentChatSettings
     /// <summary>Off keeps the agent chat-only wherever the CLI allows it. Codex is always a read-only sandbox.</summary>
     public bool AllowTools { get; set; }
 
+    /// <summary>
+    /// Which source answers Ask. Empty tries Claude Code, then Codex, then OpenCode, then a saved key.
+    /// "claude", "codex", "opencode" or "api:&lt;account id&gt;" picks one first.
+    /// </summary>
+    public string Preferred { get; set; } = "";
+
     /// <summary>Model overrides. Empty uses the agent's or provider's own default.</summary>
     public string ClaudeModel { get; set; } = "";
     public string CodexModel { get; set; } = "";

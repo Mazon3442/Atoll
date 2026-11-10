@@ -16,6 +16,16 @@ public interface IIslandModule : IDisposable
     object? Panel { get; }
 
     void Start(ModuleContext context);
+
+    /// <summary>The island opened this module's panel. Lets a module clear an alert the user is now looking at.</summary>
+    void OnPanelShown()
+    {
+    }
+
+    /// <summary>The island left this module's panel or collapsed.</summary>
+    void OnPanelHidden()
+    {
+    }
 }
 
 /// <param name="EnabledByDefault">Whether the feature starts switched on when it is new to the user's settings.</param>

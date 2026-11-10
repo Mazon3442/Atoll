@@ -184,10 +184,92 @@
                     </Setter.Value>
                 </Setter>
             </Style>
+            <!-- Model and tools sit on the section row: they apply to the next question, not to the one on screen. -->
+            <Style x:Key="Ask.ToolbarButton" TargetType="Button" BasedOn="{StaticResource Island.ChipButton}">
+                <Setter Property="FontSize" Value="11" />
+                <Setter Property="MinHeight" Value="26" />
+                <Setter Property="Margin" Value="0" />
+                <Setter Property="Padding" Value="10,3" />
+            </Style>
+            <Style x:Key="Ask.ToolsToggle" TargetType="ToggleButton">
+                <Setter Property="Foreground" Value="{DynamicResource Island.Subtle}" />
+                <Setter Property="FontSize" Value="11" />
+                <Setter Property="MinHeight" Value="26" />
+                <Setter Property="Cursor" Value="Hand" />
+                <Setter Property="FocusVisualStyle" Value="{StaticResource Island.FocusVisual}" />
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="ToggleButton">
+                            <Border x:Name="Bg" Background="{DynamicResource Island.Surface}" CornerRadius="9" Padding="9,3"
+                                    BorderThickness="1" BorderBrush="Transparent">
+                                <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                            </Border>
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter TargetName="Bg" Property="Background" Value="{DynamicResource Island.Hover}" />
+                                    <Setter Property="Foreground" Value="{DynamicResource Island.Foreground}" />
+                                </Trigger>
+                                <Trigger Property="IsChecked" Value="True">
+                                    <Setter TargetName="Bg" Property="Background" Value="{DynamicResource Island.Raised}" />
+                                    <Setter TargetName="Bg" Property="BorderBrush" Value="{DynamicResource Island.Accent}" />
+                                    <Setter Property="Foreground" Value="{DynamicResource Island.Foreground}" />
+                                </Trigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
         </DataTemplate.Resources>
         <StackPanel MinHeight="230">
-            <Border Background="{DynamicResource Island.Surface}" CornerRadius="15" Padding="3"
-                    HorizontalAlignment="Left" Margin="0,0,0,8">
+            <DockPanel Margin="0,0,0,8">
+                <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
+                    <Button x:Name="SourceButton" Style="{StaticResource Ask.ToolbarButton}"
+                            Content="{Binding Ask.SourceLabel}" Command="{Binding Ask.ToggleSourceMenuCommand}"
+                            ToolTip="Which agent or saved key answers" AutomationProperties.Name="Choose which agent answers" />
+                    <Popup x:Name="SourceMenu" PlacementTarget="{Binding ElementName=SourceButton}" Placement="Bottom"
+                           VerticalOffset="6" StaysOpen="False" AllowsTransparency="True" PopupAnimation="Fade"
+                           IsOpen="{Binding Ask.IsSourceMenuOpen, Mode=TwoWay}">
+                        <Border Background="{DynamicResource Island.Menu}" BorderBrush="{DynamicResource Island.Hover}"
+                                BorderThickness="1" CornerRadius="12" Padding="4" MinWidth="210">
+                            <ItemsControl ItemsSource="{Binding Ask.Sources}" Focusable="False">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <Button Style="{StaticResource Island.RowButton}" Content="{Binding Label}"
+                                                FontSize="12" HorizontalContentAlignment="Left"
+                                                Command="{Binding DataContext.Ask.ChooseSourceCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                                                CommandParameter="{Binding}" AutomationProperties.Name="{Binding Label}" />
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </Border>
+                    </Popup>
+                    <Button x:Name="ModelButton" Style="{StaticResource Ask.ToolbarButton}" Margin="6,0,0,0"
+                            Content="{Binding Ask.ModelLabel}" Command="{Binding Ask.ToggleModelMenuCommand}"
+                            ToolTip="{Binding Ask.ModelTitle}" AutomationProperties.Name="Choose the model" />
+                    <Popup x:Name="ModelMenu" PlacementTarget="{Binding ElementName=ModelButton}" Placement="Bottom"
+                           VerticalOffset="6" StaysOpen="False" AllowsTransparency="True" PopupAnimation="Fade"
+                           IsOpen="{Binding Ask.IsModelMenuOpen, Mode=TwoWay}">
+                        <Border Background="{DynamicResource Island.Menu}" BorderBrush="{DynamicResource Island.Hover}"
+                                BorderThickness="1" CornerRadius="12" Padding="4" MinWidth="190">
+                            <ItemsControl ItemsSource="{Binding Ask.Models}" Focusable="False">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <Button Style="{StaticResource Island.RowButton}" Content="{Binding Label}"
+                                                FontSize="12" HorizontalContentAlignment="Left"
+                                                Command="{Binding DataContext.Ask.ChooseModelCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                                                CommandParameter="{Binding}" AutomationProperties.Name="{Binding Label}" />
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </Border>
+                    </Popup>
+                    <ToggleButton Style="{StaticResource Ask.ToolsToggle}" Content="Tools" Margin="6,0,0,0"
+                                  IsChecked="{Binding Ask.AllowTools}"
+                                  ToolTip="Let the agent run commands and edit files. Codex always runs read-only."
+                                  AutomationProperties.Name="Allow agent tools" />
+                </StackPanel>
+                <Border Background="{DynamicResource Island.Surface}" CornerRadius="15" Padding="3"
+                        HorizontalAlignment="Left">
                 <ListBox ItemsSource="{Binding Sections}" SelectedIndex="{Binding SectionIndex, Mode=TwoWay}"
                          ItemContainerStyle="{StaticResource Island.SegmentItem}"
                          Background="Transparent" BorderThickness="0" FontSize="12"
@@ -200,6 +282,7 @@
                     </ListBox.ItemsPanel>
                 </ListBox>
             </Border>
+            </DockPanel>
 
             <!-- Sessions -->
             <Grid Visibility="{Binding IsSessions, Converter={StaticResource Island.BoolToVisibility}}">
