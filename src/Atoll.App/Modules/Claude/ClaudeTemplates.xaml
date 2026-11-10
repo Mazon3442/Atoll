@@ -346,7 +346,8 @@
                                      AcceptsReturn="True" TextWrapping="Wrap" MinHeight="30" MaxHeight="84"
                                      VerticalScrollBarVisibility="Auto" AutomationProperties.Name="Ask a question">
                                 <TextBox.InputBindings>
-                                    <KeyBinding Key="Enter" Modifiers="Control" Command="{Binding Ask.SendCommand}" />
+                                    <!-- Enter sends; Shift+Enter falls through to the box and starts a new line. -->
+                                    <KeyBinding Key="Enter" Command="{Binding Ask.SendCommand}" />
                                 </TextBox.InputBindings>
                             </TextBox>
                             <TextBlock Text="Ask anything…" FontSize="12.5" Margin="1,6,0,0" IsHitTestVisible="False"
@@ -355,7 +356,7 @@
                         </Grid>
 
                         <Button Grid.Column="1" Style="{StaticResource Ask.SendButton}" Margin="8,0,0,0"
-                                Command="{Binding Ask.SendCommand}" ToolTip="Send (Ctrl+Enter)"
+                                Command="{Binding Ask.SendCommand}" ToolTip="Send (Enter)"
                                 Visibility="{Binding Ask.IsRunning, Converter={StaticResource Island.InverseBoolToVisibility}}"
                                 AutomationProperties.Name="Send the question">
                             <shell:Icon Kind="arrow-up" Size="14" />

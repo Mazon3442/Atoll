@@ -184,6 +184,12 @@ internal static class AgentMediaUi
         Render(claude, "ClaudeViewModel.Panel", "limits-panel", 560, 220);
         claude.SectionIndex = 1;
         Render(claude, "ClaudeViewModel.Panel", "agents-ask-empty", 640, 300);
+        var askInput = FindAskInput(claude);
+        // Enter sends; Shift+Enter does not match the gesture and falls through to the box's own newline.
+        Assert.True(askInput.AcceptsReturn);
+        var gesture = Assert.Single(askInput.InputBindings.OfType<System.Windows.Input.KeyBinding>());
+        Assert.Equal(System.Windows.Input.Key.Enter, gesture.Key);
+        Assert.Equal(System.Windows.Input.ModifierKeys.None, gesture.Modifiers);
         claude.Ask.Draft = "Summarize the failing test";
         claude.Ask.Provider = "Claude Code";
         claude.Ask.Note = "Chat only. Claude's tools are blocked.";
@@ -255,6 +261,27 @@ internal static class AgentMediaUi
         Render(notes, "NotesViewModel.Panel", "notes-reminders", 640, 380);
         notes.SectionIndex = 2;
         Render(notes, "NotesViewModel.Panel", "notes-todos", 640, 380);
+    }
+
+    private static System.Windows.Controls.TextBox FindAskInput(object vm)
+    {
+        var view = (FrameworkElement)((DataTemplate)Application.Current.Resources["ClaudeViewModel.Panel"]).LoadContent();
+        var host = new System.Windows.Controls.Border { Child = view, DataContext = vm };
+        host.Measure(new Size(640, 420));
+        host.Arrange(new Rect(0, 0, 640, 420));
+        host.UpdateLayout();
+        return Find<System.Windows.Controls.TextBox>(host, "Ask a question")
+            ?? throw new InvalidOperationException("the Ask box is missing");
+
+        static T? Find<T>(DependencyObject root, string name) where T : DependencyObject
+        {
+            foreach (var child in LogicalTreeHelper.GetChildren(root).OfType<DependencyObject>())
+            {
+                if (child is T match && System.Windows.Automation.AutomationProperties.GetName(match) == name) return match;
+                if (Find<T>(child, name) is { } nested) return nested;
+            }
+            return null;
+        }
     }
 
     private static void Render(object vm, string key, string name, double width, double height = 60)
