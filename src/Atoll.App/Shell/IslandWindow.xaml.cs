@@ -1206,6 +1206,22 @@ public partial class IslandWindow : Window
         return Math.Min(_headerWidth, Monitor.WorkArea.Width / Monitor.Scale - 32);
     }
 
+    /// <summary>
+    /// Hands the tab list only what is left after the status chips and the ⋯ button. The pill is normally wide
+    /// enough for the whole row, but anything that makes it narrower (a long tab name, a narrower saved width,
+    /// a monitor edge) would otherwise push the button past the pill's rounded edge and clip it. The list
+    /// scrolls instead, and the button stays whole.
+    /// </summary>
+    private void FitTabStrip(double pillWidth)
+    {
+        var chips = Math.Max(StatusChips.ActualWidth, StatusChips.DesiredSize.Width) + StatusChips.Margin.Left;
+        // Whatever the strip needs beyond the list itself (padding, the button and its margin), measured rather
+        // than guessed, so the list is cut by exactly nothing when the pill was sized to fit the row.
+        var chrome = Math.Max(0, TabStrip.DesiredSize.Width - Tabs.DesiredSize.Width);
+        var available = pillWidth - PanelRoot.Margin.Left - PanelRoot.Margin.Right - chips;
+        Tabs.MaxWidth = Math.Max(80, available - chrome);
+    }
+
     private double FittedPanelHeight(double expandedWidth)
     {
         var border = Pill.BorderThickness;
@@ -1224,6 +1240,7 @@ public partial class IslandWindow : Window
         if (_mode == IslandMode.Expanded)
         {
             var expandedWidth = Math.Max(Math.Clamp(t.ExpandedWidth, 320, 900), HeaderWidth()); // every tab fits without scrolling
+            FitTabStrip(expandedWidth);
             var expandedHeight = Math.Clamp(t.ExpandedHeight, 140, 600);
             if (Tabs.SelectedItem is ModuleTab { Panel: MediaPanelViewModel or SystemGroupViewModel or Atoll.Modules.Weather.WeatherViewModel or Atoll.Modules.Home.HomeViewModel or Atoll.Modules.Games.GameViewModel or Atoll.Modules.Calendar.CalendarViewModel or Atoll.Modules.Notes.NotesViewModel or LauncherPanelViewModel or ClockPanelViewModel or Atoll.Modules.Tide.TideViewModel or Atoll.Modules.Claude.ClaudeViewModel })
                 expandedHeight = Math.Max(expandedHeight, FittedPanelHeight(expandedWidth)); // show all of it

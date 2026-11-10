@@ -119,6 +119,8 @@ internal static class KeyboardIslandUi
         ThemeService.Apply(service.Current.Theme);
         using var host = new ActivityHost();
         using var manager = new ModuleManager([], host, Application.Current.Dispatcher, service);
+        // One tab outside the top row, so the ⋯ button is actually shown.
+        service.Current.Modules.Add(new Atoll.Settings.ModuleEntry { Id = "notes", Enabled = true, Bookmarked = false });
         foreach (var tab in PanelGroups.Combine(GroupedPanelsTests.Modules(), service.Current.Home)) manager.Tabs.Add(tab);
         var island = new IslandWindow(Monitors.GetAll()[0], service, manager, _ => { });
         try
@@ -152,6 +154,10 @@ internal static class KeyboardIslandUi
 
             // The open shortcut opens with focus on the tabs; Ctrl+Tab wraps, the wheel stops at the ends.
             var tabs = (ListBox)island.FindName("Tabs");
+            // A narrow saved width, so the pill has to grow to fit the tabs: the case that used to clip ⋯.
+            service.Current.Theme.ExpandedWidth = 320;
+            island.ApplySettings();
+            Drain();
             island.ToggleFromKeyboard();
             Drain();
             Assert.True(island.IsExpanded);
@@ -168,6 +174,12 @@ internal static class KeyboardIslandUi
             var header = (FrameworkElement)island.FindName("Header");
             header.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
             Assert.InRange(pill.ActualWidth, header.DesiredSize.Width, header.DesiredSize.Width + 120);
+            // The ⋯ button is the last thing in the row; if the pill is too narrow it is the part that is cut off.
+            var more = (Button)island.FindName("TabMenuButton");
+            Assert.Equal(Visibility.Visible, more.Visibility);
+            var moreRight = more.TranslatePoint(new Point(more.ActualWidth, 0), pill).X;
+            Assert.True(moreRight <= pill.ActualWidth + 0.5,
+                $"the sections button ends at {moreRight:0.#} in a {pill.ActualWidth:0.#} wide pill");
             island.ToggleFromKeyboard();
             Assert.False(island.IsExpanded);
 

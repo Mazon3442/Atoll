@@ -142,7 +142,7 @@
                                 <shell:Icon Kind="settings" Size="15" />
                             </Button>
                         </StackPanel>
-                        <Border Background="{DynamicResource Island.Surface}" CornerRadius="18" Padding="3" HorizontalAlignment="Left">
+                        <Border x:Name="TabStrip" Background="{DynamicResource Island.Surface}" CornerRadius="18" Padding="3" HorizontalAlignment="Left">
                             <StackPanel Orientation="Horizontal">
                                 <ListBox x:Name="Tabs"
                                          Background="Transparent" BorderThickness="0"
