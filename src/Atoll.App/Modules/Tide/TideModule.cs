@@ -35,7 +35,7 @@ public sealed partial class TideViewModel : ObservableObject, IDisposable
         }
 
         _selectedScript = Scripts.FirstOrDefault(s => s.Id == settings.SelectedScriptId) ?? Scripts[0];
-        _speed = Math.Clamp(settings.Speed, 0.3, 3);
+        _speedIndex = NearestSpeedIndex(settings.Speed);
         _fontSize = Math.Clamp(settings.FontSize, 20, 72);
         _mirror = settings.Mirror;
         _followVoice = settings.FollowVoice;
@@ -52,6 +52,9 @@ public sealed partial class TideViewModel : ObservableObject, IDisposable
     public ObservableCollection<TideScript> Scripts { get; } = [];
     public IReadOnlyList<string> Sections { get; } = ["Scripts", "Prompter"];
 
+    /// <summary>Scroll presets, in the order the segmented switch shows them.</summary>
+    public IReadOnlyList<string> Speeds { get; } = ["Slow", "Normal", "Fast", "Sprint"];
+
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(IsScripts), nameof(IsPrompter))]
     private int _sectionIndex;
@@ -59,9 +62,23 @@ public sealed partial class TideViewModel : ObservableObject, IDisposable
     public bool IsScripts => SectionIndex == 0;
     public bool IsPrompter => SectionIndex == 1;
 
+    /// <summary>The selected preset doubles as the scroll multiplier; 1 is normal.</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(Speed))]
+    private int _speedIndex = 1;
+
+    public double Speed => SpeedIndex switch { 0 => 0.6, 2 => 1.6, 3 => 2.4, _ => 1 };
+
+    private static int NearestSpeedIndex(double speed) => speed switch
+    {
+        >= 2.0 => 3,
+        >= 1.3 => 2,
+        >= 0.8 => 1,
+        _ => 0,
+    };
+
     [ObservableProperty] private string _title = "";
     [ObservableProperty] private string _body = "";
-    [ObservableProperty] private double _speed = 1;
     [ObservableProperty] private double _fontSize = 34;
     [ObservableProperty] private bool _mirror;
     [ObservableProperty] private bool _followVoice;
@@ -87,15 +104,14 @@ public sealed partial class TideViewModel : ObservableObject, IDisposable
         }
     }
 
-    public string SpeedLabel => Speed switch
-    {
-        < 0.8 => "Slow",
-        < 1.25 => "Normal",
-        < 1.9 => "Fast",
-        _ => "Sprint",
-    };
-
     public string FontLabel => $"{FontSize:0}";
+
+    /// <summary>The Hide chip names the action: hide the island from capture, or bring it back.</summary>
+    public string CaptureLabel => HideFromCapture ? "Show" : "Hide";
+
+    public string CaptureHint => HideFromCapture
+        ? "Hidden from screen shares. Click to show it again."
+        : "Visible in screen shares. Click to hide it.";
 
     public double PrompterLineHeight => FontSize * 1.45;
 
@@ -111,10 +127,9 @@ public sealed partial class TideViewModel : ObservableObject, IDisposable
         QueueSave();
     }
 
-    partial void OnSpeedChanged(double value)
+    partial void OnSpeedIndexChanged(int value)
     {
-        _settings.Speed = value;
-        OnPropertyChanged(nameof(SpeedLabel));
+        _settings.Speed = Speed;
         _save();
     }
 
@@ -135,6 +150,8 @@ public sealed partial class TideViewModel : ObservableObject, IDisposable
     partial void OnHideFromCaptureChanged(bool value)
     {
         _settings.HideFromCapture = value;
+        OnPropertyChanged(nameof(CaptureLabel));
+        OnPropertyChanged(nameof(CaptureHint));
         if (IsRunning) CapturePrivacy.Set(value);
         _save();
     }
@@ -198,13 +215,6 @@ public sealed partial class TideViewModel : ObservableObject, IDisposable
         Offset = 0;
         _spokenChar = 0;
     }
-
-    [RelayCommand] private void Slow() => Speed = 0.6;
-    [RelayCommand] private void Normal() => Speed = 1;
-    [RelayCommand] private void Fast() => Speed = 1.6;
-    [RelayCommand] private void Sprint() => Speed = 2.4;
-    [RelayCommand] private void FontUp() => FontSize = Math.Min(72, FontSize + 4);
-    [RelayCommand] private void FontDown() => FontSize = Math.Max(20, FontSize - 4);
 
     public void ScrollBy(double pixels) => Offset = Math.Clamp(Offset + pixels, 0, MaxOffset);
 

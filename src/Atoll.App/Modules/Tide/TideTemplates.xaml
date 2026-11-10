@@ -23,7 +23,8 @@
                 <Setter Property="Template">
                     <Setter.Value>
                         <ControlTemplate TargetType="ToggleButton">
-                            <Border x:Name="Bg" Background="{DynamicResource Island.Surface}" CornerRadius="9" Padding="9,4">
+                            <Border x:Name="Bg" Background="{DynamicResource Island.Surface}" CornerRadius="9" Padding="8,3"
+                                    BorderThickness="1" BorderBrush="Transparent">
                                 <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
                             </Border>
                             <ControlTemplate.Triggers>
@@ -31,10 +32,11 @@
                                     <Setter TargetName="Bg" Property="Background" Value="{DynamicResource Island.Hover}" />
                                     <Setter Property="Foreground" Value="{DynamicResource Island.Foreground}" />
                                 </Trigger>
+                                <!-- On is a filled chip with an accent ring, so the state reads as on, not as bold text. -->
                                 <Trigger Property="IsChecked" Value="True">
                                     <Setter TargetName="Bg" Property="Background" Value="{DynamicResource Island.Raised}" />
+                                    <Setter TargetName="Bg" Property="BorderBrush" Value="{DynamicResource Island.Accent}" />
                                     <Setter Property="Foreground" Value="{DynamicResource Island.Foreground}" />
-                                    <Setter Property="FontWeight" Value="SemiBold" />
                                 </Trigger>
                             </ControlTemplate.Triggers>
                         </ControlTemplate>
@@ -164,30 +166,50 @@
                     </Grid>
                 </Border>
 
-                <DockPanel Grid.Row="2" Margin="0,8,0,0">
-                    <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
-                        <Button Style="{StaticResource Tide.Chip}" Content="A-" Width="30" Padding="0"
-                                Command="{Binding FontDownCommand}" ToolTip="Smaller text" AutomationProperties.Name="Smaller text" />
+                <Grid Grid.Row="2" Margin="0,8,0,0">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+
+                    <Border Background="{DynamicResource Island.Surface}" CornerRadius="12" Padding="3"
+                            HorizontalAlignment="Left" VerticalAlignment="Center">
+                        <!-- One selected segment, so the current speed is visible without a duplicate label. -->
+                        <ListBox ItemsSource="{Binding Speeds}" SelectedIndex="{Binding SpeedIndex, Mode=TwoWay}"
+                                 ItemContainerStyle="{StaticResource Island.SegmentItem}"
+                                 Background="Transparent" BorderThickness="0" FontSize="11"
+                                 Foreground="{DynamicResource Island.Subtle}"
+                                 ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                                 ScrollViewer.VerticalScrollBarVisibility="Disabled"
+                                 AutomationProperties.Name="Reading speed">
+                            <ListBox.ItemsPanel>
+                                <ItemsPanelTemplate><StackPanel Orientation="Horizontal" /></ItemsPanelTemplate>
+                            </ListBox.ItemsPanel>
+                        </ListBox>
+                    </Border>
+
+                    <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
+                        <!-- Text size is a size, so it reads as a slider with the point size, not as two letters. -->
+                        <TextBlock Text="Text size" FontSize="10" Foreground="{DynamicResource Island.Subtle}"
+                                   VerticalAlignment="Center" />
+                        <Slider Style="{StaticResource Island.Slider}" Width="92" Margin="8,0,4,0"
+                                Minimum="20" Maximum="72" TickFrequency="1" IsSnapToTickEnabled="True"
+                                SmallChange="1" LargeChange="4" VerticalAlignment="Center"
+                                Value="{Binding FontSize, Mode=TwoWay}"
+                                AutomationProperties.Name="Text size" />
                         <TextBlock Text="{Binding FontLabel}" FontSize="10" Foreground="{DynamicResource Island.Subtle}"
-                                   VerticalAlignment="Center" MinWidth="18" TextAlignment="Center" />
-                        <Button Style="{StaticResource Tide.Chip}" Content="A+" Width="30" Padding="0"
-                                Command="{Binding FontUpCommand}" ToolTip="Larger text" AutomationProperties.Name="Larger text" />
+                                   VerticalAlignment="Center" MinWidth="20" TextAlignment="Right" />
                         <ToggleButton Style="{StaticResource Tide.Toggle}" Content="Mirror" IsChecked="{Binding Mirror}"
-                                      AutomationProperties.Name="Mirror the script" />
+                                      Margin="8,2,2,2" AutomationProperties.Name="Mirror the script" />
                         <ToggleButton Style="{StaticResource Tide.Toggle}" Content="Voice" IsChecked="{Binding FollowVoice}"
                                       ToolTip="{Binding VoiceStatus}" AutomationProperties.Name="Follow my voice" />
-                        <ToggleButton Style="{StaticResource Tide.Toggle}" Content="Hide" IsChecked="{Binding HideFromCapture}"
-                                      ToolTip="Keep the island out of screen shares" AutomationProperties.Name="Hide from screen capture" />
+                        <ToggleButton Style="{StaticResource Tide.Toggle}" Content="{Binding CaptureLabel}"
+                                      IsChecked="{Binding HideFromCapture}"
+                                      ToolTip="{Binding CaptureHint}"
+                                      AutomationProperties.Name="Hide from screen capture" />
                     </StackPanel>
-                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                        <Button Style="{StaticResource Tide.Chip}" Content="Slow" Command="{Binding SlowCommand}" />
-                        <Button Style="{StaticResource Tide.Chip}" Content="Normal" Command="{Binding NormalCommand}" />
-                        <Button Style="{StaticResource Tide.Chip}" Content="Fast" Command="{Binding FastCommand}" />
-                        <Button Style="{StaticResource Tide.Chip}" Content="Sprint" Command="{Binding SprintCommand}" />
-                        <TextBlock Text="{Binding SpeedLabel}" FontSize="10" Foreground="{DynamicResource Island.Subtle}"
-                                   VerticalAlignment="Center" Margin="6,0,0,0" />
-                    </StackPanel>
-                </DockPanel>
+                </Grid>
             </Grid>
         </StackPanel>
     </DataTemplate>
