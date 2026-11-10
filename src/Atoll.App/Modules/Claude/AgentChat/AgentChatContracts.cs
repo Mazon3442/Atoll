@@ -11,6 +11,9 @@ public enum AgentChatKind
     Api,
 }
 
+/// <summary>A picture sent with a question: PNG or JPEG bytes, already shrunk to a size a model will take.</summary>
+public sealed record AgentChatImage(byte[] Data, string MediaType);
+
 /// <summary>One piece of a streamed answer. Failures arrive as a single final delta with readable text.</summary>
 public readonly record struct AgentChatDelta(string Text, bool IsError = false);
 
@@ -26,7 +29,7 @@ public interface IAgentChatProvider
 
     AgentChatKind Kind { get; }
 
-    IAsyncEnumerable<AgentChatDelta> StreamAsync(string prompt, CancellationToken ct);
+    IAsyncEnumerable<AgentChatDelta> StreamAsync(string prompt, CancellationToken ct, IReadOnlyList<AgentChatImage>? images = null);
 }
 
 /// <summary>A settings snapshot per question, so a changed model or switch applies to the next run.</summary>
@@ -41,7 +44,7 @@ public interface IAgentChat
     Task<AgentChatSelection> ResolveAsync(AgentChatOptions options, CancellationToken ct = default);
 
     IAsyncEnumerable<AgentChatDelta> StreamAsync(AgentChatSelection selection, string prompt,
-        AgentChatSettings settings, CancellationToken ct = default);
+        AgentChatSettings settings, CancellationToken ct = default, IReadOnlyList<AgentChatImage>? images = null);
 }
 
 /// <summary>A short, user-facing failure. It carries no keys and never repeats the prompt.</summary>

@@ -25,6 +25,12 @@ public sealed partial class AskViewModel : ObservableObject, IDisposable
     public AskViewModel(IAgentChat? chat = null, Func<AgentChatOptions>? options = null, Action<Action>? post = null,
         Action? save = null, Func<bool>? animate = null)
     {
+        Images.CollectionChanged += (_, _) =>
+        {
+            OnPropertyChanged(nameof(HasImages));
+            OnPropertyChanged(nameof(HasDraft));
+            SendCommand.NotifyCanExecuteChanged();
+        };
         _animate = animate ?? (() => false);
         _ownsChat = chat is null;
         _chatService = chat;
@@ -73,7 +79,26 @@ public sealed partial class AskViewModel : ObservableObject, IDisposable
 
     public bool HasAnswer => Answer.Length > 0;
     public bool HasError => Error.Length > 0;
-    public bool HasDraft => Draft.Length > 0;
+    public bool HasDraft => Draft.Length > 0 || Images.Count > 0;
+
+    /// <summary>Pictures waiting to go with the next question; they empty on send, like the text.</summary>
+    public const int MaxImages = 4;
+    public System.Collections.ObjectModel.ObservableCollection<AgentChatImage> Images { get; } = [];
+    public bool HasImages => Images.Count > 0;
+
+    /// <summary>False when the box already holds <see cref="MaxImages"/> pictures.</summary>
+    public bool AddImage(AgentChatImage image)
+    {
+        if (Images.Count >= MaxImages) return false;
+        Images.Add(image);
+        return true;
+    }
+
+    [RelayCommand]
+    private void RemoveImage(AgentChatImage? image)
+    {
+        if (image is not null) Images.Remove(image);
+    }
 
     /// <summary>The empty state: nothing asked yet, nothing running, nothing wrong.</summary>
     public bool IsEmpty => !HasAnswer && !HasError && !IsRunning;
@@ -240,20 +265,23 @@ public sealed partial class AskViewModel : ObservableObject, IDisposable
         _save();
     }
 
-    private bool CanSend => Draft.Trim().Length > 0 && !IsRunning;
+    private bool CanSend => (Draft.Trim().Length > 0 || HasImages) && !IsRunning;
     private bool CanStop => IsRunning;
 
     [RelayCommand(CanExecute = nameof(CanSend))]
     private async Task SendAsync()
     {
         var prompt = Draft.Trim();
-        if (prompt.Length == 0) return;
+        if (prompt.Length == 0 && !HasImages) return;
+        if (prompt.Length == 0) prompt = "What is in this image?";
+        var images = Images.ToList();
         var run = new CancellationTokenSource();
         _run = run;
         IsRunning = true;
         _target = "";
         _streaming = true;
         var reveal = _animate() ? RevealAsync(run.Token) : Task.CompletedTask;
+        Images.Clear();
         Draft = ""; // the box empties on send; the question is not kept (a single turn has no history to show)
         Answer = "";
         Error = "";
@@ -271,7 +299,7 @@ public sealed partial class AskViewModel : ObservableObject, IDisposable
                 Kind = selection.Provider.Kind;
                 Provider = selection.Provider.Name;
             });
-            await foreach (var delta in Chat.StreamAsync(selection, prompt, options.Settings, run.Token))
+            await foreach (var delta in Chat.StreamAsync(selection, prompt, options.Settings, run.Token, images))
             {
                 if (delta.IsError)
                 {
@@ -352,6 +380,7 @@ public sealed partial class AskViewModel : ObservableObject, IDisposable
     private void Clear()
     {
         Draft = "";
+        Images.Clear();
         Answer = "";
         Error = "";
     }
@@ -367,9 +396,10 @@ public sealed partial class AskViewModel : ObservableObject, IDisposable
             Stop();
             return true;
         }
-        if (Draft.Length > 0)
+        if (Draft.Length > 0 || Images.Count > 0)
         {
             Draft = "";
+            Images.Clear();
             return true;
         }
         if (Error.Length > 0 || Answer.Length > 0)

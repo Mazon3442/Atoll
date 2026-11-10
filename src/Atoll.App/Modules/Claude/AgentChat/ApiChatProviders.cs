@@ -14,15 +14,21 @@ public sealed class OpenAiChatProvider(ProviderEndpoint endpoint, string model, 
 
     public AgentChatKind Kind => AgentChatKind.Api;
 
-    public IAsyncEnumerable<AgentChatDelta> StreamAsync(string prompt, CancellationToken ct) => HttpChat.StreamAsync(
-        client, endpoint, new Uri(endpoint.BaseUri, "chat/completions"), OpenAiBody(prompt, model), Name, OpenAiText, ct);
+    public IAsyncEnumerable<AgentChatDelta> StreamAsync(string prompt, CancellationToken ct, IReadOnlyList<AgentChatImage>? images = null) =>
+        HttpChat.StreamAsync(client, endpoint, new Uri(endpoint.BaseUri, "chat/completions"), OpenAiBody(prompt, model, images), Name, OpenAiText, ct);
 
-    private static string OpenAiBody(string prompt, string model) => JsonSerializer.Serialize(new
+    internal static string OpenAiBody(string prompt, string model, IReadOnlyList<AgentChatImage>? images)
     {
-        model,
-        stream = true,
-        messages = new[] { new { role = "user", content = prompt } },
-    });
+        object content = prompt;
+        if (images is { Count: > 0 })
+        {
+            var parts = new List<object> { new { type = "text", text = prompt } };
+            foreach (var image in images)
+                parts.Add(new { type = "image_url", image_url = new { url = $"data:{image.MediaType};base64,{Convert.ToBase64String(image.Data)}" } });
+            content = parts;
+        }
+        return JsonSerializer.Serialize(new { model, stream = true, messages = new[] { new { role = "user", content } } });
+    }
 
     /// <summary>Streaming chunks carry delta.content; a provider that ignores stream sends message.content.</summary>
     internal static string? OpenAiText(JsonElement root)
@@ -45,16 +51,22 @@ public sealed class AnthropicChatProvider(ProviderEndpoint endpoint, string mode
 
     public AgentChatKind Kind => AgentChatKind.Api;
 
-    public IAsyncEnumerable<AgentChatDelta> StreamAsync(string prompt, CancellationToken ct) => HttpChat.StreamAsync(
-        client, endpoint, new Uri(endpoint.BaseUri, "messages"), Body(prompt, model), Name, Text, ct);
+    public IAsyncEnumerable<AgentChatDelta> StreamAsync(string prompt, CancellationToken ct, IReadOnlyList<AgentChatImage>? images = null) =>
+        HttpChat.StreamAsync(client, endpoint, new Uri(endpoint.BaseUri, "messages"), Body(prompt, model, images), Name, Text, ct);
 
-    private static string Body(string prompt, string model) => JsonSerializer.Serialize(new
+    internal static string Body(string prompt, string model, IReadOnlyList<AgentChatImage>? images)
     {
-        model,
-        max_tokens = 2048,
-        stream = true,
-        messages = new[] { new { role = "user", content = prompt } },
-    });
+        object content = prompt;
+        if (images is { Count: > 0 })
+        {
+            var parts = new List<object>();
+            foreach (var image in images)
+                parts.Add(new { type = "image", source = new { type = "base64", media_type = image.MediaType, data = Convert.ToBase64String(image.Data) } });
+            parts.Add(new { type = "text", text = prompt });
+            content = parts;
+        }
+        return JsonSerializer.Serialize(new { model, max_tokens = 2048, stream = true, messages = new[] { new { role = "user", content } } });
+    }
 
     internal static string? Text(JsonElement root)
     {

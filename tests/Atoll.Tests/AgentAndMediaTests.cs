@@ -193,6 +193,12 @@ internal static class AgentMediaUi
         Assert.Equal(System.Windows.Input.ModifierKeys.None, gesture.Modifiers);
         claude.Ask.Draft = "Summarize the failing test";
         claude.Ask.Provider = "Claude Code";
+        var swatch = System.Windows.Media.Imaging.BitmapSource.Create(64, 64, 96, 96, System.Windows.Media.PixelFormats.Bgra32, null,
+            Enumerable.Range(0, 64 * 64 * 4).Select(i => (byte)(i % 4 == 3 ? 255 : (i / 4 % 64) * 4)).ToArray(), 64 * 4);
+        claude.Ask.AddImage(AskPaste.Normalize(swatch)!);
+        claude.Ask.AddImage(AskPaste.Normalize(swatch)!);
+        Render(claude, "ClaudeViewModel.Panel", "agents-ask-images", 640, 340);
+        claude.Ask.Images.Clear();
         claude.Ask.IsRunning = true;
         Render(claude, "ClaudeViewModel.Panel", "agents-ask-thinking", 640, 340);
         claude.Ask.IsRunning = false;

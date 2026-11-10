@@ -118,6 +118,37 @@ public sealed class AskViewTests
     }
 
     [Fact]
+    public async Task A_picture_alone_can_be_sent_and_leaves_with_the_question()
+    {
+        var chat = new FakeChat();
+        using var vm = new AskViewModel(chat, () => new AgentChatOptions(new AgentChatSettings(), []));
+        Assert.False(vm.SendCommand.CanExecute(null));
+
+        Assert.True(vm.AddImage(new AgentChatImage([1], "image/png")));
+        Assert.True(vm.HasImages);
+        Assert.True(vm.SendCommand.CanExecute(null)); // no text needed
+
+        await vm.SendCommand.ExecuteAsync(null);
+
+        Assert.Single(chat.SentImages);
+        Assert.False(vm.HasImages);
+        Assert.Equal("What is in this image?", chat.Prompt);
+    }
+
+    [Fact]
+    public void The_box_holds_at_most_four_pictures_and_each_can_be_removed()
+    {
+        using var vm = new AskViewModel();
+        for (var i = 0; i < AskViewModel.MaxImages; i++) Assert.True(vm.AddImage(new AgentChatImage([(byte)i], "image/png")));
+        Assert.False(vm.AddImage(new AgentChatImage([9], "image/png")));
+
+        vm.RemoveImageCommand.Execute(vm.Images[0]);
+        Assert.Equal(AskViewModel.MaxImages - 1, vm.Images.Count);
+        Assert.True(vm.HandleEscape()); // Escape clears the pictures too
+        Assert.Empty(vm.Images);
+    }
+
+    [Fact]
     public async Task A_reply_that_announces_itself_leaves_the_empty_state()
     {
         using var vm = new AskViewModel(new FakeChat(), () => new AgentChatOptions(new AgentChatSettings(), []));
@@ -135,9 +166,15 @@ public sealed class AskViewTests
         public Task<AgentChatSelection> ResolveAsync(AgentChatOptions options, CancellationToken ct = default) =>
             Task.FromResult(new AgentChatSelection(new FakeProvider(), "Chat only."));
 
+        public IReadOnlyList<AgentChatImage> SentImages { get; private set; } = [];
+        public string Prompt { get; private set; } = "";
+
         public async IAsyncEnumerable<AgentChatDelta> StreamAsync(AgentChatSelection selection, string prompt,
-            AgentChatSettings settings, [System.Runtime.CompilerServices.EnumeratorCancellation] CancellationToken ct = default)
+            AgentChatSettings settings, [System.Runtime.CompilerServices.EnumeratorCancellation] CancellationToken ct = default,
+            IReadOnlyList<AgentChatImage>? images = null)
         {
+            SentImages = images ?? [];
+            Prompt = prompt;
             yield return new AgentChatDelta("Hello ");
             await Task.Yield();
             yield return new AgentChatDelta("back.");
@@ -150,7 +187,7 @@ public sealed class AskViewTests
         public AgentChatKind Kind => AgentChatKind.ClaudeCode;
 
         public async IAsyncEnumerable<AgentChatDelta> StreamAsync(string prompt,
-            [System.Runtime.CompilerServices.EnumeratorCancellation] CancellationToken ct)
+            [System.Runtime.CompilerServices.EnumeratorCancellation] CancellationToken ct, IReadOnlyList<AgentChatImage>? images = null)
         {
             await Task.Yield();
             yield break;

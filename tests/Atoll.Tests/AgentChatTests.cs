@@ -140,6 +140,75 @@ public sealed class AgentChatTests
         Assert.Equal("workspace-write", arguments[arguments.ToList().IndexOf("--sandbox") + 1]);
     }
 
+    private static readonly AgentChatImage Pixel = new([1, 2, 3, 4], "image/png");
+
+    [Fact]
+    public async Task Claude_takes_pictures_as_one_stream_json_message()
+    {
+        var runner = new FakeRunner().Install("claude",
+            """{"type":"result","subtype":"success","is_error":false,"result":"A cat"}""");
+        using var chat = new AgentChatService(runner, new NoHttp());
+        var options = Options();
+        var selection = await chat.ResolveAsync(options);
+        await CollectAsync(chat.StreamAsync(selection, "What is this?", options.Settings, default, [Pixel]));
+
+        var started = Assert.Single(runner.Started);
+        var arguments = started.Command.Arguments.ToList();
+        Assert.Equal("stream-json", arguments[arguments.IndexOf("--input-format") + 1]);
+        using var message = System.Text.Json.JsonDocument.Parse(started.Session.Written.Trim());
+        var content = message.RootElement.GetProperty("message").GetProperty("content");
+        Assert.Equal("image", content[0].GetProperty("type").GetString());
+        Assert.Equal(Convert.ToBase64String(Pixel.Data), content[0].GetProperty("source").GetProperty("data").GetString());
+        Assert.Equal("What is this?", content[1].GetProperty("text").GetString());
+    }
+
+    [Fact]
+    public async Task Codex_gets_pictures_as_files_and_they_are_deleted_afterwards()
+    {
+        var runner = new FakeRunner().Install("codex",
+            """{"type":"item.completed","item":{"type":"agent_message","text":"A cat"}}""");
+        using var chat = new AgentChatService(runner, new NoHttp());
+        var options = Options();
+        var selection = await chat.ResolveAsync(options);
+        await CollectAsync(chat.StreamAsync(selection, "What is this?", options.Settings, default, [Pixel]));
+
+        var arguments = Assert.Single(runner.Started).Command.Arguments.ToList();
+        var path = arguments[arguments.IndexOf("--image") + 1];
+        Assert.EndsWith(".png", path);
+        Assert.False(File.Exists(path)); // the temp copy is gone once the run ends
+        Assert.Equal(["--", "-"], arguments.TakeLast(2));
+    }
+
+    [Fact]
+    public async Task OpenCode_says_it_cannot_take_pictures()
+    {
+        using var chat = new AgentChatService(new FakeRunner().Install("opencode", "x"), new NoHttp());
+        var options = Options();
+        var selection = await chat.ResolveAsync(options);
+
+        var error = await Assert.ThrowsAsync<AgentChatException>(async () =>
+            await CollectAsync(chat.StreamAsync(selection, "What is this?", options.Settings, default, [Pixel])));
+        Assert.Contains("OpenCode can't take pasted images", error.Message);
+    }
+
+    [Fact]
+    public void API_requests_carry_pictures_in_each_providers_own_shape()
+    {
+        using var openAi = System.Text.Json.JsonDocument.Parse(OpenAiChatProvider.OpenAiBody("hi", "gpt", [Pixel]));
+        var parts = openAi.RootElement.GetProperty("messages")[0].GetProperty("content");
+        Assert.Equal("text", parts[0].GetProperty("type").GetString());
+        Assert.StartsWith("data:image/png;base64,", parts[1].GetProperty("image_url").GetProperty("url").GetString());
+
+        using var anthropic = System.Text.Json.JsonDocument.Parse(AnthropicChatProvider.Body("hi", "claude", [Pixel]));
+        var blocks = anthropic.RootElement.GetProperty("messages")[0].GetProperty("content");
+        Assert.Equal("image", blocks[0].GetProperty("type").GetString());
+        Assert.Equal("base64", blocks[0].GetProperty("source").GetProperty("type").GetString());
+
+        // No picture: the plain string body every provider already accepted.
+        using var plain = System.Text.Json.JsonDocument.Parse(OpenAiChatProvider.OpenAiBody("hi", "gpt", null));
+        Assert.Equal("hi", plain.RootElement.GetProperty("messages")[0].GetProperty("content").GetString());
+    }
+
     [Fact]
     public async Task OpenCode_streams_plain_stdout_and_admits_tools_cannot_be_turned_off()
     {

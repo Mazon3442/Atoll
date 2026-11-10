@@ -8,11 +8,12 @@ namespace Atoll.Modules.Claude;
 internal static class CliAgent
 {
     public static async IAsyncEnumerable<AgentChatDelta> RunAsync(IProcessRunner runner, ProcessCommand command,
-        string name, string prompt, Func<string, (string? Text, string? Error)> read, [EnumeratorCancellation] CancellationToken ct)
+        string name, string prompt, Func<string, (string? Text, string? Error)> read, [EnumeratorCancellation] CancellationToken ct,
+        string? stdin = null)
     {
         using var session = runner.Start(command);
         var error = ReadErrorAsync(session.StandardError, ct);
-        await session.StandardInput.WriteAsync(prompt.AsMemory(), ct);
+        await session.StandardInput.WriteAsync((stdin ?? prompt).AsMemory(), ct);
         await session.StandardInput.FlushAsync(ct);
         session.StandardInput.Close();
 
@@ -84,12 +85,14 @@ public sealed class ClaudeCodeChatProvider(IProcessRunner runner, ProcessCommand
 
     public AgentChatKind Kind => AgentChatKind.ClaudeCode;
 
-    public IAsyncEnumerable<AgentChatDelta> StreamAsync(string prompt, CancellationToken ct)
+    public IAsyncEnumerable<AgentChatDelta> StreamAsync(string prompt, CancellationToken ct, IReadOnlyList<AgentChatImage>? images = null)
     {
         var arguments = new List<string>
         {
             "-p", "--output-format", "stream-json", "--verbose", "--include-partial-messages", "--no-session-persistence",
         };
+        // Pictures travel as base64 in one stream-json user message; plain text on stdin cannot carry them.
+        if (images is { Count: > 0 }) { arguments.Add("--input-format"); arguments.Add("stream-json"); }
         if (!string.IsNullOrWhiteSpace(model)) { arguments.Add("--model"); arguments.Add(model.Trim()); }
         if (allowTools)
         {
@@ -106,7 +109,18 @@ public sealed class ClaudeCodeChatProvider(IProcessRunner runner, ProcessCommand
             arguments.Add("1");
         }
         var parser = new ClaudeParser();
-        return CliAgent.RunAsync(runner, command with { Arguments = [.. command.Arguments, .. arguments] }, Name, prompt, parser.Read, ct);
+        return CliAgent.RunAsync(runner, command with { Arguments = [.. command.Arguments, .. arguments] }, Name, prompt, parser.Read, ct,
+            images is { Count: > 0 } ? UserMessage(prompt, images) : null);
+    }
+
+    /// <summary>One line of the stream-json input: the pictures first, then the question.</summary>
+    internal static string UserMessage(string prompt, IReadOnlyList<AgentChatImage> images)
+    {
+        var content = new List<object>();
+        foreach (var image in images)
+            content.Add(new { type = "image", source = new { type = "base64", media_type = image.MediaType, data = Convert.ToBase64String(image.Data) } });
+        content.Add(new { type = "text", text = prompt });
+        return JsonSerializer.Serialize(new { type = "user", message = new { role = "user", content } }) + "\n";
     }
 
     private sealed class ClaudeParser
@@ -175,13 +189,42 @@ public sealed class CodexChatProvider(IProcessRunner runner, ProcessCommand comm
 
     public AgentChatKind Kind => AgentChatKind.Codex;
 
-    public IAsyncEnumerable<AgentChatDelta> StreamAsync(string prompt, CancellationToken ct)
+    public IAsyncEnumerable<AgentChatDelta> StreamAsync(string prompt, CancellationToken ct, IReadOnlyList<AgentChatImage>? images = null)
     {
         var arguments = new List<string> { "exec", "--json", "--skip-git-repo-check", "--sandbox", allowTools ? "workspace-write" : "read-only" };
         if (!string.IsNullOrWhiteSpace(model)) { arguments.Add("--model"); arguments.Add(model.Trim()); }
+        if (images is { Count: > 0 }) return WithImages(arguments, prompt, images, ct);
         arguments.Add("-"); // prompt on stdin
         var parser = new CodexParser();
         return CliAgent.RunAsync(runner, command with { Arguments = [.. command.Arguments, .. arguments] }, Name, prompt, parser.Read, ct);
+    }
+
+    /// <summary>Codex takes pictures as files. They live in a private temp folder for the one run and are deleted after.</summary>
+    private async IAsyncEnumerable<AgentChatDelta> WithImages(List<string> arguments, string prompt,
+        IReadOnlyList<AgentChatImage> images, [EnumeratorCancellation] CancellationToken ct)
+    {
+        var folder = Path.Combine(Path.GetTempPath(), "atoll-ask-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(folder);
+        try
+        {
+            for (var i = 0; i < images.Count; i++)
+            {
+                var path = Path.Combine(folder, $"image{i + 1}{(images[i].MediaType == "image/jpeg" ? ".jpg" : ".png")}");
+                await File.WriteAllBytesAsync(path, images[i].Data, ct);
+                arguments.Add("--image");
+                arguments.Add(path);
+            }
+            arguments.Add("--"); // --image takes several values; this keeps the stdin marker from being read as one
+            arguments.Add("-");
+            var parser = new CodexParser();
+            await foreach (var delta in CliAgent.RunAsync(runner, command with { Arguments = [.. command.Arguments, .. arguments] }, Name, prompt, parser.Read, ct))
+                yield return delta;
+        }
+        finally
+        {
+            try { Directory.Delete(folder, recursive: true); }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) { }
+        }
     }
 
     private sealed class CodexParser
@@ -231,8 +274,10 @@ public sealed class OpenCodeChatProvider(IProcessRunner runner, ProcessCommand c
 
     public AgentChatKind Kind => AgentChatKind.OpenCode;
 
-    public IAsyncEnumerable<AgentChatDelta> StreamAsync(string prompt, CancellationToken ct)
+    public IAsyncEnumerable<AgentChatDelta> StreamAsync(string prompt, CancellationToken ct, IReadOnlyList<AgentChatImage>? images = null)
     {
+        if (images is { Count: > 0 })
+            throw new AgentChatException("OpenCode can't take pasted images here. Pick Claude Code, Codex or an API key, or remove the image.");
         var arguments = new List<string> { "run" };
         if (!string.IsNullOrWhiteSpace(model)) { arguments.Add("--model"); arguments.Add(model.Trim()); }
         return Lines(runner, command with { Arguments = [.. command.Arguments, .. arguments] }, prompt, ct);

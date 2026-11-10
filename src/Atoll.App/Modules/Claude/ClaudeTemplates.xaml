@@ -1,6 +1,7 @@
 <ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-                    xmlns:shell="clr-namespace:Atoll.Shell">
+                    xmlns:shell="clr-namespace:Atoll.Shell"
+                    xmlns:claude="clr-namespace:Atoll.Modules.Claude">
 
     <SolidColorBrush x:Key="Claude.Orange" Color="#D97757" />
 
@@ -440,11 +441,42 @@
                         </Style>
                     </Border.Style>
                     <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                        </Grid.RowDefinitions>
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="*" />
                             <ColumnDefinition Width="Auto" />
                         </Grid.ColumnDefinitions>
-                        <TextBox x:Name="AskInput" Style="{StaticResource Ask.Input}"
+
+                        <!-- Pasted pictures: small thumbnails with a remove button, above the text. -->
+                        <ItemsControl Grid.ColumnSpan="2" ItemsSource="{Binding Ask.Images}" Margin="0,6,0,2" Focusable="False"
+                                      Visibility="{Binding Ask.HasImages, Converter={StaticResource Island.BoolToVisibility}}">
+                            <ItemsControl.ItemsPanel>
+                                <ItemsPanelTemplate><StackPanel Orientation="Horizontal" /></ItemsPanelTemplate>
+                            </ItemsControl.ItemsPanel>
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Grid Margin="0,0,8,0">
+                                        <Border Width="48" Height="48" CornerRadius="9" ClipToBounds="True"
+                                                Background="{DynamicResource Island.Hover}">
+                                            <Image Source="{Binding Data, Converter={x:Static claude:AskImageThumbnail.Instance}}" Stretch="UniformToFill" />
+                                        </Border>
+                                        <Border HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,-5,-5,0" Width="18" Height="18"
+                                                CornerRadius="9" Background="{DynamicResource Island.Menu}">
+                                            <Button Style="{StaticResource Island.IconButton}" Width="18" Height="18"
+                                                    Command="{Binding DataContext.Ask.RemoveImageCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                                                    CommandParameter="{Binding}" ToolTip="Remove" AutomationProperties.Name="Remove the picture">
+                                                <shell:Icon Kind="minus" Size="10" />
+                                            </Button>
+                                        </Border>
+                                    </Grid>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+
+                        <TextBox x:Name="AskInput" Grid.Row="1" Style="{StaticResource Ask.Input}" claude:AskPaste.Enabled="True"
                                  Text="{Binding Ask.Draft, UpdateSourceTrigger=PropertyChanged}"
                                  Tag="Ask anything…"
                                  AcceptsReturn="True" TextWrapping="Wrap" MaxHeight="84"
@@ -456,13 +488,13 @@
                             </TextBox.InputBindings>
                         </TextBox>
 
-                        <Button Grid.Column="1" Style="{StaticResource Ask.SendButton}" Margin="8,0,0,0"
+                        <Button Grid.Row="1" Grid.Column="1" Style="{StaticResource Ask.SendButton}" Margin="8,0,0,0"
                                 Command="{Binding Ask.SendCommand}" ToolTip="Send (Enter)"
                                 Visibility="{Binding Ask.IsRunning, Converter={StaticResource Island.InverseBoolToVisibility}}"
                                 AutomationProperties.Name="Send the question">
                             <shell:Icon Kind="arrow-up" Size="14" />
                         </Button>
-                        <Button Grid.Column="1" Style="{StaticResource Ask.SendButton}" Margin="8,0,0,0"
+                        <Button Grid.Row="1" Grid.Column="1" Style="{StaticResource Ask.SendButton}" Margin="8,0,0,0"
                                 Command="{Binding Ask.StopCommand}" ToolTip="Stop the answer"
                                 Visibility="{Binding Ask.IsRunning, Converter={StaticResource Island.BoolToVisibility}}"
                                 AutomationProperties.Name="Stop the answer">

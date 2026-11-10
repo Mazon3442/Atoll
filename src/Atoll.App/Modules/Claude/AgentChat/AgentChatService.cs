@@ -82,7 +82,7 @@ public sealed class AgentChatService : IAgentChat, IDisposable
 
     /// <summary>Resolves and streams, turning a resolution failure into the same single error delta.</summary>
     public async IAsyncEnumerable<AgentChatDelta> AskAsync(AgentChatOptions options, string prompt,
-        [EnumeratorCancellation] CancellationToken ct = default)
+        [EnumeratorCancellation] CancellationToken ct = default, IReadOnlyList<AgentChatImage>? images = null)
     {
         AgentChatSelection? selection = null;
         string? failure = null;
@@ -94,19 +94,20 @@ public sealed class AgentChatService : IAgentChat, IDisposable
             yield return new AgentChatDelta(failure, true);
             yield break;
         }
-        await foreach (var delta in StreamAsync(selection!, prompt, options.Settings, ct)) yield return delta;
+        await foreach (var delta in StreamAsync(selection!, prompt, options.Settings, ct, images)) yield return delta;
     }
 
     /// <summary>Streams one answer. A provider failure becomes a single error delta; Stop throws cancellation.</summary>
     public async IAsyncEnumerable<AgentChatDelta> StreamAsync(AgentChatSelection selection, string prompt,
-        AgentChatSettings settings, [EnumeratorCancellation] CancellationToken ct = default)
+        AgentChatSettings settings, [EnumeratorCancellation] CancellationToken ct = default,
+        IReadOnlyList<AgentChatImage>? images = null)
     {
         var seconds = TimeoutSeconds(settings);
         using var timeout = CancellationTokenSource.CreateLinkedTokenSource(ct);
         timeout.CancelAfter(TimeSpan.FromSeconds(seconds));
         var token = timeout.Token;
 
-        await using var answers = selection.Provider.StreamAsync(prompt, token).GetAsyncEnumerator(token);
+        await using var answers = selection.Provider.StreamAsync(prompt, token, images).GetAsyncEnumerator(token);
         while (true)
         {
             bool moved;
