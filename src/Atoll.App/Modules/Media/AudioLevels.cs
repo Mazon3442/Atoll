@@ -1,4 +1,3 @@
-using System.Buffers.Binary;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
 using NAudio.Dsp;
@@ -22,6 +21,7 @@ public sealed class AudioLevels : IDisposable
     private static readonly long EmitInterval = Stopwatch.Frequency / 20;
 
     private readonly float[] _samples = new float[FftSize];
+    private readonly float[] _mono = new float[8192];
     private readonly Complex[] _fft = new Complex[FftSize];
     private readonly float[] _levels = new float[Bands];
     private readonly object _gate = new();
@@ -96,55 +96,33 @@ public sealed class AudioLevels : IDisposable
         LevelsAvailable?.Invoke((float[])_levels.Clone());
     }
 
-    private static readonly Guid FloatSubFormat = new("00000003-0000-0010-8000-00aa00389b71");
-    private static readonly Guid PcmSubFormat = new("00000001-0000-0010-8000-00aa00389b71");
+    /// <summary>Kept for the visualizer's format tests; the decoding rules live in <see cref="PcmAudio"/>.</summary>
+    internal static bool IsFloat32(WaveFormat? f) => PcmAudio.IsFloat32(f);
 
-    /// <summary>Shared-mode loopback is 32-bit float, usually wrapped as WAVE_FORMAT_EXTENSIBLE.</summary>
-    internal static bool IsFloat32(WaveFormat? f) => f is { BitsPerSample: 32 } &&
-        (f.Encoding == WaveFormatEncoding.IeeeFloat || (f is WaveFormatExtensible x && x.SubFormat == FloatSubFormat));
+    /// <summary>Kept for the visualizer's format tests; the decoding rules live in <see cref="PcmAudio"/>.</summary>
+    internal static int SampleBits(WaveFormat? f) => PcmAudio.SampleBits(f);
 
-    /// <summary>
-    /// Bits per sample the visualizer can read: 32 for float, 16/24/32 for integer PCM (exclusive-mode devices and
-    /// some USB DACs loop back integer audio). 0 when unsupported.
-    /// </summary>
-    internal static int SampleBits(WaveFormat? f)
-    {
-        if (IsFloat32(f)) return 32;
-        var pcm = f is not null && (f.Encoding == WaveFormatEncoding.Pcm || f is WaveFormatExtensible x && x.SubFormat == PcmSubFormat);
-        return pcm && f!.BitsPerSample is 16 or 24 or 32 ? f.BitsPerSample : 0;
-    }
-
-    /// <summary>One sample as -1..1.</summary>
-    internal static float ReadSample(ReadOnlySpan<byte> b, bool isFloat, int bits) => bits switch
-    {
-        32 when isFloat => BinaryPrimitives.ReadSingleLittleEndian(b),
-        16 => BinaryPrimitives.ReadInt16LittleEndian(b) / 32768f,
-        24 => (b[0] | b[1] << 8 | (sbyte)b[2] << 16) / 8388608f,
-        32 => BinaryPrimitives.ReadInt32LittleEndian(b) / 2147483648f,
-        _ => 0,
-    };
+    /// <summary>Kept for the visualizer's format tests; the decoding rules live in <see cref="PcmAudio"/>.</summary>
+    internal static float ReadSample(ReadOnlySpan<byte> b, bool isFloat, int bits) => PcmAudio.ReadSample(b, isFloat, bits);
 
     private void OnData(ReadOnlySpan<byte> buffer)
     {
-        var bits = SampleBits(_format);
-        if (bits == 0) return;
-        var isFloat = IsFloat32(_format);
-        var bytes = bits / 8;
-        var channels = _format!.Channels;
-        var frameBytes = _format.BlockAlign > 0 ? _format.BlockAlign : channels * bytes;
-        // Front left/right only: surround layouts (e.g. 7.1) are mostly silent channels that would
-        // dilute the level.
-        var used = Math.Min(channels, 2);
-        for (var i = 0; i + frameBytes <= buffer.Length; i += frameBytes)
+        var format = _format;
+        if (format is null || PcmAudio.SampleBits(format) == 0) return;
+        while (!buffer.IsEmpty)
         {
-            float sum = 0;
-            for (var c = 0; c < used; c++) sum += ReadSample(buffer.Slice(i + c * bytes, bytes), isFloat, bits);
-            _samples[_filled++] = sum / used;
-            if (_filled == FftSize)
+            var decoded = PcmAudio.MonoFromDevice(buffer, format, _mono);
+            if (decoded == 0) return;
+            for (var i = 0; i < decoded; i++)
             {
-                Analyze(_format.SampleRate);
+                _samples[_filled++] = _mono[i];
+                if (_filled != FftSize) continue;
+                Analyze(format.SampleRate);
                 _filled = 0;
             }
+            var consumed = PcmAudio.FrameBytes(format) * decoded;
+            if (consumed <= 0) return;
+            buffer = buffer[consumed..];
         }
     }
 
