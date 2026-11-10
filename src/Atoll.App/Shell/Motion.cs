@@ -1,5 +1,6 @@
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Media;
 using System.Windows.Media.Animation;
 
 namespace Atoll.Shell;
@@ -57,6 +58,54 @@ public sealed class PillBorder : Border
         var r = Math.Max(0, Radius);
         CornerRadius = Notch ? new CornerRadius(0, 0, r, r) : new CornerRadius(r);
         BorderThickness = Notch ? new Thickness(1, 0, 1, 1) : new Thickness(1); // no rim along the screen edge
+        UpdateClip();
+    }
+
+    protected override void OnRenderSizeChanged(SizeChangedInfo sizeInfo)
+    {
+        base.OnRenderSizeChanged(sizeInfo);
+        UpdateClip();
+    }
+
+    /// <summary>
+    /// A notch is flush with the screen edge. A small concave shoulder on each top corner makes it
+    /// read as attached to the edge instead of a plain rectangle.
+    /// </summary>
+    private void UpdateClip()
+    {
+        if (!Notch || ActualWidth <= 0 || ActualHeight <= 0)
+        {
+            Clip = null;
+            return;
+        }
+
+        var w = ActualWidth;
+        var h = ActualHeight;
+        var shoulder = Math.Min(8, Math.Min(w, h) / 6);
+        var r = Math.Min(Math.Max(0, Radius), Math.Min((w - 2 * shoulder) / 2, h / 2));
+        var geometry = new StreamGeometry();
+        using (var context = geometry.Open())
+        {
+            context.BeginFigure(new Point(0, 0), true, true);
+            context.LineTo(new Point(w, 0), true, false);
+            context.QuadraticBezierTo(new Point(w, shoulder), new Point(w - shoulder, shoulder), true, false);
+            if (r > 0)
+            {
+                context.LineTo(new Point(w - shoulder, h - r), true, false);
+                context.ArcTo(new Point(w - shoulder - r, h), new Size(r, r), 0, false, SweepDirection.Clockwise, true, false);
+                context.LineTo(new Point(shoulder + r, h), true, false);
+                context.ArcTo(new Point(shoulder, h - r), new Size(r, r), 0, false, SweepDirection.Clockwise, true, false);
+            }
+            else
+            {
+                context.LineTo(new Point(w - shoulder, h), true, false);
+                context.LineTo(new Point(shoulder, h), true, false);
+            }
+            context.LineTo(new Point(shoulder, shoulder), true, false);
+            context.QuadraticBezierTo(new Point(shoulder, 0), new Point(0, 0), true, false);
+        }
+        geometry.Freeze();
+        Clip = geometry;
     }
 }
 
