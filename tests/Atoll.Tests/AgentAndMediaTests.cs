@@ -182,6 +182,14 @@ internal static class AgentMediaUi
         claude.Usage.SetLimits([new("Claude · 5-hour", 42, now.AddMinutes(95)), new("Claude · weekly", 83, now.AddDays(3)),
             new("Codex · 5-hour", 5, now.AddHours(4)), new("Codex · weekly", 21, now.AddDays(5))], now);
         Render(claude, "ClaudeViewModel.Panel", "limits-panel", 560, 220);
+        claude.SectionIndex = 1;
+        claude.Ask.Draft = "Summarize the failing test";
+        claude.Ask.Provider = "Claude Code";
+        claude.Ask.Note = "Chat only. Claude's tools are blocked.";
+        claude.Ask.Answer = "The test compares two timestamps and the expected value is one day behind.";
+        Render(claude, "ClaudeViewModel.Panel", "agents-ask", 640, 340);
+        Render(new AskAlertViewModel(claude.Ask, "Answer from Claude Code", "The test compares two timestamps…"),
+            "AskAlertViewModel.Peek", "ask-answer-peek", 620);
 
         var media = new MediaViewModel(() => Task.CompletedTask, () => Task.CompletedTask, () => Task.CompletedTask, _ => Task.CompletedTask)
         { HasSession = true, HasTimeline = true, Title = "Song", Artist = "Artist", Lyric = "And the words appear in time", HasLyrics = true, PositionText = "1:02", DurationText = "3:30", Progress = 0.3 };

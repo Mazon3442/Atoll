@@ -200,7 +200,18 @@ public partial class IslandWindow : Window
                 return;
             }
             if (_mode != IslandMode.Expanded) return;
-            if (e.Key == Key.Escape) SetMode(IslandMode.Compact);
+            if (e.Key == Key.Escape)
+            {
+                // The Ask box owns Escape while it has focus: stop a run, then clear the draft, before closing the island.
+                if (PanelBody.IsKeyboardFocusWithin
+                    && Tabs.SelectedItem is ModuleTab { Panel: Atoll.Modules.Claude.ClaudeViewModel { IsAsk: true } claude }
+                    && claude.Ask.HandleEscape())
+                {
+                    e.Handled = true;
+                    return;
+                }
+                SetMode(IslandMode.Compact);
+            }
             else if (ctrl && e.Key == Key.K)
             {
                 ShowPalette();
@@ -1214,7 +1225,7 @@ public partial class IslandWindow : Window
         {
             var expandedWidth = Math.Max(Math.Clamp(t.ExpandedWidth, 320, 900), HeaderWidth()); // every tab fits without scrolling
             var expandedHeight = Math.Clamp(t.ExpandedHeight, 140, 600);
-            if (Tabs.SelectedItem is ModuleTab { Panel: MediaPanelViewModel or SystemGroupViewModel or Atoll.Modules.Weather.WeatherViewModel or Atoll.Modules.Home.HomeViewModel or Atoll.Modules.Games.GameViewModel or Atoll.Modules.Calendar.CalendarViewModel or Atoll.Modules.Notes.NotesViewModel or LauncherPanelViewModel or ClockPanelViewModel or Atoll.Modules.Tide.TideViewModel })
+            if (Tabs.SelectedItem is ModuleTab { Panel: MediaPanelViewModel or SystemGroupViewModel or Atoll.Modules.Weather.WeatherViewModel or Atoll.Modules.Home.HomeViewModel or Atoll.Modules.Games.GameViewModel or Atoll.Modules.Calendar.CalendarViewModel or Atoll.Modules.Notes.NotesViewModel or LauncherPanelViewModel or ClockPanelViewModel or Atoll.Modules.Tide.TideViewModel or Atoll.Modules.Claude.ClaudeViewModel })
                 expandedHeight = Math.Max(expandedHeight, FittedPanelHeight(expandedWidth)); // show all of it
             expandedHeight = Math.Min(expandedHeight, AvailablePanelHeight);
             // Lay out at the destination size, so opening the pill cannot create transient overflow.
@@ -1361,12 +1372,33 @@ public partial class IslandWindow : Window
 
     private void OnPanelPropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
-        // Notes, Launcher, Timer and similar panels change height when their section changes.
-        if (e.PropertyName is not (nameof(LauncherPanelViewModel.SectionIndex) or nameof(TimerViewModel.SectionIndex) or nameof(Atoll.Modules.Notes.NotesViewModel.SectionIndex) or nameof(Atoll.Modules.Tide.TideViewModel.SectionIndex))) return;
+        // Notes, Launcher, Timer, Agents and similar panels change height when their section changes.
+        if (e.PropertyName is not (nameof(LauncherPanelViewModel.SectionIndex) or nameof(TimerViewModel.SectionIndex) or nameof(Atoll.Modules.Notes.NotesViewModel.SectionIndex) or nameof(Atoll.Modules.Tide.TideViewModel.SectionIndex) or nameof(Atoll.Modules.Claude.ClaudeViewModel.SectionIndex))) return;
         Dispatcher.BeginInvoke(DispatcherPriority.Background, new Action(() =>
         {
-            if (_mode == IslandMode.Expanded) Render();
+            if (_mode != IslandMode.Expanded) return;
+            Render();
+            if (e.PropertyName == nameof(Atoll.Modules.Claude.ClaudeViewModel.SectionIndex)) FocusAskInput();
         }));
+    }
+
+    /// <summary>Switching to Ask puts the caret in the box, so the keyboard can ask straight away.</summary>
+    private void FocusAskInput()
+    {
+        if (Tabs.SelectedItem is not ModuleTab { Panel: Atoll.Modules.Claude.ClaudeViewModel { IsAsk: true } }) return;
+        PanelBody.UpdateLayout();
+        if (FindVisibleTextBox(PanelBody) is { } box) Dispatcher.BeginInvoke(DispatcherPriority.Input, new Action(() => Keyboard.Focus(box)));
+    }
+
+    private static TextBox? FindVisibleTextBox(DependencyObject root)
+    {
+        for (var i = 0; i < VisualTreeHelper.GetChildrenCount(root); i++)
+        {
+            var child = VisualTreeHelper.GetChild(root, i);
+            if (child is TextBox { IsVisible: true, IsEnabled: true } box) return box;
+            if (FindVisibleTextBox(child) is { } found) return found;
+        }
+        return null;
     }
 
     private void ShowSelectedTab()

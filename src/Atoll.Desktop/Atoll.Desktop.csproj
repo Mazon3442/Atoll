@@ -25,6 +25,7 @@
     <Compile Include="../Atoll.App/Modules/Clock/ClockModule.cs" Link="Modules/ClockModule.cs" />
     <Compile Include="../Atoll.App/Modules/Calendar/CalendarModule.cs" Link="Modules/CalendarModule.cs" />
     <Compile Include="../Atoll.App/Modules/Claude/ClaudeModule.cs" Link="Modules/ClaudeModule.cs" />
+    <Compile Include="../Atoll.App/Modules/Claude/AgentChat/*.cs" Link="Modules/Claude/AgentChat/%(Filename)%(Extension)" />
     <Compile Include="../Atoll.App/Modules/Weather/WeatherViewModel.cs" Link="Modules/WeatherViewModel.cs" />
     <Compile Include="../Atoll.App/Modules/Weather/WeatherModule.cs" Link="Modules/WeatherModule.cs" />
     <Compile Include="../Atoll.App/Modules/Shelf/ShelfModule.cs" Link="Modules/ShelfModule.cs" />

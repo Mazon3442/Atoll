@@ -849,6 +849,37 @@
                         <TextBlock Text="{Binding ProviderMessage}" Style="{StaticResource Hint}" TextWrapping="Wrap" Margin="4,2,0,0"
                                    Visibility="{Binding ProviderMessage, Converter={StaticResource EmptyToCollapsed}}" />
 
+                        <TextBlock Style="{StaticResource SectionHeader}" Text="Ask" />
+                        <TextBlock Style="{StaticResource Hint}" TextWrapping="Wrap" Margin="4,0,0,12"
+                                   Text="The Agents tab's Ask section answers with the first installed coding agent — Claude Code, then Codex, then OpenCode — and falls back to your own API keys above. Questions and answers are never saved. Ctrl+Enter sends; Esc stops a run, then clears it." />
+                        <s:SettingCard Glyph="&#xE8BD;" Header="Allow tools"
+                                       Description="Off keeps the agent chat-only wherever it can. Claude Code blocks every tool for one turn. Codex always runs in a read-only sandbox and can still read files; OpenCode cannot be restricted in one-shot runs, and the Ask section says so.">
+                            <CheckBox Style="{StaticResource Toggle}" IsChecked="{Binding AskAllowTools}" AutomationProperties.Name="Allow tools when asking an agent" />
+                        </s:SettingCard>
+                        <s:SettingCard Glyph="&#xE99A;" Header="Claude Code model" Description="Blank uses Claude Code's own default.">
+                            <TextBox Width="260" Text="{Binding AskClaudeModel, UpdateSourceTrigger=PropertyChanged}"
+                                     AutomationProperties.Name="Claude Code model for Ask" />
+                        </s:SettingCard>
+                        <s:SettingCard Glyph="&#xE99A;" Header="Codex model" Description="Blank uses Codex's own default.">
+                            <TextBox Width="260" Text="{Binding AskCodexModel, UpdateSourceTrigger=PropertyChanged}"
+                                     AutomationProperties.Name="Codex model for Ask" />
+                        </s:SettingCard>
+                        <s:SettingCard Glyph="&#xE99A;" Header="OpenCode model" Description="Provider and model, like anthropic/claude-sonnet-5. Blank uses OpenCode's own default.">
+                            <TextBox Width="260" Text="{Binding AskOpenCodeModel, UpdateSourceTrigger=PropertyChanged}"
+                                     AutomationProperties.Name="OpenCode model for Ask" />
+                        </s:SettingCard>
+                        <s:SettingCard Glyph="&#xE8D7;" Header="API model" Description="Used when an Ask falls back to your own key. Blank picks a small default for that provider.">
+                            <TextBox Width="260" Text="{Binding AskApiModel, UpdateSourceTrigger=PropertyChanged}"
+                                     AutomationProperties.Name="API model for Ask" />
+                        </s:SettingCard>
+                        <s:SettingCard Glyph="&#xE916;" Header="Answer timeout" Description="A run that takes longer is stopped with a readable message.">
+                            <StackPanel Orientation="Horizontal">
+                                <Slider Width="200" Minimum="15" Maximum="600" TickFrequency="15" IsSnapToTickEnabled="True"
+                                        Value="{Binding AskTimeoutSeconds}" AutomationProperties.Name="Answer timeout" />
+                                <TextBlock Style="{StaticResource ValueText}" Width="70" Text="{Binding AskTimeoutSeconds, StringFormat={}{0} s}" />
+                            </StackPanel>
+                        </s:SettingCard>
+
                         <TextBlock Style="{StaticResource SectionHeader}" Text="Sounds" />
                         <s:SettingCard Glyph="&#xE73E;" Header="When a session finishes">
                             <CheckBox Style="{StaticResource Toggle}" IsChecked="{Binding SoundOnDone}" AutomationProperties.Name="Sound when a session finishes" />

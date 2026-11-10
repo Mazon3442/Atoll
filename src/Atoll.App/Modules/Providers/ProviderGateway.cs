@@ -31,6 +31,20 @@ public sealed record ProviderEndpoint(string Id, string Name, Uri BaseUri, strin
     public bool IsOpenAI => BaseUri.Host.Equals("api.openai.com", StringComparison.OrdinalIgnoreCase);
     public bool IsDeepSeek => BaseUri.Host.Equals("api.deepseek.com", StringComparison.OrdinalIgnoreCase);
     public bool IsAnthropic => BaseUri.Host.Equals("api.anthropic.com", StringComparison.OrdinalIgnoreCase);
+
+    /// <summary>
+    /// Puts this provider's own credential headers on a request. The gateway and the Ask section share the rule so
+    /// an Anthropic key is never sent as a bearer token.
+    /// </summary>
+    public void Authorize(HttpRequestMessage request)
+    {
+        if (IsAnthropic)
+        {
+            request.Headers.Add("x-api-key", Key);
+            request.Headers.Add("anthropic-version", "2023-06-01");
+        }
+        else request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", Key);
+    }
 }
 
 public sealed class ProviderGateway : IAsyncDisposable

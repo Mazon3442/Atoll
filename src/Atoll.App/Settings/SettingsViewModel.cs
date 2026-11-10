@@ -69,7 +69,7 @@ public sealed partial class SettingsViewModel : ObservableObject
         1 => "Make the island yours. Changes apply automatically.",
         2 => "Choose what appears in your island.",
         3 => "Decide which notifications reach you and what they show.",
-        4 => "Connect coding agents or your own API keys, and choose alert sounds.",
+        4 => "Connect coding agents or your own API keys, ask a quick question, and choose alert sounds.",
         5 => "Connect calendars and set event reminders.",
         6 => "Choose a place and explore its forecast.",
         7 => "Set how games appear, what ATOLL watches, and your Minecraft server.",
@@ -393,6 +393,18 @@ public sealed partial class SettingsViewModel : ObservableObject
 
     public bool SoundOnDone { get => S.Claude.SoundOnDone; set => Set(S.Claude.SoundOnDone, value, v => S.Claude.SoundOnDone = v); }
     public bool SoundOnAttention { get => S.Claude.SoundOnAttention; set => Set(S.Claude.SoundOnAttention, value, v => S.Claude.SoundOnAttention = v); }
+
+    // The Ask section: chat-only by default, with an explicit switch for tools.
+    public bool AskAllowTools { get => S.AgentChat.AllowTools; set => Set(S.AgentChat.AllowTools, value, v => S.AgentChat.AllowTools = v); }
+    public string AskClaudeModel { get => S.AgentChat.ClaudeModel; set => Set(S.AgentChat.ClaudeModel, value, v => S.AgentChat.ClaudeModel = v); }
+    public string AskCodexModel { get => S.AgentChat.CodexModel; set => Set(S.AgentChat.CodexModel, value, v => S.AgentChat.CodexModel = v); }
+    public string AskOpenCodeModel { get => S.AgentChat.OpenCodeModel; set => Set(S.AgentChat.OpenCodeModel, value, v => S.AgentChat.OpenCodeModel = v); }
+    public string AskApiModel { get => S.AgentChat.ApiModel; set => Set(S.AgentChat.ApiModel, value, v => S.AgentChat.ApiModel = v); }
+    public int AskTimeoutSeconds
+    {
+        get => S.AgentChat.TimeoutSeconds;
+        set => Set(S.AgentChat.TimeoutSeconds, Math.Clamp(value, 15, 600), v => S.AgentChat.TimeoutSeconds = v);
+    }
 
     // ---------- Calendar ----------
 

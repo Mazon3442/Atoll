@@ -14,6 +14,7 @@ using System.Net.Http;
 using CommunityToolkit.Mvvm.ComponentModel;
 using Atoll.Activities;
 using Atoll.Claude;
+using Atoll.Settings;
 
 namespace Atoll.Modules.Claude;
 
@@ -88,15 +89,26 @@ public sealed partial class PlanLimitRow(PlanLimit limit) : ObservableObject
 }
 
 /// <summary>Shown as the "work" activity, the Claude tab and the usage summary.</summary>
-public sealed partial class ClaudeViewModel(ClaudeSessionTracker tracker) : ObservableObject
+public sealed partial class ClaudeViewModel(ClaudeSessionTracker tracker, AskViewModel? ask = null) : ObservableObject
 {
     public ClaudeSessionTracker Tracker { get; } = tracker;
     public UsageViewModel Usage { get; } = new();
+    public AskViewModel Ask { get; } = ask ?? new AskViewModel();
 
     [ObservableProperty] private ClaudeSessionViewModel? _current;
     [ObservableProperty] private int _activeCount;
     [ObservableProperty] private string _countBadge = "";
     [ObservableProperty] private string _connectionStatus = "Waiting for agent events. Codex also uses recent local session events when hooks are unavailable.";
+
+    /// <summary>Sessions is where the tab opens; Ask is one switch away.</summary>
+    public IReadOnlyList<string> Sections { get; } = ["Sessions", "Ask"];
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsSessions), nameof(IsAsk))]
+    private int _sectionIndex;
+
+    public bool IsSessions => SectionIndex == 0;
+    public bool IsAsk => SectionIndex == 1;
 
     public bool HasSessions => Tracker.Sessions.Count > 0;
 
@@ -108,6 +120,12 @@ public sealed partial class ClaudeViewModel(ClaudeSessionTracker tracker) : Obse
         OnPropertyChanged(nameof(HasSessions));
     }
 }
+
+/// <summary>
+/// Posted when an Ask answer arrives, so a collapsed island can say so instead of losing the answer in a closed tab.
+/// Clicking the island opens the Agents tab, where the full answer is still waiting.
+/// </summary>
+public sealed record AskAlertViewModel(AskViewModel Ask, string Title, string Detail);
 
 /// <summary>
 /// Done / needs-you popup. Opening it focuses the session's terminal or editor. With <paramref name="Answer"/>,
@@ -133,6 +151,7 @@ public sealed class ClaudeModule : IIslandModule
     private readonly CodexSessionMonitor _codex = new();
     private readonly Dictionary<string, DateTimeOffset> _codexHooks = [];
     private readonly UsageMonitor _usage = new(UsageMonitor.DefaultRoot);
+    private readonly AgentChatService _chat = new();
     private ModuleContext? _context;
     private DispatcherTimer? _ticker;
     private bool _workPosted;
@@ -144,13 +163,21 @@ public sealed class ClaudeModule : IIslandModule
     private IReadOnlyList<PlanLimit> _claudeLimits = [];
     private DateTimeOffset _nextLimitsCheck;
 
-    public ClaudeModule() => _vm = new ClaudeViewModel(_tracker);
+    public ClaudeModule() => _vm = new ClaudeViewModel(_tracker, new AskViewModel(_chat,
+        () => new AgentChatOptions(_context?.Settings.Current.AgentChat ?? new AgentChatSettings(),
+            _context?.Settings.Current.Providers.Accounts ?? []),
+        action =>
+        {
+            if (_context is { } context) context.Dispatcher.BeginInvoke(action);
+            else action();
+        }));
 
     public object? Panel => _vm;
 
     public void Start(ModuleContext context)
     {
         _context = context;
+        _vm.Ask.Answered += OnAnswered;
         _server.Received += m => context.Dispatcher.BeginInvoke(() =>
         {
             if (m.Agent == "codex") _codexHooks[m.SessionId] = DateTimeOffset.UtcNow;
@@ -279,9 +306,23 @@ public sealed class ClaudeModule : IIslandModule
 
     private static string AttentionKey(ClaudeSessionViewModel session) => $"attention.{session.Agent}.{session.SessionId}";
 
+    /// <summary>The answer stays in the Ask section; this only says it arrived while the island may be closed.</summary>
+    private void OnAnswered(AskViewModel ask)
+    {
+        if (_disposed || _context is null) return;
+        var preview = ask.Answer.ReplaceLineEndings(" ").Trim();
+        if (preview.Length > 110) preview = preview[..110] + "…";
+        var who = ask.Provider.Length > 0 ? ask.Provider : "the agent";
+        _context.Post("ask", new AskAlertViewModel(ask, $"Answer from {who}", preview),
+            ActivityPriority.High, TimeSpan.FromMinutes(2));
+    }
+
     public void Dispose()
     {
         _disposed = true;
+        _vm.Ask.Answered -= OnAnswered;
+        _vm.Ask.Dispose();
+        _chat.Dispose();
         _stop.Cancel();
         foreach (var waiting in _pending.Values) waiting.TrySetResult(null);
         _ticker?.Stop();

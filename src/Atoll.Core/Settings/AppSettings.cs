@@ -104,6 +104,9 @@ public sealed class AppSettings
     public ClaudeSettings Claude { get; set; } = new();
     public ProviderSettings Providers { get; set; } = new();
 
+    /// <summary>The Agents tab's Ask section.</summary>
+    public AgentChatSettings AgentChat { get; set; } = new();
+
     public NotificationSettings Notifications { get; set; } = new();
 
     public WeatherSettings Weather { get; set; } = new();
@@ -251,6 +254,22 @@ public sealed class ClaudeSettings
 {
     public bool SoundOnDone { get; set; } = true;
     public bool SoundOnAttention { get; set; } = true;
+}
+
+/// <summary>How the Agents tab's Ask section runs a question. Answers are never stored here.</summary>
+public sealed class AgentChatSettings
+{
+    /// <summary>Off keeps the agent chat-only wherever the CLI allows it. Codex is always a read-only sandbox.</summary>
+    public bool AllowTools { get; set; }
+
+    /// <summary>Model overrides. Empty uses the agent's or provider's own default.</summary>
+    public string ClaudeModel { get; set; } = "";
+    public string CodexModel { get; set; } = "";
+    public string OpenCodeModel { get; set; } = "";
+    public string ApiModel { get; set; } = "";
+
+    /// <summary>Seconds to wait for an answer before stopping. Clamped when used.</summary>
+    public int TimeoutSeconds { get; set; } = 120;
 }
 
 public sealed class NotificationSettings
