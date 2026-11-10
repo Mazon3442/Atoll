@@ -199,6 +199,10 @@ public class GroupedPanelsTests
         {
             SectionIndex = 1,
         }));
+        panels.Add(("tide-listen", new Atoll.Modules.Tide.TideViewModel(new Atoll.Settings.TideSettings(), () => { })
+        {
+            SectionIndex = 2,
+        }));
         foreach (var mode in new[] { "Compact", "Peek", "Mini" })
         {
             var icon = (FrameworkElement)((DataTemplate)resources["NotificationItemViewModel." + mode]).LoadContent();
@@ -255,6 +259,14 @@ public class GroupedPanelsTests
                     var button = Descendants<Button>(background).Single(b => AutomationProperties.GetName(b) == name);
                     Assert.InRange(button.TranslatePoint(new Point(0, button.ActualHeight), background).Y, 1, frameHeight);
                 }
+            }
+            if (panel.Name == "tide-listen")
+            {
+                // Listen keeps the same Start/Stop button shape and renders the transcript list and notes pane.
+                var start = Descendants<Button>(background).Single(b => AutomationProperties.GetName(b) == "Start listening");
+                Assert.Equal("Listen", start.Content);
+                Assert.NotNull(Descendants<ListBox>(background).Single(l => AutomationProperties.GetName(l) == "Meeting transcript"));
+                Assert.NotNull(Descendants<ComboBox>(background).Single(c => AutomationProperties.GetName(c) == "Notes source"));
             }
             if (panel.Name == "time-pomodoro")
             {

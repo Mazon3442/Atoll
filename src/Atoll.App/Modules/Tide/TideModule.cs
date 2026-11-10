@@ -1,6 +1,7 @@
 using System.Collections.ObjectModel;
 using System.Windows;
 using System.Windows.Threading;
+using Atoll.Modules.Tide.Listen;
 using Atoll.Settings;
 using Atoll.Shell;
 using CommunityToolkit.Mvvm.ComponentModel;
@@ -8,7 +9,7 @@ using CommunityToolkit.Mvvm.Input;
 
 namespace Atoll.Modules.Tide;
 
-/// <summary>Tide: local scripts, a notch teleprompter and optional voice follow.</summary>
+/// <summary>Tide: local scripts, a notch teleprompter, optional voice follow and a local meeting listener.</summary>
 public sealed partial class TideViewModel : ObservableObject, IDisposable
 {
     private static readonly TimeSpan Tick = TimeSpan.FromMilliseconds(33);
@@ -20,7 +21,7 @@ public sealed partial class TideViewModel : ObservableObject, IDisposable
     private TideScript? _selectedScript;
     private int _spokenChar;
 
-    public TideViewModel(TideSettings settings, Action save)
+    public TideViewModel(TideSettings settings, Action save, Func<AppSettings?>? appSettings = null)
     {
         _settings = settings;
         _save = save;
@@ -47,20 +48,25 @@ public sealed partial class TideViewModel : ObservableObject, IDisposable
         _saveTimer.Tick += (_, _) => SaveNow();
         Title = _selectedScript.Title;
         Body = _selectedScript.Body;
+        Listen = new ListenViewModel(settings, save, appSettings, OnListeningChanged);
     }
 
     public ObservableCollection<TideScript> Scripts { get; } = [];
-    public IReadOnlyList<string> Sections { get; } = ["Scripts", "Prompter"];
+    public IReadOnlyList<string> Sections { get; } = ["Scripts", "Prompter", "Listen"];
+
+    /// <summary>Listen keeps the capture, transcript, notes and model state; the Tide sections stay scripts-first.</summary>
+    public ListenViewModel Listen { get; }
 
     /// <summary>Scroll presets, in the order the segmented switch shows them.</summary>
     public IReadOnlyList<string> Speeds { get; } = ["Slow", "Normal", "Fast", "Sprint"];
 
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(IsScripts), nameof(IsPrompter))]
+    [NotifyPropertyChangedFor(nameof(IsScripts), nameof(IsPrompter), nameof(IsListen))]
     private int _sectionIndex;
 
     public bool IsScripts => SectionIndex == 0;
     public bool IsPrompter => SectionIndex == 1;
+    public bool IsListen => SectionIndex == 2;
 
     /// <summary>The selected preset doubles as the scroll multiplier; 1 is normal.</summary>
     [ObservableProperty]
@@ -152,7 +158,7 @@ public sealed partial class TideViewModel : ObservableObject, IDisposable
         _settings.HideFromCapture = value;
         OnPropertyChanged(nameof(CaptureLabel));
         OnPropertyChanged(nameof(CaptureHint));
-        if (IsRunning) CapturePrivacy.Set(value);
+        ApplyCapturePrivacy();
         _save();
     }
 
@@ -195,7 +201,7 @@ public sealed partial class TideViewModel : ObservableObject, IDisposable
         if (Offset >= MaxOffset && MaxOffset > 0) Offset = 0;
         IsRunning = true;
         _scroll.Start();
-        if (HideFromCapture) CapturePrivacy.Set(true);
+        ApplyCapturePrivacy();
         if (FollowVoice) StartVoice();
     }
 
@@ -204,7 +210,7 @@ public sealed partial class TideViewModel : ObservableObject, IDisposable
     {
         IsRunning = false;
         _scroll.Stop();
-        CapturePrivacy.Set(false);
+        ApplyCapturePrivacy();
         StopVoice();
     }
 
@@ -227,6 +233,14 @@ public sealed partial class TideViewModel : ObservableObject, IDisposable
 
     private void StartVoice()
     {
+        // The microphone has one owner: Listen's capture wins, and voice follow steps aside instead of failing.
+        if (Listen.IsListening)
+        {
+            _settings.FollowVoice = false;
+            FollowVoice = false;
+            VoiceStatus = "Listen is using the microphone. Voice follow is off.";
+            return;
+        }
         if (!_voice.Start())
         {
             _settings.FollowVoice = false;
@@ -276,6 +290,31 @@ public sealed partial class TideViewModel : ObservableObject, IDisposable
         _saveTimer.Start();
     }
 
+    /// <summary>
+    /// One flag drives the island's capture hiding: the prompter or Listen is running and the Hide chip is on.
+    /// Listen follows the same switch so the transcript is not shown to a screen share by default.
+    /// </summary>
+    private void ApplyCapturePrivacy() => CapturePrivacy.Set(HideFromCapture && (IsRunning || Listen.IsListening));
+
+    /// <summary>Listen owns the microphone while it runs, so voice follow backs off and says why.</summary>
+    private void OnListeningChanged(bool listening)
+    {
+        if (listening)
+        {
+            if (FollowVoice)
+            {
+                _settings.FollowVoice = false;
+                FollowVoice = false;
+            }
+            VoiceStatus = "Listen is using the microphone. Voice follow is off.";
+        }
+        else if (!IsRunning)
+        {
+            VoiceStatus = "";
+        }
+        ApplyCapturePrivacy();
+    }
+
     public void SaveNow()
     {
         _saveTimer.Stop();
@@ -290,6 +329,7 @@ public sealed partial class TideViewModel : ObservableObject, IDisposable
         _saveTimer.Stop();
         SaveNow();
         StopVoice();
+        Listen.Dispose();
         CapturePrivacy.Set(false);
         _voice.Dispose();
     }
@@ -306,7 +346,8 @@ public sealed class TideModule : IIslandModule
     public void Start(ModuleContext context)
     {
         _context = context;
-        _vm = new TideViewModel(context.Settings.Current.Tide, () => _context.Settings.NotifyChanged());
+        _vm = new TideViewModel(context.Settings.Current.Tide, () => _context.Settings.NotifyChanged(),
+            () => _context.Settings.Current);
     }
 
     public void Dispose() => _vm?.Dispose();

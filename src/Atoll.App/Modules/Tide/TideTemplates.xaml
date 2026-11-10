@@ -13,6 +13,32 @@
             <Style x:Key="Tide.ScriptRow" TargetType="ListBoxItem" BasedOn="{StaticResource Island.TabMenuItem}">
                 <Setter Property="AutomationProperties.Name" Value="{Binding Title}" />
             </Style>
+            <!-- Transcript rows are read, not chosen: no selection highlight, but the list keeps keyboard scrolling. -->
+            <Style x:Key="Tide.TranscriptRow" TargetType="ListBoxItem">
+                <Setter Property="AutomationProperties.Name" Value="{Binding Text}" />
+                <Setter Property="Focusable" Value="False" />
+                <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+                <Setter Property="Padding" Value="4,3" />
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="ListBoxItem">
+                            <Border x:Name="Bg" Background="Transparent" CornerRadius="7" Padding="{TemplateBinding Padding}">
+                                <ContentPresenter />
+                            </Border>
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter TargetName="Bg" Property="Background" Value="{DynamicResource Island.Hover}" />
+                                </Trigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
+            <Style x:Key="Tide.ListenLabel" TargetType="TextBlock">
+                <Setter Property="FontSize" Value="10" />
+                <Setter Property="Foreground" Value="{DynamicResource Island.Subtle}" />
+                <Setter Property="Margin" Value="0,6,0,2" />
+            </Style>
             <Style x:Key="Tide.Toggle" TargetType="ToggleButton">
                 <Setter Property="Foreground" Value="{DynamicResource Island.Subtle}" />
                 <Setter Property="FontSize" Value="11" />
@@ -209,6 +235,234 @@
                                       ToolTip="{Binding CaptureHint}"
                                       AutomationProperties.Name="Hide from screen capture" />
                     </StackPanel>
+                </Grid>
+            </Grid>
+
+            <!-- Listen: local mic + system audio, a speaker-labelled transcript, notes and suggested replies. -->
+            <Grid Visibility="{Binding IsListen, Converter={StaticResource Island.BoolToVisibility}}">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="*" />
+                    <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
+
+                <Grid Margin="0,0,0,8">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+
+                    <Button Command="{Binding Listen.ToggleCommand}"
+                            ToolTip="Capture the microphone and the call, then transcribe locally">
+                        <Button.Style>
+                            <Style TargetType="Button" BasedOn="{StaticResource Island.ChipButton}">
+                                <Setter Property="Content" Value="Listen" />
+                                <Setter Property="AutomationProperties.Name" Value="Start listening" />
+                                <Setter Property="FontSize" Value="12" />
+                                <Setter Property="FontWeight" Value="SemiBold" />
+                                <Setter Property="MinHeight" Value="30" />
+                                <Setter Property="MinWidth" Value="82" />
+                                <Setter Property="Margin" Value="2" />
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding Listen.IsListening}" Value="True">
+                                        <Setter Property="Content" Value="Stop" />
+                                        <Setter Property="AutomationProperties.Name" Value="Stop listening" />
+                                    </DataTrigger>
+                                    <DataTrigger Binding="{Binding Listen.IsPreparing}" Value="True">
+                                        <Setter Property="Content" Value="Cancel" />
+                                        <Setter Property="AutomationProperties.Name" Value="Cancel starting Listen" />
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Button.Style>
+                    </Button>
+
+                    <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center" Margin="8,0,0,0">
+                        <ToggleButton Style="{StaticResource Tide.Toggle}" Content="Microphone"
+                                      IsChecked="{Binding Listen.CaptureMic}" IsEnabled="{Binding Listen.CanChangeCapture}"
+                                      ToolTip="Your side of the call, labelled You"
+                                      AutomationProperties.Name="Capture the microphone" />
+                        <ToggleButton Style="{StaticResource Tide.Toggle}" Content="System audio"
+                                      IsChecked="{Binding Listen.CaptureSystem}" IsEnabled="{Binding Listen.CanChangeCapture}"
+                                      ToolTip="The other participants, labelled Others"
+                                      AutomationProperties.Name="Capture system audio" />
+                        <Button Style="{StaticResource Tide.Chip}" Content="Sessions"
+                                Command="{Binding Listen.OpenSessionsCommand}"
+                                ToolTip="Open the folder of saved sessions" AutomationProperties.Name="Open saved sessions" />
+                    </StackPanel>
+
+                    <TextBlock Grid.Column="2" Text="{Binding Listen.Status}" FontSize="11" FontWeight="SemiBold"
+                               VerticalAlignment="Center" TextTrimming="CharacterEllipsis" MaxWidth="150"
+                               ToolTip="{Binding Listen.StatusDetail}" />
+                </Grid>
+
+                <Grid Grid.Row="1" Height="210">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="3*" />
+                        <ColumnDefinition Width="12" />
+                        <ColumnDefinition Width="2*" />
+                    </Grid.ColumnDefinitions>
+
+                    <Border Background="{DynamicResource Island.Surface}" CornerRadius="12" Padding="8,6">
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="*" />
+                            </Grid.RowDefinitions>
+                            <DockPanel Margin="0,0,0,2">
+                                <TextBlock Text="Transcribing" FontSize="10" Foreground="{DynamicResource Island.Accent}"
+                                           DockPanel.Dock="Right" VerticalAlignment="Center"
+                                           Visibility="{Binding Listen.IsTranscribing, Converter={StaticResource Island.BoolToVisibility}}" />
+                                <TextBlock Text="Transcript" FontSize="11" FontWeight="SemiBold" VerticalAlignment="Center" />
+                            </DockPanel>
+                            <Grid Grid.Row="1">
+                                <ListBox x:Name="ListenTranscript" ItemsSource="{Binding Listen.Transcript}"
+                                         ItemContainerStyle="{StaticResource Tide.TranscriptRow}"
+                                         Background="Transparent" BorderThickness="0" FontSize="12"
+                                         Foreground="{DynamicResource Island.Subtle}"
+                                         ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                                         Loaded="OnTranscriptLoaded" Unloaded="OnTranscriptUnloaded"
+                                         AutomationProperties.Name="Meeting transcript">
+                                    <ListBox.ItemTemplate>
+                                        <DataTemplate>
+                                            <Grid>
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="64" />
+                                                    <ColumnDefinition Width="*" />
+                                                </Grid.ColumnDefinitions>
+                                                <StackPanel>
+                                                    <TextBlock Text="{Binding Speaker}" FontSize="10" FontWeight="SemiBold">
+                                                        <TextBlock.Style>
+                                                            <Style TargetType="TextBlock">
+                                                                <Setter Property="Foreground" Value="{DynamicResource Island.Subtle}" />
+                                                                <Style.Triggers>
+                                                                    <DataTrigger Binding="{Binding IsYou}" Value="True">
+                                                                        <Setter Property="Foreground" Value="{DynamicResource Island.Accent}" />
+                                                                    </DataTrigger>
+                                                                </Style.Triggers>
+                                                            </Style>
+                                                        </TextBlock.Style>
+                                                    </TextBlock>
+                                                    <TextBlock Text="{Binding TimeText}" FontSize="9"
+                                                               Foreground="{DynamicResource Island.Subtle}" Opacity="0.7" />
+                                                </StackPanel>
+                                                <TextBlock Grid.Column="1" Text="{Binding Text}" TextWrapping="Wrap"
+                                                           Foreground="{DynamicResource Island.Foreground}" />
+                                            </Grid>
+                                        </DataTemplate>
+                                    </ListBox.ItemTemplate>
+                                </ListBox>
+                                <TextBlock Text="Press Listen to capture the microphone and the call. Audio is transcribed on this PC and never uploaded."
+                                           TextWrapping="Wrap" FontSize="11" Foreground="{DynamicResource Island.Subtle}"
+                                           VerticalAlignment="Top" Margin="4,8,4,0"
+                                           Visibility="{Binding Listen.HasTranscript, Converter={StaticResource Island.InverseBoolToVisibility}}" />
+                            </Grid>
+                        </Grid>
+                    </Border>
+
+                    <Border Grid.Column="2" Background="{DynamicResource Island.Surface}" CornerRadius="12" Padding="8,6">
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="*" />
+                                <RowDefinition Height="Auto" />
+                            </Grid.RowDefinitions>
+
+                            <DockPanel>
+                                <TextBlock Text="Updating" FontSize="10" Foreground="{DynamicResource Island.Accent}"
+                                           DockPanel.Dock="Right" VerticalAlignment="Center"
+                                           Visibility="{Binding Listen.NotesBusy, Converter={StaticResource Island.BoolToVisibility}}" />
+                                <TextBlock Text="Notes" FontSize="11" FontWeight="SemiBold" />
+                            </DockPanel>
+
+                            <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Margin="0,2,0,4">
+                                <StackPanel>
+                                    <TextBlock Text="{Binding Listen.NotesStatus}" TextWrapping="Wrap" FontSize="10"
+                                               Foreground="{DynamicResource Island.Subtle}" />
+                                    <!-- No model is a clear state with a way out, not a silent empty pane. -->
+                                    <Border Background="{DynamicResource Island.Raised}" CornerRadius="8" Padding="7,5" Margin="0,2,0,2"
+                                            Visibility="{Binding Listen.NeedsNotesModel, Converter={StaticResource Island.BoolToVisibility}}">
+                                        <StackPanel>
+                                            <TextBlock Text="Notes need a model. Start Ollama, or add a provider key in Settings."
+                                                       TextWrapping="Wrap" FontSize="10" />
+                                            <Button Style="{StaticResource Tide.Chip}" Content="Settings" HorizontalAlignment="Left"
+                                                    Command="{Binding Listen.OpenNotesSettingsCommand}"
+                                                    AutomationProperties.Name="Open notes model settings" />
+                                        </StackPanel>
+                                    </Border>
+
+                                    <TextBlock Style="{StaticResource Tide.ListenLabel}" Text="SUMMARY" />
+                                    <TextBlock Text="{Binding Listen.Summary}" TextWrapping="Wrap" FontSize="11"
+                                               Foreground="{DynamicResource Island.Foreground}" />
+
+                                    <TextBlock Style="{StaticResource Tide.ListenLabel}" Text="ACTION ITEMS" />
+                                    <ItemsControl ItemsSource="{Binding Listen.ActionItems}" AutomationProperties.Name="Action items">
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate>
+                                                <DockPanel Margin="0,1">
+                                                    <TextBlock Text="{Binding OwnerText}" FontSize="9" DockPanel.Dock="Right"
+                                                               Foreground="{DynamicResource Island.Subtle}" VerticalAlignment="Center" />
+                                                    <TextBlock Text="{Binding Text}" TextWrapping="Wrap" FontSize="11" />
+                                                </DockPanel>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+
+                                    <TextBlock Style="{StaticResource Tide.ListenLabel}" Text="SUGGESTED REPLIES" />
+                                    <ItemsControl ItemsSource="{Binding Listen.Replies}" AutomationProperties.Name="Suggested replies">
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate>
+                                                <DockPanel Margin="0,1">
+                                                    <TextBlock Text="{Binding Tone}" FontSize="9" DockPanel.Dock="Right"
+                                                               Foreground="{DynamicResource Island.Subtle}" VerticalAlignment="Center" />
+                                                    <TextBlock Text="{Binding Text}" TextWrapping="Wrap" FontSize="11" />
+                                                </DockPanel>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                </StackPanel>
+                            </ScrollViewer>
+
+                            <StackPanel Grid.Row="2">
+                                <TextBox Style="{StaticResource Island.Input}" Text="{Binding Listen.NotesText, UpdateSourceTrigger=PropertyChanged}"
+                                         AcceptsReturn="True" TextWrapping="Wrap" MinHeight="40" MaxHeight="56" FontSize="11"
+                                         VerticalScrollBarVisibility="Auto"
+                                         AutomationProperties.Name="Meeting notes" ToolTip="Your notes for this session" />
+                                <Grid Margin="0,4,0,0">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="6" />
+                                        <ColumnDefinition Width="1.1*" />
+                                    </Grid.ColumnDefinitions>
+                                    <ComboBox Style="{StaticResource Island.Picker}" Height="26" FontSize="10"
+                                              ItemsSource="{Binding Listen.NotesSources}" SelectedItem="{Binding Listen.NotesSource, Mode=TwoWay}"
+                                              DisplayMemberPath="Name"
+                                              AutomationProperties.Name="Notes source"
+                                              ToolTip="Automatic prefers a local Ollama, then your provider keys" />
+                                    <TextBox Grid.Column="2" Style="{StaticResource Island.Input}" FontSize="10" Height="26"
+                                             Text="{Binding Listen.NotesModel, UpdateSourceTrigger=PropertyChanged}"
+                                             AutomationProperties.Name="Notes model"
+                                             ToolTip="Ollama model. Blank uses the first installed model." />
+                                </Grid>
+                            </StackPanel>
+                        </Grid>
+                    </Border>
+                </Grid>
+
+                <Grid Grid.Row="2" Margin="0,6,0,0">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <ProgressBar Height="3" Minimum="0" Maximum="100" Value="{Binding Listen.ModelProgress}"
+                                 Background="{DynamicResource Island.Surface}" Foreground="{DynamicResource Island.Accent}"
+                                 BorderThickness="0" VerticalAlignment="Center"
+                                 Visibility="{Binding Listen.IsDownloadingModel, Converter={StaticResource Island.BoolToVisibility}}"
+                                 AutomationProperties.Name="Speech model download progress" />
+                    <TextBlock Grid.Column="1" Text="{Binding Listen.StatusDetail}" FontSize="10"
+                               Foreground="{DynamicResource Island.Subtle}" TextTrimming="CharacterEllipsis"
+                               MaxWidth="360" VerticalAlignment="Center" Margin="8,0,0,0" />
                 </Grid>
             </Grid>
         </StackPanel>
