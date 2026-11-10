@@ -418,7 +418,7 @@
                         <ScrollViewer x:Name="AskAnswerScroll" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled"
                                       Focusable="False" AutomationProperties.Name="The answer"
                                       Visibility="{Binding Ask.HasAnswer, Converter={StaticResource Island.BoolToVisibility}}">
-                            <TextBlock Text="{Binding Ask.Answer}" FontSize="13" TextWrapping="Wrap"
+                            <TextBlock Text="{Binding Ask.ShownAnswer}" FontSize="13" TextWrapping="Wrap"
                                        LineHeight="19" LineStackingStrategy="BlockLineHeight" />
                         </ScrollViewer>
                     </DockPanel>

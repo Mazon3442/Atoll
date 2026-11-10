@@ -13,14 +13,19 @@ public sealed partial class AskViewModel : ObservableObject, IDisposable
     private readonly Func<AgentChatOptions> _options;
     private readonly Action<Action> _post;
     private readonly Action _save;
+    private readonly Func<bool> _animate;
+    private string _target = ""; // everything streamed so far; ShownAnswer types its way up to it
+    private volatile bool _streaming;
     private readonly bool _ownsChat;
     private IAgentChat? _chatService;
     private CancellationTokenSource? _run;
 
     /// <param name="save">Persists the settings after a model or tool change.</param>
+    /// <param name="animate">True types the answer out; false (reduced motion, tests) shows it as it arrives.</param>
     public AskViewModel(IAgentChat? chat = null, Func<AgentChatOptions>? options = null, Action<Action>? post = null,
-        Action? save = null)
+        Action? save = null, Func<bool>? animate = null)
     {
+        _animate = animate ?? (() => false);
         _ownsChat = chat is null;
         _chatService = chat;
         _options = options ?? (() => new AgentChatOptions(new Settings.AgentChatSettings(), []));
@@ -43,6 +48,15 @@ public sealed partial class AskViewModel : ObservableObject, IDisposable
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(HasAnswer), nameof(IsEmpty), nameof(IsThinking))]
     private string _answer = "";
+
+    /// <summary>What the answer area shows: <see cref="Answer"/>, typed out letter by letter when motion is on.</summary>
+    [ObservableProperty]
+    private string _shownAnswer = "";
+
+    partial void OnAnswerChanged(string value)
+    {
+        if (value.Length == 0 || !_animate()) ShownAnswer = value;
+    }
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(HasError), nameof(IsEmpty))]
@@ -237,6 +251,9 @@ public sealed partial class AskViewModel : ObservableObject, IDisposable
         var run = new CancellationTokenSource();
         _run = run;
         IsRunning = true;
+        _target = "";
+        _streaming = true;
+        var reveal = _animate() ? RevealAsync(run.Token) : Task.CompletedTask;
         Draft = ""; // the box empties on send; the question is not kept (a single turn has no history to show)
         Answer = "";
         Error = "";
@@ -265,6 +282,7 @@ public sealed partial class AskViewModel : ObservableObject, IDisposable
                 }
                 text.Append(delta.Text);
                 var snapshot = text.ToString();
+                _target = snapshot;
                 _post(() => Answer = snapshot);
             }
         }
@@ -285,16 +303,39 @@ public sealed partial class AskViewModel : ObservableObject, IDisposable
         }
         finally
         {
+            _streaming = false;
+            await reveal; // let the typing catch up; Stop cancels it
             var answered = !cancelled && !failed && text.ToString().Trim().Length > 0;
             if (!answered && !run.IsCancellationRequested && !failed)
                 _post(() => Error = "The agent returned no text.");
             _post(() =>
             {
+                ShownAnswer = Answer;
                 IsRunning = false;
                 if (answered) Answered?.Invoke(this);
             });
             if (ReferenceEquals(_run, run)) _run = null;
             run.Dispose();
+        }
+    }
+
+    /// <summary>Reveals the streamed text a few letters per frame, faster the further behind it is.</summary>
+    private async Task RevealAsync(CancellationToken ct)
+    {
+        var shown = 0;
+        while (true)
+        {
+            var target = _target;
+            if (shown < target.Length)
+            {
+                shown = Math.Min(target.Length, shown + Math.Max(1, (target.Length - shown) / 10));
+                if (shown < target.Length && char.IsHighSurrogate(target[shown - 1])) shown++; // never split an emoji
+                var slice = target[..shown];
+                _post(() => ShownAnswer = slice);
+            }
+            else if (!_streaming) return;
+            try { await Task.Delay(16, ct); }
+            catch (OperationCanceledException) { return; }
         }
     }
 

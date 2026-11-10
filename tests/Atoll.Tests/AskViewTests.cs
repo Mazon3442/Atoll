@@ -104,6 +104,20 @@ public sealed class AskViewTests
     }
 
     [Fact]
+    public async Task The_answer_types_out_and_ends_complete_when_motion_is_on()
+    {
+        var shown = new List<string>();
+        using var vm = new AskViewModel(new FakeChat(), () => new AgentChatOptions(new AgentChatSettings(), []), animate: () => true);
+        vm.PropertyChanged += (_, e) => { if (e.PropertyName == nameof(AskViewModel.ShownAnswer)) shown.Add(vm.ShownAnswer); };
+        vm.Draft = "hi";
+
+        await vm.SendCommand.ExecuteAsync(null);
+
+        Assert.Equal("Hello back.", vm.ShownAnswer);
+        Assert.Contains(shown, text => text.Length > 0 && text.Length < "Hello back.".Length); // it was partial on the way
+    }
+
+    [Fact]
     public async Task A_reply_that_announces_itself_leaves_the_empty_state()
     {
         using var vm = new AskViewModel(new FakeChat(), () => new AgentChatOptions(new AgentChatSettings(), []));

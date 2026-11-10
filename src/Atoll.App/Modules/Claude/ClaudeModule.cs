@@ -171,7 +171,9 @@ public sealed class ClaudeModule : IIslandModule
             if (_context is { } context) context.Dispatcher.BeginInvoke(action);
             else action();
         },
-        () => _context?.Settings.NotifyChanged()));
+        () => _context?.Settings.NotifyChanged(),
+        () => System.Windows.SystemParameters.ClientAreaAnimation
+            && _context?.Settings.Current.Theme.Motion != Settings.MotionStyle.Off));
 
     public object? Panel => _vm;
 
