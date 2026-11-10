@@ -90,7 +90,11 @@ public class GroupedPanelsTests
     [InlineData("providers", 4)]
     [InlineData("notifications", 3)]
     [InlineData("weather", 6)]
-    [InlineData("media", 0)]
+    [InlineData("media", 2)]
+    [InlineData("system", 2)]
+    [InlineData("downloads", 2)]
+    [InlineData("home", 2)]
+    [InlineData("games", 7)]
     [InlineData(null, 0)]
     public void The_header_settings_button_opens_the_page_for_the_current_tab(string? tab, int page) =>
         Assert.Equal(page, Atoll.Shell.IslandWindow.SettingsPageFor(tab));

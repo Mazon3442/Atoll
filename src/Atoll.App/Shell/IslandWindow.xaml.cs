@@ -1442,14 +1442,18 @@ public partial class IslandWindow : Window
         _openSettings(SettingsPageFor((Tabs.SelectedItem as ModuleTab)?.Descriptor.Id));
     }
 
-    /// <summary>The header's one settings button opens the page for the tab being viewed (General when there is none).</summary>
+    /// <summary>
+    /// The header's one settings button opens the page for the tab being viewed. Every tab's switch is a card
+    /// on the Modules page, except the tabs that have a page of their own; General is only for "no tab".
+    /// </summary>
     internal static int SettingsPageFor(string? tabId) => tabId switch
     {
         "notifications" => 3,
         "claude" or "providers" => 4,
         "calendar" => 5,
         "weather" => 6,
-        "clock" or "launcher" or "shelf" or "clipboard" or "notes" or "tide" => 2,
-        _ => 0,
+        "games" => 7,
+        null => 0,
+        _ => 2,
     };
 }
