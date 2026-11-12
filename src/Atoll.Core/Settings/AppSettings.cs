@@ -237,6 +237,10 @@ public sealed class GameSettings
     /// <summary>Overlay: a small pill with the game, play time and CPU/GPU while you play. Hidden: out of the way until the open shortcut.</summary>
     public GameIslandMode Mode { get; set; } = GameIslandMode.Overlay;
     public bool MuteNotifications { get; set; } = true;
+    /// <summary>Overlay only: the song that is playing, and its announcements, appear with the game.</summary>
+    public bool OverlayShowMusic { get; set; } = true;
+    /// <summary>Overlay only: running Claude sessions, and their done or needs-you alerts, appear with the game.</summary>
+    public bool OverlayShowClaude { get; set; } = true;
     /// <summary>Show CPU, GPU and GPU temperature in the game overlay and panel.</summary>
     public bool ShowPerformance { get; set; } = true;
     /// <summary>Show how long the current session has run.</summary>

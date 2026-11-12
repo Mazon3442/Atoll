@@ -1105,6 +1105,16 @@
                             <CheckBox Style="{StaticResource Toggle}" IsChecked="{Binding GameMuteNotifications}"
                                       AutomationProperties.Name="Mute notifications while playing" />
                         </s:SettingCard>
+                        <s:SettingCard Glyph="&#xE8D6;" Header="Show music in the overlay"
+                                       Description="The song that is playing, and a short pop-up when it changes. Needs the overlay above.">
+                            <CheckBox Style="{StaticResource Toggle}" IsChecked="{Binding GameOverlayShowMusic}"
+                                      AutomationProperties.Name="Show music in the game overlay" />
+                        </s:SettingCard>
+                        <s:SettingCard Glyph="&#xE99A;" Header="Show Claude in the overlay"
+                                       Description="Claude sessions that are working, and when one is done or needs you. Needs the overlay above.">
+                            <CheckBox Style="{StaticResource Toggle}" IsChecked="{Binding GameOverlayShowClaude}"
+                                      AutomationProperties.Name="Show Claude in the game overlay" />
+                        </s:SettingCard>
                         <s:SettingCard Glyph="&#xE9D9;" Header="Show performance"
                                        Description="CPU, GPU and GPU temperature in the game pill and the Games tab.">
                             <CheckBox Style="{StaticResource Toggle}" IsChecked="{Binding GameShowPerformance}"

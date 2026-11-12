@@ -12,6 +12,7 @@ using System.Windows.Threading;
 using Atoll.Activities;
 using Atoll.Modules;
 using Atoll.Modules.Clock;
+using Atoll.Modules.Games;
 using Atoll.Modules.Launcher;
 using Atoll.Settings;
 using Atoll.Theme;
@@ -350,8 +351,22 @@ public partial class IslandWindow : Window
     public void SetActivities(Activity? primary, Activity? secondary, Activity? tertiary = null) =>
         SetActivitySnapshot(primary, new[] { secondary, tertiary }.OfType<Activity>().ToList());
 
+    private Activity? _livePrimary;
+    private IReadOnlyList<Activity> _liveSides = [];
+
     public void SetActivitySnapshot(Activity? primary, IReadOnlyList<Activity> sides)
     {
+        _livePrimary = primary;
+        _liveSides = sides;
+        ApplyActivities();
+    }
+
+    /// <summary>The live activities, minus what the game overlay shows inside the game pill or has switched off.</summary>
+    private void ApplyActivities()
+    {
+        var (primary, sides) = OverlayExtras.Applies(_settings.Current, _foreground)
+            ? OverlayExtras.Filter(_settings.Current, _livePrimary, _liveSides)
+            : (_livePrimary, _liveSides);
         var isNewPrimary = !ReferenceEquals(primary, _primary);
         _primary = primary;
         _sideActivities = sides.Take(4).ToList();
@@ -720,7 +735,9 @@ public partial class IslandWindow : Window
         if (foreground is { } kind && kind != _foreground)
         {
             Log.Info($"Foreground on {Monitor.DeviceName}: {kind}");
+            var overlayChanged = OverlayExtras.Applies(_settings.Current, kind) != OverlayExtras.Applies(_settings.Current, _foreground);
             _foreground = kind;
+            if (overlayChanged) ApplyActivities();
         }
         if (paused || ShownWithoutReveal())
         {

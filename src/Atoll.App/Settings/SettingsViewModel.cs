@@ -333,6 +333,8 @@ public sealed partial class SettingsViewModel : ObservableObject
     ];
     public GameIslandMode GameMode { get => S.Games.Mode; set => Set(S.Games.Mode, value, v => S.Games.Mode = v); }
     public bool GameMuteNotifications { get => S.Games.MuteNotifications; set => Set(S.Games.MuteNotifications, value, v => S.Games.MuteNotifications = v); }
+    public bool GameOverlayShowMusic { get => S.Games.OverlayShowMusic; set => Set(S.Games.OverlayShowMusic, value, v => S.Games.OverlayShowMusic = v); }
+    public bool GameOverlayShowClaude { get => S.Games.OverlayShowClaude; set => Set(S.Games.OverlayShowClaude, value, v => S.Games.OverlayShowClaude = v); }
     public bool GameShowPerformance { get => S.Games.ShowPerformance; set => Set(S.Games.ShowPerformance, value, v => S.Games.ShowPerformance = v); }
     public bool GameShowPlayTime { get => S.Games.ShowPlayTime; set => Set(S.Games.ShowPlayTime, value, v => S.Games.ShowPlayTime = v); }
     public bool GameAnnounceStart { get => S.Games.AnnounceGameStart; set => Set(S.Games.AnnounceGameStart, value, v => S.Games.AnnounceGameStart = v); }

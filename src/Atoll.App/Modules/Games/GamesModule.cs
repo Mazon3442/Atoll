@@ -33,8 +33,16 @@ public sealed partial class GameViewModel : ObservableObject
     [ObservableProperty] private string _serverStatus = "";
     [ObservableProperty] private string _serverMotd = "";
 
+    // Overlay extras: what else the player asked to see while playing. Empty when off or nothing is happening.
+    [ObservableProperty] private string _music = "";
+    [ObservableProperty] private string _claude = "";
+
     public bool HasStats => Stats.Length > 0;
+    public bool HasMusic => Music.Length > 0;
+    public bool HasClaude => Claude.Length > 0;
     partial void OnStatsChanged(string value) => OnPropertyChanged(nameof(HasStats));
+    partial void OnMusicChanged(string value) => OnPropertyChanged(nameof(HasMusic));
+    partial void OnClaudeChanged(string value) => OnPropertyChanged(nameof(HasClaude));
 
     [RelayCommand]
     private void Launch(GameEntry? game)
@@ -144,6 +152,10 @@ public sealed class GamesModule : IIslandModule
             var overlay = inFront && games.Mode == GameIslandMode.Overlay;
             _vm.Stats = overlay && games.ShowPerformance ? SampleStats() : "";
             if (!overlay || !games.ShowPerformance) { _gpu?.Dispose(); _gpu = null; }
+            var live = _context.Activities.Snapshot(8);
+            var running = live.Primary is null ? live.Sides : [live.Primary, .. live.Sides];
+            _vm.Music = overlay && games.OverlayShowMusic ? OverlayExtras.Music(running) : "";
+            _vm.Claude = overlay && games.OverlayShowClaude ? OverlayExtras.Claude(running) : "";
             Post(overlay ? "overlay" : "session");
         }
 
