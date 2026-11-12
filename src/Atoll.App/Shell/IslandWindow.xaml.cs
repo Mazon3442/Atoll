@@ -968,6 +968,12 @@ public partial class IslandWindow : Window
                     return;
                 }
                 if (ClickThrough) SetFaded(true); // see (and click) what is underneath while passing over
+                // Resting on a side bubble must not grow the main pill: it would push the bubble away from the pointer.
+                if (!PillBounds().Contains(screen))
+                {
+                    _dwellMs = 0;
+                    return;
+                }
                 _dwellMs += PointerTickMs;
                 var dwell = Math.Clamp(_settings.Current.HoverDelayMs, 0, 2000);
                 if (ClickThrough) dwell = Math.Max(dwell, MinClickThroughDwellMs);
@@ -1027,6 +1033,10 @@ public partial class IslandWindow : Window
     internal bool IsCursorOverIsland(Point screen) => IsVisible &&
         (IslandBounds().Contains(screen) || (_mode == IslandMode.Peek && _peekAnchor.Contains(screen))
             || (_revealed && IsTopEdge(screen)));
+
+    private Rect PillBounds() => IsVisible
+        ? new Rect(Pill.PointToScreen(new Point()), Pill.PointToScreen(new Point(Pill.ActualWidth, Pill.ActualHeight)))
+        : Rect.Empty;
 
     private Rect IslandBounds()
     {
