@@ -798,6 +798,11 @@
                                        Description="Looks up the playing song's title and artist on lrclib.net and shows the current line in the media tab.">
                             <CheckBox Style="{StaticResource Toggle}" IsChecked="{Binding ShowLyrics}" AutomationProperties.Name="Show synced lyrics" />
                         </s:SettingCard>
+                        <s:SettingCard Glyph="&#xE8D6;" Header="Bongo Cat"
+                                       Description="A cat drums along in the media tab while lyrics are off. It plays with the music and freezes when the song pauses.">
+                            <ComboBox Width="200" ItemsSource="{Binding BongoCatStyles}" DisplayMemberPath="Label"
+                                      SelectedValuePath="Value" SelectedValue="{Binding BongoCat}" AutomationProperties.Name="Bongo Cat" />
+                        </s:SettingCard>
 
                         <TextBlock Style="{StaticResource SectionHeader}" Text="Clipboard and files" />
                         <TextBlock Style="{StaticResource SectionHint}" Text="Clipboard history is off until you turn it on. The shelf keeps only file locations." />

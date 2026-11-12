@@ -113,7 +113,15 @@ public sealed partial class MediaViewModel(Func<Task> playPause, Func<Task> next
     }
 
     /// <summary>The Show lyrics setting, switched from the panel's lyrics button.</summary>
-    [ObservableProperty] private bool _showLyrics = true;
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(ShowBongoCat))]
+    private bool _showLyrics = true;
+
+    /// <summary>The Bongo Cat setting; the cat takes the lyrics slot only while lyrics are off.</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(ShowBongoCat))]
+    private BongoCatStyle _bongoCat;
+    public bool ShowBongoCat => !ShowLyrics && BongoCat != BongoCatStyle.Off;
     public event Action<bool>? ShowLyricsToggled;
 
     [RelayCommand]

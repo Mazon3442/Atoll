@@ -1,0 +1,31 @@
+<UserControl x:Class="Atoll.Modules.Media.BongoCatView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             Focusable="False" IsHitTestVisible="False"
+             AutomationProperties.Name="Bongo Cat" AutomationProperties.HelpText="Drums while music plays">
+    <!-- Drawn on a 200 x 150 board: head and ears behind, two paws that slam the desk in turn. -->
+    <Viewbox Stretch="Uniform">
+        <Canvas Width="200" Height="150">
+            <Rectangle Canvas.Left="20" Canvas.Top="128" Width="160" Height="4" RadiusX="2" RadiusY="2"
+                       Fill="{DynamicResource Island.Subtle}" Opacity="0.45" />
+
+            <Canvas>
+                <Canvas.RenderTransform><TranslateTransform x:Name="HeadShift" /></Canvas.RenderTransform>
+                <Path x:Name="Ears" StrokeThickness="3" StrokeLineJoin="Round"
+                      Data="M58,58 L62,22 L90,42 Z M142,58 L138,22 L110,42 Z" />
+                <Ellipse x:Name="Skull" Canvas.Left="44" Canvas.Top="34" Width="112" Height="84" StrokeThickness="3" />
+                <Ellipse x:Name="EyeL" Canvas.Left="76" Canvas.Top="66" Width="7" Height="9" />
+                <Ellipse x:Name="EyeR" Canvas.Left="117" Canvas.Top="66" Width="7" Height="9" />
+                <Path x:Name="Mouth" StrokeThickness="2.5" StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round"
+                      Data="M92,82 Q96,88 100,82 Q104,88 108,82" />
+            </Canvas>
+
+            <Ellipse x:Name="PawL" Canvas.Left="48" Canvas.Top="96" Width="40" Height="28" StrokeThickness="3">
+                <Ellipse.RenderTransform><TranslateTransform x:Name="PawLShift" /></Ellipse.RenderTransform>
+            </Ellipse>
+            <Ellipse x:Name="PawR" Canvas.Left="112" Canvas.Top="96" Width="40" Height="28" StrokeThickness="3">
+                <Ellipse.RenderTransform><TranslateTransform x:Name="PawRShift" /></Ellipse.RenderTransform>
+            </Ellipse>
+        </Canvas>
+    </Viewbox>
+</UserControl>

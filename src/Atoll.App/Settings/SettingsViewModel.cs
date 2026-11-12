@@ -353,6 +353,13 @@ public sealed partial class SettingsViewModel : ObservableObject
     ];
     public int GameServerInterval { get => S.Games.ServerRefreshSeconds; set => Set(S.Games.ServerRefreshSeconds, value, v => S.Games.ServerRefreshSeconds = v); }
 
+    public IReadOnlyList<Choice<BongoCatStyle>> BongoCatStyles { get; } =
+    [
+        new(BongoCatStyle.Off, "Off"),
+        new(BongoCatStyle.Classic, "Bongo Cat"),
+        new(BongoCatStyle.Excited, "Excited Bongo Cat"),
+    ];
+    public BongoCatStyle BongoCat { get => S.BongoCat; set => Set(S.BongoCat, value, v => S.BongoCat = v); }
     public bool ShowLyrics { get => S.ShowLyrics; set => Set(S.ShowLyrics, value, v => S.ShowLyrics = v); }
     public bool AnnounceTrackChanges { get => S.AnnounceTrackChanges; set => Set(S.AnnounceTrackChanges, value, v => S.AnnounceTrackChanges = v); }
 

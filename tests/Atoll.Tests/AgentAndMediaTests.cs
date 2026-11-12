@@ -219,6 +219,19 @@ internal static class AgentMediaUi
         media.CanShuffle = true; media.IsShuffling = true; media.CanRepeat = true; media.Repeat = MediaRepeat.One;
         Render(media, "MediaViewModel.Panel", "media-panel", 600, 180);
 
+        // Bongo Cat: off by default, and it takes the lyrics slot only while lyrics are off.
+        Assert.False(media.ShowBongoCat);
+        media.ShowLyrics = false; media.HasLyrics = false;
+        Assert.False(media.ShowBongoCat);
+        media.BongoCat = BongoCatStyle.Classic; media.IsPlaying = true;
+        Assert.True(media.ShowBongoCat);
+        Render(media, "MediaViewModel.Panel", "media-bongo-cat", 600, 180);
+        media.BongoCat = BongoCatStyle.Excited; media.IsPlaying = false;
+        Render(media, "MediaViewModel.Panel", "media-bongo-cat-excited-paused", 600, 180);
+        media.ShowLyrics = true;
+        Assert.False(media.ShowBongoCat);
+        Assert.False(new AppSettings().BongoCat != BongoCatStyle.Off);
+
         var stats = new StatsViewModel();
         stats.Devices.Add(new DeviceBattery("MX Anywhere 2S", 90));
         stats.Devices.Add(new DeviceBattery("Xbox Wireless Controller", 19));
