@@ -71,7 +71,7 @@ public sealed class FullscreenWatcher : IDisposable
 
         // Exclusive-fullscreen Direct3D apps are games (or similar) by definition.
         var d3d = Native.SHQueryUserNotificationState(out var state) == 0 && state == Native.QUNS_RUNNING_D3D_FULL_SCREEN;
-        if (d3d || GameDetector.IsGame(pid)) return ForegroundKind.Game;
+        if (d3d || GameDetector.IsGame(pid) || GameDetector.IsMinecraft(pid, hwnd)) return ForegroundKind.Game;
         return maximized ? ForegroundKind.Maximized : ForegroundKind.Fullscreen;
     }
 
@@ -122,6 +122,20 @@ internal static class GameDetector
         if (Cache.Count > 256) Cache.Clear(); // pids get reused; keep the cache small
         Cache[pid] = isGame;
         return isGame;
+    }
+
+    /// <summary>
+    /// Minecraft lives outside the launcher library folders (Java runs as javaw), so it is recognised by its
+    /// process and, for Java, its window title. The Games module and the fullscreen watcher share this.
+    /// </summary>
+    internal static bool IsMinecraft(uint pid, nint hwnd)
+    {
+        var name = Path.GetFileNameWithoutExtension(Native.GetProcessPath(pid));
+        if (name == "Minecraft.Windows") return true; // Bedrock
+        if (name is not ("javaw" or "java")) return false;
+        var title = new StringBuilder(256);
+        Native.GetWindowText(hwnd, title, title.Capacity);
+        return title.ToString().StartsWith("Minecraft", StringComparison.Ordinal);
     }
 
     private static HashSet<string> GameBarExes()

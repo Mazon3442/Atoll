@@ -56,6 +56,16 @@ public class MediaSeekTests
     public void Media_follows_only_a_newly_playing_player(string? candidate, bool playing, string? followed, bool showing, bool expected) =>
         Assert.Equal(expected, MediaModule.ShouldFollow(candidate, playing, followed, showing));
 
+    [Theory]
+    [InlineData(2, true)]  // fullscreen app
+    [InlineData(3, true)]  // Direct3D fullscreen game
+    [InlineData(5, true)]  // normal
+    [InlineData(1, false)] // PC locked
+    [InlineData(4, false)] // presentation
+    [InlineData(6, false)] // Do Not Disturb
+    public void Notifications_pop_up_over_fullscreen_but_not_in_do_not_disturb(int state, bool expected) =>
+        Assert.Equal(expected, Atoll.Modules.Notifications.NotificationsModule.PopsUp(state));
+
     [Fact]
     public void Quiet_track_changes_still_announce_a_skip()
     {

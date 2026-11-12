@@ -150,17 +150,7 @@ public sealed class GamesModule : IIslandModule
         if (_vm.HasServer && DateTimeOffset.Now >= _nextServerCheck) _ = CheckServerAsync();
     }
 
-    private bool IsGame(uint pid, nint hwnd) => GameDetector.IsGame(pid) || IsMinecraft(pid, hwnd);
-
-    private static bool IsMinecraft(uint pid, nint hwnd)
-    {
-        var name = ProcessName(pid);
-        if (name is "Minecraft.Windows") return true; // Bedrock
-        if (name is not ("javaw" or "java")) return false;
-        var title = new StringBuilder(256);
-        Native.GetWindowText(hwnd, title, title.Capacity);
-        return title.ToString().StartsWith("Minecraft", StringComparison.Ordinal);
-    }
+    private static bool IsGame(uint pid, nint hwnd) => GameDetector.IsGame(pid) || GameDetector.IsMinecraft(pid, hwnd);
 
     private void StartSession(uint pid)
     {

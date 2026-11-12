@@ -268,6 +268,13 @@ public sealed class NotificationsModule : IIslandModule
         }
     }
 
+    /// <summary>
+    /// Whether Windows' notification state allows a popup. Fullscreen (busy, Direct3D) does: the island's own
+    /// fullscreen setting decides whether it is on screen. Do Not Disturb, presentations and a locked PC do not.
+    /// </summary>
+    internal static bool PopsUp(int state) =>
+        state is Native.QUNS_ACCEPTS_NOTIFICATIONS or Native.QUNS_BUSY or Native.QUNS_RUNNING_D3D_FULL_SCREEN;
+
     private async Task ShowAsync(UserNotification n)
     {
         var settings = _context!.Settings.Current.Notifications;
@@ -279,8 +286,8 @@ public sealed class NotificationsModule : IIslandModule
         _vm.ItemsChanged();
 
         if (FocusService.IsQuietNow) return; // ATOLL Do Not Disturb: history only
-        if (Native.SHQueryUserNotificationState(out var state) == 0 && state != Native.QUNS_ACCEPTS_NOTIFICATIONS)
-            return; // Do Not Disturb, fullscreen, presentation: history only
+        if (Native.SHQueryUserNotificationState(out var state) == 0 && !PopsUp(state))
+            return; // Do Not Disturb, presentation, locked: history only
         if (GameState.Playing && _context.Settings.Current.Games.MuteNotifications) return; // game mode: history only
         _context.Post("latest", item, ActivityPriority.High, PopupTime, alert: true);
     }
