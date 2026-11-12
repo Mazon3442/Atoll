@@ -36,6 +36,9 @@ public sealed partial class TimerViewModel : ObservableObject
     {
         _time = time;
         _pomodoro = pomodoro ?? new PomodoroSettings();
+        // Start the alarm picker at the next five minutes.
+        var now = _time.GetLocalNow();
+        _alarmTime = new TimeOnly(now.Hour, now.Minute).AddMinutes(5 - now.Minute % 5);
     }
 
     /// <summary>Uses the saved Pomodoro lengths; edits are written back through <paramref name="save"/>.</summary>
@@ -52,15 +55,16 @@ public sealed partial class TimerViewModel : ObservableObject
             OnPropertyChanged(name);
     }
 
-    /// <summary>The timer tab's two sections: plain timers, then the Pomodoro setup.</summary>
-    public IReadOnlyList<string> Sections { get; } = ["Timer", "Pomodoro"];
+    /// <summary>The timer tab's three sections: plain timers, the Pomodoro setup, then the alarm.</summary>
+    public IReadOnlyList<string> Sections { get; } = ["Timer", "Pomodoro", "Alarm"];
 
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(IsTimerSection), nameof(IsPomodoroSection))]
+    [NotifyPropertyChangedFor(nameof(IsTimerSection), nameof(IsPomodoroSection), nameof(IsAlarmSection))]
     private int _sectionIndex;
 
     public bool IsTimerSection => SectionIndex == 0;
     public bool IsPomodoroSection => SectionIndex == 1;
+    public bool IsAlarmSection => SectionIndex == 2;
 
     public int FocusMinutes
     {
@@ -189,15 +193,22 @@ public sealed partial class TimerViewModel : ObservableObject
 
     private DateTimeOffset? _alarmAt;
 
-    /// <summary>What was typed in the timer box: a length in minutes ("24") or a time of day ("5:36 pm", "17:36").</summary>
-    [ObservableProperty] private string _entryText = "";
+    // A length in minutes for the Start button beside the stopwatch: stepped or typed.
+    private const int MinCustom = 1, MaxCustom = 24 * 60;
+    private int _customMinutes = 15;
 
-    /// <summary>Shown under the inputs when what was typed is not a length or a time.</summary>
-    [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(HasMessage))]
-    private string _message = "";
+    public int CustomMinutes
+    {
+        get => _customMinutes;
+        set
+        {
+            _customMinutes = Math.Clamp(value, MinCustom, MaxCustom);
+            OnPropertyChanged();
+        }
+    }
 
-    public bool HasMessage => Message.Length > 0;
+    [RelayCommand] private void AddCustomMinute() => CustomMinutes += 1;
+    [RelayCommand] private void SubtractCustomMinute() => CustomMinutes -= 1;
 
     [RelayCommand]
     private void StartCountdown(object? minutes)
@@ -206,76 +217,66 @@ public sealed partial class TimerViewModel : ObservableObject
         Begin(TimerKind.Countdown, TimeSpan.FromMinutes(m), "Timer");
     }
 
-    /// <summary>A plain number is a length in minutes; anything with a colon or am/pm is a time of day for an alarm.</summary>
     [RelayCommand]
-    private void StartEntry()
+    private void StartCustom() => Begin(TimerKind.Countdown, TimeSpan.FromMinutes(CustomMinutes), "Timer");
+
+    // The Alarm section: a time of day with hour, minute and am/pm each set on its own, like a picker.
+    private TimeOnly _alarmTime;
+
+    public string AlarmHourText => (_alarmTime.Hour % 12 == 0 ? 12 : _alarmTime.Hour % 12).ToString(System.Globalization.CultureInfo.CurrentCulture);
+    public string AlarmMinuteText => _alarmTime.Minute.ToString("00", System.Globalization.CultureInfo.CurrentCulture);
+
+    /// <summary>0 for am, 1 for pm.</summary>
+    public int AlarmPmIndex
     {
-        var text = EntryText.Trim();
-        if (text.Length > 0 && !IsTimeOfDay(text))
+        get => _alarmTime.Hour >= 12 ? 1 : 0;
+        set
         {
-            if (!TryParseLength(text, out var length))
-            {
-                Message = "Type minutes, like 24 or 17.5, or a time, like 5:36 pm.";
-                return;
-            }
-            Message = "";
-            EntryText = "";
-            Begin(TimerKind.Countdown, length, "Timer");
-            return;
+            var hour = _alarmTime.Hour % 12 + (value == 1 ? 12 : 0);
+            SetAlarmTime(new TimeOnly(hour, _alarmTime.Minute));
         }
+    }
+
+    /// <summary>"Rings today at 5:36 PM", or tomorrow when that time has passed.</summary>
+    public string AlarmSummary
+    {
+        get
+        {
+            var now = _time.GetLocalNow();
+            var at = NextOccurrence(_alarmTime, now, _time.LocalTimeZone);
+            var day = at.Date == now.Date ? "today" : "tomorrow";
+            return $"Rings {day} at {at.ToString("t", System.Globalization.CultureInfo.CurrentCulture)}";
+        }
+    }
+
+    // Hours wrap through 12 and flip am/pm; minutes wrap through 59 without touching the hour.
+    [RelayCommand] private void AddAlarmHour() => SetAlarmTime(_alarmTime.AddHours(1));
+    [RelayCommand] private void SubtractAlarmHour() => SetAlarmTime(_alarmTime.AddHours(-1));
+    [RelayCommand] private void AddAlarmMinute() => SetAlarmTime(new TimeOnly(_alarmTime.Hour, (_alarmTime.Minute + 1) % 60));
+    [RelayCommand] private void SubtractAlarmMinute() => SetAlarmTime(new TimeOnly(_alarmTime.Hour, (_alarmTime.Minute + 59) % 60));
+
+    private void SetAlarmTime(TimeOnly time)
+    {
+        _alarmTime = time;
+        foreach (var name in new[] { nameof(AlarmHourText), nameof(AlarmMinuteText), nameof(AlarmPmIndex), nameof(AlarmSummary) })
+            OnPropertyChanged(name);
+    }
+
+    [RelayCommand]
+    private void StartAlarm()
+    {
         var now = _time.GetLocalNow();
-        if (!TryNextTime(text, now, _time.LocalTimeZone, out var at))
-        {
-            Message = "Type minutes, like 24 or 17.5, or a time, like 5:36 pm.";
-            return;
-        }
-        Message = "";
-        EntryText = "";
+        var at = NextOccurrence(_alarmTime, now, _time.LocalTimeZone);
         Begin(TimerKind.Countdown, at - now, $"Alarm · {at.ToString("t", System.Globalization.CultureInfo.CurrentCulture)}", at);
     }
 
-    private static bool IsTimeOfDay(string text) =>
-        text.Contains(':') || System.Text.RegularExpressions.Regex.IsMatch(text, @"[ap]\.?\s*m?\.?$", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
-
-    /// <summary>Minutes ("24", "17.5"), at least a second and at most a day.</summary>
-    internal static bool TryParseLength(string? text, out TimeSpan length)
+    /// <summary>The next moment the clock shows <paramref name="time"/>: later today, else tomorrow.</summary>
+    internal static DateTimeOffset NextOccurrence(TimeOnly time, DateTimeOffset now, TimeZoneInfo zone)
     {
-        length = default;
-        text = text?.Trim();
-        if (string.IsNullOrEmpty(text)) return false;
-        if (!double.TryParse(text, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.CurrentCulture, out var minutes)
-            && !double.TryParse(text, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out minutes)) return false;
-        if (!double.IsFinite(minutes) || minutes < 0 || minutes > 24 * 60) return false;
-        length = TimeSpan.FromMinutes(minutes);
-        return length >= TimeSpan.FromSeconds(1);
+        var local = now.DateTime.Date + time.ToTimeSpan();
+        if (new DateTimeOffset(local, zone.GetUtcOffset(local)) <= now.AddSeconds(1)) local = local.AddDays(1);
+        return new DateTimeOffset(local, zone.GetUtcOffset(local));
     }
-
-    /// <summary>
-    /// The next time the clock shows <paramref name="text"/>: later today, else tomorrow. "5:36" with no am or pm means
-    /// whichever of 5:36 am and 5:36 pm comes first; "17:36" and "5:36 pm" are exact.
-    /// </summary>
-    internal static bool TryNextTime(string? text, DateTimeOffset now, TimeZoneInfo zone, out DateTimeOffset at)
-    {
-        at = default;
-        text = text?.Trim();
-        if (string.IsNullOrEmpty(text)) return false;
-        if (!TimeOnly.TryParse(text, System.Globalization.CultureInfo.CurrentCulture, out var time)
-            && !TimeOnly.TryParse(text, System.Globalization.CultureInfo.InvariantCulture, out time)) return false;
-        var exact = System.Text.RegularExpressions.Regex.IsMatch(text, @"[ap]\.?\s*m?\.?$", System.Text.RegularExpressions.RegexOptions.IgnoreCase)
-            || time.Hour is 0 or > 12;
-        var candidates = exact ? new[] { time } : [time, time.AddHours(12)];
-        var best = DateTimeOffset.MaxValue;
-        foreach (var candidate in candidates)
-        {
-            var local = now.DateTime.Date + candidate.ToTimeSpan();
-            if (new DateTimeOffset(local, zone.GetUtcOffset(local)) <= now.AddSeconds(1)) local = local.AddDays(1);
-            var moment = new DateTimeOffset(local, zone.GetUtcOffset(local));
-            if (moment < best) best = moment;
-        }
-        at = best;
-        return true;
-    }
-
     [RelayCommand]
     private void StartStopwatch() => Begin(TimerKind.Stopwatch, TimeSpan.Zero, "Stopwatch");
 
