@@ -10,26 +10,49 @@ public class BongoCatTests
     [Fact]
     public void Cat_steps_frames_while_playing_and_freezes_when_paused() => OnSta(() =>
     {
-        var cat = new BongoCatView { Variant = BongoCatStyle.Excited, Playing = false };
-        using var host = new System.Windows.Interop.HwndSource(new System.Windows.Interop.HwndSourceParameters("BongoCatTest") { Width = 200, Height = 200 }) { RootVisual = cat };
-        Pump(100);
-        Assert.False(cat.IsRunning);
-        Assert.Equal(0, cat.FrameIndex);
+        BongoCatView.AnimationsAllowed = () => true;
+        try
+        {
+            var cat = new BongoCatView { Variant = BongoCatStyle.Excited, Playing = false };
+            using var host = Host(cat);
+            Pump(100);
+            Assert.False(cat.IsRunning);
+            Assert.Equal(0, cat.FrameIndex);
 
-        cat.Playing = true;
-        Pump(300);
-        Assert.True(cat.IsRunning, $"loaded {cat.IsLoaded} visible {cat.IsVisible} anim {SystemParameters.ClientAreaAnimation}");
-        Assert.NotEqual(0, cat.FrameIndex); // 30 ms frames: it has moved on by now
+            cat.Playing = true;
+            Pump(300);
+            Assert.True(cat.IsRunning, $"loaded {cat.IsLoaded} visible {cat.IsVisible}");
+            Assert.NotEqual(0, cat.FrameIndex); // 30 ms frames: it has moved on by now
 
-        cat.Playing = false;
-        var frozen = cat.FrameIndex;
-        Pump(300);
-        Assert.False(cat.IsRunning);
-        Assert.Equal(frozen, cat.FrameIndex);
+            cat.Playing = false;
+            var frozen = cat.FrameIndex;
+            Pump(300);
+            Assert.False(cat.IsRunning);
+            Assert.Equal(frozen, cat.FrameIndex);
 
-        cat.Playing = true; // resumes from the same frame, not from the start
-        Assert.True(cat.IsRunning);
+            cat.Playing = true; // resumes from the same frame, not from the start
+            Assert.True(cat.IsRunning);
+        }
+        finally { BongoCatView.AnimationsAllowed = () => SystemParameters.ClientAreaAnimation; }
     });
+
+    [Fact]
+    public void Cat_stays_still_when_windows_animations_are_off() => OnSta(() =>
+    {
+        BongoCatView.AnimationsAllowed = () => false;
+        try
+        {
+            var cat = new BongoCatView { Variant = BongoCatStyle.Classic, Playing = true };
+            using var host = Host(cat);
+            Pump(300);
+            Assert.False(cat.IsRunning);
+            Assert.Equal(0, cat.FrameIndex);
+        }
+        finally { BongoCatView.AnimationsAllowed = () => SystemParameters.ClientAreaAnimation; }
+    });
+
+    private static System.Windows.Interop.HwndSource Host(BongoCatView cat) =>
+        new(new System.Windows.Interop.HwndSourceParameters("BongoCatTest") { Width = 200, Height = 200 }) { RootVisual = cat };
 
     private static void OnSta(Action action)
     {

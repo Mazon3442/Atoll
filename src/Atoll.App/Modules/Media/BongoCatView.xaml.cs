@@ -26,6 +26,9 @@ public partial class BongoCatView : UserControl
     public BongoCatStyle Variant { get => (BongoCatStyle)GetValue(VariantProperty); set => SetValue(VariantProperty, value); }
     public bool Playing { get => (bool)GetValue(PlayingProperty); set => SetValue(PlayingProperty, value); }
 
+    /// <summary>Whether Windows allows animation; a seam so tests do not depend on the machine's setting.</summary>
+    internal static Func<bool> AnimationsAllowed { get; set; } = () => SystemParameters.ClientAreaAnimation;
+
     private static readonly Dictionary<BongoCatStyle, IReadOnlyList<GifFrame>> Cache = [];
     private readonly DispatcherTimer _timer = new();
     private IReadOnlyList<GifFrame> _frames = [];
@@ -54,7 +57,7 @@ public partial class BongoCatView : UserControl
             _index = 0;
             Show();
         }
-        if (_frames.Count > 1 && Playing && IsLoaded && IsVisible && SystemParameters.ClientAreaAnimation)
+        if (_frames.Count > 1 && Playing && IsLoaded && IsVisible && AnimationsAllowed())
         {
             if (!_timer.IsEnabled) { _timer.Interval = _frames[_index].Delay; _timer.Start(); }
         }
