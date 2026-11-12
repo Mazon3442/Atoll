@@ -700,6 +700,10 @@
                                        Description="Looks up the playing song's title and artist on lrclib.net and shows the current line in the media tab.">
                             <CheckBox Style="{StaticResource Toggle}" IsChecked="{Binding ShowLyrics}" AutomationProperties.Name="Show synced lyrics" />
                         </s:SettingCard>
+                        <s:SettingCard Glyph="&#xE8D6;" Header="Announce new songs"
+                                       Description="Shows the island when a song starts. When off, songs that start on their own switch quietly; skipping a song still announces it.">
+                            <CheckBox Style="{StaticResource Toggle}" IsChecked="{Binding AnnounceTrackChanges}" AutomationProperties.Name="Announce new songs" />
+                        </s:SettingCard>
 
                         <TextBlock Style="{StaticResource SectionHeader}" Text="Clipboard and files" />
                         <s:SettingCard Glyph="&#xE77F;" Header="Clipboard history"

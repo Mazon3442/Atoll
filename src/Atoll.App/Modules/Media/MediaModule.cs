@@ -24,6 +24,21 @@ public sealed partial class MediaModule : IIslandModule
     private static readonly TimeSpan PausedLinger = TimeSpan.FromSeconds(20);
     private static readonly TimeSpan TrackPeek = TimeSpan.FromSeconds(4);
 
+    private static readonly TimeSpan NaturalEnd = TimeSpan.FromSeconds(3);
+    private static readonly TimeSpan SkipWindow = TimeSpan.FromSeconds(5);
+
+    /// <summary>
+    /// A song that starts on its own is announced only when the setting is on. A skipped song is always announced:
+    /// either the island's own next/previous was pressed just now, or the last song was nowhere near its end
+    /// (media keys and the player's own buttons). Players that report no timeline count as skipped.
+    /// </summary>
+    internal static bool ShouldAnnounceTrack(bool announceSetting, DateTimeOffset? skipRequestedAt, DateTimeOffset? nearEndAt, DateTimeOffset now)
+    {
+        if (announceSetting) return true;
+        if (skipRequestedAt is { } skip && now - skip <= SkipWindow) return true;
+        return !(nearEndAt is { } end && now - end <= SkipWindow);
+    }
+
     private readonly MediaViewModel _vm;
     private readonly AudioLevels _levels = new();
     private ModuleContext? _context;
@@ -41,6 +56,8 @@ public sealed partial class MediaModule : IIslandModule
     private string _postedState = "";
     private string _trackKey = "";
     private bool _disposed;
+    private DateTimeOffset? _skipRequestedAt;
+    private DateTimeOffset? _nearEndAt;
     private readonly Dictionary<string, Session> _sessions = [];
     private readonly Dictionary<string, string> _appNames = [];
     private readonly RecentSources _recent = new(TimeSpan.FromSeconds(5));
@@ -60,8 +77,8 @@ public sealed partial class MediaModule : IIslandModule
     {
         _vm = new MediaViewModel(
             () => Control(s => s.TryTogglePlayPauseAsync().AsTask()),
-            () => Control(s => s.TrySkipNextAsync().AsTask()),
-            () => Control(s => s.TrySkipPreviousAsync().AsTask()),
+            () => { _skipRequestedAt = DateTimeOffset.UtcNow; return Control(s => s.TrySkipNextAsync().AsTask()); },
+            () => { _skipRequestedAt = DateTimeOffset.UtcNow; return Control(s => s.TrySkipPreviousAsync().AsTask()); },
             SeekAsync,
             on => Control(session => session.TryChangeShuffleActiveAsync(on).AsTask()),
             mode => Control(session => session.TryChangeAutoRepeatModeAsync(mode switch
@@ -319,8 +336,11 @@ public sealed partial class MediaModule : IIslandModule
                 var hadTrack = _trackKey.Length > 0;
                 _trackKey = key; _acceptedSeek = null; _seekVersion++;
                 _ = LoadLyricsAsync(_vm.Artist, _vm.Title);
-                if (hadTrack && _vm.IsPlaying && _vm.Title.Length > 0 && !FocusService.IsQuietNow)
+                var now = DateTimeOffset.UtcNow;
+                if (hadTrack && _vm.IsPlaying && _vm.Title.Length > 0 && !FocusService.IsQuietNow
+                    && ShouldAnnounceTrack(_context?.Settings.Current.AnnounceTrackChanges ?? true, _skipRequestedAt, _nearEndAt, now))
                     _context?.Post("track", _vm, ActivityPriority.High, TrackPeek, alert: true);
+                _skipRequestedAt = null; _nearEndAt = null; // each change is judged on its own
             }
             UpdateActivity();
         }
@@ -459,6 +479,7 @@ public sealed partial class MediaModule : IIslandModule
         }
         if (pos > _duration) pos = _duration;
         if (pos < TimeSpan.Zero) pos = TimeSpan.Zero;
+        if (_vm.IsPlaying && _duration - pos <= NaturalEnd) _nearEndAt = DateTimeOffset.UtcNow;
         _vm.Progress = pos / _duration;
         _vm.PositionText = TimerViewModel.Format(pos);
         if (_lyrics.Count > 0)

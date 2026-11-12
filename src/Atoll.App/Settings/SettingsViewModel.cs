@@ -350,6 +350,7 @@ public sealed partial class SettingsViewModel : ObservableObject
     public int GameServerInterval { get => S.Games.ServerRefreshSeconds; set => Set(S.Games.ServerRefreshSeconds, value, v => S.Games.ServerRefreshSeconds = v); }
 
     public bool ShowLyrics { get => S.ShowLyrics; set => Set(S.ShowLyrics, value, v => S.ShowLyrics = v); }
+    public bool AnnounceTrackChanges { get => S.AnnounceTrackChanges; set => Set(S.AnnounceTrackChanges, value, v => S.AnnounceTrackChanges = v); }
 
     /// <summary>Opt-in: the clipboard module reads and writes nothing while this is false.</summary>
     public bool ClipboardHistoryEnabled

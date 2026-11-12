@@ -57,6 +57,21 @@ public class MediaSeekTests
         Assert.Equal(expected, MediaModule.ShouldFollow(candidate, playing, followed, showing));
 
     [Fact]
+    public void Quiet_track_changes_still_announce_a_skip()
+    {
+        var now = DateTimeOffset.UtcNow;
+        // Setting on: always announced.
+        Assert.True(MediaModule.ShouldAnnounceTrack(true, null, now, now));
+        // Setting off, song ran out: quiet.
+        Assert.False(MediaModule.ShouldAnnounceTrack(false, null, now.AddSeconds(-1), now));
+        // Setting off, island next/previous pressed just now: announced.
+        Assert.True(MediaModule.ShouldAnnounceTrack(false, now.AddSeconds(-1), now.AddSeconds(-1), now));
+        // Setting off, song was nowhere near its end (media key, player button) or no timeline: announced.
+        Assert.True(MediaModule.ShouldAnnounceTrack(false, null, null, now));
+        Assert.True(MediaModule.ShouldAnnounceTrack(false, null, now.AddSeconds(-30), now));
+    }
+
+    [Fact]
     public void A_player_that_briefly_closes_its_session_stays_listed()
     {
         var recent = new RecentSources(TimeSpan.FromSeconds(5));

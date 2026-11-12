@@ -47,6 +47,11 @@ public sealed class AppSettings
     /// <summary>Looks up time-synced lyrics for the playing song on lrclib.net.</summary>
     public bool ShowLyrics { get; set; } = true;
 
+    /// <summary>
+    /// Peeks the island when the next song starts on its own. Off keeps that quiet; skipping a song still announces it.
+    /// </summary>
+    public bool AnnounceTrackChanges { get; set; } = true;
+
     /// <summary>The media tab's volume slider changes only the playing app (true) or all sound (false).</summary>
     public bool VolumeControlsApp { get; set; } = true;
 
