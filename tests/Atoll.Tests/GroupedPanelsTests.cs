@@ -221,6 +221,17 @@ public class GroupedPanelsTests
         {
             SectionIndex = 2,
         }));
+        // The Alarm section: hour, minute and am/pm pickers, then Set, all inside the default panel height.
+        var alarmView = (FrameworkElement)((DataTemplate)resources["ClockPanelViewModel.Panel"]).LoadContent();
+        alarmView.DataContext = new ClockPanelViewModel(idleClock.Clock, new TimerViewModel(TimeProvider.System) { SectionIndex = 2 });
+        alarmView.Measure(new Size(476, 600)); alarmView.Arrange(new Rect(0, 0, 476, 600)); alarmView.UpdateLayout();
+        Assert.Equal(Visibility.Visible, Descendants<StackPanel>(alarmView).Single(p => p.Name == "AlarmSection").Visibility);
+        var alarmButtons = Descendants<Button>(alarmView).Select(AutomationProperties.GetName).ToList();
+        Assert.Contains("Later hour", alarmButtons);
+        Assert.Contains("Earlier minute", alarmButtons);
+        Assert.Contains("Set the alarm", alarmButtons);
+        Assert.InRange(alarmView.DesiredSize.Height, 1, new Atoll.Settings.AppSettings().Theme.ExpandedHeight - 26);
+
         foreach (var mode in new[] { "Compact", "Peek", "Mini" })
         {
             var icon = (FrameworkElement)((DataTemplate)resources["NotificationItemViewModel." + mode]).LoadContent();

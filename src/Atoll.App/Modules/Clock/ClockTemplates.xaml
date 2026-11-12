@@ -146,7 +146,46 @@
                         </StackPanel>
                     </DockPanel>
                     <Button Style="{StaticResource Clock.Button}" Content="Stopwatch" Command="{Binding StartStopwatchCommand}"
-                            HorizontalAlignment="Left" Margin="2,2,2,0" />                </StackPanel>
+                            HorizontalAlignment="Left" Margin="2,2,2,0" />
+                </StackPanel>
+                <!-- Alarm: set the hour, the minute and am/pm, then Set. It rings at that time, today or tomorrow. -->
+                <StackPanel x:Name="AlarmSection" Visibility="{Binding IsAlarmSection, Converter={StaticResource Island.BoolToVisibility}}">
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,2,0,8">
+                        <StackPanel>
+                            <Button Style="{StaticResource Clock.Step}" Content="&#xE70E;" Command="{Binding AddAlarmHourCommand}" Width="56"
+                                    ToolTip="Later hour" AutomationProperties.Name="Later hour" />
+                            <TextBlock Text="{Binding AlarmHourText}" FontSize="32" FontWeight="Light" TextAlignment="Center" Margin="0,2"
+                                       AutomationProperties.Name="Alarm hour" />
+                            <Button Style="{StaticResource Clock.Step}" Content="&#xE70D;" Command="{Binding SubtractAlarmHourCommand}" Width="56"
+                                    ToolTip="Earlier hour" AutomationProperties.Name="Earlier hour" />
+                        </StackPanel>
+                        <TextBlock Text=":" FontSize="32" FontWeight="Light" VerticalAlignment="Center" Margin="4,0" />
+                        <StackPanel>
+                            <Button Style="{StaticResource Clock.Step}" Content="&#xE70E;" Command="{Binding AddAlarmMinuteCommand}" Width="56"
+                                    ToolTip="Later minute" AutomationProperties.Name="Later minute" />
+                            <TextBlock Text="{Binding AlarmMinuteText}" FontSize="32" FontWeight="Light" TextAlignment="Center" Margin="0,2"
+                                       AutomationProperties.Name="Alarm minute" />
+                            <Button Style="{StaticResource Clock.Step}" Content="&#xE70D;" Command="{Binding SubtractAlarmMinuteCommand}" Width="56"
+                                    ToolTip="Earlier minute" AutomationProperties.Name="Earlier minute" />
+                        </StackPanel>
+                        <Border Background="{DynamicResource Island.Surface}" CornerRadius="13" Padding="3" Margin="18,0,0,0" VerticalAlignment="Center">
+                            <ListBox SelectedIndex="{Binding AlarmPmIndex, Mode=TwoWay}" ItemContainerStyle="{StaticResource Island.SegmentItem}"
+                                     Background="Transparent" BorderThickness="0" FontSize="11" Foreground="{DynamicResource Island.Subtle}"
+                                     ScrollViewer.HorizontalScrollBarVisibility="Disabled" ScrollViewer.VerticalScrollBarVisibility="Disabled"
+                                     AutomationProperties.Name="AM or PM">
+                                <ListBoxItem Content="AM" />
+                                <ListBoxItem Content="PM" />
+                            </ListBox>
+                        </Border>
+                    </StackPanel>
+                    <DockPanel Margin="2,0">
+                        <Button DockPanel.Dock="Right" Style="{StaticResource Clock.Button}" Content="Set alarm" Command="{Binding StartAlarmCommand}"
+                                AutomationProperties.Name="Set the alarm" />
+                        <TextBlock Text="{Binding AlarmSummary}" FontSize="12" VerticalAlignment="Center"
+                                   Foreground="{DynamicResource Island.Subtle}" />
+                    </DockPanel>
+                </StackPanel>
+
                 <!-- Pomodoro: three sessions you can start, each with its length; then how the days have gone. -->
                 <StackPanel x:Name="PomodoroSection" Visibility="{Binding IsPomodoroSection, Converter={StaticResource Island.BoolToVisibility}}">
                     <DockPanel Margin="0,2,0,10">
