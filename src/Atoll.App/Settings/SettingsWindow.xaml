@@ -42,6 +42,17 @@
             <Setter Property="Foreground" Value="{DynamicResource TextFillColorSecondaryBrush}" />
         </Style>
 
+        <!-- One line under a section title saying what the section is for. -->
+        <Style x:Key="SectionHint" TargetType="TextBlock" BasedOn="{StaticResource Hint}">
+            <Setter Property="Margin" Value="2,-6,0,10" />
+        </Style>
+
+        <!-- Rarely changed sections fold away; the header still says what is inside. Search opens them. -->
+        <Style x:Key="SectionExpander" TargetType="Expander">
+            <Setter Property="Margin" Value="0,22,0,0" />
+            <Setter Property="IsExpanded" Value="False" />
+        </Style>
+
         <!-- Settings row: icon, title + description, control on the right (Windows 11 Settings layout). -->
         <Style TargetType="s:SettingCard">
             <Setter Property="Margin" Value="0,0,0,6" />
@@ -49,7 +60,7 @@
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="s:SettingCard">
-                        <Border Background="{DynamicResource CardBackgroundFillColorDefaultBrush}"
+                        <Border x:Name="Root" Background="{DynamicResource CardBackgroundFillColorDefaultBrush}"
                                 BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}" BorderThickness="1"
                                 CornerRadius="10" Padding="16,14" MinHeight="72">
                             <Grid>
@@ -70,6 +81,13 @@
                             </Grid>
                         </Border>
                         <ControlTemplate.Triggers>
+                            <MultiTrigger>
+                                <MultiTrigger.Conditions>
+                                    <Condition Property="IsSwitchRow" Value="True" />
+                                    <Condition Property="IsMouseOver" Value="True" />
+                                </MultiTrigger.Conditions>
+                                <Setter TargetName="Root" Property="Background" Value="{DynamicResource SubtleFillColorSecondaryBrush}" />
+                            </MultiTrigger>
                             <DataTrigger Binding="{Binding IsNarrow, RelativeSource={RelativeSource AncestorType=Window}}" Value="True">
                                 <Setter TargetName="Editor" Property="Grid.Row" Value="1" />
                                 <Setter TargetName="Editor" Property="Grid.Column" Value="1" />
@@ -192,6 +210,35 @@
             </Setter>
         </Style>
 
+        <!-- One search result: looks like a setting card and opens that setting. -->
+        <Style x:Key="SearchHit" TargetType="Button">
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Margin" Value="0,0,0,6" />
+            <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+            <Setter Property="Foreground" Value="{DynamicResource TextFillColorPrimaryBrush}" />
+            <Setter Property="FocusVisualStyle" Value="{StaticResource SettingsFocus}" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="Frame" CornerRadius="10" BorderThickness="1" Padding="16,12"
+                                BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
+                                Background="{DynamicResource CardBackgroundFillColorDefaultBrush}">
+                            <ContentPresenter HorizontalAlignment="Stretch" TextElement.Foreground="{TemplateBinding Foreground}" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Frame" Property="Background" Value="{DynamicResource SubtleFillColorSecondaryBrush}" />
+                            </Trigger>
+                            <Trigger Property="IsKeyboardFocused" Value="True">
+                                <Setter TargetName="Frame" Property="BorderBrush" Value="{DynamicResource AccentFillColorDefaultBrush}" />
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True"><Setter TargetName="Frame" Property="Opacity" Value="0.75" /></Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
         <!-- Theme gallery tile. -->
         <Style x:Key="ThemeTile" TargetType="Button">
             <Setter Property="Cursor" Value="Hand" />
@@ -265,6 +312,23 @@
                 <TextBlock Text="ATOLL" FontSize="16" FontWeight="SemiBold" Margin="12,0,0,0" VerticalAlignment="Center" />
             </StackPanel>
             <TextBlock DockPanel.Dock="Bottom" Text="Settings" Style="{StaticResource Hint}" Margin="14,12,0,0" />
+            <Grid DockPanel.Dock="Top" Margin="0,0,0,12">
+                <TextBox x:Name="SearchBox" Padding="8,6" VerticalContentAlignment="Center" ToolTip="Search every setting (Ctrl+F)"
+                         TextChanged="OnSearchChanged" PreviewKeyDown="OnSearchKeyDown" AutomationProperties.Name="Search settings" />
+                <TextBlock Text="Search settings" IsHitTestVisible="False" Margin="10,0,0,0" VerticalAlignment="Center"
+                           Foreground="{DynamicResource TextFillColorSecondaryBrush}">
+                    <TextBlock.Style>
+                        <Style TargetType="TextBlock">
+                            <Setter Property="Visibility" Value="Collapsed" />
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding Text, ElementName=SearchBox}" Value="">
+                                    <Setter Property="Visibility" Value="Visible" />
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </TextBlock.Style>
+                </TextBlock>
+            </Grid>
             <ListBox ItemsSource="{Binding Pages}" SelectedIndex="{Binding PageIndex}" ItemContainerStyle="{StaticResource NavItem}"
                      SelectionChanged="OnPageChanged" ScrollViewer.HorizontalScrollBarVisibility="Disabled"
                      BorderThickness="0" Background="Transparent" AutomationProperties.Name="Settings sections">
@@ -283,23 +347,30 @@
 
         <!-- Page -->
         <DockPanel Grid.Column="1">
-            <StackPanel DockPanel.Dock="Top" Margin="28,26,28,12">
+            <StackPanel x:Name="PageHeader" DockPanel.Dock="Top" Margin="28,26,28,12">
                 <TextBlock Text="{Binding PageTitle}" FontSize="24" FontWeight="SemiBold" />
                 <TextBlock Text="{Binding PageDescription}" Style="{StaticResource Hint}" Margin="0,6,0,0" />
             </StackPanel>
+            <Grid>
+            <!-- Search results replace the page while there is a query; every row opens its setting. -->
+            <ScrollViewer x:Name="ResultsScroll" Visibility="Collapsed" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Padding="0,0,6,0">
+                <StackPanel x:Name="ResultsPanel" Margin="28,26,22,28" MaxWidth="860" HorizontalAlignment="Stretch" PreviewKeyDown="OnResultsKeyDown" />
+            </ScrollViewer>
             <ScrollViewer x:Name="PageScroll" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Padding="0,0,6,0">
                 <Grid Margin="28,0,22,28" MaxWidth="860" HorizontalAlignment="Stretch">
 
                     <!-- ===================== General ===================== -->
                     <StackPanel Visibility="{Binding PageIndex, Converter={StaticResource PageVisible}, ConverterParameter=0}">
                         <TextBlock Style="{StaticResource SectionHeader}" Text="Startup" />
+                        <TextBlock Style="{StaticResource SectionHint}" Text="Whether ATOLL opens when you sign in." />
                         <s:SettingCard Glyph="&#xE7E8;" Header="Start with Windows" Description="Open ATOLL automatically when you sign in.">
                             <CheckBox Style="{StaticResource Toggle}" IsChecked="{Binding StartWithWindows}" AutomationProperties.Name="Start with Windows" />
                         </s:SettingCard>
 
                         <TextBlock Style="{StaticResource SectionHeader}" Text="When to show ATOLL" />
+                        <TextBlock Style="{StaticResource SectionHint}" Text="Decide when the island steps aside for other apps." />
                         <s:SettingCard Glyph="&#xE740;" Header="Over fullscreen apps"
-                                       Description="Videos, presentations and F11 browsers. Games always hide ATOLL.">
+                                       Description="Videos, presentations and F11 browsers. Games follow Island while playing on the Games page.">
                             <ComboBox Width="250" ItemsSource="{Binding FullscreenModes}" DisplayMemberPath="Label"
                                       SelectedValuePath="Value" SelectedValue="{Binding FullscreenMode}" AutomationProperties.Name="Over fullscreen apps" />
                         </s:SettingCard>
@@ -321,7 +392,14 @@
                             </StackPanel>
                         </s:SettingCard>
 
-                        <TextBlock Style="{StaticResource SectionHeader}" Text="Pointer" />
+                        <Expander Style="{StaticResource SectionExpander}" AutomationProperties.Name="Pointer">
+                        <Expander.Header>
+                            <StackPanel>
+                                <TextBlock Text="Pointer" FontSize="14" FontWeight="SemiBold" Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
+                                <TextBlock Style="{StaticResource Hint}" Text="How long to hover before the island opens, and clicking through windows." />
+                            </StackPanel>
+                        </Expander.Header>
+                        <StackPanel Margin="0,10,0,0">
                         <s:SettingCard Glyph="&#xE916;" Header="Hover delay" Description="How long to rest the pointer on ATOLL before it opens.">
                             <StackPanel Orientation="Horizontal">
                                 <Slider Width="200" Minimum="0" Maximum="1000" TickFrequency="50" IsSnapToTickEnabled="True"
@@ -334,7 +412,11 @@
                             <CheckBox Style="{StaticResource Toggle}" IsChecked="{Binding ClickThrough}" AutomationProperties.Name="Click through over maximized windows" />
                         </s:SettingCard>
 
+                        </StackPanel>
+                        </Expander>
+
                         <TextBlock Style="{StaticResource SectionHeader}" Text="Keyboard" />
+                        <TextBlock Style="{StaticResource SectionHint}" Text="Shortcuts that work from any app." />
                         <s:SettingCard Glyph="&#xE765;" Header="Open ATOLL"
                                        Description="Opens the island from any app, ready for the keyboard. Press it again or Esc to close it.">
                             <s:HotkeyBox Shortcut="{Binding OpenShortcut}" AutomationProperties.Name="Shortcut to open ATOLL" />
@@ -361,6 +443,7 @@
                                    Text="Click a shortcut and press new keys to change it. Backspace turns it off. In the open island, Ctrl+Tab or the mouse wheel over the tabs switches sections." />
 
                         <TextBlock Style="{StaticResource SectionHeader}" Text="Position" />
+                        <TextBlock Style="{StaticResource SectionHint}" Text="Choose which screens show an island." />
                         <s:SettingCard Glyph="&#xE7F4;" Header="Show on" Description="Which displays get an island.">
                             <ComboBox Width="250" ItemsSource="{Binding MonitorModes}" DisplayMemberPath="Label"
                                       SelectedValuePath="Value" SelectedValue="{Binding MonitorMode}" AutomationProperties.Name="Show on" />
@@ -477,6 +560,7 @@
                                    Visibility="{Binding ThemeMessage, Converter={StaticResource EmptyToCollapsed}}" />
 
                         <TextBlock Style="{StaticResource SectionHeader}" Text="Shape" />
+                        <TextBlock Style="{StaticResource SectionHint}" Text="Pill or notch, and how round it is." />
                         <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
                             <RadioButton Style="{StaticResource ShapeOption}" GroupName="Shape" IsChecked="{Binding IsPill}"
                                          AutomationProperties.Name="Pill shape: floats below the top of the screen">
@@ -520,6 +604,7 @@
                         </s:SettingCard>
 
                         <TextBlock Style="{StaticResource SectionHeader}" Text="Colors" />
+                        <TextBlock Style="{StaticResource SectionHint}" Text="Fill, text, accent and frosted glass." />
                         <s:SettingCard Glyph="&#xE790;" Header="Background" Description="The island's fill and glass tint.">
                             <s:ColorPicker Value="{Binding Background}" Label="Background color" />
                         </s:SettingCard>
@@ -541,6 +626,7 @@
                         </s:SettingCard>
 
                         <TextBlock Style="{StaticResource SectionHeader}" Text="Size" />
+                        <TextBlock Style="{StaticResource SectionHint}" Text="How big the island is at rest and when open." />
                         <s:SettingCard Glyph="&#xE740;" Header="Island height">
                             <StackPanel Orientation="Horizontal">
                                 <Slider Width="200" Minimum="24" Maximum="60" TickFrequency="1" IsSnapToTickEnabled="True"
@@ -571,6 +657,7 @@
                         </s:SettingCard>
 
                         <TextBlock Style="{StaticResource SectionHeader}" Text="Behavior" />
+                        <TextBlock Style="{StaticResource SectionHint}" Text="Motion and the small bubbles beside the island." />
                         <s:SettingCard Glyph="&#xE945;" Header="Motion" Description="How the island grows and shrinks. Turning off animation effects in Windows also turns this off.">
                             <ComboBox Width="250" ItemsSource="{Binding MotionStyles}" DisplayMemberPath="Label"
                                       SelectedValuePath="Value" SelectedValue="{Binding Motion}" AutomationProperties.Name="Motion" />
@@ -668,6 +755,7 @@
                         <!-- Desktops have no battery, so there is nothing to configure: hide the whole group. -->
                         <StackPanel Visibility="{Binding HasBattery, Converter={StaticResource BoolToVisibility}}">
                             <TextBlock Style="{StaticResource SectionHeader}" Text="Laptop battery" />
+                        <TextBlock Style="{StaticResource SectionHint}" Text="The battery chip and low-battery warnings." />
                             <s:SettingCard Glyph="&#xE83F;" Header="Show battery"
                                            Description="Header chip on laptops. At 20% ATOLL warns once; from 10% down the level stays in the pill until it charges or rises above 10%.">
                                 <CheckBox Style="{StaticResource Toggle}" IsChecked="{Binding ShowBattery}" AutomationProperties.Name="Show battery" />
@@ -675,6 +763,7 @@
                         </StackPanel>
 
                         <TextBlock Style="{StaticResource SectionHeader}" Text="Home" />
+                        <TextBlock Style="{StaticResource SectionHint}" Text="The dashboard tab and the cards on it." />
                         <s:SettingCard Glyph="&#xE80F;" Header="Home tab" Description="A dashboard of what's playing, the weather, your timer, this month and what's next.">
                             <StackPanel Orientation="Horizontal">
                                 <ToggleButton Style="{StaticResource BookmarkToggle}" IsChecked="{Binding HomeBookmarked}" VerticalAlignment="Center"
@@ -695,24 +784,30 @@
                             </WrapPanel>
                         </s:SettingCard>
 
-                        <TextBlock Style="{StaticResource SectionHeader}" Text="Media" />
-                        <s:SettingCard Glyph="&#xE8D6;" Header="Show synced lyrics"
-                                       Description="Looks up the playing song's title and artist on lrclib.net and shows the current line in the media tab.">
-                            <CheckBox Style="{StaticResource Toggle}" IsChecked="{Binding ShowLyrics}" AutomationProperties.Name="Show synced lyrics" />
-                        </s:SettingCard>
+                    </StackPanel>
+
+                    <!-- ===================== Media & files ===================== -->
+                    <StackPanel Visibility="{Binding PageIndex, Converter={StaticResource PageVisible}, ConverterParameter=7}">
+                        <TextBlock Style="{StaticResource SectionHeader}" Text="Music" />
+                        <TextBlock Style="{StaticResource SectionHint}" Text="What the media tab and the island show for the song that is playing." />
                         <s:SettingCard Glyph="&#xE8D6;" Header="Announce new songs"
                                        Description="Shows the island when a song starts. When off, songs that start on their own switch quietly; skipping a song still announces it.">
                             <CheckBox Style="{StaticResource Toggle}" IsChecked="{Binding AnnounceTrackChanges}" AutomationProperties.Name="Announce new songs" />
                         </s:SettingCard>
+                        <s:SettingCard Glyph="&#xE8D6;" Header="Show synced lyrics"
+                                       Description="Looks up the playing song's title and artist on lrclib.net and shows the current line in the media tab.">
+                            <CheckBox Style="{StaticResource Toggle}" IsChecked="{Binding ShowLyrics}" AutomationProperties.Name="Show synced lyrics" />
+                        </s:SettingCard>
 
                         <TextBlock Style="{StaticResource SectionHeader}" Text="Clipboard and files" />
+                        <TextBlock Style="{StaticResource SectionHint}" Text="Clipboard history is off until you turn it on. The shelf keeps only file locations." />
                         <s:SettingCard Glyph="&#xE77F;" Header="Clipboard history"
                                        Description="Off by default and off means nothing is read or written. When on, ATOLL keeps your last 100 text and image copies, up to 25 MB, in this PC's local app data encrypted for your Windows account. Turning it off or pressing Clear erases the file. Password-manager copies and images over 8 MB are skipped.">
                             <CheckBox Style="{StaticResource Toggle}" IsChecked="{Binding ClipboardHistoryEnabled}"
                                       AutomationProperties.Name="Save clipboard history on this PC" />
                         </s:SettingCard>
                         <s:SettingCard Glyph="&#xE72E;" Header="File shelf"
-                                       Description="The shelf stores file locations only, never the files themselves." />
+                                       Description="The shelf stores file locations only, never the files themselves. Nothing to set here." />
                     </StackPanel>
 
                     <!-- ===================== Notifications ===================== -->
@@ -735,6 +830,7 @@
                         </s:SettingCard>
 
                         <TextBlock Style="{StaticResource SectionHeader}" Text="Focus" />
+                        <TextBlock Style="{StaticResource SectionHint}" Text="Do Not Disturb for ATOLL popups and sounds." />
                         <s:SettingCard Glyph="&#xE708;" Header="Do Not Disturb"
                                        Description="Silence ATOLL's popups and sounds. Start it from the moon chip, the tray, or the command palette.">
                             <CheckBox Style="{StaticResource Toggle}" IsChecked="{Binding FocusEnabled}" AutomationProperties.Name="Do Not Disturb" />
@@ -746,7 +842,8 @@
                             </WrapPanel>
                         </s:SettingCard>
 
-                        <TextBlock Style="{StaticResource SectionHeader}" Text="Privacy" />
+                        <TextBlock Style="{StaticResource SectionHeader}" Text="Message privacy" />
+                        <TextBlock Style="{StaticResource SectionHint}" Text="What a notification shows, for example while you share your screen." />
                         <s:SettingCard Glyph="&#xE890;" Header="Show message text"
                                        Description="Turn off while screen sharing so ATOLL shows only the app name.">
                             <CheckBox Style="{StaticResource Toggle}" IsChecked="{Binding ShowNotificationContent}" AutomationProperties.Name="Show message text" />
@@ -766,6 +863,15 @@
                                 </DataTemplate>
                             </ItemsControl.ItemTemplate>
                         </ItemsControl>
+
+                        <TextBlock Style="{StaticResource SectionHeader}" Text="Alerts from other features" />
+                        <TextBlock Style="{StaticResource SectionHint}" Text="These pop the island too. Each one is set on its own page." />
+                        <WrapPanel>
+                            <Button Content="Song announcements" Tag="7" Click="OnOpenPage" Padding="14,6" Margin="0,0,8,8" AutomationProperties.Name="Open the song announcement settings" />
+                            <Button Content="Calendar reminders" Tag="5" Click="OnOpenPage" Padding="14,6" Margin="0,0,8,8" AutomationProperties.Name="Open the calendar reminder settings" />
+                            <Button Content="Claude sounds" Tag="4" Click="OnOpenPage" Padding="14,6" Margin="0,0,8,8" AutomationProperties.Name="Open the Claude sound settings" />
+                            <Button Content="Game notifications" Tag="8" Click="OnOpenPage" Padding="14,6" Margin="0,0,8,8" AutomationProperties.Name="Open the game notification settings" />
+                        </WrapPanel>
                     </StackPanel>
 
                     <!-- ===================== Claude Code ===================== -->
@@ -793,7 +899,14 @@
                             </ItemsControl.ItemTemplate>
                         </ItemsControl>
 
-                        <TextBlock Style="{StaticResource SectionHeader}" Text="Your own API keys" />
+                        <Expander Style="{StaticResource SectionExpander}" AutomationProperties.Name="Your own API keys">
+                        <Expander.Header>
+                            <StackPanel>
+                                <TextBlock Text="Your own API keys" FontSize="14" FontWeight="SemiBold" Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
+                                <TextBlock Style="{StaticResource Hint}" Text="Use OpenAI, Anthropic or DeepSeek keys through a local gateway. Optional." />
+                            </StackPanel>
+                        </Expander.Header>
+                        <StackPanel Margin="0,10,0,0">
                         <TextBlock Style="{StaticResource Hint}" TextWrapping="Wrap" Margin="4,0,0,12"
                                    Text="No coding agent needed. Add an OpenAI, Anthropic, DeepSeek or OpenAI-compatible key, then give your app or SDK the address ATOLL shows here and the gateway token as its API key. ATOLL forwards each request with your key and shows live requests and token totals in the island's API keys tab. Keys are encrypted on this PC; prompts and replies are never saved." />
                         <s:SettingCard Glyph="&#xE968;" Header="Local API gateway" Description="Listens only on this PC, at 127.0.0.1:47831. Turns on when you add a key.">
@@ -852,7 +965,17 @@
                         <TextBlock Text="{Binding ProviderMessage}" Style="{StaticResource Hint}" TextWrapping="Wrap" Margin="4,2,0,0"
                                    Visibility="{Binding ProviderMessage, Converter={StaticResource EmptyToCollapsed}}" />
 
-                        <TextBlock Style="{StaticResource SectionHeader}" Text="Ask" />
+                        </StackPanel>
+                        </Expander>
+
+                        <Expander Style="{StaticResource SectionExpander}" AutomationProperties.Name="Ask">
+                        <Expander.Header>
+                            <StackPanel>
+                                <TextBlock Text="Ask" FontSize="14" FontWeight="SemiBold" Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
+                                <TextBlock Style="{StaticResource Hint}" Text="Which agent answers quick questions, its models and tool access." />
+                            </StackPanel>
+                        </Expander.Header>
+                        <StackPanel Margin="0,10,0,0">
                         <TextBlock Style="{StaticResource Hint}" TextWrapping="Wrap" Margin="4,0,0,12"
                                    Text="The Agents tab's Ask section answers with the first installed coding agent — Claude Code, then Codex, then OpenCode — and falls back to your own API keys above. Questions and answers are never saved. Ctrl+Enter sends; Esc stops a run, then clears it." />
                         <s:SettingCard Glyph="&#xE8BD;" Header="Allow tools"
@@ -883,7 +1006,11 @@
                             </StackPanel>
                         </s:SettingCard>
 
+                        </StackPanel>
+                        </Expander>
+
                         <TextBlock Style="{StaticResource SectionHeader}" Text="Sounds" />
+                        <TextBlock Style="{StaticResource SectionHint}" Text="Chimes for Claude Code sessions. Do Not Disturb silences them." />
                         <s:SettingCard Glyph="&#xE73E;" Header="When a session finishes">
                             <CheckBox Style="{StaticResource Toggle}" IsChecked="{Binding SoundOnDone}" AutomationProperties.Name="Sound when a session finishes" />
                         </s:SettingCard>
@@ -895,6 +1022,7 @@
                     <!-- ===================== Calendar ===================== -->
                     <StackPanel Visibility="{Binding PageIndex, Converter={StaticResource PageVisible}, ConverterParameter=5}">
                         <TextBlock Style="{StaticResource SectionHeader}" Text="Alerts" />
+                        <TextBlock Style="{StaticResource SectionHint}" Text="Reminders before an event starts." />
                         <s:SettingCard Glyph="&#xE823;" Header="Alert me before an event"
                                        Description="ATOLL pops up this many minutes before an event starts. Set to 0 to turn alerts off.">
                             <StackPanel Orientation="Horizontal">
@@ -958,14 +1086,15 @@
                                        VerticalAlignment="Center" Visibility="{Binding CalendarMessage, Converter={StaticResource EmptyToCollapsed}}" />
                         </StackPanel>
 
-                        <TextBlock Style="{StaticResource SectionHeader}" Text="Privacy" />
+                        <TextBlock Style="{StaticResource SectionHeader}" Text="Calendar privacy" />
                         <TextBlock Style="{StaticResource Hint}" Margin="2,0,0,4"
                                    Text="ICS links give read-only access, and anyone with a link can read that calendar. ATOLL stores them encrypted with your Windows login (DPAPI) so they can't be read from the settings file. ATOLL only downloads the calendars, and only from the servers you add here." />
                     </StackPanel>
 
                     <!-- ===================== Games ===================== -->
-                    <StackPanel Visibility="{Binding PageIndex, Converter={StaticResource PageVisible}, ConverterParameter=7}">
+                    <StackPanel Visibility="{Binding PageIndex, Converter={StaticResource PageVisible}, ConverterParameter=8}">
                         <TextBlock Style="{StaticResource SectionHeader}" Text="While you play" />
+                        <TextBlock Style="{StaticResource SectionHint}" Text="What the island does while a game is in front." />
                         <s:SettingCard Glyph="&#xE7FC;" Header="Island while playing"
                                        Description="Overlay keeps the game, play time and performance in a small pill. Hidden keeps the island out of the way.">
                             <ComboBox Width="250" ItemsSource="{Binding GameModes}" DisplayMemberPath="Label"
@@ -992,7 +1121,14 @@
                                       AutomationProperties.Name="Announce when a game starts" />
                         </s:SettingCard>
 
-                        <TextBlock Style="{StaticResource SectionHeader}" Text="Detection" />
+                        <Expander Style="{StaticResource SectionExpander}" AutomationProperties.Name="Detection">
+                        <Expander.Header>
+                            <StackPanel>
+                                <TextBlock Text="Detection" FontSize="14" FontWeight="SemiBold" Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
+                                <TextBlock Style="{StaticResource Hint}" Text="How ATOLL notices games and which libraries it lists." />
+                            </StackPanel>
+                        </Expander.Header>
+                        <StackPanel Margin="0,10,0,0">
                         <s:SettingCard Glyph="&#xE7FC;" Header="Detect games automatically"
                                        Description="Notice games from Steam, Epic, the Xbox app and common launchers. Off leaves the library and the Minecraft server available.">
                             <CheckBox Style="{StaticResource Toggle}" IsChecked="{Binding GameDetect}"
@@ -1007,7 +1143,17 @@
                             </WrapPanel>
                         </s:SettingCard>
 
-                        <TextBlock Style="{StaticResource SectionHeader}" Text="Minecraft server" />
+                        </StackPanel>
+                        </Expander>
+
+                        <Expander Style="{StaticResource SectionExpander}" AutomationProperties.Name="Minecraft server">
+                        <Expander.Header>
+                            <StackPanel>
+                                <TextBlock Text="Minecraft server" FontSize="14" FontWeight="SemiBold" Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
+                                <TextBlock Style="{StaticResource Hint}" Text="Watch one server's players and ping in the Games tab." />
+                            </StackPanel>
+                        </Expander.Header>
+                        <StackPanel Margin="0,10,0,0">
                         <s:SettingCard Glyph="&#xE968;" Header="Server address"
                                        Description="host or host:port. Leave it empty to turn the check off.">
                             <TextBox Width="260" Text="{Binding MinecraftServer}" AutomationProperties.Name="Minecraft server address" />
@@ -1022,10 +1168,12 @@
                             <ComboBox Width="200" ItemsSource="{Binding GameServerIntervals}" DisplayMemberPath="Label"
                                       SelectedValuePath="Value" SelectedValue="{Binding GameServerInterval}" AutomationProperties.Name="Minecraft server check interval" />
                         </s:SettingCard>
+                        </StackPanel>
+                        </Expander>
                     </StackPanel>
 
                     <!-- ===================== About ===================== -->
-                    <StackPanel Visibility="{Binding PageIndex, Converter={StaticResource PageVisible}, ConverterParameter=8}">
+                    <StackPanel Visibility="{Binding PageIndex, Converter={StaticResource PageVisible}, ConverterParameter=9}">
                         <StackPanel Orientation="Horizontal" Margin="2,12,0,18">
                             <Border Width="56" Height="56" CornerRadius="12.3" BorderThickness="1" BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}">
                                 <Image Source="{StaticResource Atoll.Logo}" AutomationProperties.Name="ATOLL logo" />
@@ -1099,6 +1247,7 @@
                     </StackPanel>
                 </Grid>
             </ScrollViewer>
+            </Grid>
         </DockPanel>
     </Grid>
 </Window>

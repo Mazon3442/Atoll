@@ -149,7 +149,8 @@ public partial class App : Application
             return;
         }
         var weather = _modules.Tabs.Select(t => t.Panel).OfType<Atoll.Modules.Weather.WeatherViewModel>().FirstOrDefault();
-        var vm = new SettingsViewModel(_settings, _modules.Catalog, weather) { PageIndex = Math.Clamp(page, 0, 8) };
+        var vm = new SettingsViewModel(_settings, _modules.Catalog, weather);
+        vm.PageIndex = Math.Clamp(page, 0, vm.Pages.Count - 1);
         _settingsWindow = new SettingsWindow(vm);
         _settingsWindow.Closed += (_, _) => _settingsWindow = null;
         _settingsWindow.Show();

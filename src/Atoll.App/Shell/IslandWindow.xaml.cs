@@ -1520,7 +1520,8 @@ public partial class IslandWindow : Window
 
     /// <summary>
     /// The header's one settings button opens the page for the tab being viewed. Every tab's switch is a card
-    /// on the Modules page, except the tabs that have a page of their own; General is only for "no tab".
+    /// on the Tabs page, except the tabs that have a page of their own; General is only for "no tab".
+    /// Pages 3 to 6 are shared with the desktop (Avalonia) app's settings, so they keep their numbers.
     /// </summary>
     internal static int SettingsPageFor(string? tabId) => tabId switch
     {
@@ -1528,7 +1529,8 @@ public partial class IslandWindow : Window
         "claude" or "providers" => 4,
         "calendar" => 5,
         "weather" => 6,
-        "games" => 7,
+        "media" or "clipboard" or "shelf" => 7,
+        "games" => 8,
         null => 0,
         _ => 2,
     };
