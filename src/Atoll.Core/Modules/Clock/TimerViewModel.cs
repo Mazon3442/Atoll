@@ -178,16 +178,102 @@ public sealed partial class TimerViewModel : ObservableObject
     {
         get
         {
-            var left = _target - Elapsed;
+            // An alarm counts to a moment on the clock, so a sleeping PC or a clock change cannot make it late.
+            var left = _alarmAt is { } at ? at - _time.GetUtcNow() : _target - Elapsed;
             return left > TimeSpan.Zero ? left : TimeSpan.Zero;
         }
     }
+
+    /// <summary>The running countdown ends at a set time of day instead of after a set length.</summary>
+    public bool IsAlarm => _alarmAt is not null;
+
+    private DateTimeOffset? _alarmAt;
+
+    /// <summary>What was typed in the timer box: a length in minutes ("24") or a time of day ("5:36 pm", "17:36").</summary>
+    [ObservableProperty] private string _entryText = "";
+
+    /// <summary>Shown under the inputs when what was typed is not a length or a time.</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HasMessage))]
+    private string _message = "";
+
+    public bool HasMessage => Message.Length > 0;
 
     [RelayCommand]
     private void StartCountdown(object? minutes)
     {
         var m = Convert.ToDouble(minutes, System.Globalization.CultureInfo.InvariantCulture);
         Begin(TimerKind.Countdown, TimeSpan.FromMinutes(m), "Timer");
+    }
+
+    /// <summary>A plain number is a length in minutes; anything with a colon or am/pm is a time of day for an alarm.</summary>
+    [RelayCommand]
+    private void StartEntry()
+    {
+        var text = EntryText.Trim();
+        if (text.Length > 0 && !IsTimeOfDay(text))
+        {
+            if (!TryParseLength(text, out var length))
+            {
+                Message = "Type minutes, like 24 or 17.5, or a time, like 5:36 pm.";
+                return;
+            }
+            Message = "";
+            EntryText = "";
+            Begin(TimerKind.Countdown, length, "Timer");
+            return;
+        }
+        var now = _time.GetLocalNow();
+        if (!TryNextTime(text, now, _time.LocalTimeZone, out var at))
+        {
+            Message = "Type minutes, like 24 or 17.5, or a time, like 5:36 pm.";
+            return;
+        }
+        Message = "";
+        EntryText = "";
+        Begin(TimerKind.Countdown, at - now, $"Alarm · {at.ToString("t", System.Globalization.CultureInfo.CurrentCulture)}", at);
+    }
+
+    private static bool IsTimeOfDay(string text) =>
+        text.Contains(':') || System.Text.RegularExpressions.Regex.IsMatch(text, @"[ap]\.?\s*m?\.?$", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+
+    /// <summary>Minutes ("24", "17.5"), at least a second and at most a day.</summary>
+    internal static bool TryParseLength(string? text, out TimeSpan length)
+    {
+        length = default;
+        text = text?.Trim();
+        if (string.IsNullOrEmpty(text)) return false;
+        if (!double.TryParse(text, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.CurrentCulture, out var minutes)
+            && !double.TryParse(text, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out minutes)) return false;
+        if (!double.IsFinite(minutes) || minutes < 0 || minutes > 24 * 60) return false;
+        length = TimeSpan.FromMinutes(minutes);
+        return length >= TimeSpan.FromSeconds(1);
+    }
+
+    /// <summary>
+    /// The next time the clock shows <paramref name="text"/>: later today, else tomorrow. "5:36" with no am or pm means
+    /// whichever of 5:36 am and 5:36 pm comes first; "17:36" and "5:36 pm" are exact.
+    /// </summary>
+    internal static bool TryNextTime(string? text, DateTimeOffset now, TimeZoneInfo zone, out DateTimeOffset at)
+    {
+        at = default;
+        text = text?.Trim();
+        if (string.IsNullOrEmpty(text)) return false;
+        if (!TimeOnly.TryParse(text, System.Globalization.CultureInfo.CurrentCulture, out var time)
+            && !TimeOnly.TryParse(text, System.Globalization.CultureInfo.InvariantCulture, out time)) return false;
+        var exact = System.Text.RegularExpressions.Regex.IsMatch(text, @"[ap]\.?\s*m?\.?$", System.Text.RegularExpressions.RegexOptions.IgnoreCase)
+            || time.Hour is 0 or > 12;
+        var candidates = exact ? new[] { time } : [time, time.AddHours(12)];
+        var best = DateTimeOffset.MaxValue;
+        foreach (var candidate in candidates)
+        {
+            var local = now.DateTime.Date + candidate.ToTimeSpan();
+            if (new DateTimeOffset(local, zone.GetUtcOffset(local)) <= now.AddSeconds(1)) local = local.AddDays(1);
+            var moment = new DateTimeOffset(local, zone.GetUtcOffset(local));
+            if (moment < best) best = moment;
+        }
+        at = best;
+        return true;
     }
 
     [RelayCommand]
@@ -221,7 +307,7 @@ public sealed partial class TimerViewModel : ObservableObject
     [RelayCommand(CanExecute = nameof(IsActive))]
     private void PauseResume()
     {
-        if (!IsActive) return;
+        if (!IsActive || IsAlarm) return; // an alarm goes off at its time; it cannot be paused
         if (_runningSince is { } since)
         {
             _accumulated += _time.GetUtcNow() - since;
@@ -241,6 +327,7 @@ public sealed partial class TimerViewModel : ObservableObject
     {
         if (!IsCountingDown) return;
         _target += TimeSpan.FromMinutes(1);
+        if (_alarmAt is { } at) _alarmAt = at.AddMinutes(1);
         Refresh();
     }
 
@@ -251,6 +338,8 @@ public sealed partial class TimerViewModel : ObservableObject
         _accumulated = TimeSpan.Zero;
         _runningSince = null;
         _target = TimeSpan.Zero;
+        _alarmAt = null;
+        OnPropertyChanged(nameof(IsAlarm));
         IsRunning = false;
         Kind = TimerKind.None;
         Label = "";
@@ -266,8 +355,10 @@ public sealed partial class TimerViewModel : ObservableObject
             if (Kind == TimerKind.Countdown)
             {
                 var length = _target;
+                var alarm = _alarmAt;
                 Reset();
-                Completed?.Invoke("Timer done", $"{Format(length)} timer finished");
+                if (alarm is { } at) Completed?.Invoke("Alarm", $"It's {at.ToString("t", System.Globalization.CultureInfo.CurrentCulture)}");
+                else Completed?.Invoke("Timer done", $"{Format(length)} timer finished");
                 return;
             }
             AdvancePomodoro();
@@ -293,9 +384,11 @@ public sealed partial class TimerViewModel : ObservableObject
         Completed?.Invoke("Focus session done", $"Take a {minutes} minute break");
     }
 
-    private void Begin(TimerKind kind, TimeSpan target, string label)
+    private void Begin(TimerKind kind, TimeSpan target, string label, DateTimeOffset? alarmAt = null)
     {
         var wasActive = IsActive;
+        _alarmAt = alarmAt;
+        OnPropertyChanged(nameof(IsAlarm));
         Kind = kind;
         Restart(target, label);
         if (!wasActive) ActiveChanged?.Invoke();

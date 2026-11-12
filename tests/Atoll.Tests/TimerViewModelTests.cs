@@ -136,6 +136,93 @@ public class TimerViewModelTests
         Assert.Contains(nameof(TimerViewModel.SectionIndex), changed);
     }
 
+    [Theory]
+    [InlineData("24", 24 * 60)]
+    [InlineData("17.5", 17.5 * 60)]
+    [InlineData(" 90 ", 90 * 60)]
+    [InlineData("0.5", 30)]
+    public void Custom_lengths_are_minutes(string text, double seconds)
+    {
+        Assert.True(TimerViewModel.TryParseLength(text, out var length));
+        Assert.Equal(TimeSpan.FromSeconds(seconds), length);
+    }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData("abc")]
+    [InlineData("0")]
+    [InlineData("-5")]
+    [InlineData("1:30")] // a colon means a time of day, never a length
+    [InlineData("1441")]
+    [InlineData("NaN")]
+    public void Nonsense_lengths_are_refused(string text) => Assert.False(TimerViewModel.TryParseLength(text, out _));
+
+    [Fact]
+    public void A_custom_timer_starts_from_typed_minutes_and_reports_bad_input()
+    {
+        var timer = new TimerViewModel(_time) { EntryText = "17" };
+        timer.StartEntryCommand.Execute(null);
+        Assert.Equal("17:00", timer.Display);
+        Assert.Equal("", timer.EntryText);
+        Assert.False(timer.IsAlarm);
+
+        timer.ResetCommand.Execute(null);
+        timer.EntryText = "soon";
+        timer.StartEntryCommand.Execute(null);
+        Assert.False(timer.IsActive);
+        Assert.True(timer.HasMessage);
+    }
+
+    [Theory]
+    // 4:00 pm now: a bare 5:36 means 5:36 pm today; 17:36 and 5:36 pm are exact; 3:15 is the next 3:15 (am, tomorrow).
+    [InlineData("5:36", "2026-11-12T17:36")]
+    [InlineData("17:36", "2026-11-12T17:36")]
+    [InlineData("5:36 pm", "2026-11-12T17:36")]
+    [InlineData("5:36 am", "2026-11-13T05:36")]
+    [InlineData("3:15", "2026-11-13T03:15")]
+    [InlineData("4:00 pm", "2026-11-13T16:00")] // right now has passed: tomorrow
+    [InlineData("0:30", "2026-11-13T00:30")]
+    public void An_alarm_is_the_next_time_the_clock_shows_that_time(string text, string expected)
+    {
+        var now = new DateTimeOffset(2026, 11, 12, 16, 0, 0, TimeSpan.Zero);
+        Assert.True(TimerViewModel.TryNextTime(text, now, TimeZoneInfo.Utc, out var at));
+        Assert.Equal(DateTimeOffset.Parse(expected + ":00+00:00"), at);
+    }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData("later")]
+    [InlineData("25:00")]
+    public void Nonsense_alarm_times_are_refused(string text) =>
+        Assert.False(TimerViewModel.TryNextTime(text, DateTimeOffset.UtcNow, TimeZoneInfo.Utc, out _));
+
+    [Fact]
+    public void An_alarm_goes_off_at_its_time_even_after_the_clock_jumps_and_cannot_be_paused()
+    {
+        _time.SetLocalTimeZone(TimeZoneInfo.Utc);
+        _time.SetUtcNow(new DateTimeOffset(2026, 11, 12, 16, 0, 0, TimeSpan.Zero));
+        var timer = new TimerViewModel(_time) { EntryText = "4:30 pm" };
+        var done = new List<(string, string)>();
+        timer.Completed += (title, detail) => done.Add((title, detail));
+
+        timer.StartEntryCommand.Execute(null);
+        Assert.True(timer.IsAlarm);
+        Assert.Equal("30:00", timer.Display);
+        Assert.StartsWith("Alarm", timer.Label);
+
+        timer.PauseResumeCommand.Execute(null); // ignored
+        Assert.True(timer.IsRunning);
+
+        timer.AddMinuteCommand.Execute(null);
+        Assert.Equal("31:00", timer.Display);
+
+        _time.Advance(TimeSpan.FromMinutes(31) + TimeSpan.FromSeconds(1));
+        timer.Tick();
+        Assert.Equal("Alarm", Assert.Single(done).Item1);
+        Assert.False(timer.IsActive);
+        Assert.False(timer.IsAlarm);
+    }
+
     [Fact]
     public void Stopwatch_counts_up()
     {
