@@ -505,7 +505,7 @@ public sealed partial class SettingsViewModel : ObservableObject
         {
             { Installed: false } => "Updates work once ATOLL is installed. Run Setup.exe from a release.",
             { Error: not null } => $"Update check failed: {result.Error}",
-            { Downloaded: true } => $"Version {result.Version} downloaded; it installs the next time ATOLL starts.",
+            { Downloaded: true } => $"Version {result.Version} downloaded. Restarting to install it…",
             _ => "You're on the latest version.",
         };
         OnPropertyChanged(nameof(IsInstalledApp));
@@ -513,6 +513,9 @@ public sealed partial class SettingsViewModel : ObservableObject
         OnPropertyChanged(nameof(HasPendingUpdate));
         OnPropertyChanged(nameof(PendingUpdateText));
         OnPropertyChanged(nameof(UpdateDescription));
+        // A downloaded update installs right away: ATOLL closes and reopens on the new version.
+        if (result.Downloaded && Application.Current is App app && !app.InstallUpdateNow())
+            UpdateMessage = $"Version {result.Version} downloaded; it installs the next time ATOLL starts.";
     }
 
     /// <summary>Why the restart did not happen; empty otherwise.</summary>

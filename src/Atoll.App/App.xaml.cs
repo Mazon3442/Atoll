@@ -174,8 +174,6 @@ public partial class App : Application
         _onboardingWindow.Activate();
     }
 
-    private string? _askedAboutVersion;
-
     private async Task CheckUpdatesLoopAsync()
     {
         try
@@ -184,7 +182,7 @@ public partial class App : Application
             while (true)
             {
                 var result = await UpdateService.CheckAndDownloadAsync();
-                if (result is { Downloaded: true, Version: { } version }) await Dispatcher.InvokeAsync(() => AskToRestart(version));
+                if (result is { Downloaded: true }) await Dispatcher.InvokeAsync(InstallUpdateNow);
                 await Task.Delay(TimeSpan.FromHours(1));
             }
         }
@@ -194,19 +192,15 @@ public partial class App : Application
         }
     }
 
-    /// <summary>Posts the restart question once per downloaded version; Later keeps the quiet apply-on-next-start.</summary>
-    private void AskToRestart(string version)
+    /// <summary>
+    /// Closes ATOLL, installs the update that is already downloaded and starts the new version. Returns false when
+    /// there is nothing to install, in which case ATOLL keeps running.
+    /// </summary>
+    internal bool InstallUpdateNow()
     {
-        if (_activities is null || _askedAboutVersion == version) return;
-        _askedAboutVersion = version;
-        const string id = "update.ready";
-        var prompt = new UpdatePromptViewModel(version,
-            restart: () =>
-            {
-                if (UpdateService.ApplyOnExitAndRestart()) Shutdown();
-            },
-            dismiss: () => _activities.Remove(id));
-        _activities.Post(new Activity(id, "update", prompt, ActivityPriority.High, TimeSpan.FromMinutes(5), alert: true));
+        if (!UpdateService.ApplyOnExitAndRestart()) return false;
+        Shutdown();
+        return true;
     }
 
     private static void OnUnhandledException(object sender, DispatcherUnhandledExceptionEventArgs e)
