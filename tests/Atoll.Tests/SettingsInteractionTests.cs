@@ -166,8 +166,8 @@ public class SettingsInteractionTests
     {
         var service = new SettingsService(new SettingsStore(Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".json")));
         using var vm = new SettingsViewModel(service, ModuleCatalog.All);
-        Assert.Equal(7, vm.Pages.ToList().FindIndex(page => page.Title == "Games"));
-        Assert.Equal(8, vm.Pages.ToList().FindIndex(page => page.Title == "About"));
+        Assert.Equal(8, vm.Pages.ToList().FindIndex(page => page.Title == "Games"));
+        Assert.Equal(9, vm.Pages.ToList().FindIndex(page => page.Title == "About"));
 
         vm.GameMode = GameIslandMode.Hidden;
         vm.GameMuteNotifications = false;

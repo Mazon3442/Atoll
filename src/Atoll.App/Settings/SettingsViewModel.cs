@@ -49,11 +49,12 @@ public sealed partial class SettingsViewModel : ObservableObject
     [
         new("General", ""),
         new("Appearance", ""),
-        new("Modules", ""),
+        new("Tabs", ""),
         new("Notifications", ""),
         new("Agents", ""),
         new("Calendar", "\uE787"),
         new("Weather", "\uE753"),
+        new("Media & files", "\uE8D6"),
         new("Games", "\uE7FC"),
         new("About", ""),
     ];
@@ -67,13 +68,14 @@ public sealed partial class SettingsViewModel : ObservableObject
     public string PageDescription => PageIndex switch
     {
         1 => "Make the island yours. Changes apply automatically.",
-        2 => "Choose what appears in your island.",
+        2 => "Turn tabs on or off, bookmark them in the top row, and put them in order.",
         3 => "Decide which notifications reach you and what they show.",
         4 => "Connect coding agents or your own API keys, ask a quick question, and choose alert sounds.",
         5 => "Connect calendars and set event reminders.",
         6 => "Choose a place and explore its forecast.",
-        7 => "Set how games appear, what ATOLL watches, and your Minecraft server.",
-        8 => "Version, updates, and local app data.",
+        7 => "Song announcements and lyrics, clipboard history and the file shelf.",
+        8 => "Set how games appear, what ATOLL watches, and your Minecraft server.",
+        9 => "Version, updates, and local app data.",
         _ => "Set how ATOLL opens, behaves, and sits on your displays.",
     };
 
@@ -331,6 +333,8 @@ public sealed partial class SettingsViewModel : ObservableObject
     ];
     public GameIslandMode GameMode { get => S.Games.Mode; set => Set(S.Games.Mode, value, v => S.Games.Mode = v); }
     public bool GameMuteNotifications { get => S.Games.MuteNotifications; set => Set(S.Games.MuteNotifications, value, v => S.Games.MuteNotifications = v); }
+    public bool GameOverlayShowMusic { get => S.Games.OverlayShowMusic; set => Set(S.Games.OverlayShowMusic, value, v => S.Games.OverlayShowMusic = v); }
+    public bool GameOverlayShowClaude { get => S.Games.OverlayShowClaude; set => Set(S.Games.OverlayShowClaude, value, v => S.Games.OverlayShowClaude = v); }
     public bool GameShowPerformance { get => S.Games.ShowPerformance; set => Set(S.Games.ShowPerformance, value, v => S.Games.ShowPerformance = v); }
     public bool GameShowPlayTime { get => S.Games.ShowPlayTime; set => Set(S.Games.ShowPlayTime, value, v => S.Games.ShowPlayTime = v); }
     public bool GameAnnounceStart { get => S.Games.AnnounceGameStart; set => Set(S.Games.AnnounceGameStart, value, v => S.Games.AnnounceGameStart = v); }
@@ -350,6 +354,7 @@ public sealed partial class SettingsViewModel : ObservableObject
     public int GameServerInterval { get => S.Games.ServerRefreshSeconds; set => Set(S.Games.ServerRefreshSeconds, value, v => S.Games.ServerRefreshSeconds = v); }
 
     public bool ShowLyrics { get => S.ShowLyrics; set => Set(S.ShowLyrics, value, v => S.ShowLyrics = v); }
+    public bool AnnounceTrackChanges { get => S.AnnounceTrackChanges; set => Set(S.AnnounceTrackChanges, value, v => S.AnnounceTrackChanges = v); }
 
     /// <summary>Opt-in: the clipboard module reads and writes nothing while this is false.</summary>
     public bool ClipboardHistoryEnabled

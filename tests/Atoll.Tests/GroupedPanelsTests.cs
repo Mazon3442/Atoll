@@ -84,17 +84,17 @@ public class GroupedPanelsTests
     [InlineData("notes", 2)]
     [InlineData("tide", 2)]
     [InlineData("launcher", 2)]
-    [InlineData("shelf", 2)]
-    [InlineData("clipboard", 2)]
+    [InlineData("shelf", 7)]
+    [InlineData("clipboard", 7)]
     [InlineData("claude", 4)]
     [InlineData("providers", 4)]
     [InlineData("notifications", 3)]
     [InlineData("weather", 6)]
-    [InlineData("media", 2)]
+    [InlineData("media", 7)]
     [InlineData("system", 2)]
     [InlineData("downloads", 2)]
     [InlineData("home", 2)]
-    [InlineData("games", 7)]
+    [InlineData("games", 8)]
     [InlineData(null, 0)]
     public void The_header_settings_button_opens_the_page_for_the_current_tab(string? tab, int page) =>
         Assert.Equal(page, Atoll.Shell.IslandWindow.SettingsPageFor(tab));
@@ -176,6 +176,7 @@ public class GroupedPanelsTests
         panels.Add(("time-timer-idle", new TimePanelViewModel(idleClock, agenda)));
         panels.Add(("time-pomodoro", new ClockPanelViewModel(idleClock.Clock, pomodoroTimer)));
         panels.Add(("time-pomodoro-narrow", new ClockPanelViewModel(idleClock.Clock, narrowPomodoro)));
+        panels.Add(("time-alarm", new ClockPanelViewModel(idleClock.Clock, new TimerViewModel(TimeProvider.System) { SectionIndex = 2 })));
         panels.Add(("time-timer-running", new TimePanelViewModel(new ClockPanelViewModel(idleClock.Clock, runningTimer), agenda)));
         panels.Add(("time-no-calendars", new TimePanelViewModel(idleClock, new CalendarViewModel(() => { }))));
         panels.Add(("clipboard-only", new FilesPanelViewModel(null, new ClipboardViewModel(new ClipboardHistory()))));
@@ -220,6 +221,17 @@ public class GroupedPanelsTests
         {
             SectionIndex = 2,
         }));
+        // The Alarm section: hour, minute and am/pm pickers, then Set, all inside the default panel height.
+        var alarmView = (FrameworkElement)((DataTemplate)resources["ClockPanelViewModel.Panel"]).LoadContent();
+        alarmView.DataContext = new ClockPanelViewModel(idleClock.Clock, new TimerViewModel(TimeProvider.System) { SectionIndex = 2 });
+        alarmView.Measure(new Size(476, 600)); alarmView.Arrange(new Rect(0, 0, 476, 600)); alarmView.UpdateLayout();
+        Assert.Equal(Visibility.Visible, Descendants<StackPanel>(alarmView).Single(p => p.Name == "AlarmSection").Visibility);
+        var alarmButtons = Descendants<Button>(alarmView).Select(AutomationProperties.GetName).ToList();
+        Assert.Contains("Later hour", alarmButtons);
+        Assert.Contains("Earlier minute", alarmButtons);
+        Assert.Contains("Set the alarm", alarmButtons);
+        Assert.InRange(alarmView.DesiredSize.Height, 1, new Atoll.Settings.AppSettings().Theme.ExpandedHeight - 26);
+
         foreach (var mode in new[] { "Compact", "Peek", "Mini" })
         {
             var icon = (FrameworkElement)((DataTemplate)resources["NotificationItemViewModel." + mode]).LoadContent();

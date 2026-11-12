@@ -12,6 +12,7 @@ using System.Windows.Threading;
 using Atoll.Activities;
 using Atoll.Modules;
 using Atoll.Modules.Clock;
+using Atoll.Modules.Games;
 using Atoll.Modules.Launcher;
 using Atoll.Settings;
 using Atoll.Theme;
@@ -350,8 +351,22 @@ public partial class IslandWindow : Window
     public void SetActivities(Activity? primary, Activity? secondary, Activity? tertiary = null) =>
         SetActivitySnapshot(primary, new[] { secondary, tertiary }.OfType<Activity>().ToList());
 
+    private Activity? _livePrimary;
+    private IReadOnlyList<Activity> _liveSides = [];
+
     public void SetActivitySnapshot(Activity? primary, IReadOnlyList<Activity> sides)
     {
+        _livePrimary = primary;
+        _liveSides = sides;
+        ApplyActivities();
+    }
+
+    /// <summary>The live activities, minus what the game overlay shows inside the game pill or has switched off.</summary>
+    private void ApplyActivities()
+    {
+        var (primary, sides) = OverlayExtras.Applies(_settings.Current, _foreground)
+            ? OverlayExtras.Filter(_settings.Current, _livePrimary, _liveSides)
+            : (_livePrimary, _liveSides);
         var isNewPrimary = !ReferenceEquals(primary, _primary);
         _primary = primary;
         _sideActivities = sides.Take(4).ToList();
@@ -720,7 +735,9 @@ public partial class IslandWindow : Window
         if (foreground is { } kind && kind != _foreground)
         {
             Log.Info($"Foreground on {Monitor.DeviceName}: {kind}");
+            var overlayChanged = OverlayExtras.Applies(_settings.Current, kind) != OverlayExtras.Applies(_settings.Current, _foreground);
             _foreground = kind;
+            if (overlayChanged) ApplyActivities();
         }
         if (paused || ShownWithoutReveal())
         {
@@ -951,6 +968,12 @@ public partial class IslandWindow : Window
                     return;
                 }
                 if (ClickThrough) SetFaded(true); // see (and click) what is underneath while passing over
+                // Resting on a side bubble must not grow the main pill: it would push the bubble away from the pointer.
+                if (!PillBounds().Contains(screen))
+                {
+                    _dwellMs = 0;
+                    return;
+                }
                 _dwellMs += PointerTickMs;
                 var dwell = Math.Clamp(_settings.Current.HoverDelayMs, 0, 2000);
                 if (ClickThrough) dwell = Math.Max(dwell, MinClickThroughDwellMs);
@@ -1010,6 +1033,10 @@ public partial class IslandWindow : Window
     internal bool IsCursorOverIsland(Point screen) => IsVisible &&
         (IslandBounds().Contains(screen) || (_mode == IslandMode.Peek && _peekAnchor.Contains(screen))
             || (_revealed && IsTopEdge(screen)));
+
+    private Rect PillBounds() => IsVisible
+        ? new Rect(Pill.PointToScreen(new Point()), Pill.PointToScreen(new Point(Pill.ActualWidth, Pill.ActualHeight)))
+        : Rect.Empty;
 
     private Rect IslandBounds()
     {
@@ -1520,7 +1547,8 @@ public partial class IslandWindow : Window
 
     /// <summary>
     /// The header's one settings button opens the page for the tab being viewed. Every tab's switch is a card
-    /// on the Modules page, except the tabs that have a page of their own; General is only for "no tab".
+    /// on the Tabs page, except the tabs that have a page of their own; General is only for "no tab".
+    /// Pages 3 to 6 are shared with the desktop (Avalonia) app's settings, so they keep their numbers.
     /// </summary>
     internal static int SettingsPageFor(string? tabId) => tabId switch
     {
@@ -1528,7 +1556,8 @@ public partial class IslandWindow : Window
         "claude" or "providers" => 4,
         "calendar" => 5,
         "weather" => 6,
-        "games" => 7,
+        "media" or "clipboard" or "shelf" => 7,
+        "games" => 8,
         null => 0,
         _ => 2,
     };

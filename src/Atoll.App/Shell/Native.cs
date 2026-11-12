@@ -93,6 +93,8 @@ internal static class Native
     /// <summary>QUNS_QUIET_TIME: Windows Focus/Do Not Disturb is active.</summary>
     public const int QUNS_QUIET_TIME = 6;
     public const int QUNS_RUNNING_D3D_FULL_SCREEN = 3;
+    /// <summary>QUNS_BUSY: a fullscreen app (not Direct3D exclusive) is in front.</summary>
+    public const int QUNS_BUSY = 2;
 
     private const uint PROCESS_QUERY_LIMITED_INFORMATION = 0x1000;
 

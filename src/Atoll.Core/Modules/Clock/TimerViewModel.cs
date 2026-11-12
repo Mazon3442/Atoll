@@ -36,6 +36,9 @@ public sealed partial class TimerViewModel : ObservableObject
     {
         _time = time;
         _pomodoro = pomodoro ?? new PomodoroSettings();
+        // Start the alarm picker at the next five minutes.
+        var now = _time.GetLocalNow();
+        _alarmTime = new TimeOnly(now.Hour, now.Minute).AddMinutes(5 - now.Minute % 5);
     }
 
     /// <summary>Uses the saved Pomodoro lengths; edits are written back through <paramref name="save"/>.</summary>
@@ -52,15 +55,16 @@ public sealed partial class TimerViewModel : ObservableObject
             OnPropertyChanged(name);
     }
 
-    /// <summary>The timer tab's two sections: plain timers, then the Pomodoro setup.</summary>
-    public IReadOnlyList<string> Sections { get; } = ["Timer", "Pomodoro"];
+    /// <summary>The timer tab's three sections: plain timers, the Pomodoro setup, then the alarm.</summary>
+    public IReadOnlyList<string> Sections { get; } = ["Timer", "Pomodoro", "Alarm"];
 
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(IsTimerSection), nameof(IsPomodoroSection))]
+    [NotifyPropertyChangedFor(nameof(IsTimerSection), nameof(IsPomodoroSection), nameof(IsAlarmSection))]
     private int _sectionIndex;
 
     public bool IsTimerSection => SectionIndex == 0;
     public bool IsPomodoroSection => SectionIndex == 1;
+    public bool IsAlarmSection => SectionIndex == 2;
 
     public int FocusMinutes
     {
@@ -178,10 +182,33 @@ public sealed partial class TimerViewModel : ObservableObject
     {
         get
         {
-            var left = _target - Elapsed;
+            // An alarm counts to a moment on the clock, so a sleeping PC or a clock change cannot make it late.
+            var left = _alarmAt is { } at ? at - _time.GetUtcNow() : _target - Elapsed;
             return left > TimeSpan.Zero ? left : TimeSpan.Zero;
         }
     }
+
+    /// <summary>The running countdown ends at a set time of day instead of after a set length.</summary>
+    public bool IsAlarm => _alarmAt is not null;
+
+    private DateTimeOffset? _alarmAt;
+
+    // A length in minutes for the Start button beside the stopwatch: stepped or typed.
+    private const int MinCustom = 1, MaxCustom = 24 * 60;
+    private int _customMinutes = 15;
+
+    public int CustomMinutes
+    {
+        get => _customMinutes;
+        set
+        {
+            _customMinutes = Math.Clamp(value, MinCustom, MaxCustom);
+            OnPropertyChanged();
+        }
+    }
+
+    [RelayCommand] private void AddCustomMinute() => CustomMinutes += 1;
+    [RelayCommand] private void SubtractCustomMinute() => CustomMinutes -= 1;
 
     [RelayCommand]
     private void StartCountdown(object? minutes)
@@ -190,6 +217,66 @@ public sealed partial class TimerViewModel : ObservableObject
         Begin(TimerKind.Countdown, TimeSpan.FromMinutes(m), "Timer");
     }
 
+    [RelayCommand]
+    private void StartCustom() => Begin(TimerKind.Countdown, TimeSpan.FromMinutes(CustomMinutes), "Timer");
+
+    // The Alarm section: a time of day with hour, minute and am/pm each set on its own, like a picker.
+    private TimeOnly _alarmTime;
+
+    public string AlarmHourText => (_alarmTime.Hour % 12 == 0 ? 12 : _alarmTime.Hour % 12).ToString(System.Globalization.CultureInfo.CurrentCulture);
+    public string AlarmMinuteText => _alarmTime.Minute.ToString("00", System.Globalization.CultureInfo.CurrentCulture);
+
+    /// <summary>0 for am, 1 for pm.</summary>
+    public int AlarmPmIndex
+    {
+        get => _alarmTime.Hour >= 12 ? 1 : 0;
+        set
+        {
+            var hour = _alarmTime.Hour % 12 + (value == 1 ? 12 : 0);
+            SetAlarmTime(new TimeOnly(hour, _alarmTime.Minute));
+        }
+    }
+
+    /// <summary>"Rings today at 5:36 PM", or tomorrow when that time has passed.</summary>
+    public string AlarmSummary
+    {
+        get
+        {
+            var now = _time.GetLocalNow();
+            var at = NextOccurrence(_alarmTime, now, _time.LocalTimeZone);
+            var day = at.Date == now.Date ? "today" : "tomorrow";
+            return $"Rings {day} at {at.ToString("t", System.Globalization.CultureInfo.CurrentCulture)}";
+        }
+    }
+
+    // Hours wrap through 12 and flip am/pm; minutes wrap through 59 without touching the hour.
+    [RelayCommand] private void AddAlarmHour() => SetAlarmTime(_alarmTime.AddHours(1));
+    [RelayCommand] private void SubtractAlarmHour() => SetAlarmTime(_alarmTime.AddHours(-1));
+    [RelayCommand] private void AddAlarmMinute() => SetAlarmTime(new TimeOnly(_alarmTime.Hour, (_alarmTime.Minute + 1) % 60));
+    [RelayCommand] private void SubtractAlarmMinute() => SetAlarmTime(new TimeOnly(_alarmTime.Hour, (_alarmTime.Minute + 59) % 60));
+
+    private void SetAlarmTime(TimeOnly time)
+    {
+        _alarmTime = time;
+        foreach (var name in new[] { nameof(AlarmHourText), nameof(AlarmMinuteText), nameof(AlarmPmIndex), nameof(AlarmSummary) })
+            OnPropertyChanged(name);
+    }
+
+    [RelayCommand]
+    private void StartAlarm()
+    {
+        var now = _time.GetLocalNow();
+        var at = NextOccurrence(_alarmTime, now, _time.LocalTimeZone);
+        Begin(TimerKind.Countdown, at - now, $"Alarm · {at.ToString("t", System.Globalization.CultureInfo.CurrentCulture)}", at);
+    }
+
+    /// <summary>The next moment the clock shows <paramref name="time"/>: later today, else tomorrow.</summary>
+    internal static DateTimeOffset NextOccurrence(TimeOnly time, DateTimeOffset now, TimeZoneInfo zone)
+    {
+        var local = now.DateTime.Date + time.ToTimeSpan();
+        if (new DateTimeOffset(local, zone.GetUtcOffset(local)) <= now.AddSeconds(1)) local = local.AddDays(1);
+        return new DateTimeOffset(local, zone.GetUtcOffset(local));
+    }
     [RelayCommand]
     private void StartStopwatch() => Begin(TimerKind.Stopwatch, TimeSpan.Zero, "Stopwatch");
 
@@ -221,7 +308,7 @@ public sealed partial class TimerViewModel : ObservableObject
     [RelayCommand(CanExecute = nameof(IsActive))]
     private void PauseResume()
     {
-        if (!IsActive) return;
+        if (!IsActive || IsAlarm) return; // an alarm goes off at its time; it cannot be paused
         if (_runningSince is { } since)
         {
             _accumulated += _time.GetUtcNow() - since;
@@ -241,6 +328,7 @@ public sealed partial class TimerViewModel : ObservableObject
     {
         if (!IsCountingDown) return;
         _target += TimeSpan.FromMinutes(1);
+        if (_alarmAt is { } at) _alarmAt = at.AddMinutes(1);
         Refresh();
     }
 
@@ -251,6 +339,8 @@ public sealed partial class TimerViewModel : ObservableObject
         _accumulated = TimeSpan.Zero;
         _runningSince = null;
         _target = TimeSpan.Zero;
+        _alarmAt = null;
+        OnPropertyChanged(nameof(IsAlarm));
         IsRunning = false;
         Kind = TimerKind.None;
         Label = "";
@@ -266,8 +356,10 @@ public sealed partial class TimerViewModel : ObservableObject
             if (Kind == TimerKind.Countdown)
             {
                 var length = _target;
+                var alarm = _alarmAt;
                 Reset();
-                Completed?.Invoke("Timer done", $"{Format(length)} timer finished");
+                if (alarm is { } at) Completed?.Invoke("Alarm", $"It's {at.ToString("t", System.Globalization.CultureInfo.CurrentCulture)}");
+                else Completed?.Invoke("Timer done", $"{Format(length)} timer finished");
                 return;
             }
             AdvancePomodoro();
@@ -293,9 +385,11 @@ public sealed partial class TimerViewModel : ObservableObject
         Completed?.Invoke("Focus session done", $"Take a {minutes} minute break");
     }
 
-    private void Begin(TimerKind kind, TimeSpan target, string label)
+    private void Begin(TimerKind kind, TimeSpan target, string label, DateTimeOffset? alarmAt = null)
     {
         var wasActive = IsActive;
+        _alarmAt = alarmAt;
+        OnPropertyChanged(nameof(IsAlarm));
         Kind = kind;
         Restart(target, label);
         if (!wasActive) ActiveChanged?.Invoke();

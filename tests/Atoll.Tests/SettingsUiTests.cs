@@ -6,6 +6,7 @@ using Atoll.Shell;
 using Atoll.Theme;
 using Atoll.Modules.Weather;
 using System.Windows;
+using System.Windows.Automation;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
 using System.Windows.Media;
@@ -108,23 +109,33 @@ public class SettingsUiTests
                         Render(window, $"{mode}-{width}-{page}");
                         if (page == 4)
                         {
-                            // The API keys section sits below the agent adapters.
+                            // The API keys section sits below the agent adapters, folded until opened.
+                            foreach (var fold in Descendants<Expander>(window).Where(x => AutomationProperties.GetName(x) is "Your own API keys" or "Ask"))
+                                fold.IsExpanded = true;
+                            Drain(); window.UpdateLayout();
                             var keys = (FrameworkElement)window.FindName("ProviderList");
                             scroll.ScrollToVerticalOffset(keys.TranslatePoint(new Point(), (UIElement)scroll.Content).Y - 160);
                             Drain(); window.UpdateLayout();
                             Render(window, $"{mode}-{width}-4-api-keys");
                             scroll.ScrollToVerticalOffset(0);
                         }
-                        if (page == 7 && scroll.ScrollableHeight > 0)
+                        if (page == 8)
+                        {
+                            foreach (var fold in Descendants<Expander>(window).Where(x => AutomationProperties.GetName(x) is "Detection" or "Minecraft server"))
+                                fold.IsExpanded = true;
+                            Drain(); window.UpdateLayout();
+                        }
+                        if (page == 8 && scroll.ScrollableHeight > 0)
                         {
                             scroll.ScrollToVerticalOffset(scroll.ScrollableHeight);
                             Drain(); window.UpdateLayout();
-                            Render(window, $"{mode}-{width}-7-minecraft");
+                            Render(window, $"{mode}-{width}-8-minecraft");
                             scroll.ScrollToVerticalOffset(0);
                         }
                     }
                 }
             }
+            VerifySearch(window, vm);
             vm.PageIndex = 1;
             window.Width = 1040;
             window.UpdateLayout();
@@ -332,6 +343,57 @@ public class SettingsUiTests
             Assert.Equal(Visibility.Visible, ((Grid)hidden.FindName("PanelRoot")).Visibility); // opened, not just peeking
         }
         finally { hidden.Close(); service.Current.HideWhenIdle = false; }
+    }
+
+    [Theory]
+    [InlineData("announce songs", "Announce new songs", 2)]
+    [InlineData("ANNOUNCE", "Announce new songs", 2)]
+    [InlineData("quietly", "Announce new songs", 1)] // only in the description
+    [InlineData("lyrics media", "Show synced lyrics", 1)] // description and page
+    [InlineData("zzz", "Announce new songs", 0)]
+    [InlineData("", "Announce new songs", 0)]
+    public void Search_scores_titles_above_descriptions(string query, string header, int expected) =>
+        Assert.Equal(expected, SettingsSearch.Score(query, header, "Shows the island when a song starts. When off, songs switch quietly. Media & files Music Switch"));
+
+    private static void VerifySearch(SettingsWindow window, SettingsViewModel vm)
+    {
+        var search = (TextBox)window.FindName("SearchBox");
+        var results = (Panel)window.FindName("ResultsPanel");
+        var pages = (ScrollViewer)window.FindName("PageScroll");
+
+        // A setting on another page, with its kind and state, in place of the page.
+        search.Text = "announce songs"; Drain(); window.UpdateLayout();
+        Assert.Equal(Visibility.Collapsed, pages.Visibility);
+        var hit = results.Children.OfType<Button>().First();
+        Assert.Equal("Announce new songs, Media & files › Music, Switch · On", AutomationProperties.GetName(hit));
+        Render(window, "search-results");
+        hit.RaiseEvent(new RoutedEventArgs(Button.ClickEvent)); Drain(); window.UpdateLayout();
+        Assert.Equal(7, vm.PageIndex);
+        Assert.Equal("", search.Text);
+        Assert.Equal(Visibility.Visible, pages.Visibility);
+
+        // Clicking a switch's row flips the switch.
+        var card = Descendants<SettingCard>(window).First(c => c.Header == "Announce new songs");
+        Assert.True(card.IsSwitchRow);
+        var before = vm.AnnounceTrackChanges;
+        card.RaiseEvent(new System.Windows.Input.MouseButtonEventArgs(System.Windows.Input.Mouse.PrimaryDevice, 0, System.Windows.Input.MouseButton.Left)
+            { RoutedEvent = UIElement.MouseLeftButtonUpEvent, Source = card });
+        Assert.Equal(!before, vm.AnnounceTrackChanges);
+        vm.AnnounceTrackChanges = before;
+
+        // A setting inside a folded section: opening it unfolds the section.
+        search.Text = "hover delay"; Drain();
+        results.Children.OfType<Button>().First().RaiseEvent(new RoutedEventArgs(Button.ClickEvent)); Drain(); window.UpdateLayout();
+        Assert.Equal(0, vm.PageIndex);
+        Assert.True(Descendants<Expander>(window).First(x => AutomationProperties.GetName(x) == "Pointer").IsExpanded);
+
+        // Page names are results too, and nonsense finds nothing.
+        search.Text = "games"; Drain();
+        results.Children.OfType<Button>().First().RaiseEvent(new RoutedEventArgs(Button.ClickEvent)); Drain();
+        Assert.Equal(8, vm.PageIndex);
+        search.Text = "zzzzqq"; Drain();
+        Assert.Empty(results.Children.OfType<Button>());
+        search.Text = "";
     }
 
     private static IEnumerable<T> Descendants<T>(DependencyObject parent) where T : DependencyObject

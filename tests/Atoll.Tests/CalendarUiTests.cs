@@ -209,7 +209,12 @@ internal static class CalendarUiTests
             Assert.Equal(2, Descendants<Button>(bubble).Count(b => System.Windows.Automation.AutomationProperties.GetName(b).Length > 0));
             var pointer = bubble.PointToScreen(new Point(bubble.ActualWidth / 2, bubble.ActualHeight / 2));
             var compactWidth = pill.ActualWidth;
-            for (var i = 0; i < 6; i++) island.OnPointerTick(pointer);
+            // Resting on a side bubble leaves the main pill alone, so the bubble stays under the pointer.
+            for (var i = 0; i < 30; i++) island.OnPointerTick(pointer);
+            Assert.Same(Templates.Find(island, next, "Compact"), ((ContentPresenter)island.FindName("PillContent")).ContentTemplate);
+            // Resting on the main pill grows it; the bubble's old spot stays part of the hover area.
+            var pillPointer = pill.PointToScreen(new Point(pill.ActualWidth / 2, pill.ActualHeight / 2));
+            for (var i = 0; i < 6; i++) island.OnPointerTick(pillPointer);
             Assert.Same(Templates.Find(island, next, "Peek"), ((ContentPresenter)island.FindName("PillContent")).ContentTemplate);
             pill.BeginAnimation(FrameworkElement.WidthProperty, null);
             pill.Width = compactWidth + 24;
