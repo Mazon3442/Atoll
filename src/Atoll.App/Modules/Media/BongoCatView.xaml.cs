@@ -59,7 +59,7 @@ public partial class BongoCatView : UserControl
         }
         if (_frames.Count > 1 && Playing && IsLoaded && IsVisible && AnimationsAllowed())
         {
-            if (!_timer.IsEnabled) { _timer.Interval = _frames[_index].Delay; _timer.Start(); }
+            if (!_timer.IsEnabled) { _timer.Interval = DelayOf(_index); _timer.Start(); }
         }
         else _timer.Stop(); // paused keeps the frame it is on
     }
@@ -67,9 +67,16 @@ public partial class BongoCatView : UserControl
     private void Step()
     {
         _index = (_index + 1) % _frames.Count;
-        _timer.Interval = _frames[_index].Delay;
+        _timer.Interval = DelayOf(_index);
         Show();
     }
+
+    /// <summary>
+    /// The GIFs run far faster than music: classic slaps 10 times a second, excited loops about 3 times a second. Music
+    /// mostly sits near 120 BPM (a beat every 500 ms), so classic is slowed to one slap per 250 ms and excited to one loop
+    /// per beat. The tempo of the song itself is not available from Windows, so this is a fixed average, not a sync.
+    /// </summary>
+    private TimeSpan DelayOf(int frame) => _frames[frame].Delay * (Variant == BongoCatStyle.Excited ? 1.7 : 2.5);
 
     private void Show() => Picture.Source = _frames.Count == 0 ? null : _frames[_index].Image;
 
