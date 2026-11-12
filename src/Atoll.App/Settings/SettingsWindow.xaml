@@ -798,6 +798,11 @@
                                        Description="Looks up the playing song's title and artist on lrclib.net and shows the current line in the media tab.">
                             <CheckBox Style="{StaticResource Toggle}" IsChecked="{Binding ShowLyrics}" AutomationProperties.Name="Show synced lyrics" />
                         </s:SettingCard>
+                        <s:SettingCard Glyph="&#xE8D6;" Header="Bongo Cat"
+                                       Description="A cat drums along in the media tab while lyrics are off. It plays with the music and freezes when the song pauses.">
+                            <ComboBox Width="200" ItemsSource="{Binding BongoCatStyles}" DisplayMemberPath="Label"
+                                      SelectedValuePath="Value" SelectedValue="{Binding BongoCat}" AutomationProperties.Name="Bongo Cat" />
+                        </s:SettingCard>
 
                         <TextBlock Style="{StaticResource SectionHeader}" Text="Clipboard and files" />
                         <TextBlock Style="{StaticResource SectionHint}" Text="Clipboard history is off until you turn it on. The shelf keeps only file locations." />
@@ -1198,6 +1203,12 @@
                         <s:SettingCard Glyph="&#xE8B7;" Header="Settings and logs" Description="{Binding DataFolder}">
                             <Button Content="Open folder" Padding="14,5" Command="{Binding OpenDataFolderCommand}" />
                         </s:SettingCard>
+                        <s:SettingCard Glyph="&#xE7E8;" Header="Restart ATOLL"
+                                       Description="Closes ATOLL and opens it again, back on this page.">
+                            <Button Content="Restart" Padding="14,5" Command="{Binding RestartAppCommand}" />
+                        </s:SettingCard>
+                        <TextBlock Text="{Binding RestartMessage}" Style="{StaticResource Hint}" Margin="4,2,0,0"
+                                   Visibility="{Binding RestartMessage, Converter={StaticResource EmptyToCollapsed}}" />
                         <s:SettingCard Glyph="&#xE946;" Header="Welcome setup"
                                        Description="Meet the island again and choose which tabs sit in the top row.">
                             <Button Content="Open setup" Padding="14,5" Click="OnOpenOnboarding" />

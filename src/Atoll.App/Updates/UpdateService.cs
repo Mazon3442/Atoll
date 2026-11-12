@@ -8,8 +8,8 @@ public sealed record UpdateResult(bool Installed, bool Downloaded, string? Versi
 
 /// <summary>
 /// Checks the GitHub releases for a newer version and downloads it quietly in the background. The
-/// update is applied by <see cref="VelopackApp"/> the next time ATOLL starts, or right away when the user
-/// answers the restart prompt, so the running session is never interrupted.
+/// update is applied by the caller right after the download (ATOLL closes, installs and reopens), or by
+/// <see cref="VelopackApp"/> the next time ATOLL starts if that restart could not be started.
 /// </summary>
 public static class UpdateService
 {
@@ -58,7 +58,7 @@ public static class UpdateService
             if (info is null) return new UpdateResult(true, false, null, null);
 
             await manager.DownloadUpdatesAsync(info);
-            Log.Info($"Downloaded update {info.TargetFullRelease?.Version}; it applies on the next restart.");
+            Log.Info($"Downloaded update {info.TargetFullRelease?.Version}; installing it now.");
             return new UpdateResult(true, true, info.TargetFullRelease?.Version?.ToString(), null);
         }
         catch (Exception ex)

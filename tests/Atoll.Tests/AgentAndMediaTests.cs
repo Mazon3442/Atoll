@@ -219,6 +219,27 @@ internal static class AgentMediaUi
         media.CanShuffle = true; media.IsShuffling = true; media.CanRepeat = true; media.Repeat = MediaRepeat.One;
         Render(media, "MediaViewModel.Panel", "media-panel", 600, 180);
 
+        // Bongo Cat: off by default, and it takes the lyrics slot only while lyrics are off.
+        Assert.False(media.ShowBongoCat);
+        media.ShowLyrics = false; media.HasLyrics = false;
+        Assert.False(media.ShowBongoCat);
+        media.BongoCat = BongoCatStyle.Classic; media.IsPlaying = true;
+        Assert.True(media.ShowBongoCat);
+        Render(media, "MediaViewModel.Panel", "media-bongo-cat", 600, 180);
+        media.BongoCat = BongoCatStyle.Excited; media.IsPlaying = false;
+        Render(media, "MediaViewModel.Panel", "media-bongo-cat-excited-paused", 600, 180);
+        media.ShowLyrics = true;
+        Assert.False(media.ShowBongoCat);
+        Assert.False(new AppSettings().BongoCat != BongoCatStyle.Off);
+
+        // The shipped GIFs decode into full-canvas frames: the white cat has 2, the cyan one 10.
+        var classic = BongoCatView.Decode(new Uri("pack://application:,,,/Atoll;component/Assets/BongoCat/classic.gif"));
+        var excited = BongoCatView.Decode(new Uri("pack://application:,,,/Atoll;component/Assets/BongoCat/excited.gif"));
+        Assert.Equal(2, classic.Count);
+        Assert.Equal(10, excited.Count);
+        Assert.All(classic, f => Assert.Equal((200, 126), (f.Image.PixelWidth, f.Image.PixelHeight)));
+        Assert.All(excited, f => Assert.Equal((128, 128), (f.Image.PixelWidth, f.Image.PixelHeight)));
+
         var stats = new StatsViewModel();
         stats.Devices.Add(new DeviceBattery("MX Anywhere 2S", 90));
         stats.Devices.Add(new DeviceBattery("Xbox Wireless Controller", 19));

@@ -353,6 +353,13 @@ public sealed partial class SettingsViewModel : ObservableObject
     ];
     public int GameServerInterval { get => S.Games.ServerRefreshSeconds; set => Set(S.Games.ServerRefreshSeconds, value, v => S.Games.ServerRefreshSeconds = v); }
 
+    public IReadOnlyList<Choice<BongoCatStyle>> BongoCatStyles { get; } =
+    [
+        new(BongoCatStyle.Off, "Off"),
+        new(BongoCatStyle.Classic, "Bongo Cat"),
+        new(BongoCatStyle.Excited, "Excited Bongo Cat"),
+    ];
+    public BongoCatStyle BongoCat { get => S.BongoCat; set => Set(S.BongoCat, value, v => S.BongoCat = v); }
     public bool ShowLyrics { get => S.ShowLyrics; set => Set(S.ShowLyrics, value, v => S.ShowLyrics = v); }
     public bool AnnounceTrackChanges { get => S.AnnounceTrackChanges; set => Set(S.AnnounceTrackChanges, value, v => S.AnnounceTrackChanges = v); }
 
@@ -498,7 +505,7 @@ public sealed partial class SettingsViewModel : ObservableObject
         {
             { Installed: false } => "Updates work once ATOLL is installed. Run Setup.exe from a release.",
             { Error: not null } => $"Update check failed: {result.Error}",
-            { Downloaded: true } => $"Version {result.Version} downloaded; it installs the next time ATOLL starts.",
+            { Downloaded: true } => $"Version {result.Version} downloaded. Restarting to install it…",
             _ => "You're on the latest version.",
         };
         OnPropertyChanged(nameof(IsInstalledApp));
@@ -506,7 +513,27 @@ public sealed partial class SettingsViewModel : ObservableObject
         OnPropertyChanged(nameof(HasPendingUpdate));
         OnPropertyChanged(nameof(PendingUpdateText));
         OnPropertyChanged(nameof(UpdateDescription));
+        // A downloaded update installs right away: ATOLL closes and reopens on the new version.
+        if (result.Downloaded && Application.Current is App app && !app.InstallUpdateNow())
+            UpdateMessage = $"Version {result.Version} downloaded; it installs the next time ATOLL starts.";
     }
+
+    /// <summary>Why the restart did not happen; empty otherwise.</summary>
+    [ObservableProperty] private string _restartMessage = "";
+
+    [RelayCommand]
+    private void RestartApp()
+    {
+        RestartMessage = "";
+        try
+        {
+            if (Application.Current is App app) app.RestartToSettings(AboutPageIndex);
+            else RestartMessage = "Close and reopen ATOLL.";
+        }
+        catch (Exception ex) when (ex is System.ComponentModel.Win32Exception or InvalidOperationException or IOException) { RestartMessage = "Could not restart ATOLL. Close and reopen it."; }
+    }
+
+    private const int AboutPageIndex = 9; // the About page in SettingsWindow.xaml
 
     [RelayCommand]
     private void OpenDataFolder() => Process.Start(new ProcessStartInfo(DataFolder) { UseShellExecute = true });

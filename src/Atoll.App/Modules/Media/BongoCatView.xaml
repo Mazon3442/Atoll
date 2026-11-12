@@ -1,0 +1,7 @@
+<UserControl x:Class="Atoll.Modules.Media.BongoCatView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             Focusable="False" IsHitTestVisible="False"
+             AutomationProperties.Name="Bongo Cat" AutomationProperties.HelpText="Drums while music plays">
+    <Image x:Name="Picture" Stretch="Uniform" RenderOptions.BitmapScalingMode="HighQuality" />
+</UserControl>

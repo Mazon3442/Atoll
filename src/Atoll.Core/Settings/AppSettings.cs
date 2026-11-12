@@ -37,6 +37,13 @@ public enum MotionStyle
     Off,
 }
 
+public enum BongoCatStyle
+{
+    Off,
+    Classic,
+    Excited,
+}
+
 public sealed class AppSettings
 {
     public bool StartWithWindows { get; set; }
@@ -46,6 +53,9 @@ public sealed class AppSettings
 
     /// <summary>Looks up time-synced lyrics for the playing song on lrclib.net.</summary>
     public bool ShowLyrics { get; set; } = true;
+
+    /// <summary>A drumming cat in the media tab's lyrics slot while lyrics are off. Off by default; it plays with the music.</summary>
+    public BongoCatStyle BongoCat { get; set; } = BongoCatStyle.Off;
 
     /// <summary>
     /// Peeks the island when the next song starts on its own. Off keeps that quiet; skipping a song still announces it.
