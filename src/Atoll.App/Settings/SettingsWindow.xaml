@@ -1203,6 +1203,12 @@
                         <s:SettingCard Glyph="&#xE8B7;" Header="Settings and logs" Description="{Binding DataFolder}">
                             <Button Content="Open folder" Padding="14,5" Command="{Binding OpenDataFolderCommand}" />
                         </s:SettingCard>
+                        <s:SettingCard Glyph="&#xE7E8;" Header="Restart ATOLL"
+                                       Description="Closes ATOLL and opens it again, back on this page.">
+                            <Button Content="Restart" Padding="14,5" Command="{Binding RestartAppCommand}" />
+                        </s:SettingCard>
+                        <TextBlock Text="{Binding RestartMessage}" Style="{StaticResource Hint}" Margin="4,2,0,0"
+                                   Visibility="{Binding RestartMessage, Converter={StaticResource EmptyToCollapsed}}" />
                         <s:SettingCard Glyph="&#xE946;" Header="Welcome setup"
                                        Description="Meet the island again and choose which tabs sit in the top row.">
                             <Button Content="Open setup" Padding="14,5" Click="OnOpenOnboarding" />

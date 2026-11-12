@@ -515,6 +515,23 @@ public sealed partial class SettingsViewModel : ObservableObject
         OnPropertyChanged(nameof(UpdateDescription));
     }
 
+    /// <summary>Why the restart did not happen; empty otherwise.</summary>
+    [ObservableProperty] private string _restartMessage = "";
+
+    [RelayCommand]
+    private void RestartApp()
+    {
+        RestartMessage = "";
+        try
+        {
+            if (Application.Current is App app) app.RestartToSettings(AboutPageIndex);
+            else RestartMessage = "Close and reopen ATOLL.";
+        }
+        catch (Exception ex) when (ex is System.ComponentModel.Win32Exception or InvalidOperationException or IOException) { RestartMessage = "Could not restart ATOLL. Close and reopen it."; }
+    }
+
+    private const int AboutPageIndex = 9; // the About page in SettingsWindow.xaml
+
     [RelayCommand]
     private void OpenDataFolder() => Process.Start(new ProcessStartInfo(DataFolder) { UseShellExecute = true });
 
