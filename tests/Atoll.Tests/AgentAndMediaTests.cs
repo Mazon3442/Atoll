@@ -232,6 +232,14 @@ internal static class AgentMediaUi
         Assert.False(media.ShowBongoCat);
         Assert.False(new AppSettings().BongoCat != BongoCatStyle.Off);
 
+        // The shipped GIFs decode into full-canvas frames: the white cat has 2, the cyan one 10.
+        var classic = BongoCatView.Decode(new Uri("pack://application:,,,/Atoll;component/Assets/BongoCat/classic.gif"));
+        var excited = BongoCatView.Decode(new Uri("pack://application:,,,/Atoll;component/Assets/BongoCat/excited.gif"));
+        Assert.Equal(2, classic.Count);
+        Assert.Equal(10, excited.Count);
+        Assert.All(classic, f => Assert.Equal((200, 126), (f.Image.PixelWidth, f.Image.PixelHeight)));
+        Assert.All(excited, f => Assert.Equal((128, 128), (f.Image.PixelWidth, f.Image.PixelHeight)));
+
         var stats = new StatsViewModel();
         stats.Devices.Add(new DeviceBattery("MX Anywhere 2S", 90));
         stats.Devices.Add(new DeviceBattery("Xbox Wireless Controller", 19));
