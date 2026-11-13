@@ -7,8 +7,9 @@
 <style>
 /* Tokens: shell 34 > card 22 > control 14 > chip full. Nested radius = outer - padding. */
 :root{
-  --shell:#000; --fg:#fff; --subtle:rgba(255,255,255,.6); --faint:rgba(255,255,255,.38);
-  --surface:rgba(255,255,255,.07); --raised:rgba(255,255,255,.14); --hover:rgba(255,255,255,.12);
+  --fgc:255,255,255; --shell:#000; --shell-solid:#000; --fg:rgb(var(--fgc)); --selbg:#F2F2F7; --selfg:#0B0B0D;
+  --subtle:rgba(var(--fgc),.6); --faint:rgba(var(--fgc),.38);
+  --surface:rgba(var(--fgc),.08); --raised:rgba(var(--fgc),.16); --hover:rgba(var(--fgc),.12); --rim:rgba(var(--fgc),.1);
   --accent:#0A84FF; --green:#30D158; --amber:#FFB340; --red:#FF453A; --violet:#BF5AF2; --cyan:#64D2FF;
   --r-shell:34px; --r-card:22px; --r-ctl:14px;
   --font:"Segoe UI Variable Text","Segoe UI Variable","Segoe UI",system-ui,sans-serif;
@@ -33,17 +34,17 @@ html,body{width:1200px;height:560px;overflow:hidden;font-family:var(--font);colo
 .shell{background:var(--shell);position:relative}
 .notch .shell{border-radius:0 0 var(--r-shell) var(--r-shell)}
 .notch .shell::before,.notch .shell::after{content:"";position:absolute;top:0;width:14px;height:14px}
-.notch .shell::before{left:-14px;background:radial-gradient(circle at 0 100%,transparent 14px,#000 14.5px)}
-.notch .shell::after{right:-14px;background:radial-gradient(circle at 100% 100%,transparent 14px,#000 14.5px)}
+.notch .shell::before{left:-14px;background:radial-gradient(circle at 0 100%,transparent 14px,var(--shell) 14.5px)}
+.notch .shell::after{right:-14px;background:radial-gradient(circle at 100% 100%,transparent 14px,var(--shell) 14.5px)}
 .pill .stage{padding-top:10px}
-.pill .shell{border-radius:var(--r-shell);box-shadow:0 18px 40px rgba(0,0,0,.45),0 0 0 1px rgba(255,255,255,.06)}
+.pill .shell{border-radius:var(--r-shell);box-shadow:0 18px 40px rgba(0,0,0,.45),0 0 0 1px var(--rim)}
 .open .shell{width:760px;padding:12px 14px 14px}
 
 /* ---- header ---- */
 .hdr{display:flex;align-items:center;justify-content:space-between;height:40px;margin-bottom:10px}
 .tabs{display:flex;gap:2px;padding:3px;background:var(--surface);border-radius:20px}
 .tab{height:34px;min-width:34px;padding:0 9px;border-radius:17px;display:flex;align-items:center;justify-content:center;gap:7px;color:var(--subtle)}
-.tab.on{background:#F2F2F7;color:#0B0B0D;padding:0 13px 0 10px;font-weight:600;font-size:13px}
+.tab.on{background:var(--selbg);color:var(--selfg);padding:0 13px 0 10px;font-weight:600;font-size:13px}
 .chips{display:flex;gap:6px;align-items:center}
 .chip{height:34px;min-width:34px;padding:0 11px;border-radius:17px;background:var(--surface);display:flex;align-items:center;justify-content:center;gap:6px;color:var(--subtle);font-size:12px}
 .chip.t{color:var(--fg)}
@@ -58,7 +59,7 @@ html,body{width:1200px;height:560px;overflow:hidden;font-family:var(--font);colo
 .fig{font-family:var(--display);font-weight:300;letter-spacing:-.02em;line-height:1}
 .row{display:flex;align-items:center}.gap6{gap:6px}.gap8{gap:8px}.gap12{gap:12px}.sp{flex:1}
 .btn{height:30px;padding:0 14px;border-radius:15px;background:var(--raised);display:inline-flex;align-items:center;font-size:12px;font-weight:600}
-.btn.p{background:#F2F2F7;color:#0B0B0D}
+.btn.p{background:var(--selbg);color:var(--selfg)}
 .btn.a{background:var(--accent)}
 .seg{display:inline-flex;padding:3px;background:var(--surface);border-radius:17px}
 .seg span{height:28px;padding:0 14px;border-radius:14px;display:flex;align-items:center;font-size:12px;color:var(--subtle)}
@@ -79,23 +80,34 @@ html,body{width:1200px;height:560px;overflow:hidden;font-family:var(--font);colo
 
 /* ---- compact ---- */
 .compact .stage{align-items:flex-start;gap:6px}
-.cp{height:36px;border-radius:0 0 18px 18px;background:#000;display:flex;align-items:center;gap:10px;padding:0 14px;font-size:12px;font-weight:600;white-space:nowrap;position:relative}
-.pill .cp{border-radius:18px;box-shadow:0 8px 18px rgba(0,0,0,.4),0 0 0 1px rgba(255,255,255,.06)}
+.cp{height:36px;border-radius:0 0 18px 18px;background:var(--shell);display:flex;align-items:center;gap:10px;padding:0 14px;font-size:12px;font-weight:600;white-space:nowrap;position:relative}
+.pill .cp{border-radius:18px;box-shadow:0 8px 18px rgba(0,0,0,.4),0 0 0 1px var(--rim)}
 .cp.round{width:36px;padding:0;justify-content:center}
 .cp.main{min-width:190px;justify-content:center}
 .cell{position:absolute;width:560px}
 .cell .stagebox{position:relative;height:96px;overflow:visible}
 .mini{transform-origin:50% 0;transform:scale(1.55)}
 .notch .cp.main::before,.notch .cp.main::after{content:"";position:absolute;top:0;width:10px;height:10px}
-.notch .cp.main::before{left:-10px;background:radial-gradient(circle at 0 100%,transparent 10px,#000 10.5px)}
-.notch .cp.main::after{right:-10px;background:radial-gradient(circle at 100% 100%,transparent 10px,#000 10.5px)}
+.notch .cp.main::before{left:-10px;background:radial-gradient(circle at 0 100%,transparent 10px,var(--shell) 10.5px)}
+.notch .cp.main::after{right:-10px;background:radial-gradient(circle at 100% 100%,transparent 10px,var(--shell) 10.5px)}
 .notch .cp.main.sided::before,.notch .cp.main.sided::after{display:none}
-.menu{position:absolute;left:380px;top:60px;width:210px;background:#000;border-radius:var(--r-card);padding:6px;box-shadow:0 12px 30px rgba(0,0,0,.5),0 0 0 1px rgba(255,255,255,.08)}
+.menu{position:absolute;left:380px;top:60px;width:210px;background:var(--shell-solid);border-radius:var(--r-card);padding:6px;box-shadow:0 12px 30px rgba(0,0,0,.5),0 0 0 1px rgba(255,255,255,.08)}
 .mi{display:flex;align-items:center;gap:10px;height:36px;padding:0 10px;border-radius:var(--r-ctl);color:#fff}
 .mi.h{background:var(--hover)}
 .kbd{font-size:11px;color:var(--faint);margin-left:auto}
 .pal{background:var(--surface);border-radius:var(--r-card);padding:10px}
 .pal .q{height:40px;border-radius:var(--r-ctl);background:var(--raised);display:flex;align-items:center;gap:10px;padding:0 12px;color:var(--subtle);font-size:14px}
+.view.bright{background:
+   radial-gradient(700px 380px at 25% 40%,#ffd9a0 0,transparent 60%),
+   radial-gradient(800px 420px at 85% 70%,#8fd0ff 0,transparent 60%),
+   linear-gradient(180deg,#f3e3cf,#cfe4f5)}
+.bright::after{background:rgba(255,255,255,.55);border-color:rgba(0,0,0,.08)}
+.bright .label{color:#1a1a1a}.bright .label b{color:#000}
+.glass .shell,.glass .cp{backdrop-filter:blur(28px) saturate(1.5)}
+.t-dark-glass{--shell:rgba(0,0,0,.6);--shell-solid:#111}
+.t-light{--fgc:17,17,20;--shell:#F4F4F6;--shell-solid:#F4F4F6;--selbg:#111114;--selfg:#F4F4F6}
+.t-light-glass{--fgc:17,17,20;--shell:rgba(244,244,246,.6);--shell-solid:#E9E9EC;--selbg:#111114;--selfg:#F4F4F6}
+.t-light .pill .shell,.t-light-glass .pill .shell{box-shadow:0 14px 32px rgba(0,0,0,.18),0 0 0 1px var(--rim)}
 </style>
 </head>
 <body>
@@ -138,7 +150,7 @@ html,body{width:1200px;height:560px;overflow:hidden;font-family:var(--font);colo
 const ic=(n,s=16,w=1.8)=>`<svg class="i" style="width:${s}px;height:${s}px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="${w}" stroke-linecap="round" stroke-linejoin="round"><use href="#${n}"/></svg>`;
 const TABS=[["home","Home"],["agents","Agents"],["media","Media"],["bell","Notifications"],["cal","Calendar"],["files","Files"],["clip","Clipboard"],["wx","Weather"]];
 const bars=(h=[8,16,11,18,12])=>`<div class="bars">${h.map(x=>`<i style="height:${x}px"></i>`).join("")}</div>`;
-const ring=(pct,size,color,inner="")=>`<div class="ring" style="width:${size}px;height:${size}px;background:conic-gradient(${color} ${pct*3.6}deg,rgba(255,255,255,.14) 0)"><div class="ring" style="width:${size-6}px;height:${size-6}px;background:#000;font-size:${size>40?12:9}px;font-weight:600">${inner}</div></div>`;
+const ring=(pct,size,color,inner="")=>`<div class="ring" style="width:${size}px;height:${size}px;background:conic-gradient(${color} ${pct*3.6}deg,rgba(255,255,255,.14) 0)"><div class="ring" style="width:${size-6}px;height:${size-6}px;background:var(--shell-solid);font-size:${size>40?12:9}px;font-weight:600">${inner}</div></div>`;
 
 function header(active,menu){
   return `<div class="hdr"><div class="tabs">${TABS.map(([i,n])=>`<div class="tab ${n===active?"on":""}">${ic(i,16)}${n===active?n:""}</div>`).join("")}${TABS.some(t=>t[1]===active)?"":`<div class="tab on">${ic({Notes:"notes",System:"bat"}[active],16)}${active}</div>`}<div class="tab">${ic("more",16)}</div></div>
@@ -242,7 +254,7 @@ const calDays=(()=>{const dots={3:["#0A84FF"],5:["#30D158","#BF5AF2"],9:["#0A84F
   let h=["M","T","W","T","F","S","S"].map(d=>`<div class="cap" style="text-align:center;height:22px">${d}</div>`).join("");
   for(let i=0;i<2;i++)h+=`<div></div>`;
   for(let d=1;d<=30;d++){const sel=d===12,today=d===12;
-    h+=`<div style="height:30px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;border-radius:12px;${sel?"background:#F2F2F7;color:#0B0B0D;font-weight:600":""}"><span style="font-size:13px">${d}</span><span style="display:flex;gap:2px;height:4px">${(dots[d]||[]).map(c=>`<i style="width:4px;height:4px;border-radius:2px;background:${sel?"#0B0B0D":c}"></i>`).join("")}</span></div>`;}
+    h+=`<div style="height:30px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;border-radius:12px;${sel?"background:var(--selbg);color:var(--selfg);font-weight:600":""}"><span style="font-size:13px">${d}</span><span style="display:flex;gap:2px;height:4px">${(dots[d]||[]).map(c=>`<i style="width:4px;height:4px;border-radius:2px;background:${sel?"var(--selfg)":c}"></i>`).join("")}</span></div>`;}
   return h})();
 const calendar=`<div class="row gap12" style="height:272px;align-items:stretch">
  <div class="card" style="flex:1.1;padding:14px 16px"><div class="row" style="margin-bottom:6px"><span class="t16">November 2026</span><span class="sp"></span><span class="chip" style="height:28px;min-width:28px;padding:0">${ic("chev",14)}</span></div>
@@ -265,7 +277,7 @@ const notes=`<div class="row" style="margin-bottom:10px"><div class="seg"><span>
 
 /* ---- system ---- */
 const meter=(label,val,color,sub)=>`<div class="card" style="display:flex;flex-direction:column;justify-content:space-between"><div class="cap">${label}</div><div class="fig" style="font-size:32px">${val}</div><div><div class="prog"><i style="width:${val};background:${color}"></i></div><div class="sub" style="font-size:11px;margin-top:6px">${sub}</div></div></div>`;
-const qa=(i,t,on)=>`<div class="card row gap8" style="padding:0 14px;height:50px;${on?"background:#F2F2F7;color:#0B0B0D":""}">${ic(i,18)}<span class="t14" style="font-weight:500">${t}</span></div>`;
+const qa=(i,t,on)=>`<div class="card row gap8" style="padding:0 14px;height:50px;${on?"background:var(--selbg);color:var(--selfg)":""}">${ic(i,18)}<span class="t14" style="font-weight:500">${t}</span></div>`;
 const system=`<div class="grid" style="grid-auto-rows:112px">
  ${meter("CPU","23%","#0A84FF","Ryzen 7 · 54 °C")}${meter("Memory","61%","#BF5AF2","19.4 of 32 GB")}
  <div class="card" style="display:flex;flex-direction:column;justify-content:space-between"><div class="cap">Network</div><div><div class="t16">↓ 12.4 MB/s</div><div class="sub" style="margin-top:2px">↑ 0.8 MB/s</div></div><div class="sub" style="font-size:11px">Wi-Fi · Home-5G</div></div>
@@ -330,9 +342,12 @@ addView("home-b-notch","notch","Home",homeB,"<b>Home B · Dense bento</b> · six
 addView("home-c-pill","pill","Home",homeC,"<b>Home C · Agenda first</b> · today as a timeline with a now-line, glanceable cards on the right · Pill");
 addView("home-d-notch","notch","Home",homeD,"<b>Home D · Calm</b> · date and one next thing, music, and four quiet shortcut tiles · Notch");
 
-const v=(location.hash||"#compact").slice(1);
+const [v,th]=(location.hash||"#compact").slice(1).split("@");
 document.getElementById("app").innerHTML=SCENES[v];
-document.querySelector(".view").classList.add("on");
+const vw=document.querySelector(".view");vw.classList.add("on");
+if(th){const m={glass:"t-dark-glass",light:"t-light",lightglass:"t-light-glass"}[th];document.documentElement.classList.add(m);
+ if(th!=="light"){vw.classList.add("glass")} if(th!=="light"||1){vw.classList.add("bright")}
+ const lb=vw.querySelector(".label");if(lb)lb.innerHTML+=" · theme: "+({glass:"dark + frosted glass",light:"light, solid",lightglass:"light + frosted glass"}[th]);}
 </script>
 </body>
 </html>
