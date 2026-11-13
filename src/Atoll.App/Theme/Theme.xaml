@@ -27,9 +27,16 @@
     <!-- Opaque island color for popups; Island.Background is near-transparent in glass mode. -->
     <SolidColorBrush x:Key="Island.Menu" Color="Black" />
 
+    <!-- Radius ladder (docs/design/foundations.md). Nested radius = outer radius minus padding; use only these. -->
+    <CornerRadius x:Key="Radius.Shell">34</CornerRadius>
+    <CornerRadius x:Key="Radius.Card">22</CornerRadius>
+    <CornerRadius x:Key="Radius.Control">14</CornerRadius>
+    <!-- Chips, tabs, buttons and switches are full pills: WPF scales an oversized radius down to half the height. -->
+    <CornerRadius x:Key="Radius.Chip">999</CornerRadius>
+
     <Style x:Key="Island.FocusVisual" TargetType="Control">
         <Setter Property="Template"><Setter.Value><ControlTemplate>
-            <Border BorderBrush="{DynamicResource Island.Foreground}" BorderThickness="1" CornerRadius="6" Margin="-2" />
+            <Border BorderBrush="{DynamicResource Island.Foreground}" BorderThickness="1" CornerRadius="{StaticResource Radius.Control}" Margin="-2" />
         </ControlTemplate></Setter.Value></Setter>
     </Style>
 
@@ -47,7 +54,7 @@
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="Button">
-                    <Border x:Name="Bg" Background="Transparent" CornerRadius="10">
+                    <Border x:Name="Bg" Background="Transparent" CornerRadius="{StaticResource Radius.Chip}">
                         <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
                     </Border>
                     <ControlTemplate.Triggers>
@@ -74,7 +81,7 @@
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="Button">
-                    <Border x:Name="Bg" Background="{DynamicResource Island.Surface}" CornerRadius="9" Padding="12,6">
+                    <Border x:Name="Bg" Background="{DynamicResource Island.Surface}" CornerRadius="{StaticResource Radius.Chip}" Padding="12,6">
                         <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
                     </Border>
                     <ControlTemplate.Triggers>
@@ -101,7 +108,7 @@
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="ListBoxItem">
-                    <Border x:Name="Bg" CornerRadius="12" Padding="16,5" Background="Transparent">
+                    <Border x:Name="Bg" CornerRadius="{StaticResource Radius.Chip}" Padding="16,5" Background="Transparent">
                         <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
                     </Border>
                     <ControlTemplate.Triggers>
@@ -131,7 +138,7 @@
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="TextBox">
-                    <Border Background="{TemplateBinding Background}" CornerRadius="9" Padding="{TemplateBinding Padding}">
+                    <Border Background="{TemplateBinding Background}" CornerRadius="{StaticResource Radius.Control}" Padding="{TemplateBinding Padding}">
                         <ScrollViewer x:Name="PART_ContentHost" />
                     </Border>
                 </ControlTemplate>
@@ -147,7 +154,7 @@
             <Setter.Value>
                 <ControlTemplate TargetType="CheckBox">
                     <Grid Width="20" Height="20" Background="Transparent">
-                        <Border x:Name="Box" Width="18" Height="18" CornerRadius="9" BorderThickness="1"
+                        <Border x:Name="Box" Width="18" Height="18" CornerRadius="{StaticResource Radius.Chip}" BorderThickness="1"
                                 BorderBrush="{DynamicResource Island.Subtle}" Background="Transparent">
                             <TextBlock x:Name="Tick" Text="&#xE73E;" FontFamily="{StaticResource Island.IconFont}" FontSize="10"
                                        Foreground="{DynamicResource Island.SelectedForeground}"
@@ -189,7 +196,7 @@
                     <Setter Property="Template">
                         <Setter.Value>
                             <ControlTemplate TargetType="ComboBoxItem">
-                                <Border x:Name="Bg" Background="Transparent" CornerRadius="6" Padding="8,5">
+                                <Border x:Name="Bg" Background="Transparent" CornerRadius="{StaticResource Radius.Control}" Padding="8,5">
                                     <DockPanel>
                                         <TextBlock x:Name="Check" DockPanel.Dock="Right" Text="&#xE73E;" FontFamily="{StaticResource Island.IconFont}"
                                                    FontSize="11" Margin="12,0,0,0" VerticalAlignment="Center"
@@ -219,7 +226,7 @@
                                       IsChecked="{Binding IsDropDownOpen, Mode=TwoWay, RelativeSource={RelativeSource TemplatedParent}}">
                             <ToggleButton.Template>
                                 <ControlTemplate TargetType="ToggleButton">
-                                    <Border x:Name="Bg" Background="Transparent" CornerRadius="6" Padding="6,2">
+                                    <Border x:Name="Bg" Background="Transparent" CornerRadius="{StaticResource Radius.Chip}" Padding="6,2">
                                         <ContentPresenter VerticalAlignment="Center" />
                                     </Border>
                                     <ControlTemplate.Triggers>
@@ -246,7 +253,7 @@
                                Placement="Bottom" VerticalOffset="4" Focusable="False"
                                PopupAnimation="{DynamicResource {x:Static SystemParameters.ComboBoxPopupAnimationKey}}">
                             <Border Background="{DynamicResource Island.Menu}" BorderBrush="{DynamicResource Island.Hover}" BorderThickness="1"
-                                    CornerRadius="10" Padding="4" MinWidth="140" MaxWidth="260" MaxHeight="{TemplateBinding MaxDropDownHeight}">
+                                    CornerRadius="{StaticResource Radius.Card}" Padding="4" MinWidth="140" MaxWidth="260" MaxHeight="{TemplateBinding MaxDropDownHeight}">
                                 <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
                                     <ItemsPresenter KeyboardNavigation.DirectionalNavigation="Contained" />
                                 </ScrollViewer>
@@ -323,7 +330,7 @@
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="ListBoxItem">
-                    <Border x:Name="Bg" Background="Transparent" CornerRadius="15" Padding="9,7" MinWidth="32">
+                    <Border x:Name="Bg" Background="Transparent" CornerRadius="{StaticResource Radius.Chip}" Padding="9,7" MinWidth="32">
                         <ContentPresenter HorizontalAlignment="Center" />
                     </Border>
                     <ControlTemplate.Triggers>
@@ -352,7 +359,7 @@
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="ListBoxItem">
-                    <Border x:Name="Bg" Background="Transparent" CornerRadius="8" Padding="10,7" Margin="0,1">
+                    <Border x:Name="Bg" Background="Transparent" CornerRadius="{StaticResource Radius.Control}" Padding="10,7" Margin="0,1">
                         <ContentPresenter VerticalAlignment="Center" />
                     </Border>
                     <ControlTemplate.Triggers>
@@ -409,7 +416,7 @@
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="Button">
-                    <Border x:Name="Bg" Background="Transparent" CornerRadius="9" Padding="8,6">
+                    <Border x:Name="Bg" Background="Transparent" CornerRadius="{StaticResource Radius.Control}" Padding="8,6">
                         <ContentPresenter />
                     </Border>
                     <ControlTemplate.Triggers>
