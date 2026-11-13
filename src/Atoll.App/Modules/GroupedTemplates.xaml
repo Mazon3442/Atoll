@@ -112,12 +112,12 @@
     <Style x:Key="System.ActionTile" TargetType="Button">
         <Setter Property="Foreground" Value="{DynamicResource Island.Foreground}" />
         <Setter Property="Cursor" Value="Hand" />
-        <Setter Property="Height" Value="44" />
+        <Setter Property="Height" Value="64" />
         <Setter Property="FocusVisualStyle" Value="{StaticResource Island.FocusVisual}" />
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="Button">
-                    <Border x:Name="Bg" Background="{DynamicResource Island.Surface}" CornerRadius="{shell:Round 14}" Padding="12,0">
+                    <Border x:Name="Bg" Background="{DynamicResource Island.Surface}" CornerRadius="{shell:Round 14}" Padding="6,0">
                         <ContentPresenter VerticalAlignment="Center" />
                     </Border>
                     <ControlTemplate.Triggers>
@@ -144,15 +144,16 @@
         </StackPanel>
     </DataTemplate>
 
+    <!-- Five quick actions in one row: icon over label, so the row fills the width and leaves no gaps. -->
     <DataTemplate x:Key="System.Actions">
-        <UniformGrid Columns="2" Margin="0,0,-10,-10">
-            <Button Style="{StaticResource System.ActionTile}" Command="{Binding ScreenshotCommand}" Margin="0,0,10,10" AutomationProperties.Name="Screenshot">
-                <StackPanel Orientation="Horizontal">
-                    <TextBlock Text="&#xE722;" FontFamily="{StaticResource Island.IconFont}" FontSize="16" VerticalAlignment="Center" />
-                    <TextBlock Text="Screenshot" FontSize="13" FontWeight="Medium" Margin="10,0,0,0" VerticalAlignment="Center" />
+        <UniformGrid Columns="5" Margin="0,0,-10,0">
+            <Button Style="{StaticResource System.ActionTile}" Command="{Binding ScreenshotCommand}" Margin="0,0,10,0" AutomationProperties.Name="Screenshot">
+                <StackPanel>
+                    <TextBlock Text="&#xE722;" FontFamily="{StaticResource Island.IconFont}" FontSize="18" HorizontalAlignment="Center" />
+                    <TextBlock Text="Screenshot" FontSize="12" FontWeight="Medium" Margin="0,6,0,0" HorizontalAlignment="Center" />
                 </StackPanel>
             </Button>
-            <Button Command="{Binding ToggleMicCommand}" Margin="0,0,10,10" AutomationProperties.Name="Mute or unmute the microphone">
+            <Button Command="{Binding ToggleMicCommand}" Margin="0,0,10,0" AutomationProperties.Name="Mute or unmute the microphone">
                 <Button.Style>
                     <Style TargetType="Button" BasedOn="{StaticResource System.ActionTile}">
                         <Style.Triggers>
@@ -160,8 +161,8 @@
                                 <Setter Property="Template">
                                     <Setter.Value>
                                         <ControlTemplate TargetType="Button">
-                                            <Border Background="{DynamicResource Island.SelectedBackground}" CornerRadius="{shell:Round 14}" Padding="12,0" TextElement.Foreground="{DynamicResource Island.SelectedForeground}">
-                                                <ContentPresenter VerticalAlignment="Center" />
+                                            <Border Background="{DynamicResource Island.SelectedBackground}" CornerRadius="{shell:Round 14}" Padding="6,0" TextElement.Foreground="{DynamicResource Island.SelectedForeground}">
+                                                <ContentPresenter VerticalAlignment="Center" HorizontalAlignment="Center" />
                                             </Border>
                                         </ControlTemplate>
                                     </Setter.Value>
@@ -170,32 +171,63 @@
                         </Style.Triggers>
                     </Style>
                 </Button.Style>
-                <StackPanel Orientation="Horizontal">
-                    <TextBlock Text="{Binding MicGlyph}" FontFamily="{StaticResource Island.IconFont}" FontSize="16" VerticalAlignment="Center" />
-                    <TextBlock Text="{Binding MicLabel}" FontSize="13" FontWeight="Medium" Margin="10,0,0,0" VerticalAlignment="Center" />
+                <StackPanel>
+                    <TextBlock Text="{Binding MicGlyph}" FontFamily="{StaticResource Island.IconFont}" FontSize="18" HorizontalAlignment="Center" />
+                    <TextBlock Text="{Binding MicLabel}" FontSize="12" FontWeight="Medium" Margin="0,6,0,0" HorizontalAlignment="Center" />
                 </StackPanel>
             </Button>
-            <Button Style="{StaticResource System.ActionTile}" Command="{Binding LockCommand}" Margin="0,0,10,10" AutomationProperties.Name="Lock the PC">
-                <StackPanel Orientation="Horizontal">
-                    <TextBlock Text="&#xE72E;" FontFamily="{StaticResource Island.IconFont}" FontSize="16" VerticalAlignment="Center" />
-                    <TextBlock Text="Lock" FontSize="13" FontWeight="Medium" Margin="10,0,0,0" VerticalAlignment="Center" />
+            <Button Style="{StaticResource System.ActionTile}" Command="{Binding LockCommand}" Margin="0,0,10,0" AutomationProperties.Name="Lock the PC">
+                <StackPanel>
+                    <TextBlock Text="&#xE72E;" FontFamily="{StaticResource Island.IconFont}" FontSize="18" HorizontalAlignment="Center" />
+                    <TextBlock Text="Lock" FontSize="12" FontWeight="Medium" Margin="0,6,0,0" HorizontalAlignment="Center" />
                 </StackPanel>
             </Button>
-            <Button Style="{StaticResource System.ActionTile}" Command="{Binding ScreenOffCommand}" Margin="0,0,10,10" AutomationProperties.Name="Turn the display off">
-                <StackPanel Orientation="Horizontal">
-                    <TextBlock Text="&#xE708;" FontFamily="{StaticResource Island.IconFont}" FontSize="16" VerticalAlignment="Center" />
-                    <TextBlock Text="Screen off" FontSize="13" FontWeight="Medium" Margin="10,0,0,0" VerticalAlignment="Center" />
+            <Button Style="{StaticResource System.ActionTile}" Command="{Binding ScreenOffCommand}" Margin="0,0,10,0" AutomationProperties.Name="Turn the display off">
+                <StackPanel>
+                    <TextBlock Text="&#xE708;" FontFamily="{StaticResource Island.IconFont}" FontSize="18" HorizontalAlignment="Center" />
+                    <TextBlock Text="Screen off" FontSize="12" FontWeight="Medium" Margin="0,6,0,0" HorizontalAlignment="Center" />
                 </StackPanel>
             </Button>
-            <Button Style="{StaticResource System.ActionTile}" Command="{Binding DownloadsCommand}" Margin="0,0,10,10" AutomationProperties.Name="Open Downloads">
-                <StackPanel Orientation="Horizontal">
-                    <TextBlock Text="&#xE896;" FontFamily="{StaticResource Island.IconFont}" FontSize="16" VerticalAlignment="Center" />
-                    <TextBlock Text="Downloads" FontSize="13" FontWeight="Medium" Margin="10,0,0,0" VerticalAlignment="Center" />
+            <Button Style="{StaticResource System.ActionTile}" Command="{Binding DownloadsCommand}" Margin="0,0,10,0" AutomationProperties.Name="Open Downloads">
+                <StackPanel>
+                    <TextBlock Text="&#xE896;" FontFamily="{StaticResource Island.IconFont}" FontSize="18" HorizontalAlignment="Center" />
+                    <TextBlock Text="Downloads" FontSize="12" FontWeight="Medium" Margin="0,6,0,0" HorizontalAlignment="Center" />
                 </StackPanel>
             </Button>
         </UniformGrid>
     </DataTemplate>
 
+    <!-- Network, Bluetooth and battery, beside the volume. -->
+    <DataTemplate x:Key="System.Status">
+        <Grid VerticalAlignment="Center">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
+            <Grid.Resources>
+                <Style TargetType="TextBlock">
+                    <Setter Property="Margin" Value="0,3" />
+                    <Setter Property="FontSize" Value="13" />
+                </Style>
+            </Grid.Resources>
+            <TextBlock Text="Network" Foreground="{DynamicResource Island.Subtle}" Margin="0,3,18,3" />
+            <TextBlock Grid.Column="1" Text="{Binding Network}" TextTrimming="CharacterEllipsis" />
+            <TextBlock Grid.Row="1" Text="Bluetooth" Foreground="{DynamicResource Island.Subtle}" Margin="0,3,18,3" />
+            <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding Bluetooth}" TextTrimming="CharacterEllipsis" />
+            <TextBlock Grid.Row="2" Text="Battery" Foreground="{DynamicResource Island.Subtle}" Margin="0,3,18,3"
+                       Visibility="{Binding HasBattery, Converter={StaticResource Island.BoolToVisibility}}" />
+            <TextBlock Grid.Row="2" Grid.Column="1" Text="{Binding Battery}"
+                       Visibility="{Binding HasBattery, Converter={StaticResource Island.BoolToVisibility}}" />
+        </Grid>
+    </DataTemplate>
+
+    <!-- System: readings; volume beside the connection status; the five actions in one row; Bluetooth batteries.
+         Every row spans the full width, so nothing is left empty. -->
     <DataTemplate x:Key="SystemGroupViewModel.Panel">
         <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
             <StackPanel>
@@ -211,16 +243,16 @@
                         <ContentControl.Style>
                             <Style TargetType="ContentControl" BasedOn="{StaticResource Group.Card}">
                                 <Style.Triggers>
-                                    <DataTrigger Binding="{Binding Actions}" Value="{x:Null}">
+                                    <DataTrigger Binding="{Binding Devices}" Value="{x:Null}">
                                         <Setter Property="Grid.ColumnSpan" Value="3" />
                                     </DataTrigger>
                                 </Style.Triggers>
                             </Style>
                         </ContentControl.Style>
                     </ContentControl>
-                    <ContentControl Content="{Binding Actions}" ContentTemplate="{StaticResource System.Actions}" VerticalAlignment="Center">
+                    <ContentControl Content="{Binding Devices}" ContentTemplate="{StaticResource System.Status}">
                         <ContentControl.Style>
-                            <Style TargetType="ContentControl" BasedOn="{StaticResource Group.Panel}">
+                            <Style TargetType="ContentControl" BasedOn="{StaticResource Group.Card}">
                                 <Setter Property="Grid.Column" Value="2" />
                                 <Style.Triggers>
                                     <DataTrigger Binding="{Binding Sound}" Value="{x:Null}">
@@ -232,10 +264,9 @@
                         </ContentControl.Style>
                     </ContentControl>
                 </Grid>
+                <ContentControl Style="{StaticResource Group.Panel}" Content="{Binding Actions}" ContentTemplate="{StaticResource System.Actions}" Margin="0,10,0,0" />
                 <ContentControl Style="{StaticResource Group.Panel}" Content="{Binding Stats}" Margin="0,10,0,0"
                                 ContentTemplate="{StaticResource StatsViewModel.Chips}" />
-                <ContentControl Style="{StaticResource Group.Card}" Content="{Binding Devices}" Margin="0,0,0,10"
-                                ContentTemplate="{StaticResource SystemPanelViewModel.Panel}" />
             </StackPanel>
         </ScrollViewer>
     </DataTemplate>

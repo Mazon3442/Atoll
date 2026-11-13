@@ -234,8 +234,13 @@ public class GroupedPanelsTests
         alarmView.Measure(new Size(476, 600)); alarmView.Arrange(new Rect(0, 0, 476, 600)); alarmView.UpdateLayout();
         Assert.Equal(Visibility.Visible, Descendants<StackPanel>(alarmView).Single(p => p.Name == "AlarmSection").Visibility);
         var alarmButtons = Descendants<Button>(alarmView).Select(AutomationProperties.GetName).ToList();
-        Assert.Contains("Later hour", alarmButtons);
+        // Any hour or minute is one tap: two grids, not an hour arrow to click twelve times.
+        var hours = Descendants<ListBox>(alarmView).Single(l => AutomationProperties.GetName(l) == "Alarm hour");
+        var minutes = Descendants<ListBox>(alarmView).Single(l => AutomationProperties.GetName(l) == "Alarm minute");
+        Assert.Equal(12, hours.Items.Count);
+        Assert.Equal(12, minutes.Items.Count);
         Assert.Contains("Earlier minute", alarmButtons);
+        Assert.Contains("Later minute", alarmButtons);
         Assert.Contains("Set the alarm", alarmButtons);
         Assert.InRange(alarmView.DesiredSize.Height, 1, new Atoll.Settings.AppSettings().Theme.ExpandedHeight - 26);
 

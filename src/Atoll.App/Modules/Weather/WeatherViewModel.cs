@@ -21,6 +21,7 @@ public sealed record WeatherDay(ForecastDay Forecast, string Name, string Symbol
     public string Condition => WeatherCodes.Describe(Forecast.Code).Text;
     public string Range => $"{High} / {Low}";
 }
+public sealed record WeatherDetailTile(string Caption, string Value, string Sub);
 public enum WeatherMetric { Precipitation, Wind, Temperature }
 public sealed record WeatherChartPoint(DateTime Time, double? Value, string Detail)
 {
@@ -68,6 +69,8 @@ public sealed partial class WeatherViewModel(SettingsService settings) : Observa
     [new(WeatherMetric.Precipitation, "Rain"), new(WeatherMetric.Wind, "Wind"), new(WeatherMetric.Temperature, "Temp")];
     public ObservableCollection<WeatherChartPoint> ChartPoints { get; } = [];
     public ObservableCollection<WeatherDay> Days { get; } = [];
+    /// <summary>Feels like, wind, humidity, sun and UV: the readings that fill the card under the days.</summary>
+    public ObservableCollection<WeatherDetailTile> DetailTiles { get; } = [];
     public IReadOnlyList<WeatherHour> Hours => _chartHours;
     public bool HasHours => Hours.Count > 0;
     partial void OnPlaceChanged(string value) => OnPropertyChanged(nameof(PlaceLabel));
@@ -160,6 +163,7 @@ public sealed partial class WeatherViewModel(SettingsService settings) : Observa
             + (report.Gusts is { } gusts ? $" · gusts {Math.Round(gusts)} {WindUnit}" : "");
         RainSummary = DescribeRain(report);
         Updated = $"Updated {DateTime.Now:t} · Open-Meteo";
+        RebuildDetailTiles(report);
         Days.Clear();
         var weekLow = report.Days.Count > 0 ? report.Days.Min(d => d.Low) : 0;
         var weekSpan = Math.Max(1, (report.Days.Count > 0 ? report.Days.Max(d => d.High) : 1) - weekLow);
@@ -170,6 +174,20 @@ public sealed partial class WeatherViewModel(SettingsService settings) : Observa
         SelectedDay = Days.FirstOrDefault(d => d.Forecast.Date.Date == chosenDate) ?? Days.FirstOrDefault();
         UpdateHours();
         Status = ""; HasReport = true;
+    }
+
+    private void RebuildDetailTiles(WeatherReport report)
+    {
+        DetailTiles.Clear();
+        DetailTiles.Add(new("Feels like", $"{Math.Round(report.FeelsLike)}°", $"Actual {Math.Round(report.Temperature)}°"));
+        DetailTiles.Add(new("Wind", $"{Math.Round(report.Wind)} {WindUnit}",
+            string.Join(" · ", new[] { report.WindDirection is { } direction ? Compass(direction) : null,
+                report.Gusts is { } gusts ? $"gusts {Math.Round(gusts)}" : null }.Where(part => part is not null))));
+        if (report.Humidity is { } humidity) DetailTiles.Add(new("Humidity", $"{Math.Round(humidity)}%", ""));
+        if (report.Sunrise is { } sunrise && report.Sunset is { } sunset)
+            DetailTiles.Add(new("Sun", sunrise.ToString("t", CultureInfo.CurrentCulture), $"Sets {sunset.ToString("t", CultureInfo.CurrentCulture)}"));
+        if (report.UvIndex is { } uv)
+            DetailTiles.Add(new("UV index", $"{Math.Round(uv)}", uv switch { < 3 => "Low", < 6 => "Moderate", < 8 => "High", < 11 => "Very high", _ => "Extreme" }));
     }
 
     partial void OnSelectedDayChanged(WeatherDay? value) => UpdateHours();

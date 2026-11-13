@@ -37,19 +37,23 @@ public sealed partial class NotesViewModel : ObservableObject, IDisposable
             todo.PropertyChanged += OnItemChanged;
         }
         Notes.CollectionChanged += (_, _) => OnPropertyChanged(nameof(HasNotes));
-        Reminders.CollectionChanged += (_, _) => OnPropertyChanged(nameof(HasReminders));
-        Todos.CollectionChanged += (_, _) => OnPropertyChanged(nameof(HasTodos));
+        Reminders.CollectionChanged += (_, _) => { OnPropertyChanged(nameof(HasReminders)); RaiseNextReminder(); };
+        Todos.CollectionChanged += (_, _) => { OnPropertyChanged(nameof(HasTodos)); OnPropertyChanged(nameof(OpenTodoCount)); };
         RefreshTimes();
     }
 
     /// <summary>The soonest reminder that is not done, for the card beside the lists.</summary>
     public ReminderItem? NextReminder => Reminders.Where(reminder => !reminder.Done).OrderBy(reminder => reminder.Due).FirstOrDefault();
     public bool HasNextReminder => NextReminder is not null;
+    public int OpenReminderCount => Reminders.Count(reminder => !reminder.Done);
+    public int OpenTodoCount => Todos.Count(todo => !todo.Done);
 
     private void RaiseNextReminder()
     {
         OnPropertyChanged(nameof(NextReminder));
         OnPropertyChanged(nameof(HasNextReminder));
+        OnPropertyChanged(nameof(OpenReminderCount));
+        OnPropertyChanged(nameof(OpenTodoCount));
     }
 
     [RelayCommand]
@@ -282,6 +286,7 @@ public sealed partial class NotesViewModel : ObservableObject, IDisposable
     {
         if (e.PropertyName is nameof(NoteItem.UpdatedText) or nameof(ReminderItem.DueText) or nameof(ReminderItem.IsOverdue)) return;
         if (sender is ReminderItem && e.PropertyName == nameof(ReminderItem.Done)) SortReminders();
+        if (sender is TodoItem && e.PropertyName == nameof(TodoItem.Done)) OnPropertyChanged(nameof(OpenTodoCount));
         Save();
     }
 

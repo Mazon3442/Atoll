@@ -264,10 +264,27 @@ public sealed partial class TimerViewModel : ObservableObject
     [RelayCommand] private void AddAlarmMinute() => SetAlarmTime(new TimeOnly(_alarmTime.Hour, (_alarmTime.Minute + 1) % 60));
     [RelayCommand] private void SubtractAlarmMinute() => SetAlarmTime(new TimeOnly(_alarmTime.Hour, (_alarmTime.Minute + 59) % 60));
 
+    /// <summary>The hours and minutes on the Alarm picker, so any time is two taps away.</summary>
+    public IReadOnlyList<int> AlarmHours { get; } = Enumerable.Range(1, 12).ToList();
+    public IReadOnlyList<int> AlarmMinutes { get; } = Enumerable.Range(0, 12).Select(i => i * 5).ToList();
+
+    /// <summary>1 to 12; the am/pm switch keeps its own half of the day.</summary>
+    public int AlarmHour12
+    {
+        get => _alarmTime.Hour % 12 == 0 ? 12 : _alarmTime.Hour % 12;
+        set => SetAlarmTime(new TimeOnly(Math.Clamp(value, 1, 12) % 12 + (AlarmPmIndex == 1 ? 12 : 0), _alarmTime.Minute));
+    }
+
+    public int AlarmMinute
+    {
+        get => _alarmTime.Minute;
+        set => SetAlarmTime(new TimeOnly(_alarmTime.Hour, Math.Clamp(value, 0, 59)));
+    }
+
     private void SetAlarmTime(TimeOnly time)
     {
         _alarmTime = time;
-        foreach (var name in new[] { nameof(AlarmHourText), nameof(AlarmMinuteText), nameof(AlarmPmIndex), nameof(AlarmSummary) })
+        foreach (var name in new[] { nameof(AlarmHourText), nameof(AlarmMinuteText), nameof(AlarmPmIndex), nameof(AlarmSummary), nameof(AlarmHour12), nameof(AlarmMinute) })
             OnPropertyChanged(name);
     }
 

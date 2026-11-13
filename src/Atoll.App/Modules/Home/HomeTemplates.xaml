@@ -244,31 +244,47 @@
                             <ContentControl.ContentTemplate>
                                 <DataTemplate>
                                     <Grid>
-                                        <!-- Running: a ring with the time left, the mode and the session, and pause. -->
+                                        <Grid.Resources>
+                                            <Style x:Key="Home.TimerChip" TargetType="Button" BasedOn="{StaticResource Island.ChipButton}">
+                                                <Setter Property="FontSize" Value="11" />
+                                                <Setter Property="MinHeight" Value="26" />
+                                                <Setter Property="Padding" Value="9,0" />
+                                                <Setter Property="Margin" Value="0,0,4,4" />
+                                            </Style>
+                                        </Grid.Resources>
+                                        <!-- Running: the ring, the mode and session, and pause, one more minute, stop. -->
                                         <StackPanel Visibility="{Binding IsActive, Converter={StaticResource Island.BoolToVisibility}}">
                                             <StackPanel Orientation="Horizontal">
-                                                <Grid Width="56" Height="56">
+                                                <Grid Width="46" Height="46">
                                                     <shell:ProgressRing Fraction="{Binding RingFraction}" Stroke="{DynamicResource Island.Accent}" Track="{DynamicResource Island.Raised}" Thickness="4" />
-                                                    <TextBlock Text="{Binding Display}" FontSize="12" FontWeight="SemiBold" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                                    <TextBlock Text="{Binding Display}" FontSize="11" FontWeight="SemiBold" HorizontalAlignment="Center" VerticalAlignment="Center" />
                                                 </Grid>
                                                 <StackPanel Margin="10,0,0,0" VerticalAlignment="Center">
                                                     <TextBlock Text="{Binding Label}" FontSize="14" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
-                                                    <TextBlock Text="{Binding SessionText}" FontSize="12" Foreground="{DynamicResource Island.Subtle}" />
+                                                    <TextBlock Text="{Binding SessionText}" FontSize="11" Foreground="{DynamicResource Island.Subtle}" />
                                                 </StackPanel>
                                             </StackPanel>
-                                            <Button Style="{StaticResource Island.ChipButton}" Margin="0,8,0,0" HorizontalAlignment="Left" Command="{Binding PauseResumeCommand}"
-                                                    Content="{Binding IsRunning, Converter={x:Static shell:PauseLabel.Instance}}" />
+                                            <UniformGrid Columns="3" Margin="0,8,-4,0">
+                                                <Button Style="{StaticResource Home.TimerChip}" Padding="2,0" Command="{Binding PauseResumeCommand}"
+                                                        Content="{Binding IsRunning, Converter={x:Static shell:PauseLabel.Instance}}" />
+                                                <Button Style="{StaticResource Home.TimerChip}" Padding="2,0" Content="+1m" Command="{Binding AddMinuteCommand}" AutomationProperties.Name="Add one minute" />
+                                                <Button Style="{StaticResource Home.TimerChip}" Padding="2,0" Command="{Binding ResetCommand}" AutomationProperties.Name="Stop the timer">
+                                                    <shell:Icon Kind="square" Size="11" />
+                                                </Button>
+                                            </UniformGrid>
                                         </StackPanel>
-                                        <!-- Idle: quick starts. -->
+                                        <!-- Idle: quick starts for a timer, a focus session and a stopwatch. -->
                                         <StackPanel Visibility="{Binding IsActive, Converter={StaticResource Island.InverseBoolToVisibility}}">
                                             <StackPanel Orientation="Horizontal">
                                                 <shell:Icon Kind="timer" Size="14" Foreground="{DynamicResource Island.Subtle}" />
                                                 <TextBlock Text="Timer" Style="{StaticResource Home.Title}" />
                                             </StackPanel>
-                                            <StackPanel Orientation="Horizontal" Margin="0,12,0,0">
-                                                <Button Style="{StaticResource Island.ChipButton}" Content="5m" Command="{Binding StartCountdownCommand}" CommandParameter="5" Margin="0,0,4,0" AutomationProperties.Name="Start a 5 minute timer" />
-                                                <Button Style="{StaticResource Island.ChipButton}" Content="{Binding PomodoroShortcut}" Command="{Binding StartPomodoroCommand}" Margin="0" AutomationProperties.Name="Start a Pomodoro" />
-                                            </StackPanel>
+                                            <WrapPanel Margin="0,10,0,0">
+                                                <Button Style="{StaticResource Home.TimerChip}" Content="5m" Command="{Binding StartCountdownCommand}" CommandParameter="5" AutomationProperties.Name="Start a 5 minute timer" />
+                                                <Button Style="{StaticResource Home.TimerChip}" Content="15m" Command="{Binding StartCountdownCommand}" CommandParameter="15" AutomationProperties.Name="Start a 15 minute timer" />
+                                                <Button Style="{StaticResource Home.TimerChip}" Content="Focus" Command="{Binding StartPomodoroCommand}" ToolTip="{Binding PomodoroStartLabel}" AutomationProperties.Name="Start a Pomodoro" />
+                                                <Button Style="{StaticResource Home.TimerChip}" Content="Stopwatch" Command="{Binding StartStopwatchCommand}" AutomationProperties.Name="Start the stopwatch" />
+                                            </WrapPanel>
                                         </StackPanel>
                                     </Grid>
                                 </DataTemplate>
