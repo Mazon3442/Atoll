@@ -22,7 +22,7 @@
 
             <Style x:Key="OnboardingFocus" TargetType="Control">
                 <Setter Property="Template"><Setter.Value><ControlTemplate>
-                    <Border BorderBrush="{DynamicResource AccentFillColorDefaultBrush}" BorderThickness="2" CornerRadius="14" Margin="-3" />
+                    <Border BorderBrush="{DynamicResource AccentFillColorDefaultBrush}" BorderThickness="2" CornerRadius="{shell:Round 14}" Margin="-3" />
                 </ControlTemplate></Setter.Value></Setter>
             </Style>
 
@@ -43,7 +43,7 @@
                 <Setter Property="Template">
                     <Setter.Value>
                         <ControlTemplate TargetType="Button">
-                            <Border x:Name="Bg" Background="{TemplateBinding Background}" CornerRadius="14" Padding="{TemplateBinding Padding}">
+                            <Border x:Name="Bg" Background="{TemplateBinding Background}" CornerRadius="{shell:Round 14}" Padding="{TemplateBinding Padding}">
                                 <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
                             </Border>
                             <ControlTemplate.Triggers>
@@ -71,7 +71,7 @@
                 <Setter Property="Template">
                     <Setter.Value>
                         <ControlTemplate TargetType="Button">
-                            <Border Background="Transparent" CornerRadius="14" Padding="{TemplateBinding Padding}">
+                            <Border Background="Transparent" CornerRadius="{shell:Round 14}" Padding="{TemplateBinding Padding}">
                                 <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
                             </Border>
                         </ControlTemplate>
@@ -88,7 +88,7 @@
                 <Setter Property="Template">
                     <Setter.Value>
                         <ControlTemplate TargetType="ToggleButton">
-                            <Border x:Name="Bg" CornerRadius="14" Background="Transparent">
+                            <Border x:Name="Bg" CornerRadius="{shell:Round 14}" Background="Transparent">
                                 <Grid HorizontalAlignment="Center" VerticalAlignment="Center">
                                     <TextBlock x:Name="Outline" Text="&#xE734;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" FontSize="15"
                                                Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
@@ -123,7 +123,7 @@
                         <ControlTemplate TargetType="CheckBox">
                             <StackPanel Orientation="Horizontal" Background="Transparent" VerticalAlignment="Center">
                                 <TextBlock x:Name="State" Text="Off" Foreground="{TemplateBinding Foreground}" VerticalAlignment="Center" Margin="0,0,12,0" MinWidth="22" />
-                                <Border x:Name="Track" Width="40" Height="20" CornerRadius="{Binding ActualHeight, RelativeSource={RelativeSource Self}, Converter={x:Static shell:PillRadius.Instance}}" BorderThickness="1"
+                                <Border x:Name="Track" Width="40" Height="20" CornerRadius="{shell:Round}" BorderThickness="1"
                                         BorderBrush="{DynamicResource TextFillColorSecondaryBrush}" Background="Transparent">
                                     <Ellipse x:Name="Knob" Width="12" Height="12" HorizontalAlignment="Left" Margin="4,0"
                                              Fill="{DynamicResource TextFillColorSecondaryBrush}" />
@@ -160,7 +160,7 @@
         </Grid.RowDefinitions>
 
         <StackPanel Orientation="Horizontal" Margin="0,0,0,18">
-            <Border Width="30" Height="30" CornerRadius="14" BorderThickness="1" BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}">
+            <Border Width="30" Height="30" CornerRadius="{shell:Round 14}" BorderThickness="1" BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}">
                 <Image Source="{StaticResource Atoll.Logo}" />
             </Border>
             <TextBlock Text="ATOLL" FontSize="14" FontWeight="SemiBold" VerticalAlignment="Center" Margin="10,0,0,0" />
@@ -169,13 +169,13 @@
         <!-- Welcome: the island itself is the hero, not a row of feature cards. -->
         <StackPanel Grid.Row="1" VerticalAlignment="Center"
                     Visibility="{Binding IsWelcome, Converter={StaticResource BoolToVisibility}}">
-            <Border CornerRadius="22" Height="196" Background="{DynamicResource Island.Menu}" BorderBrush="{DynamicResource Island.Hover}" BorderThickness="1"
+            <Border CornerRadius="{shell:Round 22}" Height="196" Background="{DynamicResource Island.Menu}" BorderBrush="{DynamicResource Island.Hover}" BorderThickness="1"
                     AutomationProperties.Name="ATOLL island preview">
                 <Grid>
                     <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center">
-                        <Border Height="46" CornerRadius="{Binding ActualHeight, RelativeSource={RelativeSource Self}, Converter={x:Static shell:PillRadius.Instance}}" Background="{DynamicResource Island.Surface}" BorderBrush="{DynamicResource Island.Hover}" BorderThickness="1" Padding="8,0,14,0">
+                        <Border Height="46" CornerRadius="{shell:Round}" Background="{DynamicResource Island.Surface}" BorderBrush="{DynamicResource Island.Hover}" BorderThickness="1" Padding="8,0,14,0">
                             <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                                <Border Width="30" Height="30" CornerRadius="14" Background="{DynamicResource Island.Raised}">
+                                <Border Width="30" Height="30" CornerRadius="{shell:Round 14}" Background="{DynamicResource Island.Raised}">
                                     <shell:Icon Kind="music" Size="14" Foreground="{DynamicResource Island.Foreground}" />
                                 </Border>
                                 <StackPanel Margin="9,0,14,0" VerticalAlignment="Center">
@@ -192,14 +192,14 @@
                             </StackPanel>
                         </Border>
 
-                        <Border Height="34" CornerRadius="{Binding ActualHeight, RelativeSource={RelativeSource Self}, Converter={x:Static shell:PillRadius.Instance}}" Background="{DynamicResource Island.Surface}" BorderBrush="{DynamicResource Island.Hover}" BorderThickness="1"
+                        <Border Height="34" CornerRadius="{shell:Round}" Background="{DynamicResource Island.Surface}" BorderBrush="{DynamicResource Island.Hover}" BorderThickness="1"
                                 Padding="11,0" Margin="7,0,0,0" VerticalAlignment="Center">
                             <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                                 <shell:Icon Kind="timer" Size="12" Foreground="{DynamicResource Island.Foreground}" />
                                 <TextBlock Text="Timer" FontSize="11" Foreground="{DynamicResource Island.Foreground}" Margin="6,0,0,0" />
                             </StackPanel>
                         </Border>
-                        <Border Height="34" CornerRadius="{Binding ActualHeight, RelativeSource={RelativeSource Self}, Converter={x:Static shell:PillRadius.Instance}}" Background="{DynamicResource Island.Surface}" BorderBrush="{DynamicResource Island.Hover}" BorderThickness="1"
+                        <Border Height="34" CornerRadius="{shell:Round}" Background="{DynamicResource Island.Surface}" BorderBrush="{DynamicResource Island.Hover}" BorderThickness="1"
                                 Padding="11,0" Margin="6,0,0,0" VerticalAlignment="Center">
                             <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                                 <shell:Icon Kind="cloud" Size="12" Foreground="{DynamicResource Island.Foreground}" />
@@ -271,7 +271,7 @@
                            Text="Star the tabs you want at the top. Unstarred tabs stay on in the ⋯ menu, and you can change this any time in Settings › Modules." />
             </StackPanel>
 
-            <Border Grid.Row="1" Height="86" CornerRadius="22" Background="{DynamicResource Island.Menu}" BorderBrush="{DynamicResource Island.Hover}" BorderThickness="1"
+            <Border Grid.Row="1" Height="86" CornerRadius="{shell:Round 22}" Background="{DynamicResource Island.Menu}" BorderBrush="{DynamicResource Island.Hover}" BorderThickness="1"
                     Padding="16,0" Margin="0,0,0,14" AutomationProperties.Name="Top row preview">
                 <Grid>
                     <Viewbox Stretch="Uniform" StretchDirection="DownOnly" HorizontalAlignment="Center" VerticalAlignment="Center">
@@ -281,7 +281,7 @@
                             </ItemsControl.ItemsPanel>
                             <ItemsControl.ItemTemplate>
                                 <DataTemplate>
-                                    <Border Background="{DynamicResource Island.Surface}" BorderBrush="{DynamicResource Island.Hover}" BorderThickness="1" CornerRadius="{Binding ActualHeight, RelativeSource={RelativeSource Self}, Converter={x:Static shell:PillRadius.Instance}}"
+                                    <Border Background="{DynamicResource Island.Surface}" BorderBrush="{DynamicResource Island.Hover}" BorderThickness="1" CornerRadius="{shell:Round}"
                                             Padding="10,7" Margin="0,0,6,0">
                                         <StackPanel Orientation="Horizontal">
                                             <TextBlock Text="{Binding Glyph}" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets"
@@ -336,7 +336,7 @@
             <TextBlock Text="{Binding TopRowSummary}" FontSize="14" Style="{StaticResource Hint}" MaxWidth="620"
                        HorizontalAlignment="Left" TextAlignment="Left" Margin="0,8,0,18" />
 
-            <Border CornerRadius="22" Background="{DynamicResource Island.Menu}" BorderBrush="{DynamicResource Island.Hover}" BorderThickness="1"
+            <Border CornerRadius="{shell:Round 22}" Background="{DynamicResource Island.Menu}" BorderBrush="{DynamicResource Island.Hover}" BorderThickness="1"
                     Padding="18,16" AutomationProperties.Name="Your top row">
                 <StackPanel>
                     <TextBlock Text="Your top row" FontSize="11" Foreground="{DynamicResource Island.Subtle}" Margin="0,0,0,10" />
@@ -346,7 +346,7 @@
                         </ItemsControl.ItemsPanel>
                         <ItemsControl.ItemTemplate>
                             <DataTemplate>
-                                <Border Background="{DynamicResource Island.Surface}" BorderBrush="{DynamicResource Island.Hover}" BorderThickness="1" CornerRadius="{Binding ActualHeight, RelativeSource={RelativeSource Self}, Converter={x:Static shell:PillRadius.Instance}}"
+                                <Border Background="{DynamicResource Island.Surface}" BorderBrush="{DynamicResource Island.Hover}" BorderThickness="1" CornerRadius="{shell:Round}"
                                         Padding="10,7" Margin="0,0,6,6">
                                     <StackPanel Orientation="Horizontal">
                                         <TextBlock Text="{Binding Glyph}" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets"
@@ -363,7 +363,7 @@
                 </StackPanel>
             </Border>
 
-            <Border Background="{DynamicResource SubtleFillColorSecondaryBrush}" CornerRadius="22" Padding="16,12" Margin="0,14,0,0">
+            <Border Background="{DynamicResource SubtleFillColorSecondaryBrush}" CornerRadius="{shell:Round 22}" Padding="16,12" Margin="0,14,0,0">
                 <DockPanel>
                     <CheckBox DockPanel.Dock="Right" Style="{StaticResource Toggle}" IsChecked="{Binding StartWithWindows}"
                               VerticalAlignment="Center" AutomationProperties.Name="Start ATOLL with Windows" />

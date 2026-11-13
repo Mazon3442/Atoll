@@ -10,7 +10,7 @@
             <Setter Property="HorizontalContentAlignment" Value="Center" />
             <Setter Property="Cursor" Value="Hand" />
             <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="ListBoxItem">
-                <Border x:Name="Fill" Background="Transparent" CornerRadius="{Binding ActualHeight, RelativeSource={RelativeSource Self}, Converter={x:Static shell:PillRadius.Instance}}" Padding="12,7">
+                <Border x:Name="Fill" Background="Transparent" CornerRadius="{shell:Round}" Padding="12,7">
                     <ContentPresenter />
                 </Border>
                 <ControlTemplate.Triggers>
@@ -28,7 +28,7 @@
             <Setter Property="HorizontalContentAlignment" Value="Stretch" />
             <Setter Property="Cursor" Value="Hand" />
             <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="ListBoxItem">
-                <Border x:Name="Fill" Background="Transparent" CornerRadius="14" Padding="10,5">
+                <Border x:Name="Fill" Background="Transparent" CornerRadius="{shell:Round 14}" Padding="10,5">
                     <ContentPresenter />
                 </Border>
                 <ControlTemplate.Triggers>
@@ -53,11 +53,18 @@
                 <TextBlock Text="Your local forecast" FontSize="20" FontWeight="SemiBold" Margin="0,0,0,12" />
                 <Button Content="Weather settings" Command="{Binding OpenSettingsCommand}" Style="{StaticResource Island.ChipButton}" HorizontalAlignment="Left" />
             </StackPanel>
-            <StackPanel Visibility="{Binding HasReport, Converter={StaticResource Island.BoolToVisibility}}">
-                <Grid Margin="4,0,4,8">
+            <Grid Visibility="{Binding HasReport, Converter={StaticResource Island.BoolToVisibility}}">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="1.3*" />
+                    <ColumnDefinition Width="10" />
+                    <ColumnDefinition Width="0.8*" />
+                </Grid.ColumnDefinitions>
+                <Border Style="{StaticResource Island.Card}" Padding="16,14" VerticalAlignment="Top">
+                    <StackPanel>
+                <Grid Margin="0,0,0,10">
                     <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="76" /></Grid.ColumnDefinitions>
                     <StackPanel>
-                        <TextBlock Text="{Binding PlaceLabel}" FontSize="13" FontWeight="SemiBold" Foreground="{DynamicResource Island.AccentText}" TextTrimming="CharacterEllipsis" ToolTip="{Binding Place}" />
+                        <TextBlock Text="{Binding PlaceLabel}" FontSize="11" Foreground="{DynamicResource Island.Subtle}" TextTrimming="CharacterEllipsis" ToolTip="{Binding Place}" />
                         <TextBlock Text="{Binding TemperatureReading}" AutomationProperties.Name="{Binding Temperature}" FontSize="60" FontWeight="Light" LineHeight="70" Margin="0,2,0,0" />
                         <TextBlock Text="{Binding ConditionSummary}" FontSize="13" Opacity="0.85" TextWrapping="Wrap" />
                         <TextBlock Text="{Binding RainSummary}" FontSize="12" Opacity="0.7" TextWrapping="Wrap" Margin="0,2,0,0" />
@@ -65,14 +72,13 @@
                     <weather:WeatherSymbol Grid.Column="1" Code="{Binding ConditionCode}" IsDay="{Binding IsDay}" Width="66" Height="66" Margin="0,5,0,0" VerticalAlignment="Top"
                                            Ink="{Binding Foreground, RelativeSource={RelativeSource AncestorType=UserControl}}" AutomationProperties.Name="{Binding Description}" />
                 </Grid>
-                <Border Height="1" Background="{Binding HoverBrush, RelativeSource={RelativeSource AncestorType=UserControl}}" Margin="0,4,0,10" />
-                <Grid Margin="4,0,0,8">
+                <Grid Margin="0,0,0,8">
                     <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
                     <StackPanel VerticalAlignment="Center" Margin="0,0,10,0">
                         <TextBlock Text="{Binding MetricTitle}" FontSize="12" FontWeight="SemiBold" Foreground="{DynamicResource Island.AccentText}" TextWrapping="Wrap" />
                         <TextBlock Text="{Binding ChartReadout}" FontSize="11" Opacity="0.85" TextWrapping="Wrap" AutomationProperties.LiveSetting="Polite" />
                     </StackPanel>
-                <Border Grid.Column="1" CornerRadius="{Binding ActualHeight, RelativeSource={RelativeSource Self}, Converter={x:Static shell:PillRadius.Instance}}" Background="{Binding HoverBrush, RelativeSource={RelativeSource AncestorType=UserControl}}" Padding="3" VerticalAlignment="Center">
+                <Border Grid.Column="1" CornerRadius="{shell:Round}" Background="{Binding HoverBrush, RelativeSource={RelativeSource AncestorType=UserControl}}" Padding="3" VerticalAlignment="Center">
                     <ListBox ItemsSource="{Binding Metrics}" SelectedValuePath="Value" SelectedValue="{Binding SelectedMetric}" DisplayMemberPath="Label"
                              ItemContainerStyle="{StaticResource MetricItem}" Background="Transparent" BorderThickness="0" FontSize="12"
                              Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=UserControl}}"
@@ -85,8 +91,11 @@
                                        Height="104" Margin="3,0,3,4" Ink="{Binding Foreground, RelativeSource={RelativeSource AncestorType=UserControl}}"
                                        Accent="{DynamicResource Island.Accent}" AutomationProperties.Name="Hourly weather chart"
                                        AutomationProperties.HelpText="Use the left and right arrows to inspect hours, or point at a reading. Home and End select the first and last hour. Times are local to this place." />
-                <Border Height="1" Background="{Binding HoverBrush, RelativeSource={RelativeSource AncestorType=UserControl}}" Margin="0,6,0,6" />
-                <ListBox ItemsSource="{Binding Days}" SelectedItem="{Binding SelectedDay}" ItemContainerStyle="{StaticResource DayItem}"
+                <TextBlock Text="{Binding Updated}" FontSize="11" Opacity="0.8" TextWrapping="Wrap" Margin="0,4,0,0" ToolTip="Forecast times are local to this place." />
+                    </StackPanel>
+                </Border>
+                <Border Grid.Column="2" Style="{StaticResource Island.Card}" Padding="14,10" VerticalAlignment="Top">
+                <ListBox ItemsSource="{Binding Days}" Margin="-4,0" SelectedItem="{Binding SelectedDay}" ItemContainerStyle="{StaticResource DayItem}"
                          Background="Transparent" BorderThickness="0" Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=UserControl}}"
                          ScrollViewer.HorizontalScrollBarVisibility="Disabled" ScrollViewer.VerticalScrollBarVisibility="Disabled" AutomationProperties.Name="Choose a forecast day">
                     <ListBox.ItemTemplate><DataTemplate>
@@ -106,8 +115,8 @@
                         </Grid>
                     </DataTemplate></ListBox.ItemTemplate>
                 </ListBox>
-                <TextBlock Text="{Binding Updated}" FontSize="11" Opacity="0.8" TextWrapping="Wrap" Margin="8,8,4,0" ToolTip="Forecast times are local to this place." />
-            </StackPanel>
+                </Border>
+            </Grid>
         </StackPanel>
     </ScrollViewer>
 </UserControl>

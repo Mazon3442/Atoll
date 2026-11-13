@@ -28,3 +28,15 @@ public sealed class PillRadius : IValueConverter
     public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture) =>
         throw new NotSupportedException();
 }
+
+/// <summary>Visible when any of the bound values is true.</summary>
+public sealed class AnyTrueToVisibility : IMultiValueConverter
+{
+    public static AnyTrueToVisibility Instance { get; } = new();
+
+    public object Convert(object[] values, Type targetType, object parameter, CultureInfo culture) =>
+        values.Any(value => value is true) ? Visibility.Visible : Visibility.Collapsed;
+
+    public object[] ConvertBack(object value, Type[] targetTypes, object parameter, CultureInfo culture) =>
+        throw new NotSupportedException();
+}

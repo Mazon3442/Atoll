@@ -24,10 +24,9 @@ public class TemplateRadiusTests
             foreach (var radius in radii)
             {
                 var value = radius.Value.Trim();
-                var allowed = value is "14" or "22" ||
-                    Regex.IsMatch(value, @"^\{Binding\s+Actual(?:Height|Width),\s*RelativeSource=\{RelativeSource\s+Self\},\s*Converter=\{x:Static\s+\w+:PillRadius\.Instance\}\}$") ||
-                    Regex.IsMatch(value, @"^\{(?:StaticResource|DynamicResource)\s+Radius\.(?:Card|Control)\}$");
-                Assert.True(allowed, $"{Path.GetRelativePath(modules, file)}:{((IXmlLineInfo)radius).LineNumber}: CornerRadius '{value}' must use 14, 22, the corresponding radius resource, or PillRadius.");
+                // True pills and ladder radii go through shell:Round, which clamps to half the shorter side so no corner can turn into an oval.
+                var allowed = Regex.IsMatch(value, @"^\{shell:Round(?:\s+(?:14|22))?\}$");
+                Assert.True(allowed, $"{Path.GetRelativePath(modules, file)}:{((IXmlLineInfo)radius).LineNumber}: CornerRadius '{value}' must be {{shell:Round}} (a pill), {{shell:Round 14}} or {{shell:Round 22}}.");
             }
         }
     }

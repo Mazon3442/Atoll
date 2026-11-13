@@ -33,7 +33,7 @@
                             <ItemsControl.ItemTemplate>
                                 <DataTemplate>
                                     <!-- Drag a tile out to move/copy the file; double-click opens it. -->
-                                    <Border x:Name="Tile" Width="92" Height="96" Margin="0,0,6,6" CornerRadius="22" Padding="6"
+                                    <Border x:Name="Tile" Width="92" Height="96" Margin="0,0,6,6" CornerRadius="{shell:Round 22}" Padding="6"
                                             Background="{DynamicResource Island.Hover}" Cursor="Hand"
                                             shell:FileDrag.Path="{Binding Path}" ToolTip="{Binding Path}">
                                         <Border.InputBindings>

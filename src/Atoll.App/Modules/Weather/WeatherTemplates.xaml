@@ -12,7 +12,7 @@
             <Setter.Value>
                 <ControlTemplate TargetType="Button">
                     <StackPanel Background="Transparent" Width="84">
-                        <Border x:Name="Circle" Width="52" Height="52" CornerRadius="{Binding ActualHeight, RelativeSource={RelativeSource Self}, Converter={x:Static shell:PillRadius.Instance}}" Background="{DynamicResource Island.Hover}">
+                        <Border x:Name="Circle" Width="52" Height="52" CornerRadius="{shell:Round}" Background="{DynamicResource Island.Hover}">
                             <TextBlock Text="{TemplateBinding Tag}" FontFamily="{StaticResource Island.IconFont}" FontSize="20"
                                        HorizontalAlignment="Center" VerticalAlignment="Center" />
                         </Border>

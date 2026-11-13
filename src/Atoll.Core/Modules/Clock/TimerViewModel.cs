@@ -159,14 +159,23 @@ public sealed partial class TimerViewModel : ObservableObject
     [RelayCommand] private void SubtractSession() => SessionsBeforeLongBreak -= 1;
 
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(IsActive), nameof(IsCountingDown))]
+    [NotifyPropertyChangedFor(nameof(IsActive), nameof(IsCountingDown), nameof(RingFraction), nameof(SessionText))]
     [NotifyCanExecuteChangedFor(nameof(PauseResumeCommand), nameof(AddMinuteCommand), nameof(ResetCommand))]
     private TimerKind _kind;
 
     [ObservableProperty] private bool _isRunning;
     [ObservableProperty] private string _display = "";
     [ObservableProperty] private string _label = "";
-    [ObservableProperty] private double _progress;
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(RingFraction))]
+    private double _progress;
+
+    /// <summary>How much of the ring is left: the time remaining, or a full ring for a stopwatch.</summary>
+    public double RingFraction => Kind == TimerKind.Stopwatch ? 1 : IsActive ? 1 - Progress : 0;
+
+    /// <summary>"2 of 4" while a Pomodoro runs, so the card can say where in the cycle it is.</summary>
+    public string SessionText => Kind == TimerKind.Pomodoro
+        ? $"{_focusDone + (Label == "Focus" ? 1 : 0)} of {SessionsBeforeLongBreak}" : "";
 
     /// <summary>Raised when a countdown or Pomodoro phase ends. Argument: (title, detail).</summary>
     public event Action<string, string>? Completed;
@@ -402,6 +411,7 @@ public sealed partial class TimerViewModel : ObservableObject
         _runningSince = _time.GetUtcNow();
         IsRunning = true;
         Label = label;
+        OnPropertyChanged(nameof(SessionText));
         Refresh();
     }
 

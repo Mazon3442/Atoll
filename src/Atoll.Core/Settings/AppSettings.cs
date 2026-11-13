@@ -235,7 +235,12 @@ public sealed class HomeSettings
     public bool Media { get; set; } = true;
     public bool Weather { get; set; } = true;
     public bool Timer { get; set; } = true;
-    public bool Calendar { get; set; } = true;
+    /// <summary>
+    /// A month grid under the Home cards. Saved as "MonthGrid" so installs that had the old full-width month layout
+    /// start from the new card layout; turn it back on in Settings › Modules › Home.
+    /// </summary>
+    [JsonPropertyName("MonthGrid")]
+    public bool Calendar { get; set; }
     public bool UpNext { get; set; } = true;
     public bool Game { get; set; } = true;
 }

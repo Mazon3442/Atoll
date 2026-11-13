@@ -1540,6 +1540,8 @@ public partial class IslandWindow : Window
         return activity?.ModuleId;
     }
 
+    private void OnPaletteClick(object sender, RoutedEventArgs e) => ShowPalette();
+
     private void OnSettingsClick(object sender, RoutedEventArgs e)
     {
         SetMode(IslandMode.Compact);
