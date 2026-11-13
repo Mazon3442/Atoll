@@ -1,10 +1,11 @@
-<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+<ResourceDictionary
+    xmlns:shell="clr-namespace:Atoll.Shell" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
 
     <!-- Sender icons also work when the coding-agent module is disabled. -->
     <DataTemplate x:Key="Notification.Icon">
         <Grid>
-            <Border CornerRadius="14" Background="{DynamicResource Island.Hover}">
+            <Border CornerRadius="{shell:Round 14}" Background="{DynamicResource Island.Hover}">
                 <TextBlock Text="&#xEA8F;" FontFamily="{StaticResource Island.IconFont}" FontSize="11"
                            HorizontalAlignment="Center" VerticalAlignment="Center" Foreground="{DynamicResource Island.Subtle}" />
             </Border>
@@ -67,7 +68,7 @@
                         <ItemsControl ItemsSource="{Binding Items}">
                             <ItemsControl.ItemTemplate>
                                 <DataTemplate>
-                                    <Border CornerRadius="14" Padding="10,6" Margin="0,0,0,4" Background="{DynamicResource Island.Hover}">
+                                    <Border CornerRadius="{shell:Round 14}" Padding="10,6" Margin="0,0,0,4" Background="{DynamicResource Island.Hover}">
                                         <DockPanel>
                                             <Button DockPanel.Dock="Right" Style="{StaticResource Island.IconButton}" Content="&#xE711;"
                                                     Width="24" Height="24" FontSize="11" ToolTip="Dismiss"

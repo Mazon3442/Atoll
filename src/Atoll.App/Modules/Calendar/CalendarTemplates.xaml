@@ -40,9 +40,9 @@
             <Setter.Value>
                 <ControlTemplate TargetType="ListBoxItem">
                     <Grid Height="34" Background="Transparent">
-                        <Border x:Name="Hover" CornerRadius="{Binding ActualHeight, RelativeSource={RelativeSource Self}, Converter={x:Static shell:PillRadius.Instance}}" Background="Transparent" Margin="1" />
+                        <Border x:Name="Hover" CornerRadius="{shell:Round}" Background="Transparent" Margin="1" />
                         <Ellipse x:Name="Today" Width="26" Height="26" Fill="{DynamicResource Island.Accent}" Visibility="Collapsed" />
-                        <Border x:Name="Selected" Width="30" Height="30" CornerRadius="{Binding ActualHeight, RelativeSource={RelativeSource Self}, Converter={x:Static shell:PillRadius.Instance}}" BorderThickness="1.5"
+                        <Border x:Name="Selected" Width="30" Height="30" CornerRadius="{shell:Round}" BorderThickness="1.5"
                                 BorderBrush="{DynamicResource Island.Foreground}" Visibility="Collapsed" />
                         <TextBlock x:Name="Day" Text="{Binding Text}" FontSize="12" FontWeight="SemiBold"
                                    HorizontalAlignment="Center" VerticalAlignment="Center" />
@@ -96,7 +96,7 @@
 
     <DataTemplate x:Key="NextEventViewModel.Peek">
         <StackPanel Orientation="Horizontal">
-            <Border Width="4" Height="34" CornerRadius="{Binding ActualWidth, RelativeSource={RelativeSource Self}, Converter={x:Static shell:PillRadius.Instance}}" Background="{Binding Color}" VerticalAlignment="Center" />
+            <Border Width="4" Height="34" CornerRadius="{shell:Round}" Background="{Binding Color}" VerticalAlignment="Center" />
             <StackPanel Margin="12,0,0,0" VerticalAlignment="Center">
                 <TextBlock Text="{Binding Title}" FontSize="14" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" MaxWidth="260" />
                 <TextBlock Text="{Binding Subtitle}" FontSize="12" Foreground="{DynamicResource Island.Subtle}"
@@ -122,7 +122,7 @@
 
     <DataTemplate x:Key="CalendarAlertViewModel.Peek">
         <StackPanel Orientation="Horizontal">
-            <Border Width="4" Height="34" CornerRadius="{Binding ActualWidth, RelativeSource={RelativeSource Self}, Converter={x:Static shell:PillRadius.Instance}}" Background="{Binding Color}" VerticalAlignment="Center" />
+            <Border Width="4" Height="34" CornerRadius="{shell:Round}" Background="{Binding Color}" VerticalAlignment="Center" />
             <StackPanel Margin="12,0,0,0" VerticalAlignment="Center">
                 <TextBlock Text="{Binding Title}" FontSize="14" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" MaxWidth="260" />
                 <TextBlock Text="{Binding Detail}" FontSize="12" Foreground="{DynamicResource Island.AccentText}" />
@@ -134,7 +134,7 @@
          line with the start time. Pin and dismiss appear on hover or keyboard focus; a pinned event
          keeps a filled pin, and only now/next carry an accent badge. -->
     <DataTemplate x:Key="CalendarEventViewModel.Row">
-        <Border x:Name="Row" Background="Transparent" CornerRadius="14" Padding="6,3,4,3" Margin="-6,0,0,0"
+        <Border x:Name="Row" Background="Transparent" CornerRadius="{shell:Round 14}" Padding="6,3,4,3" Margin="-6,0,0,0"
                 BorderThickness="1" BorderBrush="Transparent" Focusable="True" FocusVisualStyle="{x:Null}"
                 AutomationProperties.Name="{Binding Event.DisplayTitle}" AutomationProperties.HelpText="{Binding Event.Detail}"
                 ToolTip="{Binding Event.DisplayTitle}" ToolTipService.InitialShowDelay="900">
@@ -144,7 +144,7 @@
                     <ColumnDefinition Width="*" />
                     <ColumnDefinition Width="Auto" />
                 </Grid.ColumnDefinitions>
-                <Border x:Name="Bar" Width="3" CornerRadius="{Binding ActualWidth, RelativeSource={RelativeSource Self}, Converter={x:Static shell:PillRadius.Instance}}" Background="{Binding Event.Color}" Margin="0,1,9,1" />
+                <Border x:Name="Bar" Width="3" CornerRadius="{shell:Round}" Background="{Binding Event.Color}" Margin="0,1,9,1" />
                 <StackPanel x:Name="Text" Grid.Column="1" VerticalAlignment="Center">
                     <DockPanel>
                         <TextBlock x:Name="Badge" DockPanel.Dock="Right" Text="{Binding Badge}" FontSize="11" FontWeight="SemiBold"
@@ -188,13 +188,13 @@
                 <Setter TargetName="Bar" Property="Opacity" Value="0.4" />
             </DataTrigger>
             <Trigger SourceName="Row" Property="IsMouseOver" Value="True">
-                <Setter TargetName="Row" Property="Background" Value="{DynamicResource Island.Surface}" />
+                <Setter TargetName="Row" Property="Background" Value="{DynamicResource Island.Raised}" />
                 <Setter TargetName="Actions" Property="Visibility" Value="Visible" />
                 <Setter TargetName="Badge" Property="Visibility" Value="Collapsed" />
                 <Setter TargetName="PinMark" Property="Visibility" Value="Collapsed" />
             </Trigger>
             <Trigger SourceName="Row" Property="IsKeyboardFocusWithin" Value="True">
-                <Setter TargetName="Row" Property="Background" Value="{DynamicResource Island.Surface}" />
+                <Setter TargetName="Row" Property="Background" Value="{DynamicResource Island.Raised}" />
                 <Setter TargetName="Actions" Property="Visibility" Value="Visible" />
                 <Setter TargetName="Badge" Property="Visibility" Value="Collapsed" />
                 <Setter TargetName="PinMark" Property="Visibility" Value="Collapsed" />
@@ -207,7 +207,7 @@
 
     <!-- Selected day's agenda: time and duration, color bar, title, place, Join, and hover actions. -->
     <DataTemplate x:Key="CalendarEventViewModel.Agenda">
-        <Border x:Name="Row" Background="Transparent" CornerRadius="14" Padding="4,6" Margin="0,0,0,4"
+        <Border x:Name="Row" Background="{DynamicResource Island.Hover}" CornerRadius="{shell:Round 14}" Padding="12,8" Margin="0,0,0,6"
                 BorderThickness="1" BorderBrush="Transparent" Focusable="True" FocusVisualStyle="{x:Null}"
                 AutomationProperties.Name="{Binding Event.DisplayTitle}" AutomationProperties.HelpText="{Binding Event.Detail}">
             <Grid>
@@ -223,7 +223,7 @@
                     <TextBlock x:Name="Duration" Text="{Binding Event.DurationText}" FontSize="11" Margin="0,2,0,0"
                                Foreground="{DynamicResource Island.Subtle}" />
                 </StackPanel>
-                <Border Grid.Column="1" Width="3" CornerRadius="{Binding ActualWidth, RelativeSource={RelativeSource Self}, Converter={x:Static shell:PillRadius.Instance}}" Background="{Binding Event.Color}" Margin="0,1,10,1" />
+                <Border Grid.Column="1" Width="3" CornerRadius="{shell:Round}" Background="{Binding Event.Color}" Margin="0,1,10,1" />
                 <StackPanel Grid.Column="2" VerticalAlignment="Center">
                     <DockPanel>
                         <TextBlock x:Name="Badge" DockPanel.Dock="Right" Text="{Binding Badge}" FontSize="11" FontWeight="SemiBold"
@@ -234,7 +234,7 @@
                                TextTrimming="CharacterEllipsis" Margin="0,2,0,0" />
                 </StackPanel>
                 <StackPanel Grid.Column="3" Orientation="Horizontal" VerticalAlignment="Center" Margin="6,0,0,0">
-                    <Button Style="{StaticResource Island.ChipButton}" Padding="8,3" Margin="0,0,4,0" FontSize="11"
+                    <Button Style="{StaticResource Island.PrimaryChip}" Padding="10,0" MinHeight="26" Margin="0,0,4,0" FontSize="11"
                             Command="{Binding JoinCommand}" Visibility="{Binding CanJoin, Converter={StaticResource Island.BoolToVisibility}}"
                             AutomationProperties.Name="{Binding Event.DisplayTitle, StringFormat=Join {0}}">
                         <StackPanel Orientation="Horizontal">
@@ -293,12 +293,13 @@
 
             <Grid Visibility="{Binding HasSources, Converter={StaticResource Island.BoolToVisibility}}">
                 <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="1.18*" />
-                    <ColumnDefinition Width="18" />
-                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="1.1*" />
+                    <ColumnDefinition Width="10" />
+                    <ColumnDefinition Width="0.9*" />
                 </Grid.ColumnDefinitions>
 
                 <!-- Month -->
+                <Border Style="{StaticResource Island.Card}" Padding="14,12" VerticalAlignment="Top">
                 <StackPanel>
                     <DockPanel Margin="2,0,0,8">
                         <Button DockPanel.Dock="Right" Style="{StaticResource Calendar.Action}" Content="&#xE72C;"
@@ -352,9 +353,11 @@
                         </TextBlock.Style>
                     </TextBlock>
                 </StackPanel>
+                </Border>
 
                 <!-- Selected day -->
-                <Grid Grid.Column="2">
+                <Border Grid.Column="2" Style="{StaticResource Island.Card}" Padding="14,12">
+                <Grid>
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto" />
                         <RowDefinition Height="*" />
@@ -362,10 +365,10 @@
                     <DockPanel Margin="0,0,0,8">
                         <TextBlock DockPanel.Dock="Right" Text="{Binding SelectedDayCount}" FontSize="11"
                                    Foreground="{DynamicResource Island.Subtle}" VerticalAlignment="Center" />
-                        <TextBlock Text="{Binding SelectedDayTitle}" FontSize="18" FontWeight="SemiBold"
-                                   Foreground="{DynamicResource Island.AccentText}" VerticalAlignment="Center" />
-                        <TextBlock Text="{Binding SelectedDayDate}" FontSize="18" FontWeight="SemiBold"
-                                   Foreground="{DynamicResource Island.Subtle}" Margin="8,0,0,0" VerticalAlignment="Center" />
+                        <StackPanel VerticalAlignment="Center">
+                            <TextBlock Text="{Binding SelectedDayTitle}" FontSize="11" Foreground="{DynamicResource Island.Subtle}" />
+                            <TextBlock Text="{Binding SelectedDayDate}" FontSize="18" FontWeight="SemiBold" />
+                        </StackPanel>
                     </DockPanel>
 
                     <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Focusable="False">
@@ -381,6 +384,7 @@
                                 HorizontalAlignment="Center" Command="{Binding OpenSettingsCommand}" />
                     </StackPanel>
                 </Grid>
+                </Border>
             </Grid>
         </Grid>
     </DataTemplate>

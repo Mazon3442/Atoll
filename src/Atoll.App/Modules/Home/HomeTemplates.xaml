@@ -44,9 +44,9 @@
             <Setter.Value>
                 <ControlTemplate TargetType="Button">
                     <Grid Height="26" Background="Transparent">
-                        <Border x:Name="Hover" CornerRadius="{Binding ActualHeight, RelativeSource={RelativeSource Self}, Converter={x:Static shell:PillRadius.Instance}}" Background="Transparent" Margin="1" />
+                        <Border x:Name="Hover" CornerRadius="{shell:Round}" Background="Transparent" Margin="1" />
                         <Ellipse x:Name="Today" Width="22" Height="22" Fill="{DynamicResource Island.Accent}" Visibility="Collapsed" />
-                        <Border x:Name="Selected" Width="24" Height="24" CornerRadius="{Binding ActualHeight, RelativeSource={RelativeSource Self}, Converter={x:Static shell:PillRadius.Instance}}" BorderThickness="1"
+                        <Border x:Name="Selected" Width="24" Height="24" CornerRadius="{shell:Round}" BorderThickness="1"
                                 BorderBrush="{DynamicResource Island.Foreground}" Visibility="Collapsed" />
                         <TextBlock x:Name="Day" Text="{Binding Text}" FontSize="11" FontWeight="SemiBold"
                                    HorizontalAlignment="Center" VerticalAlignment="Center" />
@@ -105,8 +105,8 @@
                                 <StackPanel DockPanel.Dock="Bottom" Margin="0,12,0,0"
                                             Visibility="{Binding HasSession, Converter={StaticResource Island.BoolToVisibility}}">
                                     <Grid Height="4" Margin="0,0,0,4" Visibility="{Binding HasTimeline, Converter={StaticResource Island.BoolToVisibility}}">
-                                        <Border CornerRadius="{Binding ActualHeight, RelativeSource={RelativeSource Self}, Converter={x:Static shell:PillRadius.Instance}}" Background="{DynamicResource Island.Raised}" />
-                                        <Border CornerRadius="{Binding ActualHeight, RelativeSource={RelativeSource Self}, Converter={x:Static shell:PillRadius.Instance}}" Background="{Binding Visualizer.Color}" RenderTransformOrigin="0,0.5">
+                                        <Border CornerRadius="{shell:Round}" Background="{DynamicResource Island.Raised}" />
+                                        <Border CornerRadius="{shell:Round}" Background="{Binding Visualizer.Color}" RenderTransformOrigin="0,0.5">
                                             <Border.RenderTransform><ScaleTransform ScaleX="{Binding Progress, FallbackValue=0}" /></Border.RenderTransform>
                                         </Border>
                                     </Grid>
@@ -318,7 +318,7 @@
                                     <DataTemplate>
                                         <DockPanel Height="26" ToolTip="{Binding When}">
                                             <TextBlock DockPanel.Dock="Left" Text="{Binding Time}" Width="58" FontSize="12" Foreground="{DynamicResource Island.Subtle}" VerticalAlignment="Center" />
-                                            <Border DockPanel.Dock="Left" Width="3" Height="18" CornerRadius="{Binding ActualWidth, RelativeSource={RelativeSource Self}, Converter={x:Static shell:PillRadius.Instance}}" Background="{Binding Color}" Margin="0,0,10,0" />
+                                            <Border DockPanel.Dock="Left" Width="3" Height="18" CornerRadius="{shell:Round}" Background="{Binding Color}" Margin="0,0,10,0" />
                                             <TextBlock Text="{Binding Title}" FontSize="14" FontWeight="Medium" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
                                         </DockPanel>
                                     </DataTemplate>

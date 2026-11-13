@@ -10,7 +10,7 @@
             <Setter Property="HorizontalContentAlignment" Value="Center" />
             <Setter Property="Cursor" Value="Hand" />
             <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="ListBoxItem">
-                <Border x:Name="Fill" Background="Transparent" CornerRadius="{Binding ActualHeight, RelativeSource={RelativeSource Self}, Converter={x:Static shell:PillRadius.Instance}}" Padding="12,7">
+                <Border x:Name="Fill" Background="Transparent" CornerRadius="{shell:Round}" Padding="12,7">
                     <ContentPresenter />
                 </Border>
                 <ControlTemplate.Triggers>
@@ -28,7 +28,7 @@
             <Setter Property="HorizontalContentAlignment" Value="Stretch" />
             <Setter Property="Cursor" Value="Hand" />
             <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="ListBoxItem">
-                <Border x:Name="Fill" Background="Transparent" CornerRadius="14" Padding="10,5">
+                <Border x:Name="Fill" Background="Transparent" CornerRadius="{shell:Round 14}" Padding="10,5">
                     <ContentPresenter />
                 </Border>
                 <ControlTemplate.Triggers>
@@ -72,7 +72,7 @@
                         <TextBlock Text="{Binding MetricTitle}" FontSize="12" FontWeight="SemiBold" Foreground="{DynamicResource Island.AccentText}" TextWrapping="Wrap" />
                         <TextBlock Text="{Binding ChartReadout}" FontSize="11" Opacity="0.85" TextWrapping="Wrap" AutomationProperties.LiveSetting="Polite" />
                     </StackPanel>
-                <Border Grid.Column="1" CornerRadius="{Binding ActualHeight, RelativeSource={RelativeSource Self}, Converter={x:Static shell:PillRadius.Instance}}" Background="{Binding HoverBrush, RelativeSource={RelativeSource AncestorType=UserControl}}" Padding="3" VerticalAlignment="Center">
+                <Border Grid.Column="1" CornerRadius="{shell:Round}" Background="{Binding HoverBrush, RelativeSource={RelativeSource AncestorType=UserControl}}" Padding="3" VerticalAlignment="Center">
                     <ListBox ItemsSource="{Binding Metrics}" SelectedValuePath="Value" SelectedValue="{Binding SelectedMetric}" DisplayMemberPath="Label"
                              ItemContainerStyle="{StaticResource MetricItem}" Background="Transparent" BorderThickness="0" FontSize="12"
                              Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=UserControl}}"

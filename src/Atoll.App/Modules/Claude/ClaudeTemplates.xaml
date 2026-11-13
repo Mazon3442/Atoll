@@ -165,7 +165,7 @@
                 <Setter Property="Template">
                     <Setter.Value>
                         <ControlTemplate TargetType="Button">
-                            <Border x:Name="Dot" Width="30" Height="30" CornerRadius="{Binding ActualHeight, RelativeSource={RelativeSource Self}, Converter={x:Static shell:PillRadius.Instance}}"
+                            <Border x:Name="Dot" Width="30" Height="30" CornerRadius="{shell:Round}"
                                     Background="{DynamicResource Island.Raised}">
                                 <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
                             </Border>
@@ -201,7 +201,7 @@
                 <Setter Property="Template">
                     <Setter.Value>
                         <ControlTemplate TargetType="ToggleButton">
-                            <Border x:Name="Bg" Background="{DynamicResource Island.Surface}" CornerRadius="{Binding ActualHeight, RelativeSource={RelativeSource Self}, Converter={x:Static shell:PillRadius.Instance}}" Padding="9,3"
+                            <Border x:Name="Bg" Background="{DynamicResource Island.Surface}" CornerRadius="{shell:Round}" Padding="9,3"
                                     BorderThickness="1" BorderBrush="Transparent">
                                 <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
                             </Border>
@@ -231,7 +231,7 @@
                            VerticalOffset="6" StaysOpen="False" AllowsTransparency="True" PopupAnimation="Fade"
                            IsOpen="{Binding Ask.IsSourceMenuOpen, Mode=TwoWay}">
                         <Border Background="{DynamicResource Island.Menu}" BorderBrush="{DynamicResource Island.Hover}"
-                                BorderThickness="1" CornerRadius="22" Padding="4" MinWidth="210">
+                                BorderThickness="1" CornerRadius="{shell:Round 22}" Padding="4" MinWidth="210">
                             <ItemsControl ItemsSource="{Binding Ask.Sources}" Focusable="False">
                                 <ItemsControl.ItemTemplate>
                                     <DataTemplate>
@@ -251,7 +251,7 @@
                            VerticalOffset="6" StaysOpen="False" AllowsTransparency="True" PopupAnimation="Fade"
                            IsOpen="{Binding Ask.IsModelMenuOpen, Mode=TwoWay}">
                         <Border Background="{DynamicResource Island.Menu}" BorderBrush="{DynamicResource Island.Hover}"
-                                BorderThickness="1" CornerRadius="22" Padding="4" MinWidth="190">
+                                BorderThickness="1" CornerRadius="{shell:Round 22}" Padding="4" MinWidth="190">
                             <ItemsControl ItemsSource="{Binding Ask.Models}" Focusable="False">
                                 <ItemsControl.ItemTemplate>
                                     <DataTemplate>
@@ -269,7 +269,7 @@
                                   ToolTip="Let the agent run commands and edit files"
                                   AutomationProperties.Name="Allow agent tools" />
                 </StackPanel>
-                <Border Background="{DynamicResource Island.Surface}" CornerRadius="{Binding ActualHeight, RelativeSource={RelativeSource Self}, Converter={x:Static shell:PillRadius.Instance}}" Padding="3"
+                <Border Background="{DynamicResource Island.Surface}" CornerRadius="{shell:Round}" Padding="3"
                         HorizontalAlignment="Left">
                 <ListBox ItemsSource="{Binding Sections}" SelectedIndex="{Binding SectionIndex, Mode=TwoWay}"
                          ItemContainerStyle="{StaticResource Island.SegmentItem}"
@@ -305,8 +305,8 @@
                                 </TextBlock>
                             </DockPanel>
                             <Grid Height="3" Margin="0,4,12,0">
-                                <Border CornerRadius="{Binding ActualHeight, RelativeSource={RelativeSource Self}, Converter={x:Static shell:PillRadius.Instance}}" Background="{DynamicResource Island.Hover}" />
-                                <Border CornerRadius="{Binding ActualHeight, RelativeSource={RelativeSource Self}, Converter={x:Static shell:PillRadius.Instance}}" Background="{StaticResource Claude.Orange}" RenderTransformOrigin="0,0.5">
+                                <Border CornerRadius="{shell:Round}" Background="{DynamicResource Island.Hover}" />
+                                <Border CornerRadius="{shell:Round}" Background="{StaticResource Claude.Orange}" RenderTransformOrigin="0,0.5">
                                     <Border.RenderTransform>
                                         <ScaleTransform ScaleX="{Binding Usage.BlockProgress}" />
                                     </Border.RenderTransform>
@@ -336,8 +336,8 @@
                                         </TextBlock>
                                     </DockPanel>
                                     <Grid Height="3" Margin="0,4,0,0">
-                                        <Border CornerRadius="{Binding ActualHeight, RelativeSource={RelativeSource Self}, Converter={x:Static shell:PillRadius.Instance}}" Background="{DynamicResource Island.Hover}" />
-                                        <Border x:Name="Fill" CornerRadius="{Binding ActualHeight, RelativeSource={RelativeSource Self}, Converter={x:Static shell:PillRadius.Instance}}" Background="{DynamicResource Island.Accent}" RenderTransformOrigin="0,0.5">
+                                        <Border CornerRadius="{shell:Round}" Background="{DynamicResource Island.Hover}" />
+                                        <Border x:Name="Fill" CornerRadius="{shell:Round}" Background="{DynamicResource Island.Accent}" RenderTransformOrigin="0,0.5">
                                             <Border.RenderTransform>
                                                 <ScaleTransform ScaleX="{Binding Progress}" />
                                             </Border.RenderTransform>
@@ -363,7 +363,7 @@
                             <ItemsControl ItemsSource="{Binding Tracker.Sessions}">
                                 <ItemsControl.ItemTemplate>
                                     <DataTemplate>
-                                        <Border x:Name="Row" CornerRadius="14" Padding="10,6" Margin="0,0,0,4" Background="{DynamicResource Island.Hover}">
+                                        <Border x:Name="Row" CornerRadius="{shell:Round 14}" Padding="10,6" Margin="0,0,0,4" Background="{DynamicResource Island.Hover}">
                                             <DockPanel>
                                                 <Button DockPanel.Dock="Right" Style="{StaticResource Island.ChipButton}" Content="Open"
                                                         Margin="8,0,0,0" VerticalAlignment="Center" Command="{Binding FocusCommand}"
@@ -426,7 +426,7 @@
                 </Grid>
 
                 <!-- Composer: one rounded line that grows, with the send button inside it. -->
-                <Border Grid.Row="1" Margin="0,8,0,0" Padding="14,3,4,3" CornerRadius="14" BorderThickness="1">
+                <Border Grid.Row="1" Margin="0,8,0,0" Padding="14,3,4,3" CornerRadius="{shell:Round 14}" BorderThickness="1">
                     <Border.Style>
                         <Style TargetType="Border">
                             <Setter Property="Background" Value="{DynamicResource Island.Surface}" />
@@ -459,12 +459,12 @@
                             <ItemsControl.ItemTemplate>
                                 <DataTemplate>
                                     <Grid Margin="0,0,8,0">
-                                        <Border Width="48" Height="48" CornerRadius="14" ClipToBounds="True"
+                                        <Border Width="48" Height="48" CornerRadius="{shell:Round 14}" ClipToBounds="True"
                                                 Background="{DynamicResource Island.Hover}">
                                             <Image Source="{Binding Data, Converter={x:Static claude:AskImageThumbnail.Instance}}" Stretch="UniformToFill" />
                                         </Border>
                                         <Border HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,-5,-5,0" Width="18" Height="18"
-                                                CornerRadius="14" Background="{DynamicResource Island.Menu}">
+                                                CornerRadius="{shell:Round 14}" Background="{DynamicResource Island.Menu}">
                                             <Button Style="{StaticResource Island.IconButton}" Width="18" Height="18"
                                                     Command="{Binding DataContext.Ask.RemoveImageCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
                                                     CommandParameter="{Binding}" ToolTip="Remove" AutomationProperties.Name="Remove the picture">

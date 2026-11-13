@@ -22,8 +22,8 @@
                       Padding="8,5" MinHeight="36" Cursor="Hand"
                       AutomationProperties.Name="{Binding Label, ElementName=Picker}" ToolTip="Choose a color">
             <StackPanel Orientation="Horizontal">
-                <Border Width="24" Height="24" Background="{StaticResource Checker}" CornerRadius="14" ClipToBounds="True">
-                    <Border x:Name="Swatch" CornerRadius="14" BorderBrush="#80808080" BorderThickness="1" />
+                <Border Width="24" Height="24" Background="{StaticResource Checker}" CornerRadius="{shell:Round 14}" ClipToBounds="True">
+                    <Border x:Name="Swatch" CornerRadius="{shell:Round 14}" BorderBrush="#80808080" BorderThickness="1" />
                 </Border>
                 <TextBlock x:Name="SwatchHex" Width="88" Margin="10,0,0,0" FontSize="12" VerticalAlignment="Center" />
                 <TextBlock Text="&#xE70D;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" FontSize="10" Margin="8,0,2,0" VerticalAlignment="Center" />
@@ -31,7 +31,7 @@
         </ToggleButton>
         <Popup x:Name="Flyout" Placement="Bottom" PlacementTarget="{Binding ElementName=SwatchButton}"
                StaysOpen="False" AllowsTransparency="True" VerticalOffset="8" Opened="OnOpened" Closed="OnClosed">
-            <Border Width="312" Padding="20" CornerRadius="22" BorderThickness="1"
+            <Border Width="312" Padding="20" CornerRadius="{shell:Round 22}" BorderThickness="1"
                     Background="{DynamicResource SolidBackgroundFillColorBaseBrush}"
                     BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
                     TextElement.Foreground="{DynamicResource TextFillColorPrimaryBrush}"
@@ -52,17 +52,17 @@
                         </LinearGradientBrush></Slider.Background>
                         <Slider.Template><ControlTemplate TargetType="Slider">
                             <Grid Background="Transparent" Margin="5,0">
-                                <Border Background="{TemplateBinding Background}" Height="10" CornerRadius="{Binding ActualHeight, RelativeSource={RelativeSource Self}, Converter={x:Static shell:PillRadius.Instance}}" />
+                                <Border Background="{TemplateBinding Background}" Height="10" CornerRadius="{shell:Round}" />
                                 <Track x:Name="PART_Track">
                                     <Track.DecreaseRepeatButton><RepeatButton Command="Slider.DecreaseLarge" Opacity="0" Focusable="False" /></Track.DecreaseRepeatButton>
                                     <Track.Thumb><Thumb Width="12" Height="22">
                                         <Thumb.Template><ControlTemplate TargetType="Thumb">
-                                            <Border Background="#202020" BorderBrush="White" BorderThickness="2" CornerRadius="14" />
+                                            <Border Background="#202020" BorderBrush="White" BorderThickness="2" CornerRadius="{shell:Round 14}" />
                                         </ControlTemplate></Thumb.Template>
                                     </Thumb></Track.Thumb>
                                     <Track.IncreaseRepeatButton><RepeatButton Command="Slider.IncreaseLarge" Opacity="0" Focusable="False" /></Track.IncreaseRepeatButton>
                                 </Track>
-                                <Border x:Name="FocusRing" BorderBrush="{DynamicResource AccentFillColorDefaultBrush}" BorderThickness="2" CornerRadius="14" Margin="-3" Visibility="Collapsed" IsHitTestVisible="False" />
+                                <Border x:Name="FocusRing" BorderBrush="{DynamicResource AccentFillColorDefaultBrush}" BorderThickness="2" CornerRadius="{shell:Round 14}" Margin="-3" Visibility="Collapsed" IsHitTestVisible="False" />
                             </Grid>
                             <ControlTemplate.Triggers><Trigger Property="IsKeyboardFocusWithin" Value="True"><Setter TargetName="FocusRing" Property="Visibility" Value="Visible" /></Trigger></ControlTemplate.Triggers>
                         </ControlTemplate></Slider.Template>

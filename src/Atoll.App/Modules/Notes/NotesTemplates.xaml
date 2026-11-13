@@ -4,7 +4,7 @@
 
     <DataTemplate x:Key="NotesViewModel.Panel">
         <StackPanel MinHeight="230">
-            <Border Background="{DynamicResource Island.Surface}" CornerRadius="{Binding ActualHeight, RelativeSource={RelativeSource Self}, Converter={x:Static shell:PillRadius.Instance}}" Padding="3"
+            <Border Background="{DynamicResource Island.Surface}" CornerRadius="{shell:Round}" Padding="3"
                     HorizontalAlignment="Left" Margin="0,0,0,8">
                 <ListBox ItemsSource="{Binding Sections}" SelectedIndex="{Binding SectionIndex, Mode=TwoWay}"
                          ItemContainerStyle="{StaticResource Island.SegmentItem}"
@@ -66,7 +66,7 @@
                         <ItemsControl ItemsSource="{Binding Notes}" Focusable="False" Margin="0,0,5,0">
                             <ItemsControl.ItemTemplate>
                                 <DataTemplate>
-                                    <Border Background="{DynamicResource Island.Surface}" CornerRadius="14" Padding="10,7" Margin="0,0,0,4">
+                                    <Border Background="{DynamicResource Island.Surface}" CornerRadius="{shell:Round 14}" Padding="10,7" Margin="0,0,0,4">
                                         <DockPanel>
                                             <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Top">
                                                 <Button Style="{StaticResource Island.IconButton}" Width="24" Height="24"
@@ -124,7 +124,7 @@
                         <ItemsControl ItemsSource="{Binding Reminders}" Focusable="False" Margin="0,0,5,0">
                             <ItemsControl.ItemTemplate>
                                 <DataTemplate>
-                                    <Border Background="{DynamicResource Island.Surface}" CornerRadius="14" Padding="8,6" Margin="0,0,0,4">
+                                    <Border Background="{DynamicResource Island.Surface}" CornerRadius="{shell:Round 14}" Padding="8,6" Margin="0,0,0,4">
                                         <DockPanel>
                                             <Button DockPanel.Dock="Right" Style="{StaticResource Island.IconButton}" Width="24" Height="24" Content="&#xE74D;"
                                                     Command="{Binding DataContext.DeleteReminderCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
@@ -200,7 +200,7 @@
                         <ItemsControl ItemsSource="{Binding Todos}" Focusable="False" Margin="0,0,5,0">
                             <ItemsControl.ItemTemplate>
                                 <DataTemplate>
-                                    <Border Background="{DynamicResource Island.Surface}" CornerRadius="14" Padding="8,6" Margin="0,0,0,4">
+                                    <Border Background="{DynamicResource Island.Surface}" CornerRadius="{shell:Round 14}" Padding="8,6" Margin="0,0,0,4">
                                         <DockPanel>
                                             <Button DockPanel.Dock="Right" Style="{StaticResource Island.IconButton}" Width="24" Height="24" Content="&#xE74D;"
                                                     Command="{Binding DataContext.DeleteTodoCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"

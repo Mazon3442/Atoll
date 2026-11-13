@@ -20,7 +20,7 @@
                 <Setter Property="Template">
                     <Setter.Value>
                         <ControlTemplate TargetType="ListBoxItem">
-                            <Border x:Name="Bg" Background="Transparent" CornerRadius="14" Padding="8,6" Margin="0,0,0,2">
+                            <Border x:Name="Bg" Background="Transparent" CornerRadius="{shell:Round 14}" Padding="8,6" Margin="0,0,0,2">
                                 <DockPanel>
                                     <Button x:Name="Remove" DockPanel.Dock="Right" Style="{StaticResource Island.IconButton}"
                                             Width="22" Height="22" Opacity="0" Margin="4,0,0,0"
@@ -55,7 +55,7 @@
                 <Setter Property="Template">
                     <Setter.Value>
                         <ControlTemplate TargetType="Button">
-                            <Border x:Name="Bg" Background="{DynamicResource Island.Accent}" CornerRadius="{Binding ActualHeight, RelativeSource={RelativeSource Self}, Converter={x:Static shell:PillRadius.Instance}}" Padding="16,0" Height="32"
+                            <Border x:Name="Bg" Background="{DynamicResource Island.Accent}" CornerRadius="{shell:Round}" Padding="16,0" Height="32"
                                     TextElement.Foreground="White">
                                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                                     <shell:Icon Size="13" VerticalAlignment="Center">
@@ -94,7 +94,7 @@
                 <Setter Property="Template">
                     <Setter.Value>
                         <ControlTemplate TargetType="ToggleButton">
-                            <Border x:Name="Bg" CornerRadius="{Binding ActualHeight, RelativeSource={RelativeSource Self}, Converter={x:Static shell:PillRadius.Instance}}" Background="{DynamicResource Island.Surface}">
+                            <Border x:Name="Bg" CornerRadius="{shell:Round}" Background="{DynamicResource Island.Surface}">
                                 <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
                             </Border>
                             <ControlTemplate.Triggers>
@@ -119,7 +119,7 @@
                 <Setter Property="Template">
                     <Setter.Value>
                         <ControlTemplate TargetType="ListBoxItem">
-                            <Border x:Name="Bg" Background="Transparent" CornerRadius="{Binding ActualHeight, RelativeSource={RelativeSource Self}, Converter={x:Static shell:PillRadius.Instance}}" Padding="{TemplateBinding Padding}">
+                            <Border x:Name="Bg" Background="Transparent" CornerRadius="{shell:Round}" Padding="{TemplateBinding Padding}">
                                 <ContentPresenter />
                             </Border>
                             <ControlTemplate.Triggers>
@@ -146,7 +146,7 @@
                 <Setter Property="Template">
                     <Setter.Value>
                         <ControlTemplate TargetType="ToggleButton">
-                            <Border x:Name="Bg" Background="{DynamicResource Island.Surface}" CornerRadius="{Binding ActualHeight, RelativeSource={RelativeSource Self}, Converter={x:Static shell:PillRadius.Instance}}" Padding="8,3"
+                            <Border x:Name="Bg" Background="{DynamicResource Island.Surface}" CornerRadius="{shell:Round}" Padding="8,3"
                                     BorderThickness="1" BorderBrush="Transparent">
                                 <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
                             </Border>
@@ -168,7 +168,7 @@
             </Style>
         </DataTemplate.Resources>
         <StackPanel MinHeight="250">
-            <Border Background="{DynamicResource Island.Surface}" CornerRadius="{Binding ActualHeight, RelativeSource={RelativeSource Self}, Converter={x:Static shell:PillRadius.Instance}}" Padding="3"
+            <Border Background="{DynamicResource Island.Surface}" CornerRadius="{shell:Round}" Padding="3"
                     HorizontalAlignment="Left" Margin="0,0,0,8">
                 <ListBox ItemsSource="{Binding Sections}" SelectedIndex="{Binding SectionIndex, Mode=TwoWay}"
                          ItemContainerStyle="{StaticResource Island.SegmentItem}"
@@ -185,7 +185,7 @@
 
             <!-- Scripts: the list on the left, the script on the right. -->
             <StackPanel Visibility="{Binding IsScripts, Converter={StaticResource Island.BoolToVisibility}}">
-                <Border Margin="0,0,0,8" Padding="12,8" CornerRadius="22" Background="{DynamicResource Island.Surface}"
+                <Border Margin="0,0,0,8" Padding="12,8" CornerRadius="{shell:Round 22}" Background="{DynamicResource Island.Surface}"
                         Visibility="{Binding ShowCaptureBanner, Converter={StaticResource Island.BoolToVisibility}}">
                     <DockPanel>
                         <Button DockPanel.Dock="Right" Style="{StaticResource Tide.Chip}" Content="Hide" FontWeight="SemiBold"
@@ -227,7 +227,7 @@
                             </ListBox.ItemTemplate>
                         </ListBox>
                     </DockPanel>
-                    <Border Grid.Column="1" Background="{DynamicResource Island.Surface}" CornerRadius="22" Padding="14,10">
+                    <Border Grid.Column="1" Background="{DynamicResource Island.Surface}" CornerRadius="{shell:Round 22}" Padding="14,10">
                         <DockPanel>
                             <TextBox DockPanel.Dock="Top" Text="{Binding Title, UpdateSourceTrigger=PropertyChanged}"
                                      Background="Transparent" BorderThickness="0" Padding="0,0,0,6" FontSize="14" FontWeight="SemiBold"
@@ -245,7 +245,7 @@
 
             <!-- Prompter: the script under the camera. The sentence at the reading line is brightest; the rest fades. -->
             <Grid Visibility="{Binding IsPrompter, Converter={StaticResource Island.BoolToVisibility}}" Height="262">
-                <Border Background="{DynamicResource Island.Surface}" CornerRadius="22" ClipToBounds="True">
+                <Border Background="{DynamicResource Island.Surface}" CornerRadius="{shell:Round 22}" ClipToBounds="True">
                     <Grid>
                         <ScrollViewer x:Name="PromptScroll" VerticalScrollBarVisibility="Hidden"
                                       HorizontalScrollBarVisibility="Disabled" Focusable="True" Cursor="Hand"
@@ -287,7 +287,7 @@
                             </TextBlock>
                         </ScrollViewer>
 
-                        <Border HorizontalAlignment="Center" VerticalAlignment="Center" CornerRadius="{Binding ActualHeight, RelativeSource={RelativeSource Self}, Converter={x:Static shell:PillRadius.Instance}}" Padding="12,5"
+                        <Border HorizontalAlignment="Center" VerticalAlignment="Center" CornerRadius="{shell:Round}" Padding="12,5"
                                 Background="{DynamicResource Island.Raised}" IsHitTestVisible="False"
                                 Visibility="{Binding IsPaused, Converter={StaticResource Island.BoolToVisibility}}">
                             <StackPanel Orientation="Horizontal">
@@ -297,7 +297,7 @@
                         </Border>
 
                         <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,10,10,0">
-                            <Border Background="{DynamicResource Island.Raised}" CornerRadius="{Binding ActualHeight, RelativeSource={RelativeSource Self}, Converter={x:Static shell:PillRadius.Instance}}" Padding="2" Margin="0,0,6,0">
+                            <Border Background="{DynamicResource Island.Raised}" CornerRadius="{shell:Round}" Padding="2" Margin="0,0,6,0">
                                 <StackPanel Orientation="Horizontal">
                                     <Button Style="{StaticResource Island.IconButton}" Width="26" Height="26" Command="{Binding SmallerTextCommand}"
                                             ToolTip="Smaller text" AutomationProperties.Name="Smaller text">
@@ -334,7 +334,7 @@
                                     AutomationProperties.Name="Stop the prompter" Cursor="Hand">
                                 <Button.Template>
                                     <ControlTemplate TargetType="Button">
-                                        <Border x:Name="Bg" CornerRadius="{Binding ActualHeight, RelativeSource={RelativeSource Self}, Converter={x:Static shell:PillRadius.Instance}}" Background="#E5484D">
+                                        <Border x:Name="Bg" CornerRadius="{shell:Round}" Background="#E5484D">
                                             <Rectangle Width="9" Height="9" RadiusX="1.5" RadiusY="1.5" Fill="White"
                                                        HorizontalAlignment="Center" VerticalAlignment="Center" />
                                         </Border>
@@ -358,7 +358,7 @@
                     <ColumnDefinition Width="*" />
                     <ColumnDefinition Width="Auto" />
                 </Grid.ColumnDefinitions>
-                <Border Background="{DynamicResource Island.Surface}" CornerRadius="14" Padding="3" VerticalAlignment="Center">
+                <Border Background="{DynamicResource Island.Surface}" CornerRadius="{shell:Round 14}" Padding="3" VerticalAlignment="Center">
                     <ListBox ItemsSource="{Binding Speeds}" SelectedIndex="{Binding SpeedIndex, Mode=TwoWay}"
                              ItemContainerStyle="{StaticResource Island.SegmentItem}"
                              Background="Transparent" BorderThickness="0" FontSize="12"
@@ -458,7 +458,7 @@
                         <ColumnDefinition Width="2*" />
                     </Grid.ColumnDefinitions>
 
-                    <Border Background="{DynamicResource Island.Surface}" CornerRadius="22" Padding="8,6">
+                    <Border Background="{DynamicResource Island.Surface}" CornerRadius="{shell:Round 22}" Padding="8,6">
                         <Grid>
                             <Grid.RowDefinitions>
                                 <RowDefinition Height="Auto" />
@@ -511,7 +511,7 @@
                         </Grid>
                     </Border>
 
-                    <Border Grid.Column="2" Background="{DynamicResource Island.Surface}" CornerRadius="22" Padding="8,6">
+                    <Border Grid.Column="2" Background="{DynamicResource Island.Surface}" CornerRadius="{shell:Round 22}" Padding="8,6">
                         <Grid>
                             <Grid.RowDefinitions>
                                 <RowDefinition Height="Auto" />
@@ -531,7 +531,7 @@
                                     <TextBlock Text="{Binding Listen.NotesStatus}" TextWrapping="Wrap" FontSize="11"
                                                Foreground="{DynamicResource Island.Subtle}" />
                                     <!-- No model is a clear state with a way out, not a silent empty pane. -->
-                                    <Border Background="{DynamicResource Island.Raised}" CornerRadius="14" Padding="7,5" Margin="0,2,0,2"
+                                    <Border Background="{DynamicResource Island.Raised}" CornerRadius="{shell:Round 14}" Padding="7,5" Margin="0,2,0,2"
                                             Visibility="{Binding Listen.NeedsNotesModel, Converter={StaticResource Island.BoolToVisibility}}">
                                         <StackPanel>
                                             <TextBlock Text="Notes need a model. Start Ollama, or add a provider key in Settings."

@@ -150,6 +150,9 @@ public class GroupedPanelsTests
         var panels = PanelGroups.Combine(modules).Where(t => t.Panel.GetType() != typeof(object))
             .Select(t => (Name: t.Descriptor.Id, Panel: t.Panel)).ToList();
         panels.Add(("calendar-only", new TimePanelViewModel(null, new CalendarViewModel(() => { }))));
+        using var weatherReport = new Atoll.Modules.Weather.WeatherViewModel(new Atoll.Settings.SettingsService(new Atoll.Settings.SettingsStore(Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".json"))));
+        weatherReport.Show(WeatherForecastTests.Example(), new Atoll.Modules.Weather.Place("Seattle", 47.6, -122.3), false);
+        panels.Add(("weather-report", weatherReport));
         panels.Add(("clock-only", new TimePanelViewModel((ClockPanelViewModel)modules.Single(t => t.Descriptor.Id == "clock").Panel, null)));
         var idleClock = (ClockPanelViewModel)modules.Single(t => t.Descriptor.Id == "clock").Panel;
         var agenda = new CalendarViewModel(() => { }) { HasSources = true, HasEvents = true, Updated = "Updated 10:30 AM" };
@@ -178,6 +181,7 @@ public class GroupedPanelsTests
         panels.Add(("time-pomodoro-narrow", new ClockPanelViewModel(idleClock.Clock, narrowPomodoro)));
         panels.Add(("time-alarm", new ClockPanelViewModel(idleClock.Clock, new TimerViewModel(TimeProvider.System) { SectionIndex = 2 })));
         panels.Add(("time-timer-running", new TimePanelViewModel(new ClockPanelViewModel(idleClock.Clock, runningTimer), agenda)));
+        panels.Add(("calendar-agenda", agenda));
         panels.Add(("time-no-calendars", new TimePanelViewModel(idleClock, new CalendarViewModel(() => { }))));
         panels.Add(("clipboard-only", new FilesPanelViewModel(null, new ClipboardViewModel(new ClipboardHistory()))));
         var clipboardHistory = new ClipboardHistory();
@@ -262,8 +266,8 @@ public class GroupedPanelsTests
         {
             var narrow = panel.Name == "time-pomodoro-narrow";
             var tide = panel.Name.StartsWith("tide", StringComparison.Ordinal);
-            var frameWidth = tide ? 820 : narrow ? 330 : 476;
-            var frameHeight = tide ? 420 : panel.Name.StartsWith("time-pomodoro", StringComparison.Ordinal) ? 330 : 170;
+            var frameWidth = tide ? 820 : narrow ? 330 : 612;
+            var frameHeight = tide ? 420 : 340;
             var presenter = new ContentControl
             {
                 Width = frameWidth, Height = frameHeight, Content = panel.Panel,

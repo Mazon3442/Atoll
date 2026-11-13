@@ -7,11 +7,11 @@
     <!-- Album art with a music-note fallback underneath (shows when the player gives no artwork). -->
     <DataTemplate x:Key="Media.Art">
         <Grid>
-            <Border Background="{DynamicResource Island.Hover}" CornerRadius="14">
+            <Border Background="{DynamicResource Island.Hover}" CornerRadius="{shell:Round 14}">
                 <TextBlock Text="&#xE8D6;" FontFamily="{StaticResource Island.IconFont}" HorizontalAlignment="Center"
                            VerticalAlignment="Center" Foreground="{DynamicResource Island.Subtle}" />
             </Border>
-            <Border CornerRadius="14">
+            <Border CornerRadius="{shell:Round 14}">
                 <Border.Background>
                     <ImageBrush ImageSource="{Binding Art}" Stretch="UniformToFill" />
                 </Border.Background>
@@ -27,7 +27,7 @@
                     <Setter Property="Width" Value="3" />
                     <Setter Property="Height" Value="16" />
                     <Setter Property="Margin" Value="1,0" />
-                    <Setter Property="CornerRadius" Value="{Binding ActualWidth, RelativeSource={RelativeSource Self}, Converter={x:Static shell:PillRadius.Instance}}" />
+                    <Setter Property="CornerRadius" Value="{shell:Round}" />
                     <Setter Property="Background" Value="{Binding Color}" />
                     <Setter Property="RenderTransformOrigin" Value="0.5,0.5" />
                 </Style>
@@ -169,7 +169,7 @@
                                       AutomationProperties.Name="Lyrics" FocusVisualStyle="{StaticResource Island.FocusVisual}">
                             <Button.Template>
                                 <ControlTemplate TargetType="Button">
-                                    <Border x:Name="Chip" CornerRadius="{Binding ActualHeight, RelativeSource={RelativeSource Self}, Converter={x:Static shell:PillRadius.Instance}}" Background="{DynamicResource Island.Surface}">
+                                    <Border x:Name="Chip" CornerRadius="{shell:Round}" Background="{DynamicResource Island.Surface}">
                                         <shell:Icon x:Name="Glyph" Kind="mic-vocal" Size="14" Opacity="0.55"
                                                     Foreground="{DynamicResource Island.Subtle}" HorizontalAlignment="Center" VerticalAlignment="Center" />
                                     </Border>
