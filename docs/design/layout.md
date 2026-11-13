@@ -4,7 +4,7 @@ Status: **draft**, derived from the approved mockups in `docs/design/mockups/`. 
 
 ## Open island
 
-- Width 760. Height follows the page, with a standard body of 260 to 272 px. Header 40 px plus 10 px gap.
+- Width is the Expanded width setting (default 640; the mockups are drawn at 760). Cards share the width in two columns of equal size. Height follows the page, with a standard body of 260 to 272 px. Header 40 px plus 10 px gap.
 - **Header:** tab strip on the left, status chips on the right. Only the active tab shows its label; the others are 34 px icon buttons. A tab opened from the three-dot menu appears at the end of the strip and takes the label. The three-dot button stays last and disappears when every tab is bookmarked.
 - **Chips, left to right:** Do Not Disturb, Bluetooth, battery (laptops only), command palette, Settings. Bluetooth and DND open popovers.
 - **Body:** one page, composed from cards on a 4-column grid with 10 px gaps. A card spans 1 or 2 columns and 1 or 2 rows.
@@ -19,7 +19,7 @@ Rows are 130 px (Home, System: 110 to 112). Spans:
 
 Two-pane pages (Media, Calendar, Weather, Agents) use two flex cards at about 1.1 : 0.9 instead of the grid, still on the same radius, padding and gap.
 
-## Home (approved)
+## Home (approved, built)
 
 The original layout, unchanged in structure:
 
