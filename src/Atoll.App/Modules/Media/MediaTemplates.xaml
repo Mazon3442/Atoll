@@ -89,13 +89,29 @@
 
             <Grid Visibility="{Binding HasSession, Converter={StaticResource Island.BoolToVisibility}}">
                 <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="Auto" />
-                    <ColumnDefinition Width="*" MinWidth="230" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="10" />
                     <ColumnDefinition Width="Auto" />
                 </Grid.ColumnDefinitions>
 
+                <!-- Lyrics (or the cat) sit on their own card beside the player. -->
+                <Border Grid.Column="2" VerticalAlignment="Stretch">
+                    <Border.Style>
+                        <Style TargetType="Border" BasedOn="{StaticResource Island.Card}">
+                            <Setter Property="Visibility" Value="Collapsed" />
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding HasLyrics}" Value="True">
+                                    <Setter Property="Visibility" Value="Visible" />
+                                </DataTrigger>
+                                <DataTrigger Binding="{Binding ShowBongoCat}" Value="True">
+                                    <Setter Property="Visibility" Value="Visible" />
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </Border.Style>
+                    <Grid>
                 <!-- Synced lyrics: the song scrolls past, the sung line bright and the rest dimmed, faded at the edges. -->
-                <Border Grid.Column="2" Width="230" Height="150" Margin="18,0,0,0" ClipToBounds="True" Background="Transparent"
+                <Border Width="230" Height="150" ClipToBounds="True" Background="Transparent"
                         VerticalAlignment="Center" Loaded="LyricsLoaded" Unloaded="LyricsUnloaded"
                         AutomationProperties.Name="{Binding Lyric, StringFormat=Lyrics: {0}}"
                         Visibility="{Binding HasLyrics, Converter={StaticResource Island.BoolToVisibility}}">
@@ -134,9 +150,19 @@
                 </Border>
 
                 <!-- Opt-in joke: a cat drums in the lyrics slot while lyrics are off. It moves only while music plays. -->
-                <media:BongoCatView Grid.Column="2" Width="230" Height="150" Margin="18,0,0,0" VerticalAlignment="Center"
+                <media:BongoCatView Width="230" Height="150" VerticalAlignment="Center"
                                     Variant="{Binding BongoCat}" Playing="{Binding IsPlaying}"
                                     Visibility="{Binding ShowBongoCat, Converter={StaticResource Island.BoolToVisibility}}" />
+                    </Grid>
+                </Border>
+
+                <Border Style="{StaticResource Island.Card}" Padding="16" VerticalAlignment="Stretch">
+                <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" MinWidth="230" />
+                </Grid.ColumnDefinitions>
+
 
                 <ContentPresenter Content="{Binding}" ContentTemplate="{StaticResource Media.Art}" Tag="14" VerticalAlignment="Center">
                     <ContentPresenter.Style>
@@ -290,6 +316,8 @@
                         </Button>
                     </StackPanel>
                 </StackPanel>
+                </Grid>
+                </Border>
             </Grid>
         </Grid>
     </DataTemplate>
