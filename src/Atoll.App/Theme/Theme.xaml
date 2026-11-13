@@ -76,12 +76,13 @@
         <Setter Property="FontSize" Value="12" />
         <Setter Property="MinHeight" Value="30" />
         <Setter Property="Margin" Value="0,0,6,6" />
+        <Setter Property="Padding" Value="12,6" />
         <Setter Property="Cursor" Value="Hand" />
         <Setter Property="FocusVisualStyle" Value="{StaticResource Island.FocusVisual}" />
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="Button">
-                    <Border x:Name="Bg" Background="{DynamicResource Island.Surface}" CornerRadius="{shell:Round}" Padding="12,6">
+                    <Border x:Name="Bg" Background="{DynamicResource Island.Surface}" CornerRadius="{shell:Round}" Padding="{TemplateBinding Padding}">
                         <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
                     </Border>
                     <ControlTemplate.Triggers>

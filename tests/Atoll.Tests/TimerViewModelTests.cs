@@ -200,6 +200,28 @@ public class TimerViewModelTests
     }
 
     [Fact]
+    public void The_alarm_picker_sets_any_hour_and_minute_in_two_taps()
+    {
+        _time.SetLocalTimeZone(TimeZoneInfo.Utc);
+        _time.SetUtcNow(new DateTimeOffset(2026, 11, 12, 16, 2, 0, TimeSpan.Zero));
+        var timer = new TimerViewModel(_time);
+
+        timer.AlarmPmIndex = 0;
+        timer.AlarmHour12 = 7;
+        timer.AlarmMinute = 35;
+        Assert.Equal(("7", "35", 0), (timer.AlarmHourText, timer.AlarmMinuteText, timer.AlarmPmIndex));
+        Assert.StartsWith("Rings tomorrow at", timer.AlarmSummary);
+
+        timer.AlarmPmIndex = 1;
+        timer.AlarmHour12 = 12; // 12 PM is noon, not midnight
+        Assert.Equal(12, timer.AlarmHour12);
+        Assert.Equal(1, timer.AlarmPmIndex);
+        Assert.Equal(12, new TimeOnly(12, 35).Hour);
+        Assert.Equal(["1", "12"], [timer.AlarmHours[0].ToString(), timer.AlarmHours[^1].ToString()]);
+        Assert.Equal(12, timer.AlarmMinutes.Count);
+    }
+
+    [Fact]
     public void An_alarm_goes_off_at_its_time_and_cannot_be_paused()
     {
         _time.SetLocalTimeZone(TimeZoneInfo.Utc);

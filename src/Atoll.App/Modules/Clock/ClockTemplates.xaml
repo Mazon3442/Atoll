@@ -3,6 +3,34 @@
                     xmlns:sys="clr-namespace:System;assembly=System.Runtime"
                     xmlns:shell="clr-namespace:Atoll.Shell">
 
+    <!-- One choice in the alarm picker: tap an hour, tap a minute, done. -->
+    <Style x:Key="Clock.TimeCell" TargetType="ListBoxItem">
+        <Setter Property="Cursor" Value="Hand" />
+        <Setter Property="Margin" Value="0,0,4,4" />
+        <Setter Property="FocusVisualStyle" Value="{StaticResource Island.FocusVisual}" />
+        <Setter Property="AutomationProperties.Name" Value="{Binding}" />
+        <Setter Property="Foreground" Value="{DynamicResource Island.Foreground}" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="ListBoxItem">
+                    <Border x:Name="Bg" Height="30" Background="{DynamicResource Island.Surface}" CornerRadius="{shell:Round 14}">
+                        <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="Bg" Property="Background" Value="{DynamicResource Island.Raised}" />
+                        </Trigger>
+                        <Trigger Property="IsSelected" Value="True">
+                            <Setter TargetName="Bg" Property="Background" Value="{DynamicResource Island.SelectedBackground}" />
+                            <Setter Property="Foreground" Value="{DynamicResource Island.SelectedForeground}" />
+                            <Setter Property="FontWeight" Value="SemiBold" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
     <!-- Clock -->
     <DataTemplate x:Key="ClockViewModel.Compact">
         <TextBlock Text="{Binding Time}" FontSize="13" FontWeight="SemiBold" />
@@ -149,35 +177,61 @@
                             HorizontalAlignment="Left" Margin="2,2,2,0" />
                 </StackPanel>
                 <!-- Alarm: set the hour, the minute and am/pm, then Set. It rings at that time, today or tomorrow. -->
+                <!-- Alarm: tap an hour, tap a minute, pick am or pm, then Set. It rings at that time, today or tomorrow. -->
                 <StackPanel x:Name="AlarmSection" Visibility="{Binding IsAlarmSection, Converter={StaticResource Island.BoolToVisibility}}">
-                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,2,0,8">
-                        <StackPanel>
-                            <Button Style="{StaticResource Clock.Step}" Content="&#xE70E;" Command="{Binding AddAlarmHourCommand}" Width="56"
-                                    ToolTip="Later hour" AutomationProperties.Name="Later hour" />
-                            <TextBlock Text="{Binding AlarmHourText}" FontSize="32" FontWeight="Light" TextAlignment="Center" Margin="0,2"
-                                       AutomationProperties.Name="Alarm hour" />
-                            <Button Style="{StaticResource Clock.Step}" Content="&#xE70D;" Command="{Binding SubtractAlarmHourCommand}" Width="56"
-                                    ToolTip="Earlier hour" AutomationProperties.Name="Earlier hour" />
-                        </StackPanel>
-                        <TextBlock Text=":" FontSize="32" FontWeight="Light" VerticalAlignment="Center" Margin="4,0" />
-                        <StackPanel>
-                            <Button Style="{StaticResource Clock.Step}" Content="&#xE70E;" Command="{Binding AddAlarmMinuteCommand}" Width="56"
-                                    ToolTip="Later minute" AutomationProperties.Name="Later minute" />
-                            <TextBlock Text="{Binding AlarmMinuteText}" FontSize="32" FontWeight="Light" TextAlignment="Center" Margin="0,2"
-                                       AutomationProperties.Name="Alarm minute" />
-                            <Button Style="{StaticResource Clock.Step}" Content="&#xE70D;" Command="{Binding SubtractAlarmMinuteCommand}" Width="56"
-                                    ToolTip="Earlier minute" AutomationProperties.Name="Earlier minute" />
-                        </StackPanel>
-                        <Border Background="{DynamicResource Island.Surface}" CornerRadius="{shell:Round}" Padding="3" Margin="18,0,0,0" VerticalAlignment="Center">
+                    <DockPanel Margin="2,0,2,8">
+                        <Border DockPanel.Dock="Right" Background="{DynamicResource Island.Surface}" CornerRadius="{shell:Round}" Padding="3" VerticalAlignment="Center">
                             <ListBox SelectedIndex="{Binding AlarmPmIndex, Mode=TwoWay}" ItemContainerStyle="{StaticResource Island.SegmentItem}"
-                                     Background="Transparent" BorderThickness="0" FontSize="11" Foreground="{DynamicResource Island.Subtle}"
+                                     Background="Transparent" BorderThickness="0" FontSize="12" Foreground="{DynamicResource Island.Subtle}"
                                      ScrollViewer.HorizontalScrollBarVisibility="Disabled" ScrollViewer.VerticalScrollBarVisibility="Disabled"
                                      AutomationProperties.Name="AM or PM">
+                                <ListBox.ItemsPanel>
+                                    <ItemsPanelTemplate><StackPanel Orientation="Horizontal" /></ItemsPanelTemplate>
+                                </ListBox.ItemsPanel>
                                 <ListBoxItem Content="AM" />
                                 <ListBoxItem Content="PM" />
                             </ListBox>
                         </Border>
-                    </StackPanel>
+                        <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,12,0">
+                            <Button Style="{StaticResource Clock.Step}" Content="&#xE738;" Command="{Binding SubtractAlarmMinuteCommand}"
+                                    ToolTip="One minute earlier" AutomationProperties.Name="Earlier minute" />
+                            <TextBlock Text="1 min" FontSize="11" Foreground="{DynamicResource Island.Subtle}" VerticalAlignment="Center" />
+                            <Button Style="{StaticResource Clock.Step}" Content="&#xE710;" Command="{Binding AddAlarmMinuteCommand}"
+                                    ToolTip="One minute later" AutomationProperties.Name="Later minute" />
+                        </StackPanel>
+                        <TextBlock FontSize="24" FontWeight="Light" VerticalAlignment="Center" AutomationProperties.Name="Alarm time">
+                            <Run Text="{Binding AlarmHourText, Mode=OneWay}" /><Run Text=":" /><Run Text="{Binding AlarmMinuteText, Mode=OneWay}" />
+                        </TextBlock>
+                    </DockPanel>
+                    <Grid Margin="2,0,2,4">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="16" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <StackPanel>
+                            <TextBlock Text="Hour" FontSize="11" Foreground="{DynamicResource Island.Subtle}" Margin="0,0,0,4" />
+                            <ListBox ItemsSource="{Binding AlarmHours}" SelectedItem="{Binding AlarmHour12, Mode=TwoWay}"
+                                     ItemContainerStyle="{StaticResource Clock.TimeCell}" Background="Transparent" BorderThickness="0" FontSize="13"
+                                     ScrollViewer.HorizontalScrollBarVisibility="Disabled" ScrollViewer.VerticalScrollBarVisibility="Disabled"
+                                     AutomationProperties.Name="Alarm hour">
+                                <ListBox.ItemsPanel>
+                                    <ItemsPanelTemplate><UniformGrid Columns="6" Margin="0,0,-4,0" /></ItemsPanelTemplate>
+                                </ListBox.ItemsPanel>
+                            </ListBox>
+                        </StackPanel>
+                        <StackPanel Grid.Column="2">
+                            <TextBlock Text="Minute" FontSize="11" Foreground="{DynamicResource Island.Subtle}" Margin="0,0,0,4" />
+                            <ListBox ItemsSource="{Binding AlarmMinutes}" SelectedItem="{Binding AlarmMinute, Mode=TwoWay}" ItemStringFormat="00"
+                                     ItemContainerStyle="{StaticResource Clock.TimeCell}" Background="Transparent" BorderThickness="0" FontSize="13"
+                                     ScrollViewer.HorizontalScrollBarVisibility="Disabled" ScrollViewer.VerticalScrollBarVisibility="Disabled"
+                                     AutomationProperties.Name="Alarm minute">
+                                <ListBox.ItemsPanel>
+                                    <ItemsPanelTemplate><UniformGrid Columns="6" Margin="0,0,-4,0" /></ItemsPanelTemplate>
+                                </ListBox.ItemsPanel>
+                            </ListBox>
+                        </StackPanel>
+                    </Grid>
                     <DockPanel Margin="2,0">
                         <Button DockPanel.Dock="Right" Style="{StaticResource Clock.Button}" Content="Set alarm" Command="{Binding StartAlarmCommand}"
                                 AutomationProperties.Name="Set the alarm" />

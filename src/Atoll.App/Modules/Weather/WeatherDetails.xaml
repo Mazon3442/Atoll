@@ -88,13 +88,14 @@
                 </Border>
                 </Grid>
                 <weather:ForecastChart Points="{Binding ChartPoints}" Metric="{Binding SelectedMetric}" SelectedIndex="{Binding SelectedChartIndex}"
-                                       Height="104" Margin="3,0,3,4" Ink="{Binding Foreground, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                       Height="150" Margin="0,4,0,6" Ink="{Binding Foreground, RelativeSource={RelativeSource AncestorType=UserControl}}"
                                        Accent="{DynamicResource Island.Accent}" AutomationProperties.Name="Hourly weather chart"
                                        AutomationProperties.HelpText="Use the left and right arrows to inspect hours, or point at a reading. Home and End select the first and last hour. Times are local to this place." />
                 <TextBlock Text="{Binding Updated}" FontSize="11" Opacity="0.8" TextWrapping="Wrap" Margin="0,4,0,0" ToolTip="Forecast times are local to this place." />
                     </StackPanel>
                 </Border>
-                <Border Grid.Column="2" Style="{StaticResource Island.Card}" Padding="14,10" VerticalAlignment="Top">
+                <StackPanel Grid.Column="2" VerticalAlignment="Top">
+                <Border Style="{StaticResource Island.Card}" Padding="14,10" Margin="0,0,0,10">
                 <ListBox ItemsSource="{Binding Days}" Margin="-4,0" SelectedItem="{Binding SelectedDay}" ItemContainerStyle="{StaticResource DayItem}"
                          Background="Transparent" BorderThickness="0" Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=UserControl}}"
                          ScrollViewer.HorizontalScrollBarVisibility="Disabled" ScrollViewer.VerticalScrollBarVisibility="Disabled" AutomationProperties.Name="Choose a forecast day">
@@ -116,6 +117,23 @@
                     </DataTemplate></ListBox.ItemTemplate>
                 </ListBox>
                 </Border>
+                    <ItemsControl ItemsSource="{Binding DetailTiles}" Focusable="False" AutomationProperties.Name="Weather details">
+                        <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate><UniformGrid Columns="2" Margin="0,0,-10,0" /></ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <Border Style="{StaticResource Island.Card}" Padding="12,10" Margin="0,0,10,10" Height="74" AutomationProperties.Name="{Binding Caption}">
+                                    <StackPanel>
+                                        <TextBlock Text="{Binding Caption}" FontSize="11" Opacity="0.6" />
+                                        <TextBlock Text="{Binding Value}" FontSize="16" FontWeight="SemiBold" Margin="0,2,0,0" TextTrimming="CharacterEllipsis" />
+                                        <TextBlock Text="{Binding Sub}" FontSize="11" Opacity="0.6" TextTrimming="CharacterEllipsis" />
+                                    </StackPanel>
+                                </Border>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </StackPanel>
             </Grid>
         </StackPanel>
     </ScrollViewer>
