@@ -2,7 +2,7 @@
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
 
     <DataTemplate x:Key="Stats.Tile">
-        <Border CornerRadius="12" Padding="10,8" Margin="0,0,6,6" Background="{DynamicResource Island.Hover}">
+        <Border CornerRadius="22" Padding="10,8" Margin="0,0,6,6" Background="{DynamicResource Island.Hover}">
             <StackPanel>
                 <DockPanel>
                     <TextBlock DockPanel.Dock="Left" Text="{Binding Glyph}" FontFamily="{StaticResource Island.IconFont}" FontSize="12"
@@ -39,7 +39,7 @@
                 </ItemsControl.ItemsPanel>
                 <ItemsControl.ItemTemplate>
                     <DataTemplate>
-                        <Border CornerRadius="9" Padding="10,4" Margin="0,0,6,6" Background="{DynamicResource Island.Hover}"
+                        <Border CornerRadius="14" Padding="10,4" Margin="0,0,6,6" Background="{DynamicResource Island.Hover}"
                                 AutomationProperties.Name="{Binding Description}">
                             <StackPanel Orientation="Horizontal">
                                 <TextBlock Text="&#xE702;" FontFamily="{StaticResource Island.IconFont}" FontSize="11"

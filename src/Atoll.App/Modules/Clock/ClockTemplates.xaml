@@ -88,7 +88,7 @@
                            TextTrimming="CharacterEllipsis" ToolTip="{Binding Clock.Time}" />
                 <!-- Timer and Pomodoro sit centred on the clock line; the date keeps the left edge. -->
                 <Border Grid.Row="0" Grid.Column="1" VerticalAlignment="Center" DataContext="{Binding Timer}"
-                        Background="{DynamicResource Island.Surface}" CornerRadius="13" Padding="3"
+                        Background="{DynamicResource Island.Surface}" CornerRadius="{Binding ActualHeight, RelativeSource={RelativeSource Self}, Converter={x:Static shell:PillRadius.Instance}}" Padding="3"
                         Visibility="{Binding IsActive, Converter={StaticResource Island.InverseBoolToVisibility}}">
                     <ListBox ItemsSource="{Binding Sections}" SelectedIndex="{Binding SectionIndex, Mode=TwoWay}"
                              ItemContainerStyle="{StaticResource Island.SegmentItem}"
@@ -168,7 +168,7 @@
                             <Button Style="{StaticResource Clock.Step}" Content="&#xE70D;" Command="{Binding SubtractAlarmMinuteCommand}" Width="56"
                                     ToolTip="Earlier minute" AutomationProperties.Name="Earlier minute" />
                         </StackPanel>
-                        <Border Background="{DynamicResource Island.Surface}" CornerRadius="13" Padding="3" Margin="18,0,0,0" VerticalAlignment="Center">
+                        <Border Background="{DynamicResource Island.Surface}" CornerRadius="{Binding ActualHeight, RelativeSource={RelativeSource Self}, Converter={x:Static shell:PillRadius.Instance}}" Padding="3" Margin="18,0,0,0" VerticalAlignment="Center">
                             <ListBox SelectedIndex="{Binding AlarmPmIndex, Mode=TwoWay}" ItemContainerStyle="{StaticResource Island.SegmentItem}"
                                      Background="Transparent" BorderThickness="0" FontSize="11" Foreground="{DynamicResource Island.Subtle}"
                                      ScrollViewer.HorizontalScrollBarVisibility="Disabled" ScrollViewer.VerticalScrollBarVisibility="Disabled"
@@ -189,7 +189,7 @@
                 <!-- Pomodoro: three sessions you can start, each with its length; then how the days have gone. -->
                 <StackPanel x:Name="PomodoroSection" Visibility="{Binding IsPomodoroSection, Converter={StaticResource Island.BoolToVisibility}}">
                     <DockPanel Margin="0,2,0,10">
-                        <Border DockPanel.Dock="Left" Width="44" Height="44" CornerRadius="13" Margin="0,0,12,0"
+                        <Border DockPanel.Dock="Left" Width="44" Height="44" CornerRadius="14" Margin="0,0,12,0"
                                 Background="{DynamicResource Island.Surface}">
                             <shell:Icon Kind="timer" Size="22" Foreground="{DynamicResource Island.Accent}"
                                         HorizontalAlignment="Center" VerticalAlignment="Center" />
@@ -285,21 +285,21 @@
                         </DockPanel>
                     </Border>
                     <UniformGrid Columns="3" Margin="0,4,-6,0">
-                        <Border Background="{DynamicResource Island.Surface}" CornerRadius="12" Padding="10,8" Margin="0,0,6,0">
+                        <Border Background="{DynamicResource Island.Surface}" CornerRadius="22" Padding="10,8" Margin="0,0,6,0">
                             <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
                                 <shell:Icon Kind="circle-check" Size="13" Foreground="{DynamicResource Island.Accent}" VerticalAlignment="Center" />
                                 <TextBlock Text="{Binding TodayFocus}" FontSize="13" FontWeight="SemiBold" Margin="7,0,4,0" VerticalAlignment="Center" />
                                 <TextBlock Text="today" FontSize="12" Foreground="{DynamicResource Island.Subtle}" VerticalAlignment="Center" />
                             </StackPanel>
                         </Border>
-                        <Border Background="{DynamicResource Island.Surface}" CornerRadius="12" Padding="10,8" Margin="0,0,6,0">
+                        <Border Background="{DynamicResource Island.Surface}" CornerRadius="22" Padding="10,8" Margin="0,0,6,0">
                             <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
                                 <shell:Icon Kind="flame" Size="13" Foreground="{DynamicResource Island.Accent}" VerticalAlignment="Center" />
                                 <TextBlock Text="{Binding FocusStreak}" FontSize="13" FontWeight="SemiBold" Margin="7,0,4,0" VerticalAlignment="Center" />
                                 <TextBlock Text="streak" FontSize="12" Foreground="{DynamicResource Island.Subtle}" VerticalAlignment="Center" />
                             </StackPanel>
                         </Border>
-                        <Border Background="{DynamicResource Island.Surface}" CornerRadius="12" Padding="10,8" Margin="0,0,6,0">
+                        <Border Background="{DynamicResource Island.Surface}" CornerRadius="22" Padding="10,8" Margin="0,0,6,0">
                             <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
                                 <shell:Icon Kind="trending-up" Size="13" Foreground="{DynamicResource Island.Accent}" VerticalAlignment="Center" />
                                 <TextBlock Text="{Binding TotalFocus}" FontSize="13" FontWeight="SemiBold" Margin="7,0,4,0" VerticalAlignment="Center" />
@@ -311,7 +311,7 @@
             </StackPanel>
 
             <!-- Timer running: the time, with its controls beside it and progress underneath. -->
-            <Border DataContext="{Binding Timer}" Background="{DynamicResource Island.Surface}" CornerRadius="12" Padding="12,8,6,10"
+            <Border DataContext="{Binding Timer}" Background="{DynamicResource Island.Surface}" CornerRadius="22" Padding="12,8,6,10"
                     Visibility="{Binding IsActive, Converter={StaticResource Island.BoolToVisibility}}">
                 <StackPanel>
                     <TextBlock Text="{Binding Label}" FontSize="11" Foreground="{DynamicResource Island.Subtle}" />
@@ -347,8 +347,8 @@
                     </DockPanel>
                     <Grid Height="4" Margin="0,0,6,0"
                           Visibility="{Binding IsCountingDown, Converter={StaticResource Island.BoolToVisibility}}">
-                        <Border CornerRadius="2" Background="{DynamicResource Island.Hover}" />
-                        <Border CornerRadius="2" Background="{DynamicResource Island.Accent}" RenderTransformOrigin="0,0.5">
+                        <Border CornerRadius="{Binding ActualHeight, RelativeSource={RelativeSource Self}, Converter={x:Static shell:PillRadius.Instance}}" Background="{DynamicResource Island.Hover}" />
+                        <Border CornerRadius="{Binding ActualHeight, RelativeSource={RelativeSource Self}, Converter={x:Static shell:PillRadius.Instance}}" Background="{DynamicResource Island.Accent}" RenderTransformOrigin="0,0.5">
                             <Border.RenderTransform>
                                 <ScaleTransform ScaleX="{Binding Progress}" />
                             </Border.RenderTransform>

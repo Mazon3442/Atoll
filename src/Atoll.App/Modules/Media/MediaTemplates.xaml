@@ -7,11 +7,11 @@
     <!-- Album art with a music-note fallback underneath (shows when the player gives no artwork). -->
     <DataTemplate x:Key="Media.Art">
         <Grid>
-            <Border Background="{DynamicResource Island.Hover}" CornerRadius="{Binding Tag, RelativeSource={RelativeSource AncestorType=ContentPresenter}}">
+            <Border Background="{DynamicResource Island.Hover}" CornerRadius="14">
                 <TextBlock Text="&#xE8D6;" FontFamily="{StaticResource Island.IconFont}" HorizontalAlignment="Center"
                            VerticalAlignment="Center" Foreground="{DynamicResource Island.Subtle}" />
             </Border>
-            <Border CornerRadius="{Binding Tag, RelativeSource={RelativeSource AncestorType=ContentPresenter}}">
+            <Border CornerRadius="14">
                 <Border.Background>
                     <ImageBrush ImageSource="{Binding Art}" Stretch="UniformToFill" />
                 </Border.Background>
@@ -27,7 +27,7 @@
                     <Setter Property="Width" Value="3" />
                     <Setter Property="Height" Value="16" />
                     <Setter Property="Margin" Value="1,0" />
-                    <Setter Property="CornerRadius" Value="1.5" />
+                    <Setter Property="CornerRadius" Value="{Binding ActualWidth, RelativeSource={RelativeSource Self}, Converter={x:Static shell:PillRadius.Instance}}" />
                     <Setter Property="Background" Value="{Binding Color}" />
                     <Setter Property="RenderTransformOrigin" Value="0.5,0.5" />
                 </Style>
@@ -53,7 +53,7 @@
 
     <DataTemplate x:Key="MediaViewModel.Compact">
         <StackPanel Orientation="Horizontal">
-            <ContentPresenter Content="{Binding}" ContentTemplate="{StaticResource Media.Art}" Tag="5"
+            <ContentPresenter Content="{Binding}" ContentTemplate="{StaticResource Media.Art}"
                               Width="20" Height="20" VerticalAlignment="Center" />
             <Border Width="72" />
             <ContentPresenter Content="{Binding}" ContentTemplate="{StaticResource Media.Bars}" VerticalAlignment="Center" />
@@ -62,7 +62,7 @@
 
     <DataTemplate x:Key="MediaViewModel.Peek">
         <StackPanel Orientation="Horizontal">
-            <ContentPresenter Content="{Binding}" ContentTemplate="{StaticResource Media.Art}" Tag="8"
+            <ContentPresenter Content="{Binding}" ContentTemplate="{StaticResource Media.Art}"
                               Width="40" Height="40" VerticalAlignment="Center" />
             <StackPanel Margin="12,0,16,0" VerticalAlignment="Center" MaxWidth="260">
                 <TextBlock Text="{Binding Title}" FontSize="14" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
@@ -74,7 +74,7 @@
     </DataTemplate>
 
     <DataTemplate x:Key="MediaViewModel.Mini">
-        <ContentPresenter Content="{Binding}" ContentTemplate="{StaticResource Media.Art}" Tag="10" Width="20" Height="20" />
+        <ContentPresenter Content="{Binding}" ContentTemplate="{StaticResource Media.Art}" Width="20" Height="20" />
     </DataTemplate>
 
     <DataTemplate x:Key="MediaViewModel.Panel">
@@ -138,7 +138,7 @@
                                     Variant="{Binding BongoCat}" Playing="{Binding IsPlaying}"
                                     Visibility="{Binding ShowBongoCat, Converter={StaticResource Island.BoolToVisibility}}" />
 
-                <ContentPresenter Content="{Binding}" ContentTemplate="{StaticResource Media.Art}" Tag="14" VerticalAlignment="Center">
+                <ContentPresenter Content="{Binding}" ContentTemplate="{StaticResource Media.Art}" VerticalAlignment="Center">
                     <ContentPresenter.Style>
                         <Style TargetType="ContentPresenter">
                             <Setter Property="Width" Value="120" />
@@ -165,7 +165,7 @@
                                       AutomationProperties.Name="Lyrics" FocusVisualStyle="{StaticResource Island.FocusVisual}">
                             <Button.Template>
                                 <ControlTemplate TargetType="Button">
-                                    <Border x:Name="Chip" CornerRadius="13" Background="{DynamicResource Island.Surface}">
+                                    <Border x:Name="Chip" CornerRadius="{Binding ActualHeight, RelativeSource={RelativeSource Self}, Converter={x:Static shell:PillRadius.Instance}}" Background="{DynamicResource Island.Surface}">
                                         <shell:Icon x:Name="Glyph" Kind="mic-vocal" Size="14" Opacity="0.55"
                                                     Foreground="{DynamicResource Island.Subtle}" HorizontalAlignment="Center" VerticalAlignment="Center" />
                                     </Border>
