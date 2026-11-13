@@ -132,6 +132,9 @@ public sealed class AppSettings
 
     public PomodoroSettings Pomodoro { get; set; } = new();
 
+    /// <summary>Alarms from the Alarm section of the timer tab.</summary>
+    public List<AlarmEntry> Alarms { get; set; } = [];
+
     public TideSettings Tide { get; set; } = new();
 
     public FocusSettings Focus { get; set; } = new();
@@ -235,7 +238,12 @@ public sealed class HomeSettings
     public bool Media { get; set; } = true;
     public bool Weather { get; set; } = true;
     public bool Timer { get; set; } = true;
-    public bool Calendar { get; set; } = true;
+    /// <summary>
+    /// A month grid under the Home cards. Saved as "MonthGrid" so installs that had the old full-width month layout
+    /// start from the new card layout; turn it back on in Settings › Modules › Home.
+    /// </summary>
+    [JsonPropertyName("MonthGrid")]
+    public bool Calendar { get; set; }
     public bool UpNext { get; set; } = true;
     public bool Game { get; set; } = true;
 }
@@ -461,6 +469,22 @@ public sealed class TideScript
     public string Title { get; set; } = "New script";
     public string Body { get; set; } = "";
     public DateTimeOffset Updated { get; set; } = DateTimeOffset.Now;
+}
+
+/// <summary>One saved alarm.</summary>
+public sealed class AlarmEntry
+{
+    /// <summary>Hour of day, 0-23.</summary>
+    public int Hour { get; set; }
+
+    public int Minute { get; set; }
+
+    /// <summary>Repeat days, one bit per DayOfWeek (Sunday is bit 0). Zero rings once.</summary>
+    public int Days { get; set; }
+
+    public string Label { get; set; } = "";
+
+    public bool Enabled { get; set; } = true;
 }
 
 /// <summary>Timer lengths for the Pomodoro section of the timer tab.</summary>

@@ -2,138 +2,220 @@
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
                     xmlns:shell="clr-namespace:Atoll.Shell">
 
+    <!-- A quiet row on a card: the building block of the lists. -->
+    <Style x:Key="Notes.Row" TargetType="Border">
+        <Setter Property="Background" Value="{DynamicResource Island.Surface}" />
+        <Setter Property="CornerRadius" Value="{shell:Round 14}" />
+        <Setter Property="Padding" Value="12,8" />
+        <Setter Property="Margin" Value="0,0,0,6" />
+    </Style>
+
+    <!-- The Notes tab: a switch and its action on one line, a composer card, then the list. The next reminder
+         and a count of what is open stay beside it, whichever section is showing. -->
     <DataTemplate x:Key="NotesViewModel.Panel">
-        <StackPanel MinHeight="230">
-            <Border Background="{DynamicResource Island.Surface}" CornerRadius="15" Padding="3"
-                    HorizontalAlignment="Left" Margin="0,0,0,8">
-                <ListBox ItemsSource="{Binding Sections}" SelectedIndex="{Binding SectionIndex, Mode=TwoWay}"
-                         ItemContainerStyle="{StaticResource Island.SegmentItem}"
-                         Background="Transparent" BorderThickness="0" FontSize="12"
-                         Foreground="{DynamicResource Island.Subtle}"
-                         ScrollViewer.HorizontalScrollBarVisibility="Disabled"
-                         ScrollViewer.VerticalScrollBarVisibility="Disabled"
-                         AutomationProperties.Name="Notes section">
-                    <ListBox.ItemsPanel>
-                        <ItemsPanelTemplate><StackPanel Orientation="Horizontal" /></ItemsPanelTemplate>
-                    </ListBox.ItemsPanel>
-                </ListBox>
-            </Border>
+        <Grid>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
 
-            <TextBlock Text="{Binding Message}" FontSize="11" Foreground="{DynamicResource Island.Subtle}" Margin="4,0,0,6">
-                <TextBlock.Style>
-                    <Style TargetType="TextBlock">
-                        <Style.Triggers>
-                            <Trigger Property="Text" Value="">
-                                <Setter Property="Visibility" Value="Collapsed" />
-                            </Trigger>
-                        </Style.Triggers>
-                    </Style>
-                </TextBlock.Style>
-            </TextBlock>
-
-            <!-- Notes -->
-            <Grid Visibility="{Binding IsNotes, Converter={StaticResource Island.BoolToVisibility}}">
-                <Grid.RowDefinitions>
-                    <RowDefinition Height="Auto" />
-                    <RowDefinition Height="Auto" />
-                    <RowDefinition Height="*" />
-                </Grid.RowDefinitions>
-
-                <Grid>
-                    <TextBox Style="{StaticResource Island.Input}" Text="{Binding NoteDraft, UpdateSourceTrigger=PropertyChanged}"
-                             AcceptsReturn="True" TextWrapping="Wrap" MinHeight="68" MaxHeight="92"
-                             VerticalScrollBarVisibility="Auto" AutomationProperties.Name="Note">
-                        <TextBox.InputBindings>
-                            <KeyBinding Key="Enter" Modifiers="Control" Command="{Binding SaveNoteCommand}" />
-                        </TextBox.InputBindings>
-                    </TextBox>
-                    <TextBlock Text="Write a note…" FontSize="12" Margin="12,9,0,0" IsHitTestVisible="False"
-                               Foreground="{DynamicResource Island.Subtle}"
-                               Visibility="{Binding HasNoteDraft, Converter={StaticResource Island.InverseBoolToVisibility}}" />
-                </Grid>
-
-                <DockPanel Grid.Row="1" Margin="0,8,0,8">
-                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
-                        <Button Style="{StaticResource Island.ChipButton}" Content="{Binding NoteButtonLabel}"
-                                Command="{Binding SaveNoteCommand}" Margin="0,0,6,0" />
-                        <Button Style="{StaticResource Island.ChipButton}" Content="New" Command="{Binding NewNoteCommand}"
+            <DockPanel MinHeight="236">
+                <DockPanel DockPanel.Dock="Top" Margin="0,0,0,10">
+                    <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
+                        <Button Style="{StaticResource Island.ChipButton}" Content="Clear done" Margin="0" Command="{Binding ClearDoneRemindersCommand}"
+                                Visibility="{Binding IsReminders, Converter={StaticResource Island.BoolToVisibility}}" />
+                        <Button Style="{StaticResource Island.ChipButton}" Content="Clear done" Margin="0" Command="{Binding ClearDoneTodosCommand}"
+                                Visibility="{Binding IsTodos, Converter={StaticResource Island.BoolToVisibility}}" />
+                        <Button Style="{StaticResource Island.ChipButton}" Content="New note" Margin="0" Command="{Binding NewNoteCommand}"
                                 Visibility="{Binding EditingNote, Converter={StaticResource Island.BoolToVisibility}}" />
                     </StackPanel>
+                    <Border Background="{DynamicResource Island.Surface}" CornerRadius="{shell:Round}" Padding="3" HorizontalAlignment="Left">
+                        <ListBox ItemsSource="{Binding Sections}" SelectedIndex="{Binding SectionIndex, Mode=TwoWay}"
+                                 ItemContainerStyle="{StaticResource Island.SegmentItem}"
+                                 Background="Transparent" BorderThickness="0" FontSize="12"
+                                 Foreground="{DynamicResource Island.Subtle}"
+                                 ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                                 ScrollViewer.VerticalScrollBarVisibility="Disabled"
+                                 AutomationProperties.Name="Notes section">
+                            <ListBox.ItemsPanel>
+                                <ItemsPanelTemplate><StackPanel Orientation="Horizontal" /></ItemsPanelTemplate>
+                            </ListBox.ItemsPanel>
+                        </ListBox>
+                    </Border>
                 </DockPanel>
 
-                <Grid Grid.Row="2">
-                    <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" MaxHeight="210">
-                        <ItemsControl ItemsSource="{Binding Notes}" Focusable="False" Margin="0,0,5,0">
-                            <ItemsControl.ItemTemplate>
-                                <DataTemplate>
-                                    <Border Background="{DynamicResource Island.Surface}" CornerRadius="9" Padding="10,7" Margin="0,0,0,4">
-                                        <DockPanel>
-                                            <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Top">
-                                                <Button Style="{StaticResource Island.IconButton}" Width="24" Height="24"
-                                                        Command="{Binding DataContext.EditNoteCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
-                                                        CommandParameter="{Binding}" ToolTip="Edit note" AutomationProperties.Name="Edit note">
-                                                    <shell:Icon Kind="pencil" Size="13" />
-                                                </Button>
-                                                <Button Style="{StaticResource Island.IconButton}" Width="24" Height="24" Content="&#xE74D;"
-                                                        Command="{Binding DataContext.DeleteNoteCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
-                                                        CommandParameter="{Binding}" ToolTip="Delete note" AutomationProperties.Name="Delete note" />
-                                            </StackPanel>
-                                            <StackPanel Margin="0,0,8,0">
-                                                <TextBlock Text="{Binding Text}" FontSize="13" TextWrapping="Wrap" MaxHeight="54" TextTrimming="CharacterEllipsis" />
-                                                <TextBlock Text="{Binding UpdatedText}" FontSize="11" Foreground="{DynamicResource Island.Subtle}" Margin="0,3,0,0" />
-                                            </StackPanel>
-                                        </DockPanel>
-                                    </Border>
-                                </DataTemplate>
-                            </ItemsControl.ItemTemplate>
-                        </ItemsControl>
-                    </ScrollViewer>
-                    <TextBlock Text="No notes yet. Write one above." FontSize="12" HorizontalAlignment="Center" VerticalAlignment="Center"
-                               Foreground="{DynamicResource Island.Subtle}"
-                               Visibility="{Binding HasNotes, Converter={StaticResource Island.InverseBoolToVisibility}}" />
-                </Grid>
-            </Grid>
+                <TextBlock DockPanel.Dock="Top" Text="{Binding Message}" FontSize="11" Foreground="{DynamicResource Island.Subtle}" Margin="4,0,0,6">
+                    <TextBlock.Style>
+                        <Style TargetType="TextBlock">
+                            <Style.Triggers>
+                                <Trigger Property="Text" Value="">
+                                    <Setter Property="Visibility" Value="Collapsed" />
+                                </Trigger>
+                            </Style.Triggers>
+                        </Style>
+                    </TextBlock.Style>
+                </TextBlock>
 
-            <!-- Reminders -->
-            <Grid Visibility="{Binding IsReminders, Converter={StaticResource Island.BoolToVisibility}}">
-                <Grid.RowDefinitions>
-                    <RowDefinition Height="Auto" />
-                    <RowDefinition Height="Auto" />
-                    <RowDefinition Height="*" />
-                </Grid.RowDefinitions>
+                <!-- Notes: a composer, then the notes as cards in two columns. -->
+                <DockPanel DockPanel.Dock="Top" Visibility="{Binding IsNotes, Converter={StaticResource Island.BoolToVisibility}}">
+                    <Border DockPanel.Dock="Top" Style="{StaticResource Island.Card}" Padding="12,10" Margin="0,0,0,10">
+                        <DockPanel>
+                            <Button DockPanel.Dock="Right" Style="{StaticResource Island.PrimaryChip}" Content="{Binding NoteButtonLabel}" VerticalAlignment="Bottom" Margin="10,0,0,0"
+                                    Command="{Binding SaveNoteCommand}" />
+                            <Grid>
+                                <TextBox Style="{StaticResource Island.Input}" Text="{Binding NoteDraft, UpdateSourceTrigger=PropertyChanged}" Background="Transparent" Padding="0,2"
+                                         AcceptsReturn="True" TextWrapping="Wrap" MinHeight="44" MaxHeight="72"
+                                         VerticalScrollBarVisibility="Auto" AutomationProperties.Name="Note">
+                                    <TextBox.InputBindings>
+                                        <KeyBinding Key="Enter" Modifiers="Control" Command="{Binding SaveNoteCommand}" />
+                                    </TextBox.InputBindings>
+                                </TextBox>
+                                <TextBlock Text="Write a note. Ctrl+Enter saves it." FontSize="13" Margin="0,2,0,0" IsHitTestVisible="False"
+                                           Foreground="{DynamicResource Island.Subtle}"
+                                           Visibility="{Binding HasNoteDraft, Converter={StaticResource Island.InverseBoolToVisibility}}" />
+                            </Grid>
+                        </DockPanel>
+                    </Border>
+                    <Grid>
+                        <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" MaxHeight="190" VerticalAlignment="Top">
+                            <ItemsControl ItemsSource="{Binding Notes}" Focusable="False" VerticalAlignment="Top">
+                                <ItemsControl.ItemsPanel>
+                                    <ItemsPanelTemplate><UniformGrid Columns="2" Margin="0,0,-10,0" VerticalAlignment="Top" /></ItemsPanelTemplate>
+                                </ItemsControl.ItemsPanel>
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <Border Style="{StaticResource Island.Card}" Padding="12,10" Margin="0,0,10,10" MinHeight="84" VerticalAlignment="Top">
+                                            <DockPanel>
+                                                <DockPanel DockPanel.Dock="Bottom" Margin="0,8,0,0">
+                                                    <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+                                                        <Button Style="{StaticResource Island.IconButton}" Width="26" Height="26"
+                                                                Command="{Binding DataContext.EditNoteCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                                                                CommandParameter="{Binding}" ToolTip="Edit note" AutomationProperties.Name="Edit note">
+                                                            <shell:Icon Kind="pencil" Size="13" />
+                                                        </Button>
+                                                        <Button Style="{StaticResource Island.IconButton}" Width="26" Height="26" Content="&#xE74D;"
+                                                                Command="{Binding DataContext.DeleteNoteCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                                                                CommandParameter="{Binding}" ToolTip="Delete note" AutomationProperties.Name="Delete note" />
+                                                    </StackPanel>
+                                                    <TextBlock Text="{Binding UpdatedText}" FontSize="11" Foreground="{DynamicResource Island.Subtle}" VerticalAlignment="Center" />
+                                                </DockPanel>
+                                                <TextBlock Text="{Binding Text}" FontSize="13" TextWrapping="Wrap" MaxHeight="72" TextTrimming="CharacterEllipsis" />
+                                            </DockPanel>
+                                        </Border>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </ScrollViewer>
+                        <TextBlock Text="No notes yet. Write one above." FontSize="12" HorizontalAlignment="Center" VerticalAlignment="Center"
+                                   Foreground="{DynamicResource Island.Subtle}"
+                                   Visibility="{Binding HasNotes, Converter={StaticResource Island.InverseBoolToVisibility}}" />
+                    </Grid>
+                </DockPanel>
 
-                <Grid>
-                    <TextBox Style="{StaticResource Island.Input}" Text="{Binding ReminderTitle, UpdateSourceTrigger=PropertyChanged}"
-                             MinHeight="34" AutomationProperties.Name="Reminder" />
-                    <TextBlock Text="Remind me to…" FontSize="12" Margin="12,9,0,0" IsHitTestVisible="False"
-                               Foreground="{DynamicResource Island.Subtle}"
-                               Visibility="{Binding HasReminderTitle, Converter={StaticResource Island.InverseBoolToVisibility}}" />
-                </Grid>
+                <!-- Reminders: one line to type, quick times under it, then the list. -->
+                <DockPanel DockPanel.Dock="Top" Visibility="{Binding IsReminders, Converter={StaticResource Island.BoolToVisibility}}">
+                    <Border DockPanel.Dock="Top" Style="{StaticResource Island.Card}" Padding="12,10" Margin="0,0,0,10">
+                        <StackPanel>
+                            <Grid>
+                                <TextBox Style="{StaticResource Island.Input}" Text="{Binding ReminderTitle, UpdateSourceTrigger=PropertyChanged}" Background="Transparent" Padding="0,2"
+                                         MinHeight="28" AutomationProperties.Name="Reminder" />
+                                <TextBlock Text="Remind me to…" FontSize="13" Margin="0,2,0,0" IsHitTestVisible="False"
+                                           Foreground="{DynamicResource Island.Subtle}"
+                                           Visibility="{Binding HasReminderTitle, Converter={StaticResource Island.InverseBoolToVisibility}}" />
+                            </Grid>
+                            <WrapPanel Margin="0,8,0,-6">
+                                <TextBlock Text="In" FontSize="11" Foreground="{DynamicResource Island.Subtle}" VerticalAlignment="Center" Margin="0,0,8,6" />
+                                <Button Style="{StaticResource Island.ChipButton}" Content="10 min" Command="{Binding AddReminderCommand}" CommandParameter="10" />
+                                <Button Style="{StaticResource Island.ChipButton}" Content="30 min" Command="{Binding AddReminderCommand}" CommandParameter="30" />
+                                <Button Style="{StaticResource Island.ChipButton}" Content="1 hour" Command="{Binding AddReminderCommand}" CommandParameter="60" />
+                                <Button Style="{StaticResource Island.ChipButton}" Content="3 hours" Command="{Binding AddReminderCommand}" CommandParameter="180" />
+                                <Button Style="{StaticResource Island.ChipButton}" Content="Tomorrow 9:00" Command="{Binding AddReminderCommand}" CommandParameter="tomorrow" />
+                            </WrapPanel>
+                        </StackPanel>
+                    </Border>
+                    <Grid>
+                        <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" MaxHeight="170" VerticalAlignment="Top">
+                            <ItemsControl ItemsSource="{Binding Reminders}" Focusable="False" Margin="0,0,5,0">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <Border Style="{StaticResource Notes.Row}">
+                                            <DockPanel>
+                                                <Button DockPanel.Dock="Right" Style="{StaticResource Island.IconButton}" Width="26" Height="26" Content="&#xE74D;"
+                                                        Command="{Binding DataContext.DeleteReminderCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                                                        CommandParameter="{Binding}" ToolTip="Delete reminder" AutomationProperties.Name="Delete reminder" />
+                                                <CheckBox Style="{StaticResource Island.Check}" IsChecked="{Binding Done, Mode=TwoWay}"
+                                                          VerticalAlignment="Center" Margin="0,0,10,0"
+                                                          AutomationProperties.Name="{Binding Title, StringFormat=Complete {0}}" />
+                                                <StackPanel VerticalAlignment="Center">
+                                                    <TextBlock Text="{Binding Title}" FontSize="14" FontWeight="Medium" TextTrimming="CharacterEllipsis">
+                                                        <TextBlock.Style>
+                                                            <Style TargetType="TextBlock">
+                                                                <Style.Triggers>
+                                                                    <DataTrigger Binding="{Binding Done}" Value="True">
+                                                                        <Setter Property="TextDecorations" Value="Strikethrough" />
+                                                                        <Setter Property="Opacity" Value="0.55" />
+                                                                    </DataTrigger>
+                                                                </Style.Triggers>
+                                                            </Style>
+                                                        </TextBlock.Style>
+                                                    </TextBlock>
+                                                    <TextBlock Text="{Binding DueText}" FontSize="11">
+                                                        <TextBlock.Style>
+                                                            <Style TargetType="TextBlock">
+                                                                <Setter Property="Foreground" Value="{DynamicResource Island.Subtle}" />
+                                                                <Style.Triggers>
+                                                                    <DataTrigger Binding="{Binding IsOverdue}" Value="True">
+                                                                        <Setter Property="Foreground" Value="{DynamicResource Island.AccentText}" />
+                                                                    </DataTrigger>
+                                                                </Style.Triggers>
+                                                            </Style>
+                                                        </TextBlock.Style>
+                                                    </TextBlock>
+                                                </StackPanel>
+                                            </DockPanel>
+                                        </Border>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </ScrollViewer>
+                        <TextBlock Text="No reminders. Type one and pick a time." FontSize="12" HorizontalAlignment="Center" VerticalAlignment="Center"
+                                   Foreground="{DynamicResource Island.Subtle}"
+                                   Visibility="{Binding HasReminders, Converter={StaticResource Island.InverseBoolToVisibility}}" />
+                    </Grid>
+                </DockPanel>
 
-                <WrapPanel Grid.Row="1" Margin="0,8,0,8">
-                    <Button Style="{StaticResource Island.ChipButton}" Content="10 min" Command="{Binding AddReminderCommand}" CommandParameter="10" />
-                    <Button Style="{StaticResource Island.ChipButton}" Content="30 min" Command="{Binding AddReminderCommand}" CommandParameter="30" />
-                    <Button Style="{StaticResource Island.ChipButton}" Content="1 hour" Command="{Binding AddReminderCommand}" CommandParameter="60" />
-                    <Button Style="{StaticResource Island.ChipButton}" Content="3 hours" Command="{Binding AddReminderCommand}" CommandParameter="180" />
-                    <Button Style="{StaticResource Island.ChipButton}" Content="Tomorrow 9:00" Command="{Binding AddReminderCommand}" CommandParameter="tomorrow" />
-                    <Button Style="{StaticResource Island.ChipButton}" Content="Clear done" Command="{Binding ClearDoneRemindersCommand}" />
-                </WrapPanel>
-
-                <Grid Grid.Row="2">
-                    <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" MaxHeight="210">
-                        <ItemsControl ItemsSource="{Binding Reminders}" Focusable="False" Margin="0,0,5,0">
-                            <ItemsControl.ItemTemplate>
-                                <DataTemplate>
-                                    <Border Background="{DynamicResource Island.Surface}" CornerRadius="9" Padding="8,6" Margin="0,0,0,4">
-                                        <DockPanel>
-                                            <Button DockPanel.Dock="Right" Style="{StaticResource Island.IconButton}" Width="24" Height="24" Content="&#xE74D;"
-                                                    Command="{Binding DataContext.DeleteReminderCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
-                                                    CommandParameter="{Binding}" ToolTip="Delete reminder" AutomationProperties.Name="Delete reminder" />
-                                            <CheckBox Style="{StaticResource Island.Check}" IsChecked="{Binding Done, Mode=TwoWay}"
-                                                      VerticalAlignment="Center" Margin="0,0,9,0"
-                                                      AutomationProperties.Name="{Binding Title, StringFormat=Complete {0}}" />
-                                            <StackPanel VerticalAlignment="Center">
-                                                <TextBlock Text="{Binding Title}" FontSize="13" TextTrimming="CharacterEllipsis">
+                <!-- To-do: one line, Enter to add, then the checklist. -->
+                <DockPanel Visibility="{Binding IsTodos, Converter={StaticResource Island.BoolToVisibility}}">
+                    <Border DockPanel.Dock="Top" Style="{StaticResource Island.Card}" Padding="12,8" Margin="0,0,0,10">
+                        <DockPanel>
+                            <Button DockPanel.Dock="Right" Style="{StaticResource Island.PrimaryChip}" Content="Add" Margin="10,0,0,0" Command="{Binding AddTodoCommand}" />
+                            <Grid>
+                                <TextBox Style="{StaticResource Island.Input}" Text="{Binding TodoDraft, UpdateSourceTrigger=PropertyChanged}" Background="Transparent" Padding="0,2"
+                                         MinHeight="28" AutomationProperties.Name="To-do">
+                                    <TextBox.InputBindings>
+                                        <KeyBinding Key="Enter" Command="{Binding AddTodoCommand}" />
+                                    </TextBox.InputBindings>
+                                </TextBox>
+                                <TextBlock Text="Add a to-do and press Enter…" FontSize="13" Margin="0,2,0,0" IsHitTestVisible="False"
+                                           Foreground="{DynamicResource Island.Subtle}"
+                                           Visibility="{Binding HasTodoDraft, Converter={StaticResource Island.InverseBoolToVisibility}}" />
+                            </Grid>
+                        </DockPanel>
+                    </Border>
+                    <Grid>
+                        <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" MaxHeight="170" VerticalAlignment="Top">
+                            <ItemsControl ItemsSource="{Binding Todos}" Focusable="False" Margin="0,0,5,0">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <Border Style="{StaticResource Notes.Row}" Padding="12,6">
+                                            <DockPanel>
+                                                <Button DockPanel.Dock="Right" Style="{StaticResource Island.IconButton}" Width="26" Height="26" Content="&#xE74D;"
+                                                        Command="{Binding DataContext.DeleteTodoCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                                                        CommandParameter="{Binding}" ToolTip="Delete to-do" AutomationProperties.Name="Delete to-do" />
+                                                <CheckBox Style="{StaticResource Island.Check}" IsChecked="{Binding Done, Mode=TwoWay}"
+                                                          VerticalAlignment="Center" Margin="0,0,10,0"
+                                                          AutomationProperties.Name="{Binding Text, StringFormat=Complete {0}}" />
+                                                <TextBlock Text="{Binding Text}" FontSize="14" FontWeight="Medium" VerticalAlignment="Center" TextTrimming="CharacterEllipsis">
                                                     <TextBlock.Style>
                                                         <Style TargetType="TextBlock">
                                                             <Style.Triggers>
@@ -145,93 +227,55 @@
                                                         </Style>
                                                     </TextBlock.Style>
                                                 </TextBlock>
-                                                <TextBlock Text="{Binding DueText}" FontSize="11" Margin="0,2,0,0">
-                                                    <TextBlock.Style>
-                                                        <Style TargetType="TextBlock">
-                                                            <Setter Property="Foreground" Value="{DynamicResource Island.Subtle}" />
-                                                            <Style.Triggers>
-                                                                <DataTrigger Binding="{Binding IsOverdue}" Value="True">
-                                                                    <Setter Property="Foreground" Value="{DynamicResource Island.AccentText}" />
-                                                                </DataTrigger>
-                                                            </Style.Triggers>
-                                                        </Style>
-                                                    </TextBlock.Style>
-                                                </TextBlock>
-                                            </StackPanel>
-                                        </DockPanel>
-                                    </Border>
-                                </DataTemplate>
-                            </ItemsControl.ItemTemplate>
-                        </ItemsControl>
-                    </ScrollViewer>
-                    <TextBlock Text="No reminders. Pick a time above." FontSize="12" HorizontalAlignment="Center" VerticalAlignment="Center"
-                               Foreground="{DynamicResource Island.Subtle}"
-                               Visibility="{Binding HasReminders, Converter={StaticResource Island.InverseBoolToVisibility}}" />
-                </Grid>
-            </Grid>
+                                            </DockPanel>
+                                        </Border>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </ScrollViewer>
+                        <TextBlock Text="Nothing on the list." FontSize="12" HorizontalAlignment="Center" VerticalAlignment="Center"
+                                   Foreground="{DynamicResource Island.Subtle}"
+                                   Visibility="{Binding HasTodos, Converter={StaticResource Island.InverseBoolToVisibility}}" />
+                    </Grid>
+                </DockPanel>
+            </DockPanel>
 
-            <!-- To-do -->
-            <Grid Visibility="{Binding IsTodos, Converter={StaticResource Island.BoolToVisibility}}">
-                <Grid.RowDefinitions>
-                    <RowDefinition Height="Auto" />
-                    <RowDefinition Height="Auto" />
-                    <RowDefinition Height="*" />
-                </Grid.RowDefinitions>
-
-                <Grid>
-                    <TextBox Style="{StaticResource Island.Input}" Text="{Binding TodoDraft, UpdateSourceTrigger=PropertyChanged}"
-                             MinHeight="34" AutomationProperties.Name="To-do">
-                        <TextBox.InputBindings>
-                            <KeyBinding Key="Enter" Command="{Binding AddTodoCommand}" />
-                        </TextBox.InputBindings>
-                    </TextBox>
-                    <TextBlock Text="Add a to-do and press Enter…" FontSize="12" Margin="12,9,0,0" IsHitTestVisible="False"
-                               Foreground="{DynamicResource Island.Subtle}"
-                               Visibility="{Binding HasTodoDraft, Converter={StaticResource Island.InverseBoolToVisibility}}" />
-                </Grid>
-
-                <StackPanel Grid.Row="1" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,8,0,8">
-                    <Button Style="{StaticResource Island.ChipButton}" Content="Add to-do" Command="{Binding AddTodoCommand}" />
-                    <Button Style="{StaticResource Island.ChipButton}" Content="Clear done" Command="{Binding ClearDoneTodosCommand}" />
-                </StackPanel>
-
-                <Grid Grid.Row="2">
-                    <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" MaxHeight="210">
-                        <ItemsControl ItemsSource="{Binding Todos}" Focusable="False" Margin="0,0,5,0">
-                            <ItemsControl.ItemTemplate>
-                                <DataTemplate>
-                                    <Border Background="{DynamicResource Island.Surface}" CornerRadius="9" Padding="8,6" Margin="0,0,0,4">
-                                        <DockPanel>
-                                            <Button DockPanel.Dock="Right" Style="{StaticResource Island.IconButton}" Width="24" Height="24" Content="&#xE74D;"
-                                                    Command="{Binding DataContext.DeleteTodoCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
-                                                    CommandParameter="{Binding}" ToolTip="Delete to-do" AutomationProperties.Name="Delete to-do" />
-                                            <CheckBox Style="{StaticResource Island.Check}" IsChecked="{Binding Done, Mode=TwoWay}"
-                                                      VerticalAlignment="Center" Margin="0,0,9,0"
-                                                      AutomationProperties.Name="{Binding Text, StringFormat=Complete {0}}" />
-                                            <TextBlock Text="{Binding Text}" FontSize="13" VerticalAlignment="Center" TextTrimming="CharacterEllipsis">
-                                                <TextBlock.Style>
-                                                    <Style TargetType="TextBlock">
-                                                        <Style.Triggers>
-                                                            <DataTrigger Binding="{Binding Done}" Value="True">
-                                                                <Setter Property="TextDecorations" Value="Strikethrough" />
-                                                                <Setter Property="Opacity" Value="0.55" />
-                                                            </DataTrigger>
-                                                        </Style.Triggers>
-                                                    </Style>
-                                                </TextBlock.Style>
-                                            </TextBlock>
-                                        </DockPanel>
-                                    </Border>
-                                </DataTemplate>
-                            </ItemsControl.ItemTemplate>
-                        </ItemsControl>
-                    </ScrollViewer>
-                    <TextBlock Text="Nothing on the list." FontSize="12" HorizontalAlignment="Center" VerticalAlignment="Center"
-                               Foreground="{DynamicResource Island.Subtle}"
-                               Visibility="{Binding HasTodos, Converter={StaticResource Island.InverseBoolToVisibility}}" />
-                </Grid>
-            </Grid>
-        </StackPanel>
+            <!-- Beside the lists: the next reminder, and what is open. -->
+            <StackPanel Grid.Column="1" Width="196" Margin="10,0,0,0">
+                <Border Style="{StaticResource Island.Card}" Margin="0,0,0,10">
+                    <StackPanel>
+                        <TextBlock Text="Next reminder" FontSize="11" Foreground="{DynamicResource Island.Subtle}" />
+                        <StackPanel Visibility="{Binding HasNextReminder, Converter={StaticResource Island.BoolToVisibility}}">
+                            <TextBlock Text="{Binding NextReminder.Title}" FontSize="16" FontWeight="SemiBold" TextWrapping="Wrap" MaxHeight="64" Margin="0,6,0,0" />
+                            <TextBlock Text="{Binding NextReminder.DueText}" FontSize="12" Foreground="{DynamicResource Island.Subtle}" Margin="0,4,0,0" />
+                            <WrapPanel Margin="0,12,0,-6">
+                                <Button Style="{StaticResource Island.ChipButton}" Content="Snooze 10 min" Command="{Binding SnoozeNextCommand}" AutomationProperties.Name="Snooze the next reminder for 10 minutes" />
+                                <Button Style="{StaticResource Island.PrimaryChip}" Content="Done" Margin="0,0,0,6" Command="{Binding FinishNextCommand}" AutomationProperties.Name="Mark the next reminder done" />
+                            </WrapPanel>
+                        </StackPanel>
+                        <TextBlock Text="Nothing coming up." FontSize="12" Foreground="{DynamicResource Island.Subtle}" Margin="0,6,0,0"
+                                   Visibility="{Binding HasNextReminder, Converter={StaticResource Island.InverseBoolToVisibility}}" />
+                    </StackPanel>
+                </Border>
+                <Border Style="{StaticResource Island.Card}">
+                    <StackPanel>
+                        <TextBlock Text="At a glance" FontSize="11" Foreground="{DynamicResource Island.Subtle}" />
+                        <DockPanel Margin="0,8,0,0">
+                            <TextBlock DockPanel.Dock="Right" Text="{Binding Notes.Count}" FontSize="14" FontWeight="SemiBold" />
+                            <TextBlock Text="Notes" FontSize="13" />
+                        </DockPanel>
+                        <DockPanel Margin="0,6,0,0">
+                            <TextBlock DockPanel.Dock="Right" Text="{Binding OpenReminderCount}" FontSize="14" FontWeight="SemiBold" />
+                            <TextBlock Text="Reminders waiting" FontSize="13" />
+                        </DockPanel>
+                        <DockPanel Margin="0,6,0,0">
+                            <TextBlock DockPanel.Dock="Right" Text="{Binding OpenTodoCount}" FontSize="14" FontWeight="SemiBold" />
+                            <TextBlock Text="To-dos open" FontSize="13" />
+                        </DockPanel>
+                    </StackPanel>
+                </Border>
+            </StackPanel>
+        </Grid>
     </DataTemplate>
 
 </ResourceDictionary>

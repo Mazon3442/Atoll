@@ -154,78 +154,8 @@ public class TimerViewModelTests
         timer.CustomMinutes = 17;
         timer.StartCustomCommand.Execute(null);
         Assert.Equal("17:00", timer.Display);
-        Assert.False(timer.IsAlarm);
     }
 
-    [Theory]
-    // 4:00 pm now: later today, else tomorrow.
-    [InlineData(17, 36, "2026-11-12T17:36")]
-    [InlineData(5, 36, "2026-11-13T05:36")]
-    [InlineData(16, 0, "2026-11-13T16:00")] // right now has passed
-    [InlineData(0, 30, "2026-11-13T00:30")]
-    public void An_alarm_is_the_next_time_the_clock_shows_that_time(int hour, int minute, string expected)
-    {
-        var now = new DateTimeOffset(2026, 11, 12, 16, 0, 0, TimeSpan.Zero);
-        Assert.Equal(DateTimeOffset.Parse(expected + ":00+00:00"),
-            TimerViewModel.NextOccurrence(new TimeOnly(hour, minute), now, TimeZoneInfo.Utc));
-    }
-
-    [Fact]
-    public void The_alarm_picker_wraps_hours_and_minutes_and_flips_am_pm()
-    {
-        _time.SetLocalTimeZone(TimeZoneInfo.Utc);
-        _time.SetUtcNow(new DateTimeOffset(2026, 11, 12, 16, 2, 0, TimeSpan.Zero));
-        var timer = new TimerViewModel(_time);
-
-        // Starts at the next five minutes: 4:05 PM, which rings today.
-        Assert.Equal(("4", "05", 1), (timer.AlarmHourText, timer.AlarmMinuteText, timer.AlarmPmIndex));
-        Assert.StartsWith("Rings today at", timer.AlarmSummary);
-
-        for (var i = 0; i < 8; i++) timer.AddAlarmHourCommand.Execute(null); // 4 PM + 8 hours = 12 AM
-        Assert.Equal(("12", 0), (timer.AlarmHourText, timer.AlarmPmIndex));
-        timer.AddAlarmHourCommand.Execute(null);
-        Assert.Equal(("1", 0), (timer.AlarmHourText, timer.AlarmPmIndex));
-
-        timer.SubtractAlarmMinuteCommand.Execute(null);
-        timer.SubtractAlarmMinuteCommand.Execute(null);
-        timer.SubtractAlarmMinuteCommand.Execute(null);
-        timer.SubtractAlarmMinuteCommand.Execute(null);
-        timer.SubtractAlarmMinuteCommand.Execute(null);
-        timer.SubtractAlarmMinuteCommand.Execute(null);
-        Assert.Equal(("1", "59", 0), (timer.AlarmHourText, timer.AlarmMinuteText, timer.AlarmPmIndex)); // minutes wrap, the hour stays
-        Assert.StartsWith("Rings tomorrow at", timer.AlarmSummary);
-
-        timer.AlarmPmIndex = 1;
-        Assert.Equal(("1", 1), (timer.AlarmHourText, timer.AlarmPmIndex));
-    }
-
-    [Fact]
-    public void An_alarm_goes_off_at_its_time_and_cannot_be_paused()
-    {
-        _time.SetLocalTimeZone(TimeZoneInfo.Utc);
-        _time.SetUtcNow(new DateTimeOffset(2026, 11, 12, 16, 0, 0, TimeSpan.Zero));
-        var timer = new TimerViewModel(_time);
-        var done = new List<string>();
-        timer.Completed += (title, _) => done.Add(title);
-        // Picker starts at 4:05 PM; move to 4:30 PM.
-        for (var i = 0; i < 25; i++) timer.AddAlarmMinuteCommand.Execute(null);
-
-        timer.StartAlarmCommand.Execute(null);
-        Assert.True(timer.IsAlarm);
-        Assert.Equal("30:00", timer.Display);
-        Assert.StartsWith("Alarm", timer.Label);
-
-        timer.PauseResumeCommand.Execute(null); // ignored
-        Assert.True(timer.IsRunning);
-        timer.AddMinuteCommand.Execute(null);
-        Assert.Equal("31:00", timer.Display);
-
-        _time.Advance(TimeSpan.FromMinutes(31) + TimeSpan.FromSeconds(1));
-        timer.Tick();
-        Assert.Equal(["Alarm"], done);
-        Assert.False(timer.IsActive);
-        Assert.False(timer.IsAlarm);
-    }
     [Fact]
     public void Stopwatch_counts_up()
     {

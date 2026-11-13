@@ -178,19 +178,19 @@ internal static class CalendarUiTests
             ]);
             island.Show();
             island.UpdateLayout();
-            var bluetooth = (Button)island.FindName("BluetoothButton");
-            Assert.Equal(Visibility.Visible, bluetooth.Visibility);
-            bluetooth.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
-            var bluetoothPopup = (Popup)island.FindName("BluetoothPopup");
-            Assert.True(bluetoothPopup.IsOpen);
-            if (bluetoothPopup.Child is FrameworkElement popupRoot)
+            var status = (Button)island.FindName("StatusButton");
+            Assert.Equal(Visibility.Visible, status.Visibility);
+            status.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+            var statusPopup = (Popup)island.FindName("StatusPopup");
+            Assert.True(statusPopup.IsOpen);
+            if (statusPopup.Child is FrameworkElement popupRoot)
             {
-                popupRoot.Measure(new Size(260, 400));
-                popupRoot.Arrange(new Rect(0, 0, 260, 400));
+                popupRoot.Measure(new Size(340, 520));
+                popupRoot.Arrange(new Rect(0, 0, 340, 520));
                 popupRoot.UpdateLayout();
-                Render(popupRoot, "bluetooth-popup");
+                Render(popupRoot, "status-popup");
             }
-            bluetoothPopup.IsOpen = false;
+            statusPopup.IsOpen = false;
             var pill = (PillBorder)island.FindName("Pill");
             var bubble = (PillBorder)island.FindName("Bubble");
             var second = (PillBorder)island.FindName("Bubble2");

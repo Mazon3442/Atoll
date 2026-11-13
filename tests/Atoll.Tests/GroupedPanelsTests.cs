@@ -150,6 +150,9 @@ public class GroupedPanelsTests
         var panels = PanelGroups.Combine(modules).Where(t => t.Panel.GetType() != typeof(object))
             .Select(t => (Name: t.Descriptor.Id, Panel: t.Panel)).ToList();
         panels.Add(("calendar-only", new TimePanelViewModel(null, new CalendarViewModel(() => { }))));
+        using var weatherReport = new Atoll.Modules.Weather.WeatherViewModel(new Atoll.Settings.SettingsService(new Atoll.Settings.SettingsStore(Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".json"))));
+        weatherReport.Show(WeatherForecastTests.Example(), new Atoll.Modules.Weather.Place("Seattle", 47.6, -122.3), false);
+        panels.Add(("weather-report", weatherReport));
         panels.Add(("clock-only", new TimePanelViewModel((ClockPanelViewModel)modules.Single(t => t.Descriptor.Id == "clock").Panel, null)));
         var idleClock = (ClockPanelViewModel)modules.Single(t => t.Descriptor.Id == "clock").Panel;
         var agenda = new CalendarViewModel(() => { }) { HasSources = true, HasEvents = true, Updated = "Updated 10:30 AM" };
@@ -177,7 +180,12 @@ public class GroupedPanelsTests
         panels.Add(("time-pomodoro", new ClockPanelViewModel(idleClock.Clock, pomodoroTimer)));
         panels.Add(("time-pomodoro-narrow", new ClockPanelViewModel(idleClock.Clock, narrowPomodoro)));
         panels.Add(("time-alarm", new ClockPanelViewModel(idleClock.Clock, new TimerViewModel(TimeProvider.System) { SectionIndex = 2 })));
+        var savedAlarms = new TimerViewModel(TimeProvider.System) { SectionIndex = 2 };
+        savedAlarms.Alarms.Use([new Atoll.Settings.AlarmEntry { Hour = 7, Minute = 30, Days = 0b0111110, Label = "Wake up" },
+            new Atoll.Settings.AlarmEntry { Hour = 21, Minute = 0, Days = 0b1111111, Label = "Wind down", Enabled = false }]);
+        panels.Add(("time-alarm-list", new ClockPanelViewModel(idleClock.Clock, savedAlarms)));
         panels.Add(("time-timer-running", new TimePanelViewModel(new ClockPanelViewModel(idleClock.Clock, runningTimer), agenda)));
+        panels.Add(("calendar-agenda", agenda));
         panels.Add(("time-no-calendars", new TimePanelViewModel(idleClock, new CalendarViewModel(() => { }))));
         panels.Add(("clipboard-only", new FilesPanelViewModel(null, new ClipboardViewModel(new ClipboardHistory()))));
         var clipboardHistory = new ClipboardHistory();
@@ -193,6 +201,9 @@ public class GroupedPanelsTests
         foreach (var agent in Atoll.Claude.HookProtocol.Agents)
             agents.Tracker.Apply(new Atoll.Claude.HookMessage { Agent = agent, SessionId = "s1", Event = "PreToolUse", Cwd = "C:/project", Detail = "Running tests" });
         agents.Refresh();
+        agents.Usage.SetLimits([new("Claude 5-hour", 42, DateTimeOffset.Now.AddHours(2)), new("Claude weekly", 85, DateTimeOffset.Now.AddDays(3))], DateTimeOffset.Now);
+        agents.Usage.Update(new UsageSummary(1_200_000, 3.42m, DateTimeOffset.Now.AddHours(-3), DateTimeOffset.Now.AddHours(2), 80_000, 1.10m), DateTimeOffset.Now);
+        agents.Permissions.Add(new Atoll.Modules.Claude.ClaudeAlertViewModel(agents.Tracker.Sessions[0], "atoll needs you", "dotnet test Atoll.sln", _ => { }));
         panels.Add(("agents-active", agents));
         var notifications = new NotificationsViewModel(() => { }) { Access = NotificationAccess.Allowed };
         foreach (var claude in new[] { false, true })
@@ -221,16 +232,18 @@ public class GroupedPanelsTests
         {
             SectionIndex = 2,
         }));
-        // The Alarm section: hour, minute and am/pm pickers, then Set, all inside the default panel height.
+        // The Alarm section: a typed time, presets, repeat days and the list. The panel grows to fit it.
         var alarmView = (FrameworkElement)((DataTemplate)resources["ClockPanelViewModel.Panel"]).LoadContent();
         alarmView.DataContext = new ClockPanelViewModel(idleClock.Clock, new TimerViewModel(TimeProvider.System) { SectionIndex = 2 });
         alarmView.Measure(new Size(476, 600)); alarmView.Arrange(new Rect(0, 0, 476, 600)); alarmView.UpdateLayout();
         Assert.Equal(Visibility.Visible, Descendants<StackPanel>(alarmView).Single(p => p.Name == "AlarmSection").Visibility);
         var alarmButtons = Descendants<Button>(alarmView).Select(AutomationProperties.GetName).ToList();
-        Assert.Contains("Later hour", alarmButtons);
         Assert.Contains("Earlier minute", alarmButtons);
-        Assert.Contains("Set the alarm", alarmButtons);
-        Assert.InRange(alarmView.DesiredSize.Height, 1, new Atoll.Settings.AppSettings().Theme.ExpandedHeight - 26);
+        Assert.Contains("Later minute", alarmButtons);
+        Assert.Contains("Save the alarm", alarmButtons);
+        Assert.Equal(4, alarmButtons.Count(name => name.StartsWith("Set the alarm time to", StringComparison.Ordinal)));
+        Assert.Equal(7, Descendants<CheckBox>(alarmView).Count(c => (AutomationProperties.GetName(c) ?? "").StartsWith("Repeat on", StringComparison.Ordinal)));
+        Assert.InRange(alarmView.DesiredSize.Height, 1, 420);
 
         foreach (var mode in new[] { "Compact", "Peek", "Mini" })
         {
@@ -262,8 +275,8 @@ public class GroupedPanelsTests
         {
             var narrow = panel.Name == "time-pomodoro-narrow";
             var tide = panel.Name.StartsWith("tide", StringComparison.Ordinal);
-            var frameWidth = tide ? 820 : narrow ? 330 : 476;
-            var frameHeight = tide ? 420 : panel.Name.StartsWith("time-pomodoro", StringComparison.Ordinal) ? 330 : 170;
+            var frameWidth = tide ? 820 : narrow ? 330 : 612;
+            var frameHeight = tide ? 420 : 340;
             var presenter = new ContentControl
             {
                 Width = frameWidth, Height = frameHeight, Content = panel.Panel,

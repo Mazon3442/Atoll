@@ -12,7 +12,11 @@ using CommunityToolkit.Mvvm.Input;
 
 namespace Atoll.Modules.Home;
 
-public sealed record UpNextItem(string Title, string When, string Color);
+public sealed record UpNextItem(string Title, string When, string Color, string Time, CalendarEventViewModel Source)
+{
+    public bool CanJoin => Source.CanJoin;
+    public System.Windows.Input.ICommand JoinCommand => Source.JoinCommand;
+}
 
 /// <summary>
 /// The Home tab: what's playing, the weather, the timer, this month and what's next, from the features that are on.
@@ -43,6 +47,11 @@ public sealed partial class HomeViewModel : ObservableObject
 
     public bool ShowMonth => Calendar is not null && _settings.Calendar;
     public bool ShowUpNext => Calendar is not null && _settings.UpNext;
+    /// <summary>The left column holds the large now-playing card; the month, when on, is a row under the cards.</summary>
+    public bool ShowHeroMedia => Media is not null;
+    public bool HasWeather => Weather is not null;
+    public bool HasTimer => Timer is not null;
+    public bool HasLeftColumn => ShowHeroMedia;
     public bool HasRightColumn => Weather is not null || Timer is not null || ShowUpNext || Game is not null;
 
     [ObservableProperty] private IReadOnlyList<UpNextItem> _upNext = [];
@@ -63,13 +72,23 @@ public sealed partial class HomeViewModel : ObservableObject
 
     private void OnEventsChanged(object? sender, NotifyCollectionChangedEventArgs e) => Rebuild();
 
+    public string TodayLabel => $"Today · {DateTime.Now:ddd d}";
+    /// <summary>The first upcoming event with a meeting link, for the Join button in the Today card.</summary>
+    public UpNextItem? JoinItem => UpNext.FirstOrDefault(item => item.CanJoin);
+    public bool HasJoin => JoinItem is not null;
+
     private void Rebuild()
     {
-        var events = Calendar?.Days.SelectMany(d => d.Events).Select(e => e.Event).ToList() ?? [];
+        var events = Calendar?.Days.SelectMany(d => d.Events).ToList() ?? [];
         var now = DateTimeOffset.Now;
-        UpNext = events.Where(e => e.End > now && e.Start.LocalDateTime.Date == now.LocalDateTime.Date)
-            .OrderBy(e => e.Start).Take(3)
-            .Select(e => new UpNextItem(e.DisplayTitle, e.AllDay ? "All day" : $"{e.Start.LocalDateTime:t}" + (e.Location is { Length: > 0 } l ? $" · {l}" : ""), e.Color))
+        UpNext = events.Where(e => e.Event.End > now && e.Event.Start.LocalDateTime.Date == now.LocalDateTime.Date)
+            .OrderBy(e => e.Event.Start).Take(3)
+            .Select(e => new UpNextItem(e.Event.DisplayTitle,
+                e.Event.AllDay ? "All day" : $"{e.Event.Start.LocalDateTime:t}" + (e.Event.Location is { Length: > 0 } l ? $" · {l}" : ""),
+                e.Event.Color, e.Event.AllDay ? "All day" : $"{e.Event.Start.LocalDateTime:t}", e))
             .ToList();
+        OnPropertyChanged(nameof(TodayLabel));
+        OnPropertyChanged(nameof(JoinItem));
+        OnPropertyChanged(nameof(HasJoin));
     }
 }

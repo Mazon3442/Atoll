@@ -177,6 +177,17 @@ internal static class AgentMediaUi
         Render(ask, "ClaudeAlertViewModel.Peek", "permission-peek", 620);
         var shell = new ClaudeSessionViewModel("shell:1") { Agent = "shell", Project = "atoll", Hwnd = 1 };
         Render(new ClaudeAlertViewModel(shell, "Failed · exit 1", "dotnet test · 1m 5s"), "ClaudeAlertViewModel.Peek", "command-peek", 520);
+        var alarmTime = new Microsoft.Extensions.Time.Testing.FakeTimeProvider();
+        alarmTime.SetLocalTimeZone(TimeZoneInfo.Utc);
+        alarmTime.SetUtcNow(new DateTimeOffset(2026, 11, 12, 6, 0, 0, TimeSpan.Zero));
+        var ringing = new Atoll.Modules.Clock.AlarmViewModel(alarmTime);
+        ringing.Use([new Atoll.Settings.AlarmEntry { Hour = 6, Minute = 30, Days = 0b0111110, Label = "Wake up" }]);
+        alarmTime.Advance(TimeSpan.FromMinutes(31));
+        ringing.Tick();
+        Render(ringing, "AlarmViewModel.Peek", "alarm-ringing-peek", 520);
+        Render(ringing, "AlarmViewModel.Compact", "alarm-ringing-compact", 200, 20);
+        ringing.SnoozeCommand.Execute(null);
+        Render(ringing, "AlarmViewModel.Peek", "alarm-snoozed-peek", 520);
 
         var claude = new ClaudeViewModel(new ClaudeSessionTracker(TimeProvider.System));
         var now = DateTimeOffset.Now;
@@ -280,7 +291,17 @@ internal static class AgentMediaUi
         });
         var home = new Atoll.Modules.Home.HomeViewModel(media, null, new Atoll.Modules.Clock.ClockPanelViewModel(new Atoll.Modules.Clock.ClockViewModel(), timer),
             calendar, game, new HomeSettings());
-        Render(home, "HomeViewModel.Panel", "home-panel", 640, 300);
+        Render(home, "HomeViewModel.Panel", "home-panel", 612, 300);
+        using var homeWeather = new Atoll.Modules.Weather.WeatherViewModel(new SettingsService(new SettingsStore(Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".json"))));
+        homeWeather.Show(WeatherForecastTests.Example(), new Atoll.Modules.Weather.Place("Seattle", 47.6, -122.3), false);
+        timer.StartPomodoroCommand.Execute(null);
+        var heroHome = new Atoll.Modules.Home.HomeViewModel(media, homeWeather, new Atoll.Modules.Clock.ClockPanelViewModel(new Atoll.Modules.Clock.ClockViewModel(), timer),
+            calendar, game, new HomeSettings { Calendar = false });
+        Render(heroHome, "HomeViewModel.Panel", "home-panel-hero", 612, 272);
+        // The same cards on a light theme: surfaces and the filled play button come from theme tokens, not fixed colours.
+        Atoll.Theme.ThemeService.Apply(new ThemeSettings { Background = "#F4F4F6", Foreground = "#111114" });
+        try { Render(heroHome, "HomeViewModel.Panel", "home-panel-hero-light", 612, 272); }
+        finally { Atoll.Theme.ThemeService.Apply(new ThemeSettings()); }
 
         var notesSettings = new NotesSettings();
         notesSettings.Notes.Add(new NoteItem { Text = "Ship the calendar update", Updated = DateTimeOffset.Now.AddMinutes(-20) });

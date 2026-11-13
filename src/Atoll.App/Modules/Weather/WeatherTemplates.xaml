@@ -1,5 +1,6 @@
 <ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:shell="clr-namespace:Atoll.Shell"
                     xmlns:weather="clr-namespace:Atoll.Modules.Weather">
     <DataTemplate x:Key="WeatherViewModel.Panel"><weather:WeatherDetails /></DataTemplate>
 
@@ -11,7 +12,7 @@
             <Setter.Value>
                 <ControlTemplate TargetType="Button">
                     <StackPanel Background="Transparent" Width="84">
-                        <Border x:Name="Circle" Width="52" Height="52" CornerRadius="26" Background="{DynamicResource Island.Hover}">
+                        <Border x:Name="Circle" Width="52" Height="52" CornerRadius="{shell:Round}" Background="{DynamicResource Island.Hover}">
                             <TextBlock Text="{TemplateBinding Tag}" FontFamily="{StaticResource Island.IconFont}" FontSize="20"
                                        HorizontalAlignment="Center" VerticalAlignment="Center" />
                         </Border>

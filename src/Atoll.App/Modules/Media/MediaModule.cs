@@ -310,6 +310,16 @@ public sealed partial class MediaModule : IIslandModule
     private async Task RefreshPropertiesAsync(Session session, int attempt = 0)
     {
         var version = ++_propertiesVersion;
+        // Players often announce a new track before its title or cover is ready, or throw while switching,
+        // and send no second event: ask again a few times (about 25 s in all, for slow covers).
+        void Retry()
+        {
+            if (attempt >= 6) return;
+            _ = Task.Delay(TimeSpan.FromSeconds(1 + attempt * 1.5)).ContinueWith(_ => OnUi(() =>
+            {
+                if (version == _propertiesVersion && ReferenceEquals(session, _session)) _ = RefreshPropertiesAsync(session, attempt + 1);
+            }), TaskScheduler.Default);
+        }
         try
         {
             var props = await session.TryGetMediaPropertiesAsync();
@@ -320,17 +330,15 @@ public sealed partial class MediaModule : IIslandModule
             }, TaskScheduler.Default);
             if (_disposed || !ReferenceEquals(session, _session) || version != _propertiesVersion) { if (art is IDisposable disposable) disposable.Dispose(); return; }
 
-            // Players often announce a new track before its cover is ready and send no second event: ask again.
-            if (art is null && !string.IsNullOrEmpty(props.Title) && attempt < 3)
-                _ = Task.Delay(TimeSpan.FromSeconds(1 + attempt * 2)).ContinueWith(_ => OnUi(() =>
-                {
-                    if (version == _propertiesVersion && ReferenceEquals(session, _session)) _ = RefreshPropertiesAsync(session, attempt + 1);
-                }), TaskScheduler.Default);
-            if (_disposed || !ReferenceEquals(session, _session) || version != _propertiesVersion) { if (art is IDisposable disposable) disposable.Dispose(); return; }
+            if (art is null || string.IsNullOrEmpty(props.Title)) Retry();
+            // An unfinished reading must not blank what is already shown.
+            if (string.IsNullOrEmpty(props.Title) && attempt < 6) { if (art is IDisposable unused) unused.Dispose(); return; }
 
+            var artist = string.IsNullOrEmpty(props.Artist) ? props.AlbumArtist ?? "" : props.Artist;
+            var sameTrack = props.Title == _vm.Title && artist == _vm.Artist;
             _vm.Title = props.Title ?? "";
-            _vm.Artist = string.IsNullOrEmpty(props.Artist) ? props.AlbumArtist ?? "" : props.Artist;
-            _vm.Art = art;
+            _vm.Artist = artist;
+            if (art is not null || !sameTrack) _vm.Art = art; // a missed cover read keeps the cover of the same track
 
             var key = $"{_vm.Title}\n{_vm.Artist}";
             if (key != _trackKey)
@@ -348,8 +356,8 @@ public sealed partial class MediaModule : IIslandModule
         }
         catch (Exception ex)
         {
-            // Some players throw while switching tracks; the next change event refreshes again.
             Log.Error("Reading media properties failed", ex);
+            if (!_disposed && version == _propertiesVersion) Retry();
         }
     }
 

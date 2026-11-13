@@ -7,11 +7,11 @@
     <!-- Album art with a music-note fallback underneath (shows when the player gives no artwork). -->
     <DataTemplate x:Key="Media.Art">
         <Grid>
-            <Border Background="{DynamicResource Island.Hover}" CornerRadius="{Binding Tag, RelativeSource={RelativeSource AncestorType=ContentPresenter}}">
+            <Border Background="{DynamicResource Island.Hover}" CornerRadius="{shell:Round 14}">
                 <TextBlock Text="&#xE8D6;" FontFamily="{StaticResource Island.IconFont}" HorizontalAlignment="Center"
                            VerticalAlignment="Center" Foreground="{DynamicResource Island.Subtle}" />
             </Border>
-            <Border CornerRadius="{Binding Tag, RelativeSource={RelativeSource AncestorType=ContentPresenter}}">
+            <Border CornerRadius="{shell:Round 14}">
                 <Border.Background>
                     <ImageBrush ImageSource="{Binding Art}" Stretch="UniformToFill" />
                 </Border.Background>
@@ -27,7 +27,7 @@
                     <Setter Property="Width" Value="3" />
                     <Setter Property="Height" Value="16" />
                     <Setter Property="Margin" Value="1,0" />
-                    <Setter Property="CornerRadius" Value="1.5" />
+                    <Setter Property="CornerRadius" Value="{shell:Round}" />
                     <Setter Property="Background" Value="{Binding Color}" />
                     <Setter Property="RenderTransformOrigin" Value="0.5,0.5" />
                 </Style>
@@ -53,7 +53,7 @@
 
     <DataTemplate x:Key="MediaViewModel.Compact">
         <StackPanel Orientation="Horizontal">
-            <ContentPresenter Content="{Binding}" ContentTemplate="{StaticResource Media.Art}" Tag="5"
+            <ContentPresenter Content="{Binding}" ContentTemplate="{StaticResource Media.Art}"
                               Width="20" Height="20" VerticalAlignment="Center" />
             <Border Width="72" />
             <ContentPresenter Content="{Binding}" ContentTemplate="{StaticResource Media.Bars}" VerticalAlignment="Center" />
@@ -62,7 +62,7 @@
 
     <DataTemplate x:Key="MediaViewModel.Peek">
         <StackPanel Orientation="Horizontal">
-            <ContentPresenter Content="{Binding}" ContentTemplate="{StaticResource Media.Art}" Tag="8"
+            <ContentPresenter Content="{Binding}" ContentTemplate="{StaticResource Media.Art}"
                               Width="40" Height="40" VerticalAlignment="Center" />
             <StackPanel Margin="12,0,16,0" VerticalAlignment="Center" MaxWidth="260">
                 <TextBlock Text="{Binding Title}" FontSize="14" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
@@ -74,7 +74,7 @@
     </DataTemplate>
 
     <DataTemplate x:Key="MediaViewModel.Mini">
-        <ContentPresenter Content="{Binding}" ContentTemplate="{StaticResource Media.Art}" Tag="10" Width="20" Height="20" />
+        <ContentPresenter Content="{Binding}" ContentTemplate="{StaticResource Media.Art}" Width="20" Height="20" />
     </DataTemplate>
 
     <DataTemplate x:Key="MediaViewModel.Panel">
@@ -88,14 +88,17 @@
             </StackPanel>
 
             <Grid Visibility="{Binding HasSession, Converter={StaticResource Island.BoolToVisibility}}">
+                <Border Style="{StaticResource Island.Card}" Padding="16" VerticalAlignment="Stretch">
+                <Grid>
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="Auto" />
                     <ColumnDefinition Width="*" MinWidth="230" />
                     <ColumnDefinition Width="Auto" />
                 </Grid.ColumnDefinitions>
 
+                <!-- Lyrics, or the cat, live in the same card as the player. -->
                 <!-- Synced lyrics: the song scrolls past, the sung line bright and the rest dimmed, faded at the edges. -->
-                <Border Grid.Column="2" Width="230" Height="150" Margin="18,0,0,0" ClipToBounds="True" Background="Transparent"
+                <Border Grid.Column="2" Margin="18,0,0,0" Width="230" Height="150" ClipToBounds="True" Background="Transparent"
                         VerticalAlignment="Center" Loaded="LyricsLoaded" Unloaded="LyricsUnloaded"
                         AutomationProperties.Name="{Binding Lyric, StringFormat=Lyrics: {0}}"
                         Visibility="{Binding HasLyrics, Converter={StaticResource Island.BoolToVisibility}}">
@@ -134,11 +137,12 @@
                 </Border>
 
                 <!-- Opt-in joke: a cat drums in the lyrics slot while lyrics are off. It moves only while music plays. -->
-                <media:BongoCatView Grid.Column="2" Width="230" Height="150" Margin="18,0,0,0" VerticalAlignment="Center"
+                <media:BongoCatView Grid.Column="2" Margin="18,0,0,0" Width="230" Height="150" VerticalAlignment="Center"
                                     Variant="{Binding BongoCat}" Playing="{Binding IsPlaying}"
                                     Visibility="{Binding ShowBongoCat, Converter={StaticResource Island.BoolToVisibility}}" />
 
-                <ContentPresenter Content="{Binding}" ContentTemplate="{StaticResource Media.Art}" Tag="14" VerticalAlignment="Center">
+
+                <ContentPresenter Content="{Binding}" ContentTemplate="{StaticResource Media.Art}" VerticalAlignment="Center">
                     <ContentPresenter.Style>
                         <Style TargetType="ContentPresenter">
                             <Setter Property="Width" Value="120" />
@@ -165,7 +169,7 @@
                                       AutomationProperties.Name="Lyrics" FocusVisualStyle="{StaticResource Island.FocusVisual}">
                             <Button.Template>
                                 <ControlTemplate TargetType="Button">
-                                    <Border x:Name="Chip" CornerRadius="13" Background="{DynamicResource Island.Surface}">
+                                    <Border x:Name="Chip" CornerRadius="{shell:Round}" Background="{DynamicResource Island.Surface}">
                                         <shell:Icon x:Name="Glyph" Kind="mic-vocal" Size="14" Opacity="0.55"
                                                     Foreground="{DynamicResource Island.Subtle}" HorizontalAlignment="Center" VerticalAlignment="Center" />
                                     </Border>
@@ -290,6 +294,8 @@
                         </Button>
                     </StackPanel>
                 </StackPanel>
+                </Grid>
+                </Border>
             </Grid>
         </Grid>
     </DataTemplate>

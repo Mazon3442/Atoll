@@ -3,6 +3,56 @@
                     xmlns:sys="clr-namespace:System;assembly=System.Runtime"
                     xmlns:shell="clr-namespace:Atoll.Shell">
 
+    <!-- An on/off switch: a pill with a knob. -->
+    <Style x:Key="Clock.Switch" TargetType="CheckBox">
+        <Setter Property="Cursor" Value="Hand" />
+        <Setter Property="FocusVisualStyle" Value="{StaticResource Island.FocusVisual}" />
+        <Setter Property="VerticalAlignment" Value="Center" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="CheckBox">
+                    <Border x:Name="Track" Width="38" Height="22" CornerRadius="{shell:Round}" Background="{DynamicResource Island.Raised}">
+                        <Ellipse x:Name="Knob" Width="18" Height="18" Fill="White" HorizontalAlignment="Left" Margin="2,0" />
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsChecked" Value="True">
+                            <Setter TargetName="Track" Property="Background" Value="#30D158" />
+                            <Setter TargetName="Knob" Property="HorizontalAlignment" Value="Right" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- A weekday button: a round letter that fills when the alarm repeats that day. -->
+    <Style x:Key="Clock.Day" TargetType="CheckBox">
+        <Setter Property="Cursor" Value="Hand" />
+        <Setter Property="Width" Value="30" />
+        <Setter Property="HorizontalAlignment" Value="Center" />
+        <Setter Property="FocusVisualStyle" Value="{StaticResource Island.FocusVisual}" />
+        <Setter Property="Foreground" Value="{DynamicResource Island.Subtle}" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="CheckBox">
+                    <Border x:Name="Bg" Height="30" Background="{DynamicResource Island.Surface}" CornerRadius="{shell:Round}">
+                        <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" TextElement.FontSize="12" />
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="Bg" Property="Background" Value="{DynamicResource Island.Raised}" />
+                        </Trigger>
+                        <Trigger Property="IsChecked" Value="True">
+                            <Setter TargetName="Bg" Property="Background" Value="{DynamicResource Island.SelectedBackground}" />
+                            <Setter Property="Foreground" Value="{DynamicResource Island.SelectedForeground}" />
+                            <Setter Property="FontWeight" Value="SemiBold" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
     <!-- Clock -->
     <DataTemplate x:Key="ClockViewModel.Compact">
         <TextBlock Text="{Binding Time}" FontSize="13" FontWeight="SemiBold" />
@@ -35,7 +85,6 @@
                 <TextBlock Text="{Binding Display}" FontSize="20" FontWeight="SemiBold" />
             </StackPanel>
             <Button Style="{StaticResource Island.IconButton}" Margin="16,0,0,0" Command="{Binding PauseResumeCommand}"
-                    Visibility="{Binding IsAlarm, Converter={StaticResource Island.InverseBoolToVisibility}}"
                     AutomationProperties.Name="Pause or resume timer">
                 <Button.Content>
                     <TextBlock>
@@ -57,6 +106,63 @@
 
     <DataTemplate x:Key="TimerViewModel.Mini">
         <TextBlock Text="{Binding Display}" FontSize="11" FontWeight="SemiBold" Foreground="{DynamicResource Island.Accent}" />
+    </DataTemplate>
+
+    <!-- An alarm that is ringing or snoozed, as a live activity. -->
+    <DataTemplate x:Key="AlarmViewModel.Compact">
+        <StackPanel Orientation="Horizontal">
+            <shell:Icon Kind="bell" Size="13" Foreground="#FFB340" VerticalAlignment="Center" />
+            <TextBlock FontSize="13" FontWeight="SemiBold" Margin="8,0,0,0" Foreground="#FFB340" VerticalAlignment="Center">
+                <TextBlock.Style>
+                    <Style TargetType="TextBlock">
+                        <Setter Property="Text" Value="{Binding RingTitle}" />
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding IsSnoozed}" Value="True">
+                                <Setter Property="Text" Value="{Binding SnoozeText}" />
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </TextBlock.Style>
+            </TextBlock>
+        </StackPanel>
+    </DataTemplate>
+
+    <DataTemplate x:Key="AlarmViewModel.Peek">
+        <StackPanel Orientation="Horizontal">
+            <Border Width="40" Height="40" CornerRadius="{shell:Round}" Background="#FFB340" VerticalAlignment="Center">
+                <shell:Icon Kind="bell" Size="20" Foreground="#1A1200" HorizontalAlignment="Center" VerticalAlignment="Center" />
+            </Border>
+            <StackPanel Margin="12,0,0,0" VerticalAlignment="Center" MinWidth="110">
+                <TextBlock FontSize="15" FontWeight="SemiBold">
+                    <TextBlock.Style>
+                        <Style TargetType="TextBlock">
+                            <Setter Property="Text" Value="{Binding RingTitle}" />
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding IsSnoozed}" Value="True">
+                                    <Setter Property="Text" Value="Snoozed" />
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </TextBlock.Style>
+                </TextBlock>
+                <TextBlock FontSize="12" Foreground="{DynamicResource Island.Subtle}">
+                    <TextBlock.Style>
+                        <Style TargetType="TextBlock">
+                            <Setter Property="Text" Value="{Binding RingDetail}" />
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding IsSnoozed}" Value="True">
+                                    <Setter Property="Text" Value="{Binding SnoozeText, StringFormat=Rings again in {0}}" />
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </TextBlock.Style>
+                </TextBlock>
+            </StackPanel>
+            <Button Style="{StaticResource Island.ChipButton}" Content="Snooze 9 min" Command="{Binding SnoozeCommand}" Margin="16,0,6,0" MinHeight="34" VerticalAlignment="Center"
+                    Visibility="{Binding IsRinging, Converter={StaticResource Island.BoolToVisibility}}" AutomationProperties.Name="Snooze the alarm for 9 minutes" />
+            <Button Style="{StaticResource Island.PrimaryChip}" Content="Dismiss" Command="{Binding DismissCommand}" Margin="0" MinHeight="34" VerticalAlignment="Center"
+                    AutomationProperties.Name="Dismiss the alarm" />
+        </StackPanel>
     </DataTemplate>
 
         <!-- Expanded tab: the clock, then either timer presets or the running timer. Top-aligned so nothing jumps when a timer starts. -->
@@ -88,7 +194,7 @@
                            TextTrimming="CharacterEllipsis" ToolTip="{Binding Clock.Time}" />
                 <!-- Timer and Pomodoro sit centred on the clock line; the date keeps the left edge. -->
                 <Border Grid.Row="0" Grid.Column="1" VerticalAlignment="Center" DataContext="{Binding Timer}"
-                        Background="{DynamicResource Island.Surface}" CornerRadius="13" Padding="3"
+                        Background="{DynamicResource Island.Surface}" CornerRadius="{shell:Round}" Padding="3"
                         Visibility="{Binding IsActive, Converter={StaticResource Island.InverseBoolToVisibility}}">
                     <ListBox ItemsSource="{Binding Sections}" SelectedIndex="{Binding SectionIndex, Mode=TwoWay}"
                              ItemContainerStyle="{StaticResource Island.SegmentItem}"
@@ -148,48 +254,116 @@
                     <Button Style="{StaticResource Clock.Button}" Content="Stopwatch" Command="{Binding StartStopwatchCommand}"
                             HorizontalAlignment="Left" Margin="2,2,2,0" />
                 </StackPanel>
-                <!-- Alarm: set the hour, the minute and am/pm, then Set. It rings at that time, today or tomorrow. -->
+                <!-- Alarm: type a time or pick a preset, choose the days, Save. Saved alarms sit below with an on/off switch. -->
                 <StackPanel x:Name="AlarmSection" Visibility="{Binding IsAlarmSection, Converter={StaticResource Island.BoolToVisibility}}">
-                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,2,0,8">
-                        <StackPanel>
-                            <Button Style="{StaticResource Clock.Step}" Content="&#xE70E;" Command="{Binding AddAlarmHourCommand}" Width="56"
-                                    ToolTip="Later hour" AutomationProperties.Name="Later hour" />
-                            <TextBlock Text="{Binding AlarmHourText}" FontSize="32" FontWeight="Light" TextAlignment="Center" Margin="0,2"
-                                       AutomationProperties.Name="Alarm hour" />
-                            <Button Style="{StaticResource Clock.Step}" Content="&#xE70D;" Command="{Binding SubtractAlarmHourCommand}" Width="56"
-                                    ToolTip="Earlier hour" AutomationProperties.Name="Earlier hour" />
-                        </StackPanel>
-                        <TextBlock Text=":" FontSize="32" FontWeight="Light" VerticalAlignment="Center" Margin="4,0" />
-                        <StackPanel>
-                            <Button Style="{StaticResource Clock.Step}" Content="&#xE70E;" Command="{Binding AddAlarmMinuteCommand}" Width="56"
-                                    ToolTip="Later minute" AutomationProperties.Name="Later minute" />
-                            <TextBlock Text="{Binding AlarmMinuteText}" FontSize="32" FontWeight="Light" TextAlignment="Center" Margin="0,2"
-                                       AutomationProperties.Name="Alarm minute" />
-                            <Button Style="{StaticResource Clock.Step}" Content="&#xE70D;" Command="{Binding SubtractAlarmMinuteCommand}" Width="56"
-                                    ToolTip="Earlier minute" AutomationProperties.Name="Earlier minute" />
-                        </StackPanel>
-                        <Border Background="{DynamicResource Island.Surface}" CornerRadius="13" Padding="3" Margin="18,0,0,0" VerticalAlignment="Center">
-                            <ListBox SelectedIndex="{Binding AlarmPmIndex, Mode=TwoWay}" ItemContainerStyle="{StaticResource Island.SegmentItem}"
-                                     Background="Transparent" BorderThickness="0" FontSize="11" Foreground="{DynamicResource Island.Subtle}"
-                                     ScrollViewer.HorizontalScrollBarVisibility="Disabled" ScrollViewer.VerticalScrollBarVisibility="Disabled"
-                                     AutomationProperties.Name="AM or PM">
-                                <ListBoxItem Content="AM" />
-                                <ListBoxItem Content="PM" />
-                            </ListBox>
-                        </Border>
+                    <StackPanel DataContext="{Binding Alarms}">
+                        <DockPanel Margin="2,0,2,2">
+                            <Border DockPanel.Dock="Right" Background="{DynamicResource Island.Surface}" CornerRadius="{shell:Round}" Padding="3" VerticalAlignment="Center">
+                                <ListBox SelectedIndex="{Binding PmIndex, Mode=TwoWay}" ItemContainerStyle="{StaticResource Island.SegmentItem}"
+                                         Background="Transparent" BorderThickness="0" FontSize="12" Foreground="{DynamicResource Island.Subtle}"
+                                         ScrollViewer.HorizontalScrollBarVisibility="Disabled" ScrollViewer.VerticalScrollBarVisibility="Disabled"
+                                         AutomationProperties.Name="AM or PM">
+                                    <ListBox.ItemsPanel>
+                                        <ItemsPanelTemplate><StackPanel Orientation="Horizontal" /></ItemsPanelTemplate>
+                                    </ListBox.ItemsPanel>
+                                    <ListBoxItem Content="AM" />
+                                    <ListBoxItem Content="PM" />
+                                </ListBox>
+                            </Border>
+                            <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,12,0">
+                                <Button Style="{StaticResource Clock.Step}" Content="&#xE738;" Command="{Binding SubtractMinuteCommand}"
+                                        ToolTip="One minute earlier" AutomationProperties.Name="Earlier minute" />
+                                <TextBlock Text="1 min" FontSize="11" Foreground="{DynamicResource Island.Subtle}" VerticalAlignment="Center" />
+                                <Button Style="{StaticResource Clock.Step}" Content="&#xE710;" Command="{Binding AddMinuteCommand}"
+                                        ToolTip="One minute later" AutomationProperties.Name="Later minute" />
+                            </StackPanel>
+                            <TextBox Style="{StaticResource Island.Input}" FontSize="34" FontWeight="Light" Height="52" Padding="6,0" Width="150"
+                                     HorizontalAlignment="Left" VerticalContentAlignment="Center"
+                                     Text="{Binding TimeInput, UpdateSourceTrigger=LostFocus}" shell:CommitOnEnter.Enabled="True"
+                                     ToolTip="Type a time: 730, 7:30, 19:45 or 7:30pm. Press Enter."
+                                     AutomationProperties.Name="Alarm time" />
+                        </DockPanel>
+                        <TextBlock Text="{Binding Summary}" FontSize="12" Margin="2,0,2,8" Foreground="{DynamicResource Island.Subtle}" />
+                        <ItemsControl ItemsSource="{Binding Presets}" Focusable="False" Margin="0,0,0,6">
+                            <ItemsControl.ItemsPanel>
+                                <ItemsPanelTemplate><UniformGrid Columns="4" Margin="-2,0" /></ItemsPanelTemplate>
+                            </ItemsControl.ItemsPanel>
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Button Style="{StaticResource Clock.Button}" Content="{Binding}" Command="{Binding DataContext.UsePresetCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                                            CommandParameter="{Binding}" AutomationProperties.Name="{Binding StringFormat=Set the alarm time to {0}}" />
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                        <DockPanel Margin="2,0,2,6">
+                            <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Margin="8,0,0,0">
+                                <Button Style="{StaticResource Clock.Button}" Content="Once" Command="{Binding RepeatOnceCommand}" />
+                                <Button Style="{StaticResource Clock.Button}" Content="Weekdays" Command="{Binding RepeatWeekdaysCommand}" />
+                                <Button Style="{StaticResource Clock.Button}" Content="Daily" Command="{Binding RepeatEveryDayCommand}" AutomationProperties.Name="Every day" />
+                            </StackPanel>
+                            <ItemsControl ItemsSource="{Binding Days}" Focusable="False" AutomationProperties.Name="Repeat days">
+                                <ItemsControl.ItemsPanel>
+                                    <ItemsPanelTemplate><UniformGrid Rows="1" /></ItemsPanelTemplate>
+                                </ItemsControl.ItemsPanel>
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <CheckBox Style="{StaticResource Clock.Day}" Content="{Binding Name}" IsChecked="{Binding IsOn, Mode=TwoWay}"
+                                                  ToolTip="{Binding Day}" AutomationProperties.Name="{Binding Day, StringFormat=Repeat on {0}}" />
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </DockPanel>
+                        <DockPanel Margin="2,0,2,8">
+                            <Button DockPanel.Dock="Right" Style="{StaticResource Island.PrimaryChip}" Content="{Binding SaveLabel}" Command="{Binding SaveCommand}"
+                                    MinHeight="34" Margin="8,0,0,0" AutomationProperties.Name="Save the alarm" />
+                            <Grid>
+                                <TextBox Style="{StaticResource Island.Input}" Height="34" Text="{Binding Label, UpdateSourceTrigger=PropertyChanged}"
+                                         ToolTip="Label, for example Wake up" AutomationProperties.Name="Alarm label" />
+                                <TextBlock Text="Label (optional)" Margin="12,0" FontSize="13" IsHitTestVisible="False" VerticalAlignment="Center"
+                                           Foreground="{DynamicResource Island.Subtle}">
+                                    <TextBlock.Style>
+                                        <Style TargetType="TextBlock">
+                                            <Setter Property="Visibility" Value="Collapsed" />
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding Label}" Value="">
+                                                    <Setter Property="Visibility" Value="Visible" />
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </TextBlock.Style>
+                                </TextBlock>
+                            </Grid>
+                        </DockPanel>
+                        <ItemsControl ItemsSource="{Binding Items}" Focusable="False" AutomationProperties.Name="Your alarms">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Border Background="{DynamicResource Island.Surface}" CornerRadius="{shell:Round 14}" Padding="12,6" Margin="0,0,0,4">
+                                        <DockPanel>
+                                            <Button DockPanel.Dock="Right" Style="{StaticResource Island.IconButton}" Content="&#xE711;" Command="{Binding DeleteCommand}"
+                                                    Width="26" Height="26" FontSize="10" ToolTip="Delete" AutomationProperties.Name="Delete the alarm" />
+                                            <CheckBox DockPanel.Dock="Right" Style="{StaticResource Clock.Switch}" IsChecked="{Binding IsEnabled, Mode=TwoWay}"
+                                                      Margin="0,0,8,0" AutomationProperties.Name="Alarm on or off" />
+                                            <Button Style="{StaticResource Island.IconButton}" Command="{Binding EditCommand}" HorizontalAlignment="Left" Width="Auto"
+                                                    ToolTip="Edit" AutomationProperties.Name="Edit the alarm">
+                                                <StackPanel Orientation="Horizontal" TextElement.FontFamily="{x:Static SystemFonts.MessageFontFamily}">
+                                                    <TextBlock Text="{Binding TimeText}" FontSize="18" FontWeight="Light" VerticalAlignment="Center" />
+                                                    <TextBlock Text="{Binding Title}" Margin="12,0,0,0" VerticalAlignment="Center" />
+                                                    <TextBlock Text="{Binding RepeatText}" FontSize="12" Margin="8,0,0,0" VerticalAlignment="Center"
+                                                               Foreground="{DynamicResource Island.Subtle}" />
+                                                </StackPanel>
+                                            </Button>
+                                        </DockPanel>
+                                    </Border>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
                     </StackPanel>
-                    <DockPanel Margin="2,0">
-                        <Button DockPanel.Dock="Right" Style="{StaticResource Clock.Button}" Content="Set alarm" Command="{Binding StartAlarmCommand}"
-                                AutomationProperties.Name="Set the alarm" />
-                        <TextBlock Text="{Binding AlarmSummary}" FontSize="12" VerticalAlignment="Center"
-                                   Foreground="{DynamicResource Island.Subtle}" />
-                    </DockPanel>
                 </StackPanel>
 
                 <!-- Pomodoro: three sessions you can start, each with its length; then how the days have gone. -->
                 <StackPanel x:Name="PomodoroSection" Visibility="{Binding IsPomodoroSection, Converter={StaticResource Island.BoolToVisibility}}">
                     <DockPanel Margin="0,2,0,10">
-                        <Border DockPanel.Dock="Left" Width="44" Height="44" CornerRadius="13" Margin="0,0,12,0"
+                        <Border DockPanel.Dock="Left" Width="44" Height="44" CornerRadius="{shell:Round 14}" Margin="0,0,12,0"
                                 Background="{DynamicResource Island.Surface}">
                             <shell:Icon Kind="timer" Size="22" Foreground="{DynamicResource Island.Accent}"
                                         HorizontalAlignment="Center" VerticalAlignment="Center" />
@@ -199,7 +373,7 @@
                             <TextBlock Text="Stay in flow" FontSize="16" FontWeight="SemiBold" />
                         </StackPanel>
                     </DockPanel>
-                    <Border Background="{DynamicResource Island.Surface}" CornerRadius="14" Margin="0,0,0,6">
+                    <Border Background="{DynamicResource Island.Surface}" CornerRadius="{shell:Round 14}" Margin="0,0,0,6">
                         <DockPanel>
                             <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,10,0">
                                 <Button Style="{StaticResource Clock.Step}" Content="&#xE738;" Command="{Binding SubtractFocusCommand}"
@@ -224,7 +398,7 @@
                             </Button>
                         </DockPanel>
                     </Border>
-                    <Border Background="{DynamicResource Island.Surface}" CornerRadius="14" Margin="0,0,0,6">
+                    <Border Background="{DynamicResource Island.Surface}" CornerRadius="{shell:Round 14}" Margin="0,0,0,6">
                         <DockPanel>
                             <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,10,0">
                                 <Button Style="{StaticResource Clock.Step}" Content="&#xE738;" Command="{Binding SubtractShortBreakCommand}"
@@ -249,7 +423,7 @@
                             </Button>
                         </DockPanel>
                     </Border>
-                    <Border Background="{DynamicResource Island.Surface}" CornerRadius="14" Margin="0,0,0,6">
+                    <Border Background="{DynamicResource Island.Surface}" CornerRadius="{shell:Round 14}" Margin="0,0,0,6">
                         <DockPanel>
                             <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,10,0">
                                 <Button Style="{StaticResource Clock.Step}" Content="&#xE738;" Command="{Binding SubtractLongBreakCommand}"
@@ -285,21 +459,21 @@
                         </DockPanel>
                     </Border>
                     <UniformGrid Columns="3" Margin="0,4,-6,0">
-                        <Border Background="{DynamicResource Island.Surface}" CornerRadius="12" Padding="10,8" Margin="0,0,6,0">
+                        <Border Background="{DynamicResource Island.Surface}" CornerRadius="{shell:Round 22}" Padding="10,8" Margin="0,0,6,0">
                             <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
                                 <shell:Icon Kind="circle-check" Size="13" Foreground="{DynamicResource Island.Accent}" VerticalAlignment="Center" />
                                 <TextBlock Text="{Binding TodayFocus}" FontSize="13" FontWeight="SemiBold" Margin="7,0,4,0" VerticalAlignment="Center" />
                                 <TextBlock Text="today" FontSize="12" Foreground="{DynamicResource Island.Subtle}" VerticalAlignment="Center" />
                             </StackPanel>
                         </Border>
-                        <Border Background="{DynamicResource Island.Surface}" CornerRadius="12" Padding="10,8" Margin="0,0,6,0">
+                        <Border Background="{DynamicResource Island.Surface}" CornerRadius="{shell:Round 22}" Padding="10,8" Margin="0,0,6,0">
                             <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
                                 <shell:Icon Kind="flame" Size="13" Foreground="{DynamicResource Island.Accent}" VerticalAlignment="Center" />
                                 <TextBlock Text="{Binding FocusStreak}" FontSize="13" FontWeight="SemiBold" Margin="7,0,4,0" VerticalAlignment="Center" />
                                 <TextBlock Text="streak" FontSize="12" Foreground="{DynamicResource Island.Subtle}" VerticalAlignment="Center" />
                             </StackPanel>
                         </Border>
-                        <Border Background="{DynamicResource Island.Surface}" CornerRadius="12" Padding="10,8" Margin="0,0,6,0">
+                        <Border Background="{DynamicResource Island.Surface}" CornerRadius="{shell:Round 22}" Padding="10,8" Margin="0,0,6,0">
                             <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
                                 <shell:Icon Kind="trending-up" Size="13" Foreground="{DynamicResource Island.Accent}" VerticalAlignment="Center" />
                                 <TextBlock Text="{Binding TotalFocus}" FontSize="13" FontWeight="SemiBold" Margin="7,0,4,0" VerticalAlignment="Center" />
@@ -311,7 +485,7 @@
             </StackPanel>
 
             <!-- Timer running: the time, with its controls beside it and progress underneath. -->
-            <Border DataContext="{Binding Timer}" Background="{DynamicResource Island.Surface}" CornerRadius="12" Padding="12,8,6,10"
+            <Border DataContext="{Binding Timer}" Background="{DynamicResource Island.Surface}" CornerRadius="{shell:Round 22}" Padding="12,8,6,10"
                     Visibility="{Binding IsActive, Converter={StaticResource Island.BoolToVisibility}}">
                 <StackPanel>
                     <TextBlock Text="{Binding Label}" FontSize="11" Foreground="{DynamicResource Island.Subtle}" />
@@ -324,9 +498,6 @@
                                         <Setter Property="ToolTip" Value="Pause" />
                                         <Setter Property="AutomationProperties.Name" Value="Pause timer" />
                                         <Style.Triggers>
-                                            <DataTrigger Binding="{Binding IsAlarm}" Value="True">
-                                                <Setter Property="Visibility" Value="Collapsed" />
-                                            </DataTrigger>
                                             <DataTrigger Binding="{Binding IsRunning}" Value="False">
                                                 <Setter Property="Content" Value="&#xE768;" />
                                                 <Setter Property="ToolTip" Value="Resume" />
@@ -347,8 +518,8 @@
                     </DockPanel>
                     <Grid Height="4" Margin="0,0,6,0"
                           Visibility="{Binding IsCountingDown, Converter={StaticResource Island.BoolToVisibility}}">
-                        <Border CornerRadius="2" Background="{DynamicResource Island.Hover}" />
-                        <Border CornerRadius="2" Background="{DynamicResource Island.Accent}" RenderTransformOrigin="0,0.5">
+                        <Border CornerRadius="{shell:Round}" Background="{DynamicResource Island.Hover}" />
+                        <Border CornerRadius="{shell:Round}" Background="{DynamicResource Island.Accent}" RenderTransformOrigin="0,0.5">
                             <Border.RenderTransform>
                                 <ScaleTransform ScaleX="{Binding Progress}" />
                             </Border.RenderTransform>

@@ -50,6 +50,7 @@ public sealed class ClockModule : IIslandModule
     private readonly TimerViewModel _timer = new(TimeProvider.System);
     private ModuleContext? _context;
     private DispatcherTimer? _ticker;
+    private int _ticks;
 
     public ClockModule() => Panel = new ClockPanelViewModel(_clock, _timer);
 
@@ -60,6 +61,8 @@ public sealed class ClockModule : IIslandModule
         _context = context;
         var pomodoro = context.Settings.Current.Pomodoro ??= new PomodoroSettings();
         _timer.UsePomodoroSettings(pomodoro, context.Settings.NotifyChanged);
+        _timer.Alarms.Use(context.Settings.Current.Alarms ??= [], context.Settings.NotifyChanged);
+        _timer.Alarms.StateChanged += OnAlarmStateChanged;
         _clock.Update(DateTime.Now);
         context.Post("time", _clock, ActivityPriority.Idle);
 
@@ -72,6 +75,8 @@ public sealed class ClockModule : IIslandModule
         {
             _clock.Update(DateTime.Now);
             if (_timer.IsActive) _timer.Tick();
+            _timer.Alarms.Tick();
+            if (_timer.Alarms.IsRinging && _ticks++ % 12 == 0) SystemSounds.Exclamation.Play(); // every three seconds until answered
         };
         _ticker.Start();
     }
@@ -80,6 +85,14 @@ public sealed class ClockModule : IIslandModule
     {
         if (_timer.IsActive) _context?.Post("timer", _timer, ActivityPriority.Normal);
         else _context?.Remove("timer");
+    }
+
+    /// <summary>Ringing opens the island with Snooze and Dismiss; snoozed waits in the compact pill; idle clears it.</summary>
+    private void OnAlarmStateChanged()
+    {
+        _ticks = 0;
+        if (_timer.Alarms.State == RingState.Idle) _context?.Remove("alarm");
+        else _context?.Post("alarm", _timer.Alarms, ActivityPriority.Critical, alert: _timer.Alarms.IsRinging);
     }
 
     private void OnTimerCompleted(string title, string detail)
@@ -93,5 +106,6 @@ public sealed class ClockModule : IIslandModule
         _ticker?.Stop();
         _timer.ActiveChanged -= OnTimerActiveChanged;
         _timer.Completed -= OnTimerCompleted;
+        _timer.Alarms.StateChanged -= OnAlarmStateChanged;
     }
 }

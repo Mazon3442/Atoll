@@ -18,6 +18,9 @@ public sealed record WeatherReport(double Temperature, double FeelsLike, int Cod
     public double? Gusts { get; init; }
     public double? WindDirection { get; init; }
     public IReadOnlyList<WeatherHour> Hours { get; init; } = [];
+    public double? Humidity { get; init; }
+    public DateTime? Sunrise { get; init; }
+    public DateTime? Sunset { get; init; }
 }
 
 /// <summary>Open-Meteo requests contain only the search text or chosen coordinates.</summary>
@@ -50,9 +53,9 @@ public static class OpenMeteo
         var inv = CultureInfo.InvariantCulture;
         var url = "https://api.open-meteo.com/v1/forecast"
             + $"?latitude={place.Latitude.ToString(inv)}&longitude={place.Longitude.ToString(inv)}"
-            + "&current=temperature_2m,apparent_temperature,weather_code,is_day,wind_speed_10m,wind_direction_10m,wind_gusts_10m,rain,showers"
+            + "&current=temperature_2m,apparent_temperature,weather_code,is_day,wind_speed_10m,wind_direction_10m,wind_gusts_10m,rain,showers,relative_humidity_2m"
             + "&hourly=temperature_2m,weather_code,is_day,precipitation_probability,precipitation,rain,showers,wind_speed_10m,wind_gusts_10m"
-            + "&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max,precipitation_sum,wind_speed_10m_max"
+            + "&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max,precipitation_sum,wind_speed_10m_max,sunrise,sunset"
             + "&timezone=auto&forecast_days=7"
             + (fahrenheit ? "&temperature_unit=fahrenheit&wind_speed_unit=mph&precipitation_unit=inch" : "&wind_speed_unit=kmh");
         using var doc = JsonDocument.Parse(await Http.GetStringAsync(url, ct));
@@ -115,6 +118,9 @@ public static class OpenMeteo
             LocalTime = localTime,
             Rain = Number(current, "rain") is { } currentRain ? currentRain + (Number(current, "showers") ?? 0) : null,
             Gusts = Number(current, "wind_gusts_10m"), WindDirection = Number(current, "wind_direction_10m"), Hours = hours,
+            Humidity = Number(current, "relative_humidity_2m"),
+            Sunrise = DayValue<DateTime>(daily, "sunrise", localTime, value => DateTime.TryParse(value.GetString(), CultureInfo.InvariantCulture, DateTimeStyles.None, out var at) ? at : null),
+            Sunset = DayValue<DateTime>(daily, "sunset", localTime, value => DateTime.TryParse(value.GetString(), CultureInfo.InvariantCulture, DateTimeStyles.None, out var at) ? at : null),
         };
         return report;
     }
@@ -127,6 +133,17 @@ public static class OpenMeteo
     private static double? Number(JsonElement parent, string property) => parent.TryGetProperty(property, out var value)
         && value.ValueKind == JsonValueKind.Number && value.TryGetDouble(out var number) && double.IsFinite(number) ? number : null;
     private static double RequiredNumber(JsonElement parent, string property) => Number(parent, property) ?? throw new JsonException($"Missing {property}");
+    /// <summary>One value from a daily series, for the day the place is in now.</summary>
+    private static T? DayValue<T>(JsonElement daily, string property, DateTime local, Func<JsonElement, T?> read) where T : struct
+    {
+        if (!daily.TryGetProperty("time", out var times) || times.ValueKind != JsonValueKind.Array
+            || !daily.TryGetProperty(property, out var values) || values.ValueKind != JsonValueKind.Array) return null;
+        for (var i = 0; i < times.GetArrayLength() && i < values.GetArrayLength(); i++)
+            if (DateTime.TryParse(times[i].GetString(), CultureInfo.InvariantCulture, DateTimeStyles.None, out var day) && day.Date == local.Date)
+                return read(values[i]);
+        return null;
+    }
+
     private static string? Str(JsonElement e, string name) => e.TryGetProperty(name, out var v) && v.ValueKind == JsonValueKind.String ? v.GetString() : null;
 }
 

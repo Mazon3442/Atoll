@@ -41,6 +41,7 @@ public partial class IslandWindow : Window
     private const int PeekCollapseAfterMs = 450;
     private const int MinClickThroughDwellMs = 350; // short passes (moving to a browser tab) must not open it
     private const double PassThroughOpacity = 0.25;
+    private const double ShellRadius = 34; // Radius.Shell in Theme.xaml
     private const double SideChipWidth = 118;
     private const double SideChipGap = 4;
 
@@ -269,18 +270,31 @@ public partial class IslandWindow : Window
     private void UpdateFocusChip()
     {
         var focus = FocusService.Current;
-        var show = focus is not null && _settings.Current.Focus.Enabled && _settings.Current.Focus.ShowChip;
-        FocusButton.Visibility = show ? Visibility.Visible : Visibility.Collapsed;
+        var show = focus is not null && _settings.Current.Focus.Enabled;
+        FocusTile.Visibility = show ? Visibility.Visible : Visibility.Collapsed;
+        StatusFocusIcon.Visibility = show && focus!.IsActive ? Visibility.Visible : Visibility.Collapsed;
         if (!show)
         {
             FocusPopup.IsOpen = false;
             return;
         }
-        FocusButton.SetResourceReference(Control.ForegroundProperty, focus!.IsActive ? "Island.Accent" : "Island.Foreground");
-        FocusButton.ToolTip = focus.Status;
-        AutomationProperties.SetName(FocusButton, focus.Status);
+        FocusTile.ToolTip = focus!.Status;
+        AutomationProperties.SetName(FocusTile, focus.Status);
         FocusPopupTitle.Text = focus.IsActive ? focus.Status : "Do Not Disturb";
         FocusOffButton.Visibility = focus.IsActive ? Visibility.Visible : Visibility.Collapsed;
+    }
+
+    private void OnStatusClick(object sender, RoutedEventArgs e)
+    {
+        StatusPopup.HorizontalOffset = StatusButton.ActualWidth - 340;
+        StatusPopup.IsOpen = !StatusPopup.IsOpen;
+    }
+
+    /// <summary>The Focus tile hands over to the duration menu, which opens under the status chip.</summary>
+    private void OnFocusTileClick(object sender, RoutedEventArgs e)
+    {
+        StatusPopup.IsOpen = false;
+        OnFocusClick(sender, e);
     }
 
     private void OnFocusClick(object sender, RoutedEventArgs e)
@@ -655,7 +669,6 @@ public partial class IslandWindow : Window
         if (Tabs.IsKeyboardFocusWithin) FocusSelectedTab();
     }
 
-    private void OnBluetoothClick(object sender, RoutedEventArgs e) => BluetoothPopup.IsOpen = !BluetoothPopup.IsOpen;
 
     private void OnTabMenuClick(object sender, RoutedEventArgs e) => TabMenuPopup.IsOpen = !TabMenuPopup.IsOpen;
 
@@ -875,7 +888,7 @@ public partial class IslandWindow : Window
     private void SetMode(IslandMode mode, string? moduleId = null)
     {
         TabMenuPopup.IsOpen = false;
-        BluetoothPopup.IsOpen = false;
+        StatusPopup.IsOpen = false;
         // A tab opened from the ⋯ menu only stays in the top row for its visit.
         if (mode != IslandMode.Expanded && _transientTab is not null)
         {
@@ -1298,7 +1311,7 @@ public partial class IslandWindow : Window
             PanelRoot.Height = expandedHeight - PanelRoot.Margin.Top - PanelRoot.Margin.Bottom - PillChrome.Top - PillChrome.Bottom;
             PillContent.Visibility = Visibility.Collapsed;
             PanelRoot.Visibility = Visibility.Visible;
-            Animate(expandedWidth, expandedHeight, Roundness * 32);
+            Animate(expandedWidth, expandedHeight, Roundness * ShellRadius);
             RenderBubble(Bubble, BubbleContent, null, h0);
             RenderBubble(Bubble2, Bubble2Content, null, h0);
             RenderBubble(Bubble3, Bubble3Content, null, h0);
@@ -1538,6 +1551,8 @@ public partial class IslandWindow : Window
         if (activity?.Content is IndicatorViewModel { Detail: "Volume" } && hasMediaTab) return "media";
         return activity?.ModuleId;
     }
+
+    private void OnPaletteClick(object sender, RoutedEventArgs e) => ShowPalette();
 
     private void OnSettingsClick(object sender, RoutedEventArgs e)
     {
