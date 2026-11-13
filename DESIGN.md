@@ -9,6 +9,8 @@ Energy 1 / Rhythm 2 / Motion 2: quiet controls, content-led layouts, responsive 
 - Use the Windows system variable font for legibility and reliable installation. Large, light temperature numerals lead weather; secondary readings use smaller, regular type.
 - The island is the enclosing surface. Use subtle inset surfaces for selected controls and rows; avoid stacking decorative cards inside it.
 - Use generous outer rounding, smaller control rounding, and a consistent 4/8-point spacing scale to distinguish the shell from its controls.
+- Radius ladder: shell 34, card 22, control 14, chips and buttons full pills (`Radius.*` in `Theme.xaml`). Use no other corner values.
+- Pages are composed from cards (`Island.Card`: inset surface, 22 radius, 14 padding, 10 gap). Home is a card grid: the month, or with the month off a large now-playing card with progress and transport, beside weather and timer, the running game and up-next cards. Media puts the player and the lyrics on separate cards.
 - Type scale: 11 captions, 12 secondary, 13 body, 14 titles, 16 and 18 headings, 20 and 24 figures, 32 and up for display numerals. Do not add sizes between these. Helper text is for states that need action (a missing key, an empty list); never repeat what a control or shortcut already says.
 - Use the chosen accent for selection and chart readings. Neutral text and surfaces carry the rest of the interface.
 - The weather chart answers how precipitation, wind, or temperature changes across the selected day's hours. Plot only forecast data, preserve gaps, and expose exact values through pointer and keyboard selection.

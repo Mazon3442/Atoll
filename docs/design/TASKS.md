@@ -53,3 +53,10 @@ Check: test passes on the branch and fails if you change a value to 9.
 ## Order of work
 
 C5 can start now. C1, C2 and C4 can run in parallel. S1 and S2 land first on Claude's side because C3 and the page work depend on the shared styles. C3 waits for S1. C6 waits for C1.
+
+## Status (branch `design/s1-tokens`)
+
+- Done: S1 (radius ladder and shared styles), shell radius 34, Home card layout, Media cards, `Island.Card` and `Island.PrimaryRoundButton`, DESIGN.md rules.
+- Already existed, no work needed: the Notch / Pill setting and rendering (`ThemeSettings.Shape`, `PillBorder`, glass shapes), the icon-first tab strip with the selected tab labelled, side-capsule rings drawn as strokes. So **C5 is redundant** and S2 to S4 reduced to the shell radius constant.
+- Also done: light-theme render check of Home (surfaces and the filled play button follow theme tokens). The Weather page keeps its owner-supplied composition and was not regrouped.
+- Still open: C1 and C2 (Codex, radii in module templates and Settings), C3 (superseded by the Home rebuild: skip), C4, C6; S5 for Agents, Notes, Calendar, Weather, System, Palette (they already use the same surfaces; remaining work is card grouping and radii); S6 on-screen glass check in the running app; S7 onboarding preview and README screenshots.

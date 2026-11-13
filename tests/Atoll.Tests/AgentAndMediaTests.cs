@@ -280,7 +280,14 @@ internal static class AgentMediaUi
         });
         var home = new Atoll.Modules.Home.HomeViewModel(media, null, new Atoll.Modules.Clock.ClockPanelViewModel(new Atoll.Modules.Clock.ClockViewModel(), timer),
             calendar, game, new HomeSettings());
-        Render(home, "HomeViewModel.Panel", "home-panel", 640, 300);
+        Render(home, "HomeViewModel.Panel", "home-panel", 732, 300);
+        var heroHome = new Atoll.Modules.Home.HomeViewModel(media, null, new Atoll.Modules.Clock.ClockPanelViewModel(new Atoll.Modules.Clock.ClockViewModel(), timer),
+            calendar, game, new HomeSettings { Calendar = false });
+        Render(heroHome, "HomeViewModel.Panel", "home-panel-hero", 732, 272);
+        // The same cards on a light theme: surfaces and the filled play button come from theme tokens, not fixed colours.
+        Atoll.Theme.ThemeService.Apply(new ThemeSettings { Background = "#F4F4F6", Foreground = "#111114" });
+        try { Render(heroHome, "HomeViewModel.Panel", "home-panel-hero-light", 732, 272); }
+        finally { Atoll.Theme.ThemeService.Apply(new ThemeSettings()); }
 
         var notesSettings = new NotesSettings();
         notesSettings.Notes.Add(new NoteItem { Text = "Ship the calendar update", Updated = DateTimeOffset.Now.AddMinutes(-20) });

@@ -43,6 +43,12 @@ public sealed partial class HomeViewModel : ObservableObject
 
     public bool ShowMonth => Calendar is not null && _settings.Calendar;
     public bool ShowUpNext => Calendar is not null && _settings.UpNext;
+    /// <summary>The left column holds the month, or, with the month off, a large now-playing card.</summary>
+    public bool ShowHeroMedia => Media is not null && !ShowMonth;
+    public bool ShowCompactMedia => Media is not null && ShowMonth;
+    public bool HasWeather => Weather is not null;
+    public bool HasTimer => Timer is not null;
+    public bool HasLeftColumn => ShowMonth || ShowHeroMedia;
     public bool HasRightColumn => Weather is not null || Timer is not null || ShowUpNext || Game is not null;
 
     [ObservableProperty] private IReadOnlyList<UpNextItem> _upNext = [];
