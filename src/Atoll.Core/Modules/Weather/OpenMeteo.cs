@@ -21,7 +21,6 @@ public sealed record WeatherReport(double Temperature, double FeelsLike, int Cod
     public double? Humidity { get; init; }
     public DateTime? Sunrise { get; init; }
     public DateTime? Sunset { get; init; }
-    public double? UvIndex { get; init; }
 }
 
 /// <summary>Open-Meteo requests contain only the search text or chosen coordinates.</summary>
@@ -56,7 +55,7 @@ public static class OpenMeteo
             + $"?latitude={place.Latitude.ToString(inv)}&longitude={place.Longitude.ToString(inv)}"
             + "&current=temperature_2m,apparent_temperature,weather_code,is_day,wind_speed_10m,wind_direction_10m,wind_gusts_10m,rain,showers,relative_humidity_2m"
             + "&hourly=temperature_2m,weather_code,is_day,precipitation_probability,precipitation,rain,showers,wind_speed_10m,wind_gusts_10m"
-            + "&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max,precipitation_sum,wind_speed_10m_max,sunrise,sunset,uv_index_max"
+            + "&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max,precipitation_sum,wind_speed_10m_max,sunrise,sunset"
             + "&timezone=auto&forecast_days=7"
             + (fahrenheit ? "&temperature_unit=fahrenheit&wind_speed_unit=mph&precipitation_unit=inch" : "&wind_speed_unit=kmh");
         using var doc = JsonDocument.Parse(await Http.GetStringAsync(url, ct));
@@ -122,7 +121,6 @@ public static class OpenMeteo
             Humidity = Number(current, "relative_humidity_2m"),
             Sunrise = DayValue<DateTime>(daily, "sunrise", localTime, value => DateTime.TryParse(value.GetString(), CultureInfo.InvariantCulture, DateTimeStyles.None, out var at) ? at : null),
             Sunset = DayValue<DateTime>(daily, "sunset", localTime, value => DateTime.TryParse(value.GetString(), CultureInfo.InvariantCulture, DateTimeStyles.None, out var at) ? at : null),
-            UvIndex = DayValue<double>(daily, "uv_index_max", localTime, value => value.ValueKind == JsonValueKind.Number && value.TryGetDouble(out var uv) ? uv : null),
         };
         return report;
     }
