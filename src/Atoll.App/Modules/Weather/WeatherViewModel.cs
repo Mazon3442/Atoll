@@ -69,7 +69,7 @@ public sealed partial class WeatherViewModel(SettingsService settings) : Observa
     [new(WeatherMetric.Precipitation, "Rain"), new(WeatherMetric.Wind, "Wind"), new(WeatherMetric.Temperature, "Temp")];
     public ObservableCollection<WeatherChartPoint> ChartPoints { get; } = [];
     public ObservableCollection<WeatherDay> Days { get; } = [];
-    /// <summary>Feels like, wind, humidity, sun and UV: the readings that fill the card under the days.</summary>
+    /// <summary>Feels like, wind, humidity and sun: the readings that fill the card under the days.</summary>
     public ObservableCollection<WeatherDetailTile> DetailTiles { get; } = [];
     public IReadOnlyList<WeatherHour> Hours => _chartHours;
     public bool HasHours => Hours.Count > 0;
@@ -186,8 +186,6 @@ public sealed partial class WeatherViewModel(SettingsService settings) : Observa
         if (report.Humidity is { } humidity) DetailTiles.Add(new("Humidity", $"{Math.Round(humidity)}%", ""));
         if (report.Sunrise is { } sunrise && report.Sunset is { } sunset)
             DetailTiles.Add(new("Sun", sunrise.ToString("t", CultureInfo.CurrentCulture), $"Sets {sunset.ToString("t", CultureInfo.CurrentCulture)}"));
-        if (report.UvIndex is { } uv)
-            DetailTiles.Add(new("UV index", $"{Math.Round(uv)}", uv switch { < 3 => "Low", < 6 => "Moderate", < 8 => "High", < 11 => "Very high", _ => "Extreme" }));
     }
 
     partial void OnSelectedDayChanged(WeatherDay? value) => UpdateHours();
