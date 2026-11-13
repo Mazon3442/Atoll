@@ -1,0 +1,338 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ATOLL redesign mockups</title>
+<style>
+/* Tokens: shell 34 > card 22 > control 14 > chip full. Nested radius = outer - padding. */
+:root{
+  --shell:#000; --fg:#fff; --subtle:rgba(255,255,255,.6); --faint:rgba(255,255,255,.38);
+  --surface:rgba(255,255,255,.07); --raised:rgba(255,255,255,.14); --hover:rgba(255,255,255,.12);
+  --accent:#0A84FF; --green:#30D158; --amber:#FFB340; --red:#FF453A; --violet:#BF5AF2; --cyan:#64D2FF;
+  --r-shell:34px; --r-card:22px; --r-ctl:14px;
+  --font:"Segoe UI Variable Text","Segoe UI Variable","Segoe UI",system-ui,sans-serif;
+  --display:"Segoe UI Variable Display","Segoe UI Variable","Segoe UI",system-ui,sans-serif;
+}
+*{box-sizing:border-box;margin:0}
+html,body{width:1200px;height:560px;overflow:hidden;font-family:var(--font);color:var(--fg);font-size:13px}
+.view{display:none;width:1200px;height:560px;position:relative;overflow:hidden;
+  background:
+   radial-gradient(900px 420px at 18% 110%,#1d6f8f 0,transparent 60%),
+   radial-gradient(800px 420px at 90% 120%,#6a3fb0 0,transparent 60%),
+   linear-gradient(180deg,#12182b,#0c1020)}
+.view.on{display:block}
+.view::after{content:"";position:absolute;left:150px;right:150px;top:300px;bottom:-40px;border-radius:14px 14px 0 0;
+  background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.07);border-bottom:0}
+.label{position:absolute;left:24px;bottom:18px;font-size:12px;color:rgba(255,255,255,.7);z-index:5;letter-spacing:.01em}
+.label b{color:#fff;font-weight:600}
+.stage{position:absolute;left:0;right:0;top:0;display:flex;justify-content:center;z-index:3}
+.i{width:16px;height:16px;flex:none}
+
+/* ---- shell shapes ---- */
+.shell{background:var(--shell);position:relative}
+.notch .shell{border-radius:0 0 var(--r-shell) var(--r-shell)}
+.notch .shell::before,.notch .shell::after{content:"";position:absolute;top:0;width:14px;height:14px}
+.notch .shell::before{left:-14px;background:radial-gradient(circle at 0 100%,transparent 14px,#000 14.5px)}
+.notch .shell::after{right:-14px;background:radial-gradient(circle at 100% 100%,transparent 14px,#000 14.5px)}
+.pill .stage{padding-top:10px}
+.pill .shell{border-radius:var(--r-shell);box-shadow:0 18px 40px rgba(0,0,0,.45),0 0 0 1px rgba(255,255,255,.06)}
+.open .shell{width:760px;padding:12px 14px 14px}
+
+/* ---- header ---- */
+.hdr{display:flex;align-items:center;justify-content:space-between;height:40px;margin-bottom:10px}
+.tabs{display:flex;gap:2px;padding:3px;background:var(--surface);border-radius:20px}
+.tab{height:34px;min-width:34px;padding:0 9px;border-radius:17px;display:flex;align-items:center;justify-content:center;gap:7px;color:var(--subtle)}
+.tab.on{background:#F2F2F7;color:#0B0B0D;padding:0 13px 0 10px;font-weight:600;font-size:13px}
+.chips{display:flex;gap:6px;align-items:center}
+.chip{height:34px;min-width:34px;padding:0 11px;border-radius:17px;background:var(--surface);display:flex;align-items:center;justify-content:center;gap:6px;color:var(--subtle);font-size:12px}
+.chip.t{color:var(--fg)}
+.chip .dot{width:7px;height:7px;border-radius:50%;background:var(--green)}
+
+/* ---- cards / type ---- */
+.grid{display:grid;grid-template-columns:repeat(4,1fr);grid-auto-rows:130px;gap:10px}
+.card{background:var(--surface);border-radius:var(--r-card);padding:14px;position:relative;overflow:hidden;min-width:0}
+.cap{font-size:11px;color:var(--subtle);letter-spacing:.02em}
+.t14{font-size:14px;font-weight:600}.t16{font-size:16px;font-weight:600}.t18{font-size:18px;font-weight:600}
+.sub{font-size:12px;color:var(--subtle)}
+.fig{font-family:var(--display);font-weight:300;letter-spacing:-.02em;line-height:1}
+.row{display:flex;align-items:center}.gap6{gap:6px}.gap8{gap:8px}.gap12{gap:12px}.sp{flex:1}
+.btn{height:30px;padding:0 14px;border-radius:15px;background:var(--raised);display:inline-flex;align-items:center;font-size:12px;font-weight:600}
+.btn.p{background:#F2F2F7;color:#0B0B0D}
+.btn.a{background:var(--accent)}
+.seg{display:inline-flex;padding:3px;background:var(--surface);border-radius:17px}
+.seg span{height:28px;padding:0 14px;border-radius:14px;display:flex;align-items:center;font-size:12px;color:var(--subtle)}
+.seg span.on{background:var(--raised);color:#fff;font-weight:600}
+.art{border-radius:14px;flex:none;background:linear-gradient(135deg,#ff7a59 0,#c23a8a 55%,#3b2a8f 100%);position:relative;overflow:hidden}
+.art::after{content:"";position:absolute;left:-20%;top:55%;width:140%;height:60%;background:rgba(0,0,0,.28);border-radius:50% 50% 0 0}
+.bars{display:flex;gap:3px;align-items:flex-end;height:18px}.bars i{width:4px;border-radius:2px;background:#ff8a65}
+.prog{height:4px;border-radius:2px;background:var(--raised);position:relative}
+.prog i{position:absolute;left:0;top:0;bottom:0;border-radius:2px;background:#ffb199}
+.ring{border-radius:50%;display:grid;place-items:center;flex:none}
+.ev{display:flex;align-items:center;gap:10px;height:27px}
+.ev b{width:3px;height:18px;border-radius:2px}
+.ev .tm{width:44px;font-size:12px;color:var(--subtle)}
+.live{width:8px;height:8px;border-radius:50%;background:var(--green);box-shadow:0 0 0 3px rgba(48,209,88,.2)}
+.srow{display:flex;align-items:center;gap:12px;height:48px;padding:0 12px;border-radius:var(--r-ctl);background:var(--surface)}
+.srow+.srow{margin-top:6px}
+.ico{width:32px;height:32px;border-radius:10px;display:grid;place-items:center;flex:none}
+
+/* ---- compact ---- */
+.compact .stage{align-items:flex-start;gap:6px}
+.cp{height:36px;border-radius:0 0 18px 18px;background:#000;display:flex;align-items:center;gap:10px;padding:0 14px;font-size:12px;font-weight:600;white-space:nowrap;position:relative}
+.pill .cp{border-radius:18px;box-shadow:0 8px 18px rgba(0,0,0,.4),0 0 0 1px rgba(255,255,255,.06)}
+.cp.round{width:36px;padding:0;justify-content:center}
+.cp.main{min-width:190px;justify-content:center}
+.cell{position:absolute;width:560px}
+.cell .stagebox{position:relative;height:96px;overflow:visible}
+.mini{transform-origin:50% 0;transform:scale(1.55)}
+.notch .cp.main::before,.notch .cp.main::after{content:"";position:absolute;top:0;width:10px;height:10px}
+.notch .cp.main::before{left:-10px;background:radial-gradient(circle at 0 100%,transparent 10px,#000 10.5px)}
+.notch .cp.main::after{right:-10px;background:radial-gradient(circle at 100% 100%,transparent 10px,#000 10.5px)}
+.notch .cp.main.sided::before,.notch .cp.main.sided::after{display:none}
+.menu{position:absolute;left:380px;top:60px;width:210px;background:#000;border-radius:var(--r-card);padding:6px;box-shadow:0 12px 30px rgba(0,0,0,.5),0 0 0 1px rgba(255,255,255,.08)}
+.mi{display:flex;align-items:center;gap:10px;height:36px;padding:0 10px;border-radius:var(--r-ctl);color:#fff}
+.mi.h{background:var(--hover)}
+.kbd{font-size:11px;color:var(--faint);margin-left:auto}
+.pal{background:var(--surface);border-radius:var(--r-card);padding:10px}
+.pal .q{height:40px;border-radius:var(--r-ctl);background:var(--raised);display:flex;align-items:center;gap:10px;padding:0 12px;color:var(--subtle);font-size:14px}
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute"><defs>
+<symbol id="home" viewBox="0 0 24 24"><path d="M3 11l9-8 9 8v10h-6v-6H9v6H3z"/></symbol>
+<symbol id="agents" viewBox="0 0 24 24"><path d="M4 17l6-5-6-5M12 19h8"/></symbol>
+<symbol id="media" viewBox="0 0 24 24"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></symbol>
+<symbol id="bell" viewBox="0 0 24 24"><path d="M6 8a6 6 0 1112 0c0 7 3 9 3 9H3s3-2 3-9M10 21h4"/></symbol>
+<symbol id="cal" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="17" rx="3"/><path d="M3 10h18M8 2v4M16 2v4"/></symbol>
+<symbol id="files" viewBox="0 0 24 24"><path d="M3 7a2 2 0 012-2h4l2 2h8a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2z"/></symbol>
+<symbol id="clip" viewBox="0 0 24 24"><rect x="8" y="2" width="8" height="4" rx="1"/><path d="M16 4h2a2 2 0 012 2v14a2 2 0 01-2 2H6a2 2 0 01-2-2V6a2 2 0 012-2h2"/></symbol>
+<symbol id="wx" viewBox="0 0 24 24"><path d="M7 19a4 4 0 010-8 5 5 0 019.6 1A3.5 3.5 0 1117 19z"/></symbol>
+<symbol id="more" viewBox="0 0 24 24"><circle cx="5" cy="12" r="1.2"/><circle cx="12" cy="12" r="1.2"/><circle cx="19" cy="12" r="1.2"/></symbol>
+<symbol id="moon" viewBox="0 0 24 24"><path d="M21 12.8A9 9 0 1111.2 3a7 7 0 009.8 9.8z"/></symbol>
+<symbol id="bt" viewBox="0 0 24 24"><path d="M7 7l10 10-5 5V2l5 5L7 17"/></symbol>
+<symbol id="bat" viewBox="0 0 24 24"><rect x="2" y="7" width="17" height="10" rx="3"/><path d="M22 11v2"/></symbol>
+<symbol id="gear" viewBox="0 0 24 24"><path d="M4 6h9M17 6h3M4 12h3M11 12h9M4 18h11M19 18h1"/><circle cx="15" cy="6" r="2"/><circle cx="9" cy="12" r="2"/><circle cx="17" cy="18" r="2"/></symbol>
+<symbol id="search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4-4"/></symbol>
+<symbol id="timer" viewBox="0 0 24 24"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2 2M9 2h6"/></symbol>
+<symbol id="play" viewBox="0 0 24 24"><path d="M7 4l13 8-13 8z" fill="currentColor"/></symbol>
+<symbol id="pause" viewBox="0 0 24 24"><path d="M7 4v16M17 4v16" stroke-width="4"/></symbol>
+<symbol id="next" viewBox="0 0 24 24"><path d="M5 5l10 7-10 7zM19 5v14" fill="currentColor"/></symbol>
+<symbol id="prev" viewBox="0 0 24 24"><path d="M19 5L9 12l10 7zM5 5v14" fill="currentColor"/></symbol>
+<symbol id="shuf" viewBox="0 0 24 24"><path d="M3 7h4l10 10h4M3 17h4l3-3M14 10l3-3h4M18 4l3 3-3 3M18 14l3 3-3 3"/></symbol>
+<symbol id="rep" viewBox="0 0 24 24"><path d="M17 2l4 4-4 4M3 11V9a3 3 0 013-3h15M7 22l-4-4 4-4M21 13v2a3 3 0 01-3 3H3"/></symbol>
+<symbol id="spk" viewBox="0 0 24 24"><path d="M11 5L6 9H2v6h4l5 4zM16 8a5 5 0 010 8"/></symbol>
+<symbol id="chev" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></symbol>
+<symbol id="cam" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/></symbol>
+<symbol id="dl" viewBox="0 0 24 24"><path d="M12 3v12m-5-5l5 5 5-5M4 21h16"/></symbol>
+<symbol id="pin" viewBox="0 0 24 24"><path d="M12 17v5M8 3h8l-1 7 3 4H6l3-4z"/></symbol>
+<symbol id="notes" viewBox="0 0 24 24"><path d="M5 3h10l4 4v14H5zM15 3v4h4M8 12h8M8 16h6"/></symbol>
+<symbol id="mic" viewBox="0 0 24 24"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 11a7 7 0 0014 0M12 18v4"/></symbol>
+<symbol id="lock" viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="10" rx="3"/><path d="M8 11V7a4 4 0 018 0v4"/></symbol>
+<symbol id="rocket" viewBox="0 0 24 24"><path d="M5 19l3-3M12 3c5 0 9 4 9 9-3 3-6 4-9 4l-4-4c0-3 1-6 4-9zM9 15l-4 1 1-4"/></symbol>
+</defs></svg>
+
+<div id="app"></div>
+
+<script>
+const ic=(n,s=16,w=1.8)=>`<svg class="i" style="width:${s}px;height:${s}px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="${w}" stroke-linecap="round" stroke-linejoin="round"><use href="#${n}"/></svg>`;
+const TABS=[["home","Home"],["agents","Agents"],["media","Media"],["bell","Notifications"],["cal","Calendar"],["files","Files"],["clip","Clipboard"],["wx","Weather"]];
+const bars=(h=[8,16,11,18,12])=>`<div class="bars">${h.map(x=>`<i style="height:${x}px"></i>`).join("")}</div>`;
+const ring=(pct,size,color,inner="")=>`<div class="ring" style="width:${size}px;height:${size}px;background:conic-gradient(${color} ${pct*3.6}deg,rgba(255,255,255,.14) 0)"><div class="ring" style="width:${size-6}px;height:${size-6}px;background:#000;font-size:${size>40?12:9}px;font-weight:600">${inner}</div></div>`;
+
+function header(active,menu){
+  return `<div class="hdr"><div class="tabs">${TABS.map(([i,n])=>`<div class="tab ${n===active?"on":""}">${ic(i,16)}${n===active?n:""}</div>`).join("")}${TABS.some(t=>t[1]===active)?"":`<div class="tab on">${ic({Notes:"notes",System:"bat"}[active],16)}${active}</div>`}<div class="tab">${ic("more",16)}</div></div>
+  <div class="chips"><div class="chip">${ic("moon",15)}</div><div class="chip">${ic("bt",15)}</div><div class="chip t">${ic("bat",16)}82%</div><div class="chip">${ic("search",15)}<span class="kbd" style="margin:0">Ctrl K</span></div><div class="chip">${ic("gear",15)}</div></div></div>`;
+}
+const open=(shape,active,body,extra="")=>`<div class="stage ${shape} open"><div class="shell">${header(active)}${body}${extra}</div></div>`;
+
+/* ---- bodies ---- */
+const home=`<div class="grid">
+ <div class="card" style="grid-column:span 2;grid-row:span 2;display:flex;flex-direction:column;gap:12px">
+  <div class="row gap12"><div class="art" style="width:100px;height:100px"></div>
+   <div style="min-width:0;flex:1"><div class="cap">Now playing · Spotify</div><div class="t18" style="margin-top:6px">Midnight City</div><div class="sub">M83 · Hurry Up, We're Dreaming</div><div style="margin-top:12px">${bars()}</div></div></div>
+  <div><div class="prog"><i style="width:38%"></i></div><div class="row sub" style="margin-top:6px;font-size:11px"><span>1:21</span><span class="sp"></span><span>4:03</span></div></div>
+  <div class="row" style="justify-content:center;gap:22px;margin-top:auto;color:var(--subtle)">${ic("shuf",16)}${ic("prev",20)}<div class="btn p" style="width:44px;height:44px;border-radius:22px;padding:0;justify-content:center">${ic("pause",18,2)}</div>${ic("next",20)}${ic("rep",16)}</div>
+ </div>
+ <div class="card"><div class="cap">Seattle</div><div class="fig" style="font-size:40px;margin:8px 0 6px">58°</div><div class="sub">Partly cloudy<br>H 61° · L 49°</div></div>
+ <div class="card row gap12">${ring(62,64,"#FF9F0A","18:42")}<div><div class="t14">Focus</div><div class="sub">2 of 4</div></div></div>
+ <div class="card" style="grid-column:span 2;padding:12px 14px"><div class="row" style="margin-bottom:4px"><span class="cap">Today · Thu 12</span><span class="sp"></span><span class="btn p" style="height:24px;font-size:11px">Join</span></div>
+  <div class="ev"><span class="tm">10:00</span><b style="background:var(--accent)"></b><span class="t14" style="font-weight:500">Design review</span></div>
+  <div class="ev"><span class="tm">13:30</span><b style="background:var(--green)"></b><span class="t14" style="font-weight:500">Dentist</span></div>
+  <div class="ev"><span class="tm">16:00</span><b style="background:var(--violet)"></b><span class="t14" style="font-weight:500">Ship 0.9 release</span></div></div>
+</div>`;
+
+const media=`<div class="row gap12" style="height:272px;align-items:stretch">
+ <div class="card row gap12" style="flex:1.15;padding:16px">
+  <div class="art" style="width:196px;height:196px;border-radius:18px;align-self:center"></div>
+  <div style="flex:1;display:flex;flex-direction:column;min-width:0">
+   <div class="row gap6" style="margin-bottom:12px"><span class="chip" style="height:30px;padding:0 10px">Spotify ${ic("chev",12)}</span><span class="chip" style="height:30px;padding:0 10px">${ic("spk",14)}Speakers ${ic("chev",12)}</span></div>
+   <div class="t18">Midnight City</div><div class="sub" style="margin-top:2px">M83</div><div style="margin-top:6px">${bars([10,18,12,20,14])}</div>
+   <div style="margin-top:auto"><div class="prog"><i style="width:38%"></i></div><div class="row sub" style="margin-top:6px;font-size:11px"><span>1:21</span><span class="sp"></span><span>4:03</span></div>
+   <div class="row" style="justify-content:space-between;margin-top:10px;color:var(--subtle)">${ic("shuf",16)}${ic("prev",20)}<div class="btn p" style="width:44px;height:44px;border-radius:22px;padding:0;justify-content:center">${ic("pause",18,2)}</div>${ic("next",20)}${ic("rep",16)}</div></div>
+  </div></div>
+ <div class="card" style="flex:.85;display:flex;flex-direction:column;justify-content:center;gap:14px;padding:18px">
+  <div class="cap">Lyrics · lrclib.net</div>
+  <div class="sub" style="font-size:14px;opacity:.5">Waiting in a car</div>
+  <div class="t18" style="line-height:1.3">Waiting for a ride in the dark</div>
+  <div class="sub" style="font-size:14px;opacity:.5">The night city grows</div>
+  <div class="sub" style="font-size:14px;opacity:.3">Look at the horizon glow</div></div></div>`;
+
+const agents=`<div class="row" style="margin-bottom:10px"><div class="seg"><span class="on">Sessions</span><span>Ask</span></div><span class="sp"></span><span class="sub">$3.42 today · estimate at API list prices</span></div>
+<div class="row gap12" style="align-items:stretch;height:226px">
+ <div style="flex:1.6;min-width:0">
+  <div class="srow" style="background:rgba(255,179,64,.13);height:60px"><div class="ico" style="background:rgba(255,179,64,.2);color:var(--amber)">${ic("agents",16)}</div><div style="flex:1;min-width:0"><div class="t14">Claude Code wants to run</div><div class="sub" style="font-family:Consolas,monospace;font-size:12px">dotnet test Atoll.sln</div></div><span class="btn">Deny</span><span class="btn p">Allow</span></div>
+  <div class="srow"><div class="ico" style="background:rgba(100,210,255,.15);color:var(--cyan)">${ic("agents",16)}</div><div style="flex:1"><div class="t14">atoll <span class="sub" style="font-weight:400">· Claude Code</span></div><div class="sub">Running tests</div></div><span class="live"></span></div>
+  <div class="srow"><div class="ico" style="background:rgba(191,90,242,.15);color:var(--violet)">${ic("agents",16)}</div><div style="flex:1"><div class="t14">api-gateway <span class="sub" style="font-weight:400">· Codex</span></div><div class="sub">Done · 4 min ago</div></div>${ic("play",14)}</div>
+  <div class="srow"><div class="ico" style="background:var(--surface);color:var(--subtle)">${ic("agents",16)}</div><div style="flex:1"><div class="t14">notes <span class="sub" style="font-weight:400">· Hermes</span></div><div class="sub">Idle</div></div></div></div>
+ <div class="card" style="flex:1;display:flex;flex-direction:column;justify-content:center;gap:16px">
+  <div class="row gap12">${ring(42,56,"#64D2FF","42%")}<div><div class="t14">5-hour limit</div><div class="sub">Resets in 2h 10m</div></div></div>
+  <div class="row gap12">${ring(18,56,"#BF5AF2","18%")}<div><div class="t14">Weekly limit</div><div class="sub">Resets Mon 09:00</div></div></div></div></div>`;
+
+const wxChart=()=>{
+  const pts=[52,50,49,50,54,57,60,61,60,58,55,53];const W=400,H=92;
+  const xy=pts.map((v,i)=>[i*(W/11),H-((v-46)/18)*H*.85-6]);
+  const d=xy.map((p,i)=>(i?"L":"M")+p[0].toFixed(1)+" "+p[1].toFixed(1)).join(" ");
+  return `<svg width="${W}" height="${H+20}" viewBox="0 0 ${W} ${H+20}" style="display:block;overflow:visible"><defs><linearGradient id="g" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="#0A84FF" stop-opacity=".35"/><stop offset="1" stop-color="#0A84FF" stop-opacity="0"/></linearGradient></defs>
+  <path d="${d} L${W} ${H} L0 ${H} Z" fill="url(#g)"/><path d="${d}" fill="none" stroke="#0A84FF" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="${xy[7][0]}" cy="${xy[7][1]}" r="5" fill="#fff" stroke="#0A84FF" stroke-width="2.5"/>
+  ${["6a","9a","12p","3p","6p","9p"].map((t,i)=>`<text x="${i*(W/5.5)}" y="${H+16}" fill="rgba(255,255,255,.5)" font-size="11">${t}</text>`).join("")}</svg>`};
+const weather=`<div class="row gap12" style="height:272px;align-items:stretch">
+ <div class="card" style="flex:1.25;padding:16px;display:flex;flex-direction:column">
+  <div class="row"><div><div class="cap">Seattle</div><div class="fig" style="font-size:56px;margin-top:6px">58°</div></div><span class="sp"></span><div style="text-align:right"><div class="t14">Partly cloudy</div><div class="sub">H 61° · L 49°</div></div></div>
+  <div class="seg" style="margin:12px 0 10px;align-self:flex-start"><span class="on">Temperature</span><span>Rain</span><span>Wind</span></div>
+  <div style="margin-top:auto;position:relative">${wxChart()}<div style="position:absolute;left:236px;top:-14px;background:var(--raised);border-radius:10px;padding:3px 8px;font-size:11px;font-weight:600">61° · 1 PM</div></div></div>
+ <div class="card" style="flex:.75;padding:10px 14px">
+  ${[["Today","wx","61°","49°"],["Fri","wx","57°","47°"],["Sat","wx","55°","46°"],["Sun","wx","59°","48°"],["Mon","wx","63°","50°"]].map(r=>`<div class="row" style="height:48px;border-bottom:1px solid rgba(255,255,255,.06)"><span class="t14" style="width:58px;font-weight:500">${r[0]}</span><span style="color:var(--cyan)">${ic(r[1],18)}</span><span class="sp"></span><span class="sub" style="width:36px">${r[3]}</span><span class="t14" style="width:36px;text-align:right">${r[2]}</span></div>`).join("")}</div></div>`;
+
+const moreMenu=`<div class="menu"><div class="mi h">${ic("timer",16)}Timer<span class="kbd">pin</span></div><div class="mi">${ic("notes",16)}Notes<span class="kbd">pin</span></div><div class="mi">${ic("rocket",16)}Launcher<span class="kbd">pin</span></div><div class="mi">${ic("dl",16)}System<span class="kbd">pin</span></div></div>`;
+const palette=`<div class="pal"><div class="q">${ic("search",16)}Search tabs, apps, actions, timers<span class="kbd" style="margin-left:auto">Esc</span></div>
+ <div style="margin-top:8px"><div class="mi" style="background:var(--hover)">${ic("media",16)}Media<span class="kbd">Tab</span></div><div class="mi">${ic("timer",16)}Start focus timer · 25 min<span class="kbd">Action</span></div><div class="mi">${ic("moon",16)}Do Not Disturb · 1 hour<span class="kbd">Action</span></div><div class="mi">${ic("rocket",16)}Visual Studio Code<span class="kbd">App</span></div></div></div>`;
+
+/* ---- compact scene ---- */
+function compactRow(shape){
+  const cp=(c,x="",cls="")=>`<div class="cp ${cls}">${c}</div>`;
+  const nm=shape==="notch"?"":"";
+  const idle=`<div class="stagebox"><div class="stage ${shape} compact"><div class="mini" style="display:flex;gap:6px;align-items:flex-start">${cp("9:41","","main")}</div></div></div>`;
+  const music=`<div class="stagebox"><div class="stage ${shape} compact"><div class="mini" style="display:flex;gap:6px;align-items:flex-start">${cp(`<div class="art" style="width:22px;height:22px;border-radius:7px"></div>Midnight City${bars([6,12,8,13,9]).replace('class="bars"','class="bars" style="height:14px"')}`,"","main")}</div></div></div>`;
+  const full=`<div class="stagebox"><div class="stage ${shape} compact"><div class="mini" style="display:flex;gap:6px;align-items:flex-start">
+    ${cp(ring(62,32,"#FF9F0A","18"),"","round")}${cp(`<div class="art" style="width:22px;height:22px;border-radius:7px"></div>Midnight City`,"","main sided")}${cp(`<span class="live"></span>Tests`,"","")}${cp(ring(42,32,"#64D2FF","42"),"","round")}</div></div></div>`;
+  return [idle,music,full];
+}
+
+const SCENES={
+ compact:`<div class="view compact"><div style="position:absolute;inset:0;display:flex">
+   ${["notch","pill"].map(sh=>`<div style="flex:1;position:relative"><div class="${sh}" style="position:absolute;inset:0">${compactRow(sh).map((h,i)=>`<div style="position:absolute;left:0;right:0;top:${28+i*130}px;height:96px">${h.replace('class="stagebox"','style="position:relative"')}</div>`).join("")}</div>
+   <div style="position:absolute;left:24px;top:8px;font-size:12px;color:#fff;font-weight:600;letter-spacing:.04em;text-transform:uppercase;opacity:.9">${sh==="notch"?"Notch":"Dynamic Island pill"}</div></div>`).join("")}</div>
+   <div class="label"><b>Compact states</b> · idle clock, now playing, and four side activities (timer ring, music, agent run, plan usage ring)</div></div>`,
+};
+function addView(id,shape,active,body,labelHtml,extra=""){
+  SCENES[id]=`<div class="view ${shape}">${open(shape,active,body,extra)}<div class="label">${labelHtml}</div></div>`;
+}
+addView("home-notch","notch","Home",home,"<b>Notch</b> · Home · flush to the screen edge, concave shoulders");
+addView("home-pill","pill","Home",home,"<b>Dynamic Island pill</b> · Home · same layout, floating with a 10 px gap");
+addView("media-pill","pill","Media",media,"<b>Pill</b> · Media · artwork-led, lyrics beside, source and output pickers kept");
+addView("agents-notch","notch","Agents",agents,"<b>Notch</b> · Agents · permission prompt on top, sessions, plan-limit rings");
+addView("weather-notch","notch","Weather",weather,"<b>Notch</b> · Weather · hourly chart with pointer readout, daily rows");
+addView("more-pill","pill","Calendar",`<div class="grid" style="opacity:.4"><div class="card" style="grid-column:span 4;grid-row:span 2"></div></div>`,"<b>Pill</b> · three-dot menu for tabs that are on but not bookmarked",moreMenu);
+addView("palette-notch","notch","Home",palette,"<b>Notch</b> · command palette over the panel body, header kept");
+
+/* ---- calendar ---- */
+const calDays=(()=>{const dots={3:["#0A84FF"],5:["#30D158","#BF5AF2"],9:["#0A84FF"],12:["#0A84FF","#30D158","#BF5AF2"],14:["#FFB340"],18:["#30D158"],21:["#0A84FF","#BF5AF2"],26:["#30D158"]};
+  let h=["M","T","W","T","F","S","S"].map(d=>`<div class="cap" style="text-align:center;height:22px">${d}</div>`).join("");
+  for(let i=0;i<2;i++)h+=`<div></div>`;
+  for(let d=1;d<=30;d++){const sel=d===12,today=d===12;
+    h+=`<div style="height:30px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;border-radius:12px;${sel?"background:#F2F2F7;color:#0B0B0D;font-weight:600":""}"><span style="font-size:13px">${d}</span><span style="display:flex;gap:2px;height:4px">${(dots[d]||[]).map(c=>`<i style="width:4px;height:4px;border-radius:2px;background:${sel?"#0B0B0D":c}"></i>`).join("")}</span></div>`;}
+  return h})();
+const calendar=`<div class="row gap12" style="height:272px;align-items:stretch">
+ <div class="card" style="flex:1.1;padding:14px 16px"><div class="row" style="margin-bottom:6px"><span class="t16">November 2026</span><span class="sp"></span><span class="chip" style="height:28px;min-width:28px;padding:0">${ic("chev",14)}</span></div>
+  <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:0">${calDays}</div></div>
+ <div class="card" style="flex:.9;padding:14px 16px;display:flex;flex-direction:column"><div class="row"><div><div class="cap">Thursday</div><div class="t18">Nov 12</div></div><span class="sp"></span><span class="sub">3 events</span></div>
+  <div style="margin-top:10px;display:flex;flex-direction:column;gap:6px">
+   <div class="srow" style="height:52px"><b style="width:3px;height:30px;border-radius:2px;background:var(--accent)"></b><div style="flex:1;min-width:0"><div class="t14">Design review</div><div class="sub">10:00 – 11:00 · Meet</div></div><span class="btn p" style="height:26px;font-size:11px">Join</span></div>
+   <div class="srow" style="height:52px"><b style="width:3px;height:30px;border-radius:2px;background:var(--green)"></b><div style="flex:1"><div class="t14">Dentist</div><div class="sub">13:30 – 14:15</div></div></div>
+   <div class="srow" style="height:52px"><b style="width:3px;height:30px;border-radius:2px;background:var(--violet)"></b><div style="flex:1"><div class="t14">Ship 0.9 release</div><div class="sub">16:00 – 17:00</div></div></div></div>
+  <div class="sub" style="margin-top:auto;font-size:11px">Read-only · private ICS links</div></div></div>`;
+
+/* ---- notes ---- */
+const note=(t,s,c)=>`<div class="srow" style="height:36px"><span style="width:18px;height:18px;border-radius:9px;border:1.6px solid ${c||"var(--faint)"};flex:none;${c?`background:${c}`:""}"></span><div style="flex:1;min-width:0"><div class="t14" style="font-weight:500;${c?"text-decoration:line-through;color:var(--subtle)":""}">${t}</div>${s?`<div class="sub" style="font-size:11px">${s}</div>`:""}</div></div>`;
+const notes=`<div class="row" style="margin-bottom:10px"><div class="seg"><span>Notes</span><span>Reminders</span><span class="on">To-do</span></div><span class="sp"></span><span class="sub">2 of 4 done</span></div>
+<div class="row gap12" style="height:226px;align-items:stretch">
+ <div style="flex:1.4;min-width:0"><div class="pal" style="padding:0;background:var(--surface)"><div class="q" style="height:42px;background:var(--surface)">${ic("notes",16)}Add a to-do<span class="kbd" style="margin-left:auto">Enter</span></div></div>
+  <div style="margin-top:8px;display:flex;flex-direction:column;gap:5px">${note("Update DESIGN.md with the radius ladder","Due today")}${note("Review notch shoulder curve","")}${note("Export logo set","","#30D158")}${note("Book dentist","","#30D158")}</div></div>
+ <div class="card" style="flex:1;padding:14px 16px;display:flex;flex-direction:column;gap:8px"><div class="cap">Next reminder</div><div class="t18">Stand up and stretch</div><div class="sub">In 12 minutes · 3:45 PM</div>
+  <div style="margin-top:auto;display:flex;gap:6px"><span class="btn">Snooze 10 min</span><span class="btn p">Done</span></div></div></div>`;
+
+/* ---- system ---- */
+const meter=(label,val,color,sub)=>`<div class="card" style="display:flex;flex-direction:column;justify-content:space-between"><div class="cap">${label}</div><div class="fig" style="font-size:32px">${val}</div><div><div class="prog"><i style="width:${val};background:${color}"></i></div><div class="sub" style="font-size:11px;margin-top:6px">${sub}</div></div></div>`;
+const qa=(i,t,on)=>`<div class="card row gap8" style="padding:0 14px;height:50px;${on?"background:#F2F2F7;color:#0B0B0D":""}">${ic(i,18)}<span class="t14" style="font-weight:500">${t}</span></div>`;
+const system=`<div class="grid" style="grid-auto-rows:112px">
+ ${meter("CPU","23%","#0A84FF","Ryzen 7 · 54 °C")}${meter("Memory","61%","#BF5AF2","19.4 of 32 GB")}
+ <div class="card" style="display:flex;flex-direction:column;justify-content:space-between"><div class="cap">Network</div><div><div class="t16">↓ 12.4 MB/s</div><div class="sub" style="margin-top:2px">↑ 0.8 MB/s</div></div><div class="sub" style="font-size:11px">Wi-Fi · Home-5G</div></div>
+ <div class="card" style="display:flex;flex-direction:column;justify-content:space-between"><div class="cap">Battery</div><div class="fig" style="font-size:32px">82%</div><div class="sub" style="font-size:11px">On battery · 5 h 40 m</div></div>
+ <div class="card" style="grid-column:span 2;display:flex;flex-direction:column;justify-content:center;gap:12px"><div class="row gap8"><span class="cap">Volume</span><span class="sp"></span><span class="sub">Speakers · 64%</span></div><div class="row gap12">${ic("spk",18)}<div class="prog" style="flex:1;height:6px"><i style="width:64%;background:#fff"></i></div></div></div>
+ <div style="grid-column:span 2;display:grid;grid-template-columns:1fr 1fr;gap:10px">${qa("cam","Screenshot")}${qa("mic","Mic mute",true)}${qa("lock","Lock")}${qa("dl","Downloads")}</div></div>`;
+
+addView("calendar-pill","pill","Calendar",calendar,"<b>Pill</b> · Calendar · month grid with colored dots, agenda for the selected day, Join kept");
+addView("notes-notch","notch","Notes",notes,"<b>Notch</b> · Notes (opened from the three-dot menu) · Notes, Reminders and To-do in one tab");
+addView("system-pill","pill","System",system,"<b>Pill</b> · System · readings, volume, battery and quick actions");
+/* ---- Home variants ---- */
+const miniArt=s=>`<div class="art" style="width:${s}px;height:${s}px;border-radius:${Math.round(s/5)}px"></div>`;
+const ctl=(sz=40)=>`<div class="row" style="gap:16px;color:var(--subtle)">${ic("prev",18)}<div class="btn p" style="width:${sz}px;height:${sz}px;border-radius:${sz/2}px;padding:0;justify-content:center">${ic("pause",16,2)}</div>${ic("next",18)}</div>`;
+const nextEv=`<div class="ev" style="height:26px"><span class="tm">10:00</span><b style="background:var(--accent)"></b><span class="t14" style="font-weight:500">Design review</span></div>`;
+
+/* A: Hero media */
+const homeA=`<div style="display:flex;flex-direction:column;gap:10px;height:272px">
+ <div style="display:flex;gap:10px;flex:1;min-height:0">
+  <div class="card row gap12" style="flex:1.7;padding:16px">${miniArt(168)}
+   <div style="flex:1;min-width:0;display:flex;flex-direction:column;height:100%"><div class="cap">Now playing · Spotify</div><div class="t18" style="margin-top:6px">Midnight City</div><div class="sub">M83</div><div style="margin-top:10px">${bars()}</div>
+    <div style="margin-top:auto"><div class="prog"><i style="width:38%"></i></div><div class="row" style="margin-top:12px;justify-content:space-between;color:var(--subtle)">${ic("shuf",15)}${ctl(38)}${ic("rep",15)}</div></div></div></div>
+  <div style="flex:1;display:flex;flex-direction:column;gap:10px">
+   <div class="card row" style="flex:1;padding:12px 16px"><div><div class="cap">Seattle</div><div class="fig" style="font-size:32px;margin-top:4px">58°</div></div><span class="sp"></span><div class="sub" style="text-align:right">Partly cloudy<br>H 61° · L 49°</div></div>
+   <div class="card row gap12" style="flex:1;padding:10px 16px">${ring(62,52,"#FF9F0A","18:42")}<div><div class="t14">Focus</div><div class="sub">2 of 4</div></div></div></div></div>
+ <div class="card row gap12" style="height:54px;padding:0 16px"><span class="cap">Next</span>${nextEv}<span class="sp"></span><span class="sub">in 22 min</span><span class="btn p" style="height:26px;font-size:11px">Join</span></div></div>`;
+
+/* B: Dense bento */
+const homeB=`<div style="display:grid;grid-template-columns:repeat(4,1fr);grid-template-rows:repeat(3,84px);gap:10px">
+ <div class="card row gap12" style="grid-column:span 2;grid-row:span 2;padding:14px">${miniArt(120)}<div style="flex:1;min-width:0;display:flex;flex-direction:column;height:100%"><div class="cap">Spotify</div><div class="t16" style="margin-top:4px">Midnight City</div><div class="sub">M83</div><div class="prog" style="margin-top:auto"><i style="width:38%"></i></div><div style="margin-top:10px;align-self:center">${ctl(34)}</div></div></div>
+ <div class="card" style="padding:12px 14px"><div class="cap">Seattle</div><div class="row" style="margin-top:6px"><span class="fig" style="font-size:28px">58°</span><span class="sp"></span><span style="color:var(--cyan)">${ic("wx",22)}</span></div></div>
+ <div class="card row gap8" style="padding:12px 14px">${ring(62,44,"#FF9F0A","18")}<div><div class="t14">Focus</div><div class="sub" style="font-size:11px">2 of 4</div></div></div>
+ <div class="card" style="grid-column:span 2;padding:10px 14px"><div class="row"><span class="cap">Notifications</span><span class="sp"></span><span class="chip" style="height:20px;min-width:0;padding:0 8px;font-size:11px;background:var(--accent);color:#fff">3</span></div>
+  <div class="row gap8" style="margin-top:6px"><div class="ico" style="width:22px;height:22px;border-radius:7px;background:rgba(88,101,242,.3)"></div><span class="sub" style="color:#fff;font-size:12px">Sam · Are we still on for 4?</span></div></div>
+ <div class="card" style="grid-column:span 2;padding:10px 14px"><div class="row"><span class="cap">Today</span><span class="sp"></span><span class="btn p" style="height:22px;font-size:11px;padding:0 10px">Join</span></div>${nextEv}</div>
+ <div class="card row gap8" style="padding:0 14px"><span style="color:var(--subtle)">${ic("files",18)}</span><div><div class="t14">5 files</div><div class="sub" style="font-size:11px">Shelf</div></div></div>
+ <div class="card row gap8" style="padding:0 14px"><span style="color:var(--subtle)">${ic("bat",18)}</span><div><div class="t14">23% CPU</div><div class="sub" style="font-size:11px">61% memory</div></div></div></div>`;
+
+/* C: Agenda timeline */
+const hr=(t,top)=>`<div style="position:absolute;left:0;right:0;top:${top}px;display:flex;align-items:center;gap:8px"><span class="sub" style="font-size:11px;width:34px">${t}</span><i style="flex:1;height:1px;background:rgba(255,255,255,.07)"></i></div>`;
+const blk=(top,h,c,t,s)=>`<div style="position:absolute;left:46px;right:0;top:${top}px;height:${h}px;border-radius:12px;background:${c}22;border-left:3px solid ${c};padding:5px 10px;overflow:hidden"><div class="t14" style="font-weight:500;line-height:1.1">${t}</div><div class="sub" style="font-size:11px">${s}</div></div>`;
+const homeC=`<div class="row gap12" style="height:272px;align-items:stretch">
+ <div class="card" style="flex:1.45;padding:14px 16px"><div class="row" style="margin-bottom:8px"><span class="t16">Today</span><span class="sub" style="margin-left:8px">Thu 12</span><span class="sp"></span><span class="sub">3 events</span></div>
+  <div style="position:relative;height:196px">${hr("9",0)}${hr("11",48)}${hr("1",96)}${hr("3",144)}${hr("5",192)}
+   ${blk(14,40,"#0A84FF","Design review","10:00 · Join in 22 min")}${blk(94,36,"#30D158","Dentist","13:30")}${blk(150,40,"#BF5AF2","Ship 0.9 release","16:00")}
+   <div style="position:absolute;left:34px;right:0;top:6px;height:2px;background:var(--red);border-radius:1px"><i style="position:absolute;left:-4px;top:-3px;width:8px;height:8px;border-radius:4px;background:var(--red)"></i></div></div></div>
+ <div style="flex:1;display:flex;flex-direction:column;gap:10px">
+  <div class="card row gap12" style="flex:1;padding:12px 14px">${miniArt(56)}<div style="flex:1;min-width:0"><div class="t14">Midnight City</div><div class="sub">M83</div></div><div class="btn p" style="width:36px;height:36px;border-radius:18px;padding:0;justify-content:center">${ic("pause",14,2)}</div></div>
+  <div class="card row" style="flex:1;padding:12px 16px"><div><div class="cap">Seattle</div><div class="fig" style="font-size:32px;margin-top:4px">58°</div></div><span class="sp"></span><div class="sub" style="text-align:right">Partly cloudy<br>H 61° · L 49°</div></div>
+  <div class="card row gap12" style="flex:1;padding:12px 16px">${ring(62,48,"#FF9F0A","18:42")}<div><div class="t14">Focus</div><div class="sub">2 of 4</div></div></div></div></div>`;
+
+/* D: Calm */
+const tile=(i,t,s)=>`<div class="card row gap12" style="flex:1;padding:0 14px;height:64px"><div class="ico" style="background:var(--raised)">${ic(i,16)}</div><div><div class="t14">${t}</div><div class="sub" style="font-size:11px">${s}</div></div></div>`;
+const homeD=`<div style="display:flex;flex-direction:column;gap:10px;height:272px">
+ <div style="display:flex;gap:10px;flex:1;min-height:0">
+  <div class="card" style="flex:1.4;padding:20px 22px;display:flex;flex-direction:column"><div class="cap">Thursday</div><div class="fig" style="font-size:44px;margin-top:6px">Nov 12</div>
+   <div style="margin-top:auto"><div class="row gap8"><span style="color:var(--cyan)">${ic("wx",18)}</span><span class="t14" style="font-weight:500">58° Partly cloudy</span></div><div class="row gap8" style="margin-top:8px"><span style="width:3px;height:16px;border-radius:2px;background:var(--accent)"></span><span class="t14" style="font-weight:500">Design review</span><span class="sub">in 22 min</span></div></div></div>
+  <div class="card" style="flex:1;padding:16px;display:flex;flex-direction:column"><div class="row gap12">${miniArt(64)}<div style="min-width:0"><div class="t14">Midnight City</div><div class="sub">M83</div></div></div><div class="prog" style="margin-top:auto"><i style="width:38%"></i></div><div style="margin-top:12px;align-self:center">${ctl(36)}</div></div></div>
+ <div style="display:flex;gap:10px">${tile("timer","Focus 18:42","2 of 4")}${tile("bell","3 new","Notifications")}${tile("files","5 files","Shelf")}${tile("clip","Clipboard","Recent copies")}</div></div>`;
+
+addView("home-a-pill","pill","Home",homeA,"<b>Home A · Hero media</b> · music leads, weather and timer beside it, next event on one line · Pill");
+addView("home-b-notch","notch","Home",homeB,"<b>Home B · Dense bento</b> · six live cards at once, three rows · Notch");
+addView("home-c-pill","pill","Home",homeC,"<b>Home C · Agenda first</b> · today as a timeline with a now-line, glanceable cards on the right · Pill");
+addView("home-d-notch","notch","Home",homeD,"<b>Home D · Calm</b> · date and one next thing, music, and four quiet shortcut tiles · Notch");
+
+const v=(location.hash||"#compact").slice(1);
+document.getElementById("app").innerHTML=SCENES[v];
+document.querySelector(".view").classList.add("on");
+</script>
+</body>
+</html>

@@ -1,5 +1,7 @@
 # Atoll island design
 
+Redesign in progress on `design/system-refresh`: see `docs/design/foundations.md` (shape setting, radius ladder, surfaces, type, motion) and `docs/design/layout.md` (grid, header, pages). Where they disagree with the rules below, they describe the target; update this file when each piece ships.
+
 Direction: Apple's Dynamic Island and the weather reference supplied by the owner on November 6, 2026.
 Energy 1 / Rhythm 2 / Motion 2: quiet controls, content-led layouts, responsive transitions.
 
