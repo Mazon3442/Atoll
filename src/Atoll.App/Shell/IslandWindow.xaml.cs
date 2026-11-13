@@ -41,6 +41,7 @@ public partial class IslandWindow : Window
     private const int PeekCollapseAfterMs = 450;
     private const int MinClickThroughDwellMs = 350; // short passes (moving to a browser tab) must not open it
     private const double PassThroughOpacity = 0.25;
+    private const double ShellRadius = 34; // Radius.Shell in Theme.xaml
     private const double SideChipWidth = 118;
     private const double SideChipGap = 4;
 
@@ -1298,7 +1299,7 @@ public partial class IslandWindow : Window
             PanelRoot.Height = expandedHeight - PanelRoot.Margin.Top - PanelRoot.Margin.Bottom - PillChrome.Top - PillChrome.Bottom;
             PillContent.Visibility = Visibility.Collapsed;
             PanelRoot.Visibility = Visibility.Visible;
-            Animate(expandedWidth, expandedHeight, Roundness * 32);
+            Animate(expandedWidth, expandedHeight, Roundness * ShellRadius);
             RenderBubble(Bubble, BubbleContent, null, h0);
             RenderBubble(Bubble2, Bubble2Content, null, h0);
             RenderBubble(Bubble3, Bubble3Content, null, h0);

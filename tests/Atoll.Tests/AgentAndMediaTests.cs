@@ -280,7 +280,10 @@ internal static class AgentMediaUi
         });
         var home = new Atoll.Modules.Home.HomeViewModel(media, null, new Atoll.Modules.Clock.ClockPanelViewModel(new Atoll.Modules.Clock.ClockViewModel(), timer),
             calendar, game, new HomeSettings());
-        Render(home, "HomeViewModel.Panel", "home-panel", 640, 300);
+        Render(home, "HomeViewModel.Panel", "home-panel", 732, 300);
+        var heroHome = new Atoll.Modules.Home.HomeViewModel(media, null, new Atoll.Modules.Clock.ClockPanelViewModel(new Atoll.Modules.Clock.ClockViewModel(), timer),
+            calendar, game, new HomeSettings { Calendar = false });
+        Render(heroHome, "HomeViewModel.Panel", "home-panel-hero", 732, 272);
 
         var notesSettings = new NotesSettings();
         notesSettings.Notes.Add(new NoteItem { Text = "Ship the calendar update", Updated = DateTimeOffset.Now.AddMinutes(-20) });
