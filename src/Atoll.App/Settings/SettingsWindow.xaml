@@ -368,6 +368,33 @@
                             <CheckBox Style="{StaticResource Toggle}" IsChecked="{Binding StartWithWindows}" AutomationProperties.Name="Start with Windows" />
                         </s:SettingCard>
 
+                        <TextBlock Style="{StaticResource SectionHeader}" Text="Island shape" />
+                        <TextBlock Style="{StaticResource SectionHint}" Text="Choose a pill below the top edge or a notch attached to it." />
+                        <StackPanel Orientation="Horizontal" Margin="0,0,0,8" AutomationProperties.Name="Island shape">
+                            <RadioButton Style="{StaticResource ShapeOption}" GroupName="Shape" IsChecked="{Binding IsPill}"
+                                         AutomationProperties.Name="Pill shape: floats below the top of the screen">
+                                <StackPanel>
+                                    <Grid Height="40">
+                                        <Rectangle Height="2" VerticalAlignment="Top" Fill="{DynamicResource TextFillColorTertiaryBrush}" />
+                                        <Border Width="84" Height="20" CornerRadius="{Binding ActualHeight, RelativeSource={RelativeSource Self}, Converter={x:Static shell:PillRadius.Instance}}" Background="{DynamicResource Island.Menu}" Margin="0,10,0,0" VerticalAlignment="Top" />
+                                    </Grid>
+                                    <TextBlock Text="Pill" FontWeight="SemiBold" Margin="0,8,0,0" />
+                                    <TextBlock Text="Floats just below the top of the screen." Style="{StaticResource Hint}" />
+                                </StackPanel>
+                            </RadioButton>
+                            <RadioButton Style="{StaticResource ShapeOption}" GroupName="Shape" IsChecked="{Binding IsNotch}"
+                                         AutomationProperties.Name="Notch shape: attached to the top of the screen">
+                                <StackPanel>
+                                    <Grid Height="40">
+                                        <Rectangle Height="2" VerticalAlignment="Top" Fill="{DynamicResource TextFillColorTertiaryBrush}" />
+                                        <Border Width="84" Height="22" CornerRadius="0,0,11,11" Background="{DynamicResource Island.Menu}" VerticalAlignment="Top" />
+                                    </Grid>
+                                    <TextBlock Text="Notch" FontWeight="SemiBold" Margin="0,8,0,0" />
+                                    <TextBlock Text="Hangs from the top edge, like a laptop notch." Style="{StaticResource Hint}" />
+                                </StackPanel>
+                            </RadioButton>
+                        </StackPanel>
+
                         <TextBlock Style="{StaticResource SectionHeader}" Text="When to show ATOLL" />
                         <TextBlock Style="{StaticResource SectionHint}" Text="Decide when the island steps aside for other apps." />
                         <s:SettingCard Glyph="&#xE740;" Header="Over fullscreen apps"
@@ -560,32 +587,8 @@
                         <TextBlock Text="{Binding ThemeMessage}" Style="{StaticResource Hint}" Margin="4,2,0,0"
                                    Visibility="{Binding ThemeMessage, Converter={StaticResource EmptyToCollapsed}}" />
 
-                        <TextBlock Style="{StaticResource SectionHeader}" Text="Shape" />
-                        <TextBlock Style="{StaticResource SectionHint}" Text="Pill or notch, and how round it is." />
-                        <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
-                            <RadioButton Style="{StaticResource ShapeOption}" GroupName="Shape" IsChecked="{Binding IsPill}"
-                                         AutomationProperties.Name="Pill shape: floats below the top of the screen">
-                                <StackPanel>
-                                    <Grid Height="40">
-                                        <Rectangle Height="2" VerticalAlignment="Top" Fill="{DynamicResource TextFillColorTertiaryBrush}" />
-                                        <Border Width="84" Height="20" CornerRadius="{Binding ActualHeight, RelativeSource={RelativeSource Self}, Converter={x:Static shell:PillRadius.Instance}}" Background="{DynamicResource Island.Menu}" Margin="0,10,0,0" VerticalAlignment="Top" />
-                                    </Grid>
-                                    <TextBlock Text="Pill" FontWeight="SemiBold" Margin="0,8,0,0" />
-                                    <TextBlock Text="Floats just below the top of the screen." Style="{StaticResource Hint}" />
-                                </StackPanel>
-                            </RadioButton>
-                            <RadioButton Style="{StaticResource ShapeOption}" GroupName="Shape" IsChecked="{Binding IsNotch}"
-                                         AutomationProperties.Name="Notch shape: attached to the top of the screen">
-                                <StackPanel>
-                                    <Grid Height="40">
-                                        <Rectangle Height="2" VerticalAlignment="Top" Fill="{DynamicResource TextFillColorTertiaryBrush}" />
-                                        <Border Width="84" Height="22" CornerRadius="0,0,11,11" Background="{DynamicResource Island.Menu}" VerticalAlignment="Top" />
-                                    </Grid>
-                                    <TextBlock Text="Notch" FontWeight="SemiBold" Margin="0,8,0,0" />
-                                    <TextBlock Text="Hangs from the top edge, like a laptop notch." Style="{StaticResource Hint}" />
-                                </StackPanel>
-                            </RadioButton>
-                        </StackPanel>
+                        <TextBlock Style="{StaticResource SectionHeader}" Text="Shape details" />
+                        <TextBlock Style="{StaticResource SectionHint}" Text="Adjust the spacing and roundness. Choose the island shape in General." />
                         <s:SettingCard Glyph="&#xE74A;" Header="Gap from the top of the screen" Description="Only for the pill. The notch always touches the edge."
                                        Visibility="{Binding IsPill, Converter={StaticResource BoolToVisibility}}">
                             <StackPanel Orientation="Horizontal">

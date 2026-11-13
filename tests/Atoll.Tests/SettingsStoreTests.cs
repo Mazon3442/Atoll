@@ -14,6 +14,7 @@ public sealed class SettingsStoreTests : IDisposable
         Assert.Equal(FullscreenMode.PopUp, s.FullscreenMode);
         Assert.True(s.ClickThrough);
         Assert.Equal(MonitorMode.Primary, s.MonitorMode);
+        Assert.Equal(IslandShape.Pill, s.Theme.Shape);
     }
 
     [Fact]
@@ -58,6 +59,30 @@ public sealed class SettingsStoreTests : IDisposable
 
         Assert.Equal(MonitorMode.Primary, s.MonitorMode);
         Assert.Equal("{ not json", File.ReadAllText(FilePath + ".bad"));
+    }
+
+    [Theory]
+    [InlineData(IslandShape.Pill)]
+    [InlineData(IslandShape.Notch)]
+    public void Island_shape_round_trips(IslandShape shape)
+    {
+        var store = new SettingsStore(FilePath);
+        var settings = new AppSettings();
+        settings.Theme.Shape = shape;
+
+        store.Save(settings);
+
+        Assert.Equal(shape, store.Load().Theme.Shape);
+        Assert.Contains($"\"{shape}\"", File.ReadAllText(FilePath));
+    }
+
+    [Fact]
+    public void Settings_without_a_shape_use_pill()
+    {
+        Directory.CreateDirectory(_dir);
+        File.WriteAllText(FilePath, "{\"Theme\":{}}");
+
+        Assert.Equal(IslandShape.Pill, new SettingsStore(FilePath).Load().Theme.Shape);
     }
 
     public void Dispose()
