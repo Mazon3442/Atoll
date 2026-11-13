@@ -28,6 +28,8 @@ public sealed partial class SystemPanelViewModel(Action<double> setVolume, Actio
     [ObservableProperty] private string _battery = "";
     [ObservableProperty] private bool _batterySupported = BatteryPresence.Present;
     [ObservableProperty] private bool _showBattery = true;
+    [ObservableProperty] private double _batteryPercent;
+    [ObservableProperty] private bool _batteryLow;
     [ObservableProperty] private string _network = "";
     [ObservableProperty] private string _bluetooth = "None connected";
 
@@ -216,6 +218,8 @@ public sealed class IndicatorsModule : IIslandModule
         var plugged = PowerManager.PowerSupplyStatus != PowerSupplyStatus.NotPresent;
         var glyph = char.ConvertFromUtf32((plugged ? 0xEBAB : 0xEBA0) + Math.Clamp(pct / 10, 0, 10));
         _panel.Battery = $"{pct}% {(plugged ? "· plugged in" : "· on battery")}";
+        _panel.BatteryPercent = pct;
+        _panel.BatteryLow = !plugged && pct <= 20;
         var show = _context?.Settings.Current.ShowBattery ?? true;
         _panel.ShowBattery = show;
 

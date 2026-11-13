@@ -177,6 +177,17 @@ internal static class AgentMediaUi
         Render(ask, "ClaudeAlertViewModel.Peek", "permission-peek", 620);
         var shell = new ClaudeSessionViewModel("shell:1") { Agent = "shell", Project = "atoll", Hwnd = 1 };
         Render(new ClaudeAlertViewModel(shell, "Failed · exit 1", "dotnet test · 1m 5s"), "ClaudeAlertViewModel.Peek", "command-peek", 520);
+        var alarmTime = new Microsoft.Extensions.Time.Testing.FakeTimeProvider();
+        alarmTime.SetLocalTimeZone(TimeZoneInfo.Utc);
+        alarmTime.SetUtcNow(new DateTimeOffset(2026, 11, 12, 6, 0, 0, TimeSpan.Zero));
+        var ringing = new Atoll.Modules.Clock.AlarmViewModel(alarmTime);
+        ringing.Use([new Atoll.Settings.AlarmEntry { Hour = 6, Minute = 30, Days = 0b0111110, Label = "Wake up" }]);
+        alarmTime.Advance(TimeSpan.FromMinutes(31));
+        ringing.Tick();
+        Render(ringing, "AlarmViewModel.Peek", "alarm-ringing-peek", 520);
+        Render(ringing, "AlarmViewModel.Compact", "alarm-ringing-compact", 200, 20);
+        ringing.SnoozeCommand.Execute(null);
+        Render(ringing, "AlarmViewModel.Peek", "alarm-snoozed-peek", 520);
 
         var claude = new ClaudeViewModel(new ClaudeSessionTracker(TimeProvider.System));
         var now = DateTimeOffset.Now;

@@ -1,0 +1,217 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>ATOLL status chip and alarm</title>
+<style>
+:root{
+  --fgc:255,255,255; --fg:#fff; --selbg:#F2F2F7; --selfg:#0B0B0D;
+  --subtle:rgba(var(--fgc),.6); --faint:rgba(var(--fgc),.38);
+  --surface:rgba(var(--fgc),.08); --raised:rgba(var(--fgc),.16); --rim:rgba(var(--fgc),.1);
+  --accent:#0A84FF; --green:#30D158; --amber:#FFB340; --red:#FF453A;
+  --font:"Segoe UI Variable Text","Segoe UI",system-ui,sans-serif;
+  --display:"Segoe UI Variable Display","Segoe UI",system-ui,sans-serif;
+}
+*{box-sizing:border-box;margin:0}
+html,body{width:1200px;font-family:var(--font);color:var(--fg);font-size:13px;background:#0c1020}
+.view{width:1200px;height:600px;position:relative;overflow:hidden;
+  background:radial-gradient(900px 420px at 18% 110%,#1d6f8f 0,transparent 60%),radial-gradient(800px 420px at 90% 120%,#6a3fb0 0,transparent 60%),linear-gradient(180deg,#12182b,#0c1020)}
+.label{position:absolute;left:24px;bottom:16px;font-size:12px;color:rgba(255,255,255,.75)}
+.label b{color:#fff}
+.shell{background:#000;border-radius:34px;box-shadow:0 18px 40px rgba(0,0,0,.45),0 0 0 1px var(--rim);padding:12px 14px 14px;position:absolute}
+.hdr{display:flex;align-items:center;justify-content:space-between;height:40px;margin-bottom:10px;gap:10px}
+.tabs{display:flex;gap:2px;padding:3px;background:var(--surface);border-radius:20px}
+.tab{height:34px;min-width:34px;padding:0 9px;border-radius:17px;display:flex;align-items:center;justify-content:center;gap:7px;color:var(--subtle)}
+.tab.on{background:var(--selbg);color:var(--selfg);padding:0 13px 0 10px;font-weight:600}
+.chips{display:flex;gap:6px;align-items:center}
+.chip{height:34px;min-width:34px;padding:0 11px;border-radius:17px;background:var(--surface);display:flex;align-items:center;justify-content:center;gap:7px;color:var(--fg);font-size:12px;font-weight:500;white-space:nowrap}
+.chip.ic{padding:0;color:var(--subtle)}
+.chip.warn{background:var(--amber);color:#1a1200}
+.chip.crit{background:var(--red);color:#fff}
+.chip.on{background:var(--selbg);color:var(--selfg)}
+.card{background:var(--surface);border-radius:22px;padding:14px;position:relative;min-width:0}
+.cap{font-size:11px;color:var(--subtle);letter-spacing:.02em}
+.sub{font-size:12px;color:var(--subtle)}
+.row{display:flex;align-items:center}.sp{flex:1}.g6{gap:6px}.g8{gap:8px}.g10{gap:10px}
+.fig{font-family:var(--display);font-weight:300;letter-spacing:-.02em;line-height:1}
+.i{width:16px;height:16px;flex:none}
+.bar{height:6px;border-radius:3px;background:var(--raised);overflow:hidden}
+.bar>i{display:block;height:100%;border-radius:3px;background:var(--green)}
+.cell{height:34px;border-radius:14px;background:var(--surface);display:flex;align-items:center;justify-content:center;font-size:13px}
+.cell.on{background:var(--selbg);color:var(--selfg);font-weight:600}
+.tog{width:38px;height:22px;border-radius:11px;background:var(--raised);position:relative;flex:none}
+.tog::after{content:"";position:absolute;top:2px;left:2px;width:18px;height:18px;border-radius:50%;background:#fff}
+.tog.on{background:var(--green)}.tog.on::after{left:18px}
+.btn{height:38px;border-radius:19px;padding:0 18px;display:flex;align-items:center;justify-content:center;font-weight:600;background:var(--surface)}
+.btn.p{background:var(--selbg);color:var(--selfg)}
+.pop{position:absolute;background:#1b1b1f;border-radius:22px;padding:14px;box-shadow:0 18px 40px rgba(0,0,0,.6),0 0 0 1px var(--rim)}
+.annot{position:absolute;font-size:12px;color:rgba(255,255,255,.7);line-height:1.4}
+.dayrow{display:grid;grid-template-columns:repeat(7,1fr);gap:5px}
+.day{height:30px;border-radius:15px;background:var(--surface);display:flex;align-items:center;justify-content:center;font-size:12px;color:var(--subtle)}
+.day.on{background:var(--selbg);color:var(--selfg);font-weight:600}
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute">
+ <defs>
+  <symbol id="bat" viewBox="0 0 16 16"><rect x="1" y="4" width="12" height="8" rx="2.2" fill="none" stroke="currentColor" stroke-width="1.4"/><rect x="14" y="6.5" width="1.4" height="3" rx=".7" fill="currentColor"/><rect x="2.6" y="5.6" width="7" height="4.8" rx="1" fill="currentColor"/></symbol>
+  <symbol id="bt" viewBox="0 0 16 16"><path d="M4 5l8 6-4 3.5V1.5L12 5 4 11" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round" stroke-linecap="round"/></symbol>
+  <symbol id="wifi" viewBox="0 0 16 16"><path d="M1.5 6a9.5 9.5 0 0113 0M3.8 8.6a6.2 6.2 0 018.4 0M6.1 11.2a3 3 0 013.8 0" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/><circle cx="8" cy="13.2" r="1" fill="currentColor"/></symbol>
+  <symbol id="vol" viewBox="0 0 16 16"><path d="M2 6v4h3l4 3V3L5 6zM11.5 5.5a3.5 3.5 0 010 5" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round" stroke-linecap="round"/></symbol>
+  <symbol id="mic" viewBox="0 0 16 16"><rect x="5.5" y="1.5" width="5" height="8" rx="2.5" fill="none" stroke="currentColor" stroke-width="1.4"/><path d="M3 7.5a5 5 0 0010 0M8 12.5v2" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></symbol>
+  <symbol id="moon" viewBox="0 0 16 16"><path d="M13 9.5A5.5 5.5 0 116.5 3 4.5 4.5 0 0013 9.5z" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/></symbol>
+  <symbol id="lock" viewBox="0 0 16 16"><rect x="3" y="7" width="10" height="7" rx="2" fill="none" stroke="currentColor" stroke-width="1.4"/><path d="M5.5 7V5a2.5 2.5 0 015 0v2" fill="none" stroke="currentColor" stroke-width="1.4"/></symbol>
+  <symbol id="srch" viewBox="0 0 16 16"><circle cx="7" cy="7" r="4.5" fill="none" stroke="currentColor" stroke-width="1.4"/><path d="M10.5 10.5L14 14" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></symbol>
+  <symbol id="gear" viewBox="0 0 16 16"><circle cx="8" cy="8" r="2.4" fill="none" stroke="currentColor" stroke-width="1.4"/><path d="M8 1.5v2M8 12.5v2M1.5 8h2M12.5 8h2M3.4 3.4l1.4 1.4M11.2 11.2l1.4 1.4M12.6 3.4l-1.4 1.4M4.8 11.2l-1.4 1.4" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></symbol>
+  <symbol id="home" viewBox="0 0 16 16"><path d="M2 7.5L8 2l6 5.5V14H2z" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/></symbol>
+  <symbol id="clock" viewBox="0 0 16 16"><circle cx="8" cy="8" r="6" fill="none" stroke="currentColor" stroke-width="1.4"/><path d="M8 4.5V8l2.5 1.5" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></symbol>
+  <symbol id="bell" viewBox="0 0 16 16"><path d="M3.5 11.5h9l-1.2-1.8V7a3.3 3.3 0 00-6.6 0v2.7zM6.5 13.5a1.6 1.6 0 003 0" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round" stroke-linecap="round"/></symbol>
+ </defs>
+</svg>
+
+<!-- ===== 1. Header: before and after ===== -->
+<div class="view" id="v1">
+  <div class="annot" style="left:24px;top:18px;font-size:13px"><b style="color:#fff">Before</b> &nbsp;8 chips beside the tabs</div>
+  <div class="shell" style="left:50%;margin-left:-450px;top:44px;width:900px">
+    <div class="hdr">
+      <div class="tabs"><div class="tab on"><svg class="i"><use href="#home"/></svg>Home</div><div class="tab"><svg class="i"><use href="#clock"/></svg></div><div class="tab"><svg class="i"><use href="#bell"/></svg></div><div class="tab"><svg class="i"><use href="#vol"/></svg></div><div class="tab"><svg class="i"><use href="#gear"/></svg></div></div>
+      <div class="chips">
+        <div class="chip ic"><svg class="i"><use href="#moon"/></svg></div>
+        <div class="chip"><svg class="i"><use href="#bat"/></svg>82%</div>
+        <div class="chip ic"><svg class="i"><use href="#bt"/></svg></div>
+        <div class="chip ic"><svg class="i"><use href="#mic"/></svg></div>
+        <div class="chip ic"><svg class="i"><use href="#vol"/></svg></div>
+        <div class="chip ic"><svg class="i"><use href="#lock"/></svg></div>
+        <div class="chip ic"><svg class="i"><use href="#srch"/></svg></div>
+        <div class="chip ic"><svg class="i"><use href="#gear"/></svg></div>
+      </div>
+    </div>
+  </div>
+  <div class="annot" style="left:24px;top:160px;font-size:13px"><b style="color:#fff">After</b> &nbsp;one Status chip, plus search and settings</div>
+  <div class="shell" style="left:50%;margin-left:-450px;top:186px;width:900px">
+    <div class="hdr">
+      <div class="tabs"><div class="tab on"><svg class="i"><use href="#home"/></svg>Home</div><div class="tab"><svg class="i"><use href="#clock"/></svg></div><div class="tab"><svg class="i"><use href="#bell"/></svg></div><div class="tab"><svg class="i"><use href="#vol"/></svg></div><div class="tab"><svg class="i"><use href="#gear"/></svg></div></div>
+      <div class="chips">
+        <div class="chip" style="gap:9px"><svg class="i"><use href="#bat"/></svg>82%<svg class="i" style="color:var(--subtle)"><use href="#bt"/></svg><svg class="i" style="color:var(--subtle)"><use href="#wifi"/></svg></div>
+        <div class="chip ic"><svg class="i"><use href="#srch"/></svg></div>
+        <div class="chip ic"><svg class="i"><use href="#gear"/></svg></div>
+      </div>
+    </div>
+  </div>
+  <div class="annot" style="left:24px;top:310px;font-size:13px"><b style="color:#fff">The chip changes with what matters</b></div>
+  <div style="position:absolute;left:24px;top:342px;display:flex;gap:26px;align-items:flex-start;flex-wrap:wrap;width:1152px">
+    <div><div class="chip" style="gap:9px"><svg class="i"><use href="#bat"/></svg>82%<svg class="i" style="color:var(--subtle)"><use href="#bt"/></svg><svg class="i" style="color:var(--subtle)"><use href="#wifi"/></svg></div><div class="annot" style="position:static;margin-top:8px">Normal. Battery, then<br>Bluetooth and network glyphs.</div></div>
+    <div><div class="chip" style="gap:9px"><svg class="i" style="color:var(--green)"><use href="#bat"/></svg>64% · 1h 05m<svg class="i" style="color:var(--subtle)"><use href="#bt"/></svg><svg class="i" style="color:var(--subtle)"><use href="#wifi"/></svg></div><div class="annot" style="position:static;margin-top:8px">Charging: green icon,<br>time to full.</div></div>
+    <div><div class="chip warn" style="gap:9px"><svg class="i"><use href="#bat"/></svg>18%<svg class="i"><use href="#bt"/></svg><svg class="i"><use href="#wifi"/></svg></div><div class="annot" style="position:static;margin-top:8px">Low (20%): amber chip.<br>Below 10% it turns red.</div></div>
+    <div><div class="chip" style="gap:9px"><svg class="i"><use href="#bat"/></svg>82%<svg class="i" style="color:var(--amber)"><use href="#moon"/></svg><svg class="i" style="color:var(--red)"><use href="#mic"/></svg></div><div class="annot" style="position:static;margin-top:8px">Do Not Disturb or muted mic<br>show only while on.</div></div>
+    <div><div class="chip" style="gap:9px"><svg class="i"><use href="#wifi"/></svg>No network</div><div class="annot" style="position:static;margin-top:8px">Desktop: battery drops out,<br>chip shows network only.</div></div>
+  </div>
+  <div class="label"><b>Status chip</b> · replaces DND, battery, Bluetooth, mic, volume and lock. Click opens the status card.</div>
+</div>
+
+<!-- ===== 2. Status card ===== -->
+<div class="view" id="v2">
+  <div class="shell" style="left:50%;margin-left:-450px;top:22px;width:900px;height:210px">
+    <div class="hdr" style="margin:0">
+      <div class="tabs"><div class="tab on"><svg class="i"><use href="#home"/></svg>Home</div><div class="tab"><svg class="i"><use href="#clock"/></svg></div><div class="tab"><svg class="i"><use href="#bell"/></svg></div><div class="tab"><svg class="i"><use href="#vol"/></svg></div><div class="tab"><svg class="i"><use href="#gear"/></svg></div></div>
+      <div class="chips">
+        <div class="chip on" style="gap:9px"><svg class="i"><use href="#bat"/></svg>82%<svg class="i"><use href="#bt"/></svg><svg class="i"><use href="#wifi"/></svg></div>
+        <div class="chip ic"><svg class="i"><use href="#srch"/></svg></div>
+        <div class="chip ic"><svg class="i"><use href="#gear"/></svg></div>
+      </div>
+    </div>
+  </div>
+  <div class="pop" style="left:50%;margin-left:100px;top:84px;width:350px">
+    <div class="card" style="padding:12px">
+      <div class="row"><svg class="i" style="color:var(--green)"><use href="#bat"/></svg><span style="margin-left:8px;font-weight:600">Battery</span><span class="sp"></span><span class="fig" style="font-size:26px">82%</span></div>
+      <div class="bar" style="margin-top:10px"><i style="width:82%"></i></div>
+      <div class="sub" style="margin-top:7px">On battery · about 4h 20m left</div>
+    </div>
+    <div class="card" style="padding:12px;margin-top:8px">
+      <div class="row"><svg class="i"><use href="#bt"/></svg><span style="margin-left:8px;font-weight:600">Bluetooth</span><span class="sp"></span><span class="sub">2 connected</span></div>
+      <div class="row" style="margin-top:10px"><span>AirPods Pro</span><span class="sp"></span><span class="sub">64%</span></div>
+      <div class="row" style="margin-top:7px"><span>MX Master 3</span><span class="sp"></span><span class="sub">91%</span></div>
+    </div>
+    <div class="card" style="padding:12px;margin-top:8px">
+      <div class="row"><svg class="i"><use href="#wifi"/></svg><span style="margin-left:8px;font-weight:600">Wi-Fi</span><span class="sp"></span><span class="sub">Home 5G · 866 Mbps</span></div>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:8px">
+      <div class="card" style="padding:10px 0;text-align:center;background:var(--selbg);color:var(--selfg)"><svg class="i" style="margin:0 auto"><use href="#moon"/></svg><div style="font-size:11px;margin-top:5px;font-weight:600">Focus</div></div>
+      <div class="card" style="padding:10px 0;text-align:center"><svg class="i" style="margin:0 auto"><use href="#mic"/></svg><div style="font-size:11px;margin-top:5px">Mic</div></div>
+      <div class="card" style="padding:10px 0;text-align:center"><svg class="i" style="margin:0 auto"><use href="#vol"/></svg><div style="font-size:11px;margin-top:5px">Mute</div></div>
+      <div class="card" style="padding:10px 0;text-align:center"><svg class="i" style="margin:0 auto"><use href="#lock"/></svg><div style="font-size:11px;margin-top:5px">Lock</div></div>
+    </div>
+  </div>
+  <div class="annot" style="left:70px;top:290px;width:420px">The card keeps everything that left the header:<br>• Focus (Do Not Disturb), mic, mute and lock become toggles at the bottom<br>• Bluetooth shows each device's own battery<br>• Battery shows time left or time to full<br>• Wi-Fi shows the network and speed<br>Volume stays on the System tab.</div>
+  <div class="label"><b>Status card</b> · opens under the chip, closes on Esc or click away. Same card in Notch and Pill.</div>
+</div>
+
+<!-- ===== 3. Alarm editor ===== -->
+<div class="view" id="v3">
+  <div class="shell" style="left:50%;margin-left:-360px;top:14px;width:720px;height:572px">
+    <div class="hdr">
+      <div class="tabs"><div class="tab"><svg class="i"><use href="#home"/></svg></div><div class="tab on"><svg class="i"><use href="#clock"/></svg>Timer</div><div class="tab"><svg class="i"><use href="#bell"/></svg></div></div>
+      <div class="chips"><div class="chip" style="gap:9px"><svg class="i"><use href="#bat"/></svg>82%<svg class="i" style="color:var(--subtle)"><use href="#bt"/></svg></div><div class="chip ic"><svg class="i"><use href="#srch"/></svg></div><div class="chip ic"><svg class="i"><use href="#gear"/></svg></div></div>
+    </div>
+    <div class="row" style="margin-bottom:10px"><div class="tabs" style="width:100%"><div class="tab" style="flex:1">Timer</div><div class="tab on" style="flex:1">Alarm</div><div class="tab" style="flex:1">Stopwatch</div></div></div>
+    <div style="display:grid;grid-template-columns:1.15fr 1fr;gap:10px">
+      <div class="card">
+        <div class="cap">NEW ALARM</div>
+        <div class="row" style="margin-top:8px">
+          <div class="fig" style="font-size:64px;letter-spacing:-.03em">7<span style="color:var(--faint)">:</span>30</div>
+          <div style="margin-left:14px;display:flex;flex-direction:column;gap:5px"><div class="cell on" style="width:52px;height:30px">AM</div><div class="cell" style="width:52px;height:30px;color:var(--subtle)">PM</div></div>
+        </div>
+        <div class="sub" style="margin-top:6px">Rings tomorrow at 7:30 AM · in 11h 04m</div>
+        <div class="cap" style="margin-top:14px">TYPE IT OR PICK A PRESET</div>
+        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-top:6px">
+          <div class="cell">6:00</div><div class="cell on">7:30</div><div class="cell">8:00</div><div class="cell">+8h sleep</div>
+        </div>
+        <div class="sub" style="margin-top:8px">Type digits ("730", "7 30", "19:45"), or use ↑ ↓ on hour or minute.</div>
+      </div>
+      <div class="card">
+        <div class="cap">REPEAT</div>
+        <div class="dayrow" style="margin-top:8px"><div class="day">M</div><div class="day on">T</div><div class="day on">W</div><div class="day on">T</div><div class="day on">F</div><div class="day">S</div><div class="day">S</div></div>
+        <div class="row" style="margin-top:8px"><div class="chip" style="height:28px;font-size:11px">Once</div><div class="chip" style="height:28px;font-size:11px;margin-left:6px">Weekdays</div><div class="chip" style="height:28px;font-size:11px;margin-left:6px">Every day</div></div>
+        <div class="cap" style="margin-top:14px">LABEL</div>
+        <div class="cell" style="justify-content:flex-start;padding:0 14px;margin-top:6px;color:var(--subtle)">Wake up</div>
+        <div class="row" style="margin-top:14px"><span>Snooze</span><span class="sp"></span><span class="sub" style="margin-right:8px">9 min</span><div class="tog on"></div></div>
+        <div class="row" style="margin-top:10px"><span>Gentle volume ramp</span><span class="sp"></span><div class="tog on"></div></div>
+        <div class="btn p" style="margin-top:14px">Save alarm</div>
+      </div>
+    </div>
+    <div class="card" style="margin-top:10px;padding:10px 14px">
+      <div class="cap">YOUR ALARMS</div>
+      <div class="row" style="margin-top:8px"><span class="fig" style="font-size:24px">7:30 <span style="font-size:13px">AM</span></span><span style="margin-left:14px">Wake up</span><span class="sub" style="margin-left:10px">Weekdays</span><span class="sp"></span><div class="tog on"></div></div>
+      <div style="height:1px;background:var(--rim);margin:8px 0"></div>
+      <div class="row"><span class="fig" style="font-size:24px;color:var(--subtle)">9:00 <span style="font-size:13px">PM</span></span><span style="margin-left:14px;color:var(--subtle)">Wind down</span><span class="sub" style="margin-left:10px">Every day</span><span class="sp"></span><div class="tog"></div></div>
+    </div>
+  </div>
+  <div class="annot" style="left:24px;top:60px;width:180px">Type "730" and it reads 7:30. Presets cover the common ones. Hour and minute take arrow keys. No more 30 clicks.</div>
+  <div class="annot" style="right:24px;top:60px;width:170px;text-align:right">Several alarms, each with its own days, label and on/off switch.</div>
+  <div class="label" style="left:24px;bottom:16px"><b>Alarm editor</b> · Timer tab, 720 wide</div>
+</div>
+
+<!-- ===== 4. Ringing ===== -->
+<div class="view" id="v4" style="height:420px">
+  <div class="annot" style="left:24px;top:18px;font-size:13px"><b style="color:#fff">Ringing, compact pill</b> &nbsp;pops open by itself</div>
+  <div class="shell" style="left:50%;margin-left:-250px;top:50px;width:500px;padding:12px 14px">
+    <div class="row g10">
+      <div style="width:44px;height:44px;border-radius:50%;background:var(--amber);color:#1a1200;display:flex;align-items:center;justify-content:center"><svg class="i" style="width:22px;height:22px"><use href="#bell"/></svg></div>
+      <div><div style="font-weight:600;font-size:15px">Wake up</div><div class="sub">7:30 AM · Weekdays</div></div>
+      <span class="sp"></span>
+      <div class="btn" style="height:36px">Snooze 9 min</div>
+      <div class="btn p" style="height:36px">Dismiss</div>
+    </div>
+  </div>
+  <div class="annot" style="left:24px;top:150px;font-size:13px"><b style="color:#fff">Snoozed</b> &nbsp;sits in the compact pill until it rings again</div>
+  <div class="shell" style="left:50%;margin-left:-110px;top:182px;width:220px;padding:8px 12px">
+    <div class="row g8"><svg class="i" style="color:var(--amber)"><use href="#bell"/></svg><span style="font-weight:600">Snoozed</span><span class="sp"></span><span class="fig" style="font-size:18px">8:41</span></div>
+  </div>
+  <div class="annot" style="left:24px;top:262px;width:520px">Ringing: sound ramps up gently, Space or Enter snoozes, Esc dismisses. A one-time alarm turns itself off after dismissing. Repeating alarms stay on.<br>Needs new work in the app: today ATOLL stores one alarm with no repeat or snooze, so this adds a small alarm list to the settings file.</div>
+  <div class="label"><b>Ringing and snooze</b></div>
+</div>
+<script>
+var h=location.hash.slice(1);if(h){document.querySelectorAll('.view').forEach(function(v){if(v.id!==h)v.style.display='none'})}
+</script>
+</body>
+</html>

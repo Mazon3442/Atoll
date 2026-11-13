@@ -180,6 +180,10 @@ public class GroupedPanelsTests
         panels.Add(("time-pomodoro", new ClockPanelViewModel(idleClock.Clock, pomodoroTimer)));
         panels.Add(("time-pomodoro-narrow", new ClockPanelViewModel(idleClock.Clock, narrowPomodoro)));
         panels.Add(("time-alarm", new ClockPanelViewModel(idleClock.Clock, new TimerViewModel(TimeProvider.System) { SectionIndex = 2 })));
+        var savedAlarms = new TimerViewModel(TimeProvider.System) { SectionIndex = 2 };
+        savedAlarms.Alarms.Use([new Atoll.Settings.AlarmEntry { Hour = 7, Minute = 30, Days = 0b0111110, Label = "Wake up" },
+            new Atoll.Settings.AlarmEntry { Hour = 21, Minute = 0, Days = 0b1111111, Label = "Wind down", Enabled = false }]);
+        panels.Add(("time-alarm-list", new ClockPanelViewModel(idleClock.Clock, savedAlarms)));
         panels.Add(("time-timer-running", new TimePanelViewModel(new ClockPanelViewModel(idleClock.Clock, runningTimer), agenda)));
         panels.Add(("calendar-agenda", agenda));
         panels.Add(("time-no-calendars", new TimePanelViewModel(idleClock, new CalendarViewModel(() => { }))));
@@ -228,21 +232,18 @@ public class GroupedPanelsTests
         {
             SectionIndex = 2,
         }));
-        // The Alarm section: hour, minute and am/pm pickers, then Set, all inside the default panel height.
+        // The Alarm section: a typed time, presets, repeat days and the list. The panel grows to fit it.
         var alarmView = (FrameworkElement)((DataTemplate)resources["ClockPanelViewModel.Panel"]).LoadContent();
         alarmView.DataContext = new ClockPanelViewModel(idleClock.Clock, new TimerViewModel(TimeProvider.System) { SectionIndex = 2 });
         alarmView.Measure(new Size(476, 600)); alarmView.Arrange(new Rect(0, 0, 476, 600)); alarmView.UpdateLayout();
         Assert.Equal(Visibility.Visible, Descendants<StackPanel>(alarmView).Single(p => p.Name == "AlarmSection").Visibility);
         var alarmButtons = Descendants<Button>(alarmView).Select(AutomationProperties.GetName).ToList();
-        // Any hour or minute is one tap: two grids, not an hour arrow to click twelve times.
-        var hours = Descendants<ListBox>(alarmView).Single(l => AutomationProperties.GetName(l) == "Alarm hour");
-        var minutes = Descendants<ListBox>(alarmView).Single(l => AutomationProperties.GetName(l) == "Alarm minute");
-        Assert.Equal(12, hours.Items.Count);
-        Assert.Equal(12, minutes.Items.Count);
         Assert.Contains("Earlier minute", alarmButtons);
         Assert.Contains("Later minute", alarmButtons);
-        Assert.Contains("Set the alarm", alarmButtons);
-        Assert.InRange(alarmView.DesiredSize.Height, 1, new Atoll.Settings.AppSettings().Theme.ExpandedHeight - 26);
+        Assert.Contains("Save the alarm", alarmButtons);
+        Assert.Equal(4, alarmButtons.Count(name => name.StartsWith("Set the alarm time to", StringComparison.Ordinal)));
+        Assert.Equal(7, Descendants<CheckBox>(alarmView).Count(c => (AutomationProperties.GetName(c) ?? "").StartsWith("Repeat on", StringComparison.Ordinal)));
+        Assert.InRange(alarmView.DesiredSize.Height, 1, 420);
 
         foreach (var mode in new[] { "Compact", "Peek", "Mini" })
         {
