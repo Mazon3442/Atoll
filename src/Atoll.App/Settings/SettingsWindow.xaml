@@ -2,6 +2,7 @@
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:s="clr-namespace:Atoll.Settings"
+        xmlns:shell="clr-namespace:Atoll.Shell"
         xmlns:weather="clr-namespace:Atoll.Modules.Weather"
         Title="ATOLL settings" FontFamily="Segoe UI Variable Text, Segoe UI" FontSize="14"
         Width="1040" Height="780" MinWidth="760" MinHeight="480"
@@ -22,7 +23,7 @@
         </Style>
         <Style x:Key="SettingsFocus" TargetType="Control">
             <Setter Property="Template"><Setter.Value><ControlTemplate>
-                <Border BorderBrush="{DynamicResource AccentFillColorDefaultBrush}" BorderThickness="2" CornerRadius="6" Margin="-3" />
+                <Border BorderBrush="{DynamicResource AccentFillColorDefaultBrush}" BorderThickness="2" CornerRadius="14" Margin="-3" />
             </ControlTemplate></Setter.Value></Setter>
         </Style>
         <BooleanToVisibilityConverter x:Key="BoolToVisibility" />
@@ -62,7 +63,7 @@
                     <ControlTemplate TargetType="s:SettingCard">
                         <Border x:Name="Root" Background="{DynamicResource CardBackgroundFillColorDefaultBrush}"
                                 BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}" BorderThickness="1"
-                                CornerRadius="10" Padding="16,14" MinHeight="72">
+                                CornerRadius="22" Padding="16,14" MinHeight="72">
                             <Grid>
                                 <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
                                 <Grid.ColumnDefinitions>
@@ -113,7 +114,7 @@
                     <ControlTemplate TargetType="CheckBox">
                         <StackPanel Orientation="Horizontal" Background="Transparent" VerticalAlignment="Center">
                             <TextBlock x:Name="State" Text="Off" Foreground="{TemplateBinding Foreground}" VerticalAlignment="Center" Margin="0,0,12,0" MinWidth="22" />
-                            <Border x:Name="Track" Width="40" Height="20" CornerRadius="10" BorderThickness="1"
+                            <Border x:Name="Track" Width="40" Height="20" CornerRadius="{Binding ActualHeight, RelativeSource={RelativeSource Self}, Converter={x:Static shell:PillRadius.Instance}}" BorderThickness="1"
                                     BorderBrush="{DynamicResource TextFillColorSecondaryBrush}" Background="Transparent">
                                 <Ellipse x:Name="Knob" Width="12" Height="12" HorizontalAlignment="Left" Margin="4,0"
                                          Fill="{DynamicResource TextFillColorSecondaryBrush}" />
@@ -148,7 +149,7 @@
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="ToggleButton">
-                        <Border x:Name="Bg" CornerRadius="6" Background="Transparent">
+                        <Border x:Name="Bg" CornerRadius="14" Background="Transparent">
                             <Grid HorizontalAlignment="Center" VerticalAlignment="Center">
                                 <TextBlock x:Name="Outline" Text="&#xE734;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" FontSize="14"
                                            Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
@@ -190,10 +191,10 @@
                 <Setter.Value>
                     <ControlTemplate TargetType="ListBoxItem">
                         <Grid>
-                            <Border x:Name="Bg" CornerRadius="8" Padding="14,12" Background="Transparent">
+                            <Border x:Name="Bg" CornerRadius="14" Padding="14,12" Background="Transparent">
                                 <ContentPresenter />
                             </Border>
-                            <Border x:Name="Bar" Width="3" Height="16" CornerRadius="1.5" HorizontalAlignment="Left"
+                            <Border x:Name="Bar" Width="3" Height="16" CornerRadius="{Binding ActualWidth, RelativeSource={RelativeSource Self}, Converter={x:Static shell:PillRadius.Instance}}" HorizontalAlignment="Left"
                                     Background="{DynamicResource AccentFillColorDefaultBrush}" Visibility="Collapsed" />
                         </Grid>
                         <ControlTemplate.Triggers>
@@ -220,7 +221,7 @@
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="Button">
-                        <Border x:Name="Frame" CornerRadius="10" BorderThickness="1" Padding="16,12"
+                        <Border x:Name="Frame" CornerRadius="22" BorderThickness="1" Padding="16,12"
                                 BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
                                 Background="{DynamicResource CardBackgroundFillColorDefaultBrush}">
                             <ContentPresenter HorizontalAlignment="Stretch" TextElement.Foreground="{TemplateBinding Foreground}" />
@@ -247,7 +248,7 @@
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="Button">
-                        <Border x:Name="Frame" Width="150" CornerRadius="8" BorderThickness="2" Padding="6"
+                        <Border x:Name="Frame" Width="150" CornerRadius="22" BorderThickness="2" Padding="6"
                                 BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
                                 Background="{DynamicResource CardBackgroundFillColorDefaultBrush}">
                             <ContentPresenter />
@@ -274,7 +275,7 @@
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="RadioButton">
-                        <Border x:Name="Frame" Width="220" CornerRadius="8" BorderThickness="2" Padding="12"
+                        <Border x:Name="Frame" Width="220" CornerRadius="22" BorderThickness="2" Padding="12"
                                 BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
                                 Background="{DynamicResource CardBackgroundFillColorDefaultBrush}">
                             <ContentPresenter TextElement.Foreground="{TemplateBinding Foreground}" />
@@ -306,7 +307,7 @@
         <DockPanel Margin="12,20,12,16">
             <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="10,4,0,22">
                 <!-- The hairline keeps the paper tile visible on a light sidebar. -->
-                <Border Width="30" Height="30" CornerRadius="6.6" BorderThickness="1" BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}">
+                <Border Width="30" Height="30" CornerRadius="14" BorderThickness="1" BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}">
                     <Image Source="{StaticResource Atoll.LogoSmall}" AutomationProperties.Name="ATOLL logo" />
                 </Border>
                 <TextBlock Text="ATOLL" FontSize="16" FontWeight="SemiBold" Margin="12,0,0,0" VerticalAlignment="Center" />
@@ -366,6 +367,33 @@
                         <s:SettingCard Glyph="&#xE7E8;" Header="Start with Windows" Description="Open ATOLL automatically when you sign in.">
                             <CheckBox Style="{StaticResource Toggle}" IsChecked="{Binding StartWithWindows}" AutomationProperties.Name="Start with Windows" />
                         </s:SettingCard>
+
+                        <TextBlock Style="{StaticResource SectionHeader}" Text="Island shape" />
+                        <TextBlock Style="{StaticResource SectionHint}" Text="Choose a pill below the top edge or a notch attached to it." />
+                        <StackPanel Orientation="Horizontal" Margin="0,0,0,8" AutomationProperties.Name="Island shape">
+                            <RadioButton Style="{StaticResource ShapeOption}" GroupName="Shape" IsChecked="{Binding IsPill}"
+                                         AutomationProperties.Name="Pill shape: floats below the top of the screen">
+                                <StackPanel>
+                                    <Grid Height="40">
+                                        <Rectangle Height="2" VerticalAlignment="Top" Fill="{DynamicResource TextFillColorTertiaryBrush}" />
+                                        <Border Width="84" Height="20" CornerRadius="{Binding ActualHeight, RelativeSource={RelativeSource Self}, Converter={x:Static shell:PillRadius.Instance}}" Background="{DynamicResource Island.Menu}" Margin="0,10,0,0" VerticalAlignment="Top" />
+                                    </Grid>
+                                    <TextBlock Text="Pill" FontWeight="SemiBold" Margin="0,8,0,0" />
+                                    <TextBlock Text="Floats just below the top of the screen." Style="{StaticResource Hint}" />
+                                </StackPanel>
+                            </RadioButton>
+                            <RadioButton Style="{StaticResource ShapeOption}" GroupName="Shape" IsChecked="{Binding IsNotch}"
+                                         AutomationProperties.Name="Notch shape: attached to the top of the screen">
+                                <StackPanel>
+                                    <Grid Height="40">
+                                        <Rectangle Height="2" VerticalAlignment="Top" Fill="{DynamicResource TextFillColorTertiaryBrush}" />
+                                        <Border Width="84" Height="22" CornerRadius="0,0,11,11" Background="{DynamicResource Island.Menu}" VerticalAlignment="Top" />
+                                    </Grid>
+                                    <TextBlock Text="Notch" FontWeight="SemiBold" Margin="0,8,0,0" />
+                                    <TextBlock Text="Hangs from the top edge, like a laptop notch." Style="{StaticResource Hint}" />
+                                </StackPanel>
+                            </RadioButton>
+                        </StackPanel>
 
                         <TextBlock Style="{StaticResource SectionHeader}" Text="When to show ATOLL" />
                         <TextBlock Style="{StaticResource SectionHint}" Text="Decide when the island steps aside for other apps." />
@@ -450,7 +478,7 @@
                         </s:SettingCard>
                         <Border Visibility="{Binding IsSelectedMode, Converter={StaticResource BoolToVisibility}}" Margin="0,0,0,4"
                                 Background="{DynamicResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
-                                BorderThickness="1" CornerRadius="6" Padding="52,10,16,10">
+                                BorderThickness="1" CornerRadius="14" Padding="52,10,16,10">
                             <ItemsControl ItemsSource="{Binding Displays}">
                                 <ItemsControl.ItemTemplate>
                                     <DataTemplate>
@@ -464,7 +492,7 @@
                     <!-- ===================== Appearance ===================== -->
                     <StackPanel Visibility="{Binding PageIndex, Converter={StaticResource PageVisible}, ConverterParameter=1}">
                         <!-- Live preview -->
-                        <Border CornerRadius="12" Height="190" Margin="0,8,0,0" ClipToBounds="True" AutomationProperties.Name="Live theme preview">
+                        <Border CornerRadius="22" Height="190" Margin="0,8,0,0" ClipToBounds="True" AutomationProperties.Name="Live theme preview">
                             <Border.Background>
                                 <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
                                     <GradientStop Color="#243544" Offset="0" />
@@ -488,7 +516,7 @@
                                     <Border Background="{Binding PreviewFill}" CornerRadius="{Binding PreviewPeekCorner}" BorderBrush="{Binding PreviewRim}"
                                             BorderThickness="1" Padding="14,10" Margin="0,14,0,0" HorizontalAlignment="Center">
                                         <StackPanel Orientation="Horizontal">
-                                            <Border Width="40" Height="40" CornerRadius="8" Background="{Binding PreviewAccent}" />
+                                            <Border Width="40" Height="40" CornerRadius="14" Background="{Binding PreviewAccent}" />
                                             <StackPanel Margin="12,0,18,0" VerticalAlignment="Center">
                                                 <TextBlock Text="Midnight City" Foreground="{Binding PreviewText}" FontSize="14" FontWeight="SemiBold" />
                                                 <TextBlock Text="M83" Foreground="{Binding PreviewSubtle}" FontSize="12" />
@@ -519,8 +547,8 @@
                                     <Button Style="{StaticResource ThemeTile}" Command="{Binding DataContext.ApplyThemeCommand, ElementName=ThemeGallery}"
                                             CommandParameter="{Binding}" AutomationProperties.Name="{Binding Preset.Name, StringFormat=Use theme {0}}">
                                         <StackPanel>
-                                            <Border Height="44" CornerRadius="5" Background="{Binding Preset.Background}"
-                                                    BorderBrush="#22808080" BorderThickness="1">
+                                            <Border Height="44" CornerRadius="14" Background="{Binding Preset.Background}"
+                                                    BorderBrush="{DynamicResource Island.Hover}" BorderThickness="1">
                                                 <Grid Margin="10,0">
                                                     <TextBlock Text="Aa" Foreground="{Binding Preset.Foreground}" FontWeight="SemiBold"
                                                                FontSize="14" VerticalAlignment="Center" />
@@ -559,32 +587,8 @@
                         <TextBlock Text="{Binding ThemeMessage}" Style="{StaticResource Hint}" Margin="4,2,0,0"
                                    Visibility="{Binding ThemeMessage, Converter={StaticResource EmptyToCollapsed}}" />
 
-                        <TextBlock Style="{StaticResource SectionHeader}" Text="Shape" />
-                        <TextBlock Style="{StaticResource SectionHint}" Text="Pill or notch, and how round it is." />
-                        <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
-                            <RadioButton Style="{StaticResource ShapeOption}" GroupName="Shape" IsChecked="{Binding IsPill}"
-                                         AutomationProperties.Name="Pill shape: floats below the top of the screen">
-                                <StackPanel>
-                                    <Grid Height="40">
-                                        <Rectangle Height="2" VerticalAlignment="Top" Fill="{DynamicResource TextFillColorTertiaryBrush}" />
-                                        <Border Width="84" Height="20" CornerRadius="10" Background="Black" Margin="0,10,0,0" VerticalAlignment="Top" />
-                                    </Grid>
-                                    <TextBlock Text="Pill" FontWeight="SemiBold" Margin="0,8,0,0" />
-                                    <TextBlock Text="Floats just below the top of the screen." Style="{StaticResource Hint}" />
-                                </StackPanel>
-                            </RadioButton>
-                            <RadioButton Style="{StaticResource ShapeOption}" GroupName="Shape" IsChecked="{Binding IsNotch}"
-                                         AutomationProperties.Name="Notch shape: attached to the top of the screen">
-                                <StackPanel>
-                                    <Grid Height="40">
-                                        <Rectangle Height="2" VerticalAlignment="Top" Fill="{DynamicResource TextFillColorTertiaryBrush}" />
-                                        <Border Width="84" Height="22" CornerRadius="0,0,11,11" Background="Black" VerticalAlignment="Top" />
-                                    </Grid>
-                                    <TextBlock Text="Notch" FontWeight="SemiBold" Margin="0,8,0,0" />
-                                    <TextBlock Text="Hangs from the top edge, like a laptop notch." Style="{StaticResource Hint}" />
-                                </StackPanel>
-                            </RadioButton>
-                        </StackPanel>
+                        <TextBlock Style="{StaticResource SectionHeader}" Text="Shape details" />
+                        <TextBlock Style="{StaticResource SectionHint}" Text="Adjust the spacing and roundness. Choose the island shape in General." />
                         <s:SettingCard Glyph="&#xE74A;" Header="Gap from the top of the screen" Description="Only for the pill. The notch always touches the edge."
                                        Visibility="{Binding IsPill, Converter={StaticResource BoolToVisibility}}">
                             <StackPanel Orientation="Horizontal">
@@ -676,7 +680,7 @@
                         <ItemsControl x:Name="ModuleList" ItemsSource="{Binding ModuleTabs}" Focusable="False">
                             <ItemsControl.ItemTemplate>
                                 <DataTemplate>
-                                    <Border x:Name="Card" Padding="6,8,16,8" Margin="0,0,0,8" CornerRadius="10" BorderThickness="1"
+                                    <Border x:Name="Card" Padding="6,8,16,8" Margin="0,0,0,8" CornerRadius="22" BorderThickness="1"
                                             Background="{DynamicResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
                                             AllowDrop="True" DragOver="OnModuleDragOver" DragLeave="OnModuleDragLeave" Drop="OnModuleDrop">
                                         <StackPanel>
@@ -817,7 +821,7 @@
 
                     <!-- ===================== Notifications ===================== -->
                     <StackPanel Visibility="{Binding PageIndex, Converter={StaticResource PageVisible}, ConverterParameter=3}">
-                        <Border Background="{DynamicResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="12" Padding="20" Margin="0,12,0,14">
+                        <Border Background="{DynamicResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="22" Padding="20" Margin="0,12,0,14">
                             <StackPanel>
                                 <TextBlock Text="{Binding NotificationGuideTitle}" FontSize="18" FontWeight="SemiBold" TextWrapping="Wrap" />
                                 <TextBlock Text="{Binding NotificationGuideDescription}" Style="{StaticResource Hint}" Margin="0,8,0,16" />
@@ -938,7 +942,7 @@
                             </ItemsControl.ItemTemplate>
                         </ItemsControl>
                         <Border Background="{DynamicResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
-                                BorderThickness="1" CornerRadius="6" Padding="52,14,16,14" Margin="0,0,0,4" AutomationProperties.Name="Add an API key">
+                                BorderThickness="1" CornerRadius="14" Padding="52,14,16,14" Margin="0,0,0,4" AutomationProperties.Name="Add an API key">
                             <Grid>
                                 <Grid.ColumnDefinitions><ColumnDefinition Width="140" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
                                 <Grid.RowDefinitions>
@@ -1049,7 +1053,7 @@
                                 <DataTemplate>
                                     <Border Background="{DynamicResource CardBackgroundFillColorDefaultBrush}"
                                             BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}" BorderThickness="1"
-                                            CornerRadius="6" Padding="16,12" Margin="0,0,0,8">
+                                            CornerRadius="22" Padding="16,12" Margin="0,0,0,8">
                                         <Grid>
                                             <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
                                             <Grid.ColumnDefinitions>
@@ -1190,7 +1194,7 @@
                     <!-- ===================== About ===================== -->
                     <StackPanel Visibility="{Binding PageIndex, Converter={StaticResource PageVisible}, ConverterParameter=9}">
                         <StackPanel Orientation="Horizontal" Margin="2,12,0,18">
-                            <Border Width="56" Height="56" CornerRadius="12.3" BorderThickness="1" BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}">
+                            <Border Width="56" Height="56" CornerRadius="14" BorderThickness="1" BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}">
                                 <Image Source="{StaticResource Atoll.Logo}" AutomationProperties.Name="ATOLL logo" />
                             </Border>
                             <StackPanel Margin="16,0,0,0" VerticalAlignment="Center">
@@ -1260,7 +1264,7 @@
                         <TextBlock Style="{StaticResource SectionHeader}" Text="Forecast" />
                         <TextBlock Style="{StaticResource Hint}" Text="Choose a location above to see current conditions, rain timing, and a seven-day forecast."
                                    Visibility="{Binding Weather.HasCity, Converter={StaticResource Island.InverseBoolToVisibility}}" />
-                        <Border Background="{DynamicResource CardBackgroundFillColorDefaultBrush}" CornerRadius="12" Padding="16" BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}" BorderThickness="1"
+                        <Border Background="{DynamicResource CardBackgroundFillColorDefaultBrush}" CornerRadius="22" Padding="16" BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}" BorderThickness="1"
                                 Visibility="{Binding Weather.HasCity, Converter={StaticResource BoolToVisibility}}">
                             <weather:WeatherDetails DataContext="{Binding Weather}" ScrollViewer.VerticalScrollBarVisibility="Disabled" Foreground="{DynamicResource TextFillColorPrimaryBrush}"
                                                     HoverBrush="{DynamicResource SubtleFillColorSecondaryBrush}" />

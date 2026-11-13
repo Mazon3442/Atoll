@@ -29,7 +29,7 @@
                                         PreviewKeyDown="OnRowKeyDown">
                                     <Button.Template>
                                         <ControlTemplate TargetType="Button">
-                                            <Border x:Name="Row" CornerRadius="10" Padding="10,7" Background="{DynamicResource Island.Hover}"
+                                            <Border x:Name="Row" CornerRadius="14" Padding="10,7" Background="{DynamicResource Island.Hover}"
                                                     BorderThickness="1" BorderBrush="Transparent">
                                                 <ContentPresenter />
                                             </Border>

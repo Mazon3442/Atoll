@@ -44,9 +44,9 @@
             <Setter.Value>
                 <ControlTemplate TargetType="Button">
                     <Grid Height="26" Background="Transparent">
-                        <Border x:Name="Hover" CornerRadius="13" Background="Transparent" Margin="1" />
+                        <Border x:Name="Hover" CornerRadius="{Binding ActualHeight, RelativeSource={RelativeSource Self}, Converter={x:Static shell:PillRadius.Instance}}" Background="Transparent" Margin="1" />
                         <Ellipse x:Name="Today" Width="22" Height="22" Fill="{DynamicResource Island.Accent}" Visibility="Collapsed" />
-                        <Border x:Name="Selected" Width="24" Height="24" CornerRadius="12" BorderThickness="1"
+                        <Border x:Name="Selected" Width="24" Height="24" CornerRadius="{Binding ActualHeight, RelativeSource={RelativeSource Self}, Converter={x:Static shell:PillRadius.Instance}}" BorderThickness="1"
                                 BorderBrush="{DynamicResource Island.Foreground}" Visibility="Collapsed" />
                         <TextBlock x:Name="Day" Text="{Binding Text}" FontSize="11" FontWeight="SemiBold"
                                    HorizontalAlignment="Center" VerticalAlignment="Center" />
@@ -146,8 +146,8 @@
                                 <StackPanel DockPanel.Dock="Bottom" Margin="0,12,0,0"
                                             Visibility="{Binding HasSession, Converter={StaticResource Island.BoolToVisibility}}">
                                     <Grid Height="4" Margin="0,0,0,4" Visibility="{Binding HasTimeline, Converter={StaticResource Island.BoolToVisibility}}">
-                                        <Border CornerRadius="2" Background="{DynamicResource Island.Raised}" />
-                                        <Border CornerRadius="2" Background="{DynamicResource Island.Foreground}" RenderTransformOrigin="0,0.5">
+                                        <Border CornerRadius="{Binding ActualHeight, RelativeSource={RelativeSource Self}, Converter={x:Static shell:PillRadius.Instance}}" Background="{DynamicResource Island.Raised}" />
+                                        <Border CornerRadius="{Binding ActualHeight, RelativeSource={RelativeSource Self}, Converter={x:Static shell:PillRadius.Instance}}" Background="{DynamicResource Island.Foreground}" RenderTransformOrigin="0,0.5">
                                             <Border.RenderTransform><ScaleTransform ScaleX="{Binding Progress, FallbackValue=0}" /></Border.RenderTransform>
                                         </Border>
                                     </Grid>
@@ -386,7 +386,7 @@
                             <ItemsControl.ItemTemplate>
                                 <DataTemplate>
                                     <DockPanel Margin="0,0,0,8">
-                                        <Border DockPanel.Dock="Left" Width="3" CornerRadius="1.5" Background="{Binding Color}" Margin="0,0,9,0" />
+                                        <Border DockPanel.Dock="Left" Width="3" CornerRadius="{Binding ActualWidth, RelativeSource={RelativeSource Self}, Converter={x:Static shell:PillRadius.Instance}}" Background="{Binding Color}" Margin="0,0,9,0" />
                                         <StackPanel>
                                             <TextBlock Text="{Binding Title}" FontSize="13" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
                                             <TextBlock Text="{Binding When}" FontSize="11" Foreground="{DynamicResource Island.Subtle}" TextTrimming="CharacterEllipsis" />

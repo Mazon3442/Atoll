@@ -34,7 +34,7 @@
                 <ItemsControl ItemsSource="{Binding Providers}" Focusable="False">
                     <ItemsControl.ItemTemplate>
                         <DataTemplate>
-                            <Border Background="{DynamicResource Island.Surface}" CornerRadius="10" Padding="12,8" Margin="0,0,0,6">
+                            <Border Background="{DynamicResource Island.Surface}" CornerRadius="14" Padding="12,8" Margin="0,0,0,6">
                                 <StackPanel>
                                     <TextBlock Text="{Binding Name}" FontSize="14" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
                                     <TextBlock Text="{Binding Activity}" FontSize="12" Margin="0,2,0,0" />
