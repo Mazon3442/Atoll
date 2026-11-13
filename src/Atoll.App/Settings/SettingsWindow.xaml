@@ -521,7 +521,7 @@
                                             CommandParameter="{Binding}" AutomationProperties.Name="{Binding Preset.Name, StringFormat=Use theme {0}}">
                                         <StackPanel>
                                             <Border Height="44" CornerRadius="14" Background="{Binding Preset.Background}"
-                                                    BorderBrush="#22808080" BorderThickness="1">
+                                                    BorderBrush="{DynamicResource Island.Hover}" BorderThickness="1">
                                                 <Grid Margin="10,0">
                                                     <TextBlock Text="Aa" Foreground="{Binding Preset.Foreground}" FontWeight="SemiBold"
                                                                FontSize="14" VerticalAlignment="Center" />
@@ -568,7 +568,7 @@
                                 <StackPanel>
                                     <Grid Height="40">
                                         <Rectangle Height="2" VerticalAlignment="Top" Fill="{DynamicResource TextFillColorTertiaryBrush}" />
-                                        <Border Width="84" Height="20" CornerRadius="{Binding ActualHeight, RelativeSource={RelativeSource Self}, Converter={x:Static shell:PillRadius.Instance}}" Background="Black" Margin="0,10,0,0" VerticalAlignment="Top" />
+                                        <Border Width="84" Height="20" CornerRadius="{Binding ActualHeight, RelativeSource={RelativeSource Self}, Converter={x:Static shell:PillRadius.Instance}}" Background="{DynamicResource Island.Menu}" Margin="0,10,0,0" VerticalAlignment="Top" />
                                     </Grid>
                                     <TextBlock Text="Pill" FontWeight="SemiBold" Margin="0,8,0,0" />
                                     <TextBlock Text="Floats just below the top of the screen." Style="{StaticResource Hint}" />
@@ -579,7 +579,7 @@
                                 <StackPanel>
                                     <Grid Height="40">
                                         <Rectangle Height="2" VerticalAlignment="Top" Fill="{DynamicResource TextFillColorTertiaryBrush}" />
-                                        <Border Width="84" Height="22" CornerRadius="0,0,11,11" Background="Black" VerticalAlignment="Top" />
+                                        <Border Width="84" Height="22" CornerRadius="0,0,11,11" Background="{DynamicResource Island.Menu}" VerticalAlignment="Top" />
                                     </Grid>
                                     <TextBlock Text="Notch" FontWeight="SemiBold" Margin="0,8,0,0" />
                                     <TextBlock Text="Hangs from the top edge, like a laptop notch." Style="{StaticResource Hint}" />
