@@ -73,6 +73,8 @@ public sealed partial class PlanLimitRow(PlanLimit limit) : ObservableObject
     public string Name => limit.Name;
     [ObservableProperty] private double _progress;
     [ObservableProperty] private string _percentText = "";
+    /// <summary>Short enough for the middle of a ring.</summary>
+    [ObservableProperty] private string _ringText = "";
     [ObservableProperty] private string _resetText = "";
     [ObservableProperty] private bool _isHigh;
 
@@ -81,6 +83,7 @@ public sealed partial class PlanLimitRow(PlanLimit limit) : ObservableObject
         var passed = limit.ResetsAt is { } at && at <= now; // the window already restarted
         Progress = passed ? 0 : Math.Clamp(limit.Percent / 100, 0, 1);
         PercentText = $"{Progress * 100:0}% used";
+        RingText = $"{Progress * 100:0}%";
         IsHigh = Progress >= 0.8;
         ResetText = limit.ResetsAt is not { } r ? "" : passed ? "reset" : r - now < TimeSpan.FromDays(1)
             ? $"resets in {ClaudeSessionTracker.FormatDuration(r - now)}"
@@ -93,6 +96,8 @@ public sealed partial class ClaudeViewModel(ClaudeSessionTracker tracker, AskVie
 {
     public ClaudeSessionTracker Tracker { get; } = tracker;
     public UsageViewModel Usage { get; } = new();
+    /// <summary>Permission prompts waiting for Allow or Deny, shown at the top of the Sessions list.</summary>
+    public System.Collections.ObjectModel.ObservableCollection<ClaudeAlertViewModel> Permissions { get; } = [];
     public AskViewModel Ask { get; } = ask ?? new AskViewModel();
 
     [ObservableProperty] private ClaudeSessionViewModel? _current;
@@ -157,6 +162,12 @@ public sealed class ClaudeModule : IIslandModule
     private bool _workPosted;
     private bool _disposed;
     private readonly HashSet<string> _attention = [];
+    private readonly Dictionary<string, ClaudeAlertViewModel> _permissionAlerts = [];
+
+    private void ClearPermission(string key)
+    {
+        if (_permissionAlerts.Remove(key, out var alert)) _vm.Permissions.Remove(alert);
+    }
     private readonly Dictionary<string, TaskCompletionSource<string?>> _pending = []; // attention key → hook waiting for an answer
     private static readonly HttpClient LimitsHttp = new() { Timeout = TimeSpan.FromSeconds(20) };
     private readonly CancellationTokenSource _stop = new();
@@ -265,10 +276,17 @@ public sealed class ClaudeModule : IIslandModule
                         session.Detail = choice == "allow" ? "Allowed from ATOLL" : "Denied from ATOLL";
                         _context.Remove(key);
                         _attention.Remove(key);
+                        ClearPermission(key);
                     };
                 }
-                _context.Post(key, new ClaudeAlertViewModel(session, $"{session.Project} needs you", session.Detail, reply),
-                    ActivityPriority.Critical, alert: true);
+                var needsYou = new ClaudeAlertViewModel(session, $"{session.Project} needs you", session.Detail, reply);
+                if (reply is not null)
+                {
+                    ClearPermission(key);
+                    _permissionAlerts[key] = needsYou;
+                    _vm.Permissions.Add(needsYou);
+                }
+                _context.Post(key, needsYou, ActivityPriority.Critical, alert: true);
                 if (settings.SoundOnAttention) SystemSounds.Exclamation.Play();
                 break;
             case ClaudeTransition.Finished:
@@ -294,6 +312,7 @@ public sealed class ClaudeModule : IIslandModule
         {
             _context.Remove(key);
             _attention.Remove(key);
+            ClearPermission(key);
         }
         // Answered in the terminal or the session moved on: release the waiting hook.
         foreach (var key in _pending.Keys.Where(k => !waiting.Contains(k)).ToList())

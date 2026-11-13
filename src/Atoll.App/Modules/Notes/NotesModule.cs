@@ -42,6 +42,34 @@ public sealed partial class NotesViewModel : ObservableObject, IDisposable
         RefreshTimes();
     }
 
+    /// <summary>The soonest reminder that is not done, for the card beside the lists.</summary>
+    public ReminderItem? NextReminder => Reminders.Where(reminder => !reminder.Done).OrderBy(reminder => reminder.Due).FirstOrDefault();
+    public bool HasNextReminder => NextReminder is not null;
+
+    private void RaiseNextReminder()
+    {
+        OnPropertyChanged(nameof(NextReminder));
+        OnPropertyChanged(nameof(HasNextReminder));
+    }
+
+    [RelayCommand]
+    private void SnoozeNext()
+    {
+        if (NextReminder is not { } reminder) return;
+        var from = reminder.Due > DateTimeOffset.Now ? reminder.Due : DateTimeOffset.Now;
+        reminder.Due = from.AddMinutes(10);
+        SortReminders();
+        Message = "Snoozed for 10 minutes.";
+    }
+
+    [RelayCommand]
+    private void FinishNext()
+    {
+        if (NextReminder is not { } reminder) return;
+        reminder.Done = true; // OnItemChanged sorts and saves
+        Message = "Reminder done.";
+    }
+
     public ObservableCollection<NoteItem> Notes { get; } = [];
     public ObservableCollection<ReminderItem> Reminders { get; } = [];
     public ObservableCollection<TodoItem> Todos { get; } = [];
@@ -176,6 +204,7 @@ public sealed partial class NotesViewModel : ObservableObject, IDisposable
         reminder.PropertyChanged -= OnItemChanged;
         Reminders.Remove(reminder);
         _settings.Reminders.Remove(reminder);
+        RaiseNextReminder();
         Message = "Reminder deleted.";
         Save();
     }
@@ -235,6 +264,7 @@ public sealed partial class NotesViewModel : ObservableObject, IDisposable
     public void RefreshTimes()
     {
         foreach (var reminder in Reminders) reminder.RefreshTime();
+        RaiseNextReminder();
     }
 
     private void SortReminders()
@@ -245,6 +275,7 @@ public sealed partial class NotesViewModel : ObservableObject, IDisposable
             var at = Reminders.IndexOf(sorted[i]);
             if (at != i) Reminders.Move(at, i);
         }
+        RaiseNextReminder();
     }
 
     private void OnItemChanged(object? sender, PropertyChangedEventArgs e)

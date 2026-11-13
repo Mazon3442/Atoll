@@ -3,6 +3,11 @@
                     xmlns:shell="clr-namespace:Atoll.Shell">
 
     <DataTemplate x:Key="NotesViewModel.Panel">
+        <Grid>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
         <StackPanel MinHeight="230">
             <Border Background="{DynamicResource Island.Surface}" CornerRadius="{shell:Round}" Padding="3"
                     HorizontalAlignment="Left" Margin="0,0,0,8">
@@ -232,6 +237,21 @@
                 </Grid>
             </Grid>
         </StackPanel>
+
+            <!-- The next reminder, with Snooze and Done. -->
+            <Border Grid.Column="1" Style="{StaticResource Island.Card}" Width="200" Margin="10,0,0,0" VerticalAlignment="Top"
+                    DataContext="{Binding}" Visibility="{Binding HasNextReminder, Converter={StaticResource Island.BoolToVisibility}}">
+                <StackPanel>
+                    <TextBlock Text="Next reminder" FontSize="11" Foreground="{DynamicResource Island.Subtle}" />
+                    <TextBlock Text="{Binding NextReminder.Title}" FontSize="16" FontWeight="SemiBold" TextWrapping="Wrap" MaxHeight="64" Margin="0,6,0,0" />
+                    <TextBlock Text="{Binding NextReminder.DueText}" FontSize="12" Foreground="{DynamicResource Island.Subtle}" Margin="0,4,0,0" />
+                    <StackPanel Orientation="Horizontal" Margin="0,14,0,0">
+                        <Button Style="{StaticResource Island.ChipButton}" Content="Snooze 10 min" Margin="0,0,6,0" Command="{Binding SnoozeNextCommand}" AutomationProperties.Name="Snooze the next reminder for 10 minutes" />
+                        <Button Style="{StaticResource Island.PrimaryChip}" Content="Done" Command="{Binding FinishNextCommand}" AutomationProperties.Name="Mark the next reminder done" />
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+        </Grid>
     </DataTemplate>
 
 </ResourceDictionary>

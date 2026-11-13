@@ -197,6 +197,9 @@ public class GroupedPanelsTests
         foreach (var agent in Atoll.Claude.HookProtocol.Agents)
             agents.Tracker.Apply(new Atoll.Claude.HookMessage { Agent = agent, SessionId = "s1", Event = "PreToolUse", Cwd = "C:/project", Detail = "Running tests" });
         agents.Refresh();
+        agents.Usage.SetLimits([new("Claude 5-hour", 42, DateTimeOffset.Now.AddHours(2)), new("Claude weekly", 85, DateTimeOffset.Now.AddDays(3))], DateTimeOffset.Now);
+        agents.Usage.Update(new UsageSummary(1_200_000, 3.42m, DateTimeOffset.Now.AddHours(-3), DateTimeOffset.Now.AddHours(2), 80_000, 1.10m), DateTimeOffset.Now);
+        agents.Permissions.Add(new Atoll.Modules.Claude.ClaudeAlertViewModel(agents.Tracker.Sessions[0], "atoll needs you", "dotnet test Atoll.sln", _ => { }));
         panels.Add(("agents-active", agents));
         var notifications = new NotificationsViewModel(() => { }) { Access = NotificationAccess.Allowed };
         foreach (var claude in new[] { false, true })
