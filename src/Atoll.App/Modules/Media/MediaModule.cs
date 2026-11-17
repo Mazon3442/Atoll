@@ -330,12 +330,14 @@ public sealed partial class MediaModule : IIslandModule
             }, TaskScheduler.Default);
             if (_disposed || !ReferenceEquals(session, _session) || version != _propertiesVersion) { if (art is IDisposable disposable) disposable.Dispose(); return; }
 
-            if (art is null || string.IsNullOrEmpty(props.Title)) Retry();
             // An unfinished reading must not blank what is already shown.
-            if (string.IsNullOrEmpty(props.Title) && attempt < 6) { if (art is IDisposable unused) unused.Dispose(); return; }
+            if (string.IsNullOrEmpty(props.Title) && attempt < 6) { Retry(); if (art is IDisposable unused) unused.Dispose(); return; }
 
             var artist = string.IsNullOrEmpty(props.Artist) ? props.AlbumArtist ?? "" : props.Artist;
             var sameTrack = props.Title == _vm.Title && artist == _vm.Artist;
+            // Players update the title first and the cover later, so a cover read together with a new title may still
+            // be the previous track's. Read a new track's cover again a few times; no cover is also asked again.
+            if (art is null || string.IsNullOrEmpty(props.Title) || !sameTrack && attempt < 3) Retry();
             _vm.Title = props.Title ?? "";
             _vm.Artist = artist;
             if (art is not null || !sameTrack) _vm.Art = art; // a missed cover read keeps the cover of the same track
