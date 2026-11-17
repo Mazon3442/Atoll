@@ -1293,6 +1293,24 @@ public partial class IslandWindow : Window
         return PanelRoot.DesiredSize.Height + border.Top + border.Bottom;
     }
 
+    private object? _refitFor;
+
+    /// <summary>
+    /// A tab shown for the first time is measured before its styles and bindings have hidden what they hide, so
+    /// the first height can be too tall (Weather showed a band of empty space). Once its first layout pass has run,
+    /// fit the island to the tab again, once per shown tab.
+    /// </summary>
+    private void QueueRefit()
+    {
+        var tab = Tabs.SelectedItem;
+        if (tab is null || ReferenceEquals(_refitFor, tab)) return;
+        _refitFor = tab;
+        Dispatcher.BeginInvoke(DispatcherPriority.Loaded, () =>
+        {
+            if (_mode == IslandMode.Expanded && ReferenceEquals(_refitFor, Tabs.SelectedItem)) Render();
+        });
+    }
+
     private void Render()
     {
         var t = _settings.Current.Theme;
@@ -1306,6 +1324,7 @@ public partial class IslandWindow : Window
             if (Tabs.SelectedItem is ModuleTab { Panel: MediaPanelViewModel or SystemGroupViewModel or Atoll.Modules.Weather.WeatherViewModel or Atoll.Modules.Home.HomeViewModel or Atoll.Modules.Games.GameViewModel or Atoll.Modules.Calendar.CalendarViewModel or Atoll.Modules.Notes.NotesViewModel or LauncherPanelViewModel or ClockPanelViewModel or Atoll.Modules.Tide.TideViewModel or Atoll.Modules.Claude.ClaudeViewModel })
                 expandedHeight = Math.Max(expandedHeight, FittedPanelHeight(expandedWidth)); // show all of it
             expandedHeight = Math.Min(expandedHeight, AvailablePanelHeight);
+            QueueRefit();
             // Lay out at the destination size, so opening the pill cannot create transient overflow.
             PanelRoot.Width = expandedWidth - PanelRoot.Margin.Left - PanelRoot.Margin.Right - PillChrome.Left - PillChrome.Right;
             PanelRoot.Height = expandedHeight - PanelRoot.Margin.Top - PanelRoot.Margin.Bottom - PillChrome.Top - PillChrome.Bottom;
@@ -1319,6 +1338,7 @@ public partial class IslandWindow : Window
             return;
         }
 
+        _refitFor = null;
         PanelRoot.Visibility = Visibility.Collapsed;
         PillContent.Visibility = Visibility.Visible;
 
