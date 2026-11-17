@@ -1289,7 +1289,14 @@ public partial class IslandWindow : Window
         PanelRoot.Visibility = Visibility.Visible; // collapsed elements measure as zero
         PanelRoot.Width = expandedWidth - PanelRoot.Margin.Left - PanelRoot.Margin.Right - border.Left - border.Right;
         PanelRoot.Height = double.NaN;
-        PanelRoot.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
+        var unbounded = new Size(double.PositiveInfinity, double.PositiveInfinity);
+        PanelRoot.Measure(unbounded);
+        // A freshly shown tab still counts what its styles and bindings are about to hide (the first reading of
+        // Weather was about 100 px too tall). One layout pass settles them, then the page is measured again.
+        PanelRoot.Arrange(new Rect(PanelRoot.DesiredSize));
+        PanelRoot.UpdateLayout();
+        PanelRoot.InvalidateMeasure();
+        PanelRoot.Measure(unbounded);
         return PanelRoot.DesiredSize.Height + border.Top + border.Bottom;
     }
 
