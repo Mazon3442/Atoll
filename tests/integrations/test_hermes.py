@@ -29,13 +29,13 @@ class HermesAdapterTests(unittest.TestCase):
             self.assertEqual({m["agent_pid"] for m in messages}, {self.module["os"].getpid()})
             self.assertEqual(run.call_args.args[0][1:], ["--agent", "hermes"])
 
-    def test_interrupted_or_failed_turns_never_report_success(self):
+    def test_every_ending_leaves_the_session_not_working(self):
         with patch.object(self.module["subprocess"], "run") as run:
             self.hooks["on_session_end"](session_id="s1", interrupted=True)
             self.hooks["on_session_end"](session_id="s1", completed=False)
             self.hooks["on_session_end"](session_id="s1", completed=True)
             self.assertEqual([json.loads(c.kwargs["input"])["hook_event_name"] for c in run.call_args_list],
-                             ["Interrupt", "Error"])
+                             ["Interrupt", "Error", "Stop"])
 
     def test_closed_island_cannot_break_a_hermes_turn(self):
         with patch.object(self.module["subprocess"], "run", side_effect=OSError("missing exe")):

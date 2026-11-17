@@ -59,13 +59,13 @@
                     <ColumnDefinition Width="10" />
                     <ColumnDefinition Width="0.8*" />
                 </Grid.ColumnDefinitions>
-                <Border Style="{StaticResource Island.Card}" Padding="16,14" VerticalAlignment="Top">
+                <Border Style="{StaticResource Island.Card}" Padding="16,14">
                     <StackPanel>
                 <Grid Margin="0,0,0,10">
                     <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="76" /></Grid.ColumnDefinitions>
                     <StackPanel>
                         <TextBlock Text="{Binding PlaceLabel}" FontSize="11" Foreground="{DynamicResource Island.Subtle}" TextTrimming="CharacterEllipsis" ToolTip="{Binding Place}" />
-                        <TextBlock Text="{Binding TemperatureReading}" AutomationProperties.Name="{Binding Temperature}" FontSize="60" FontWeight="Light" LineHeight="70" Margin="0,2,0,0" />
+                        <TextBlock Text="{Binding TemperatureReading}" AutomationProperties.Name="{Binding Temperature}" FontSize="52" FontWeight="Light" LineHeight="60" Margin="0,2,0,0" />
                         <TextBlock Text="{Binding ConditionSummary}" FontSize="13" Opacity="0.85" TextWrapping="Wrap" />
                         <TextBlock Text="{Binding RainSummary}" FontSize="12" Opacity="0.7" TextWrapping="Wrap" Margin="0,2,0,0" />
                     </StackPanel>
@@ -88,13 +88,14 @@
                 </Border>
                 </Grid>
                 <weather:ForecastChart Points="{Binding ChartPoints}" Metric="{Binding SelectedMetric}" SelectedIndex="{Binding SelectedChartIndex}"
-                                       Height="150" Margin="0,4,0,6" Ink="{Binding Foreground, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                       Height="104" Margin="0,4,0,6" Ink="{Binding Foreground, RelativeSource={RelativeSource AncestorType=UserControl}}"
                                        Accent="{DynamicResource Island.Accent}" AutomationProperties.Name="Hourly weather chart"
                                        AutomationProperties.HelpText="Use the left and right arrows to inspect hours, or point at a reading. Home and End select the first and last hour. Times are local to this place." />
                 <TextBlock Text="{Binding Updated}" FontSize="11" Opacity="0.8" TextWrapping="Wrap" Margin="0,4,0,0" ToolTip="Forecast times are local to this place." />
                     </StackPanel>
                 </Border>
-                <StackPanel Grid.Column="2" VerticalAlignment="Top">
+                <Grid Grid.Column="2">
+                <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="*" /></Grid.RowDefinitions>
                 <Border Style="{StaticResource Island.Card}" Padding="14,10" Margin="0,0,0,10">
                 <ListBox ItemsSource="{Binding Days}" Margin="-4,0" SelectedItem="{Binding SelectedDay}" ItemContainerStyle="{StaticResource DayItem}"
                          Background="Transparent" BorderThickness="0" Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=UserControl}}"
@@ -117,13 +118,13 @@
                     </DataTemplate></ListBox.ItemTemplate>
                 </ListBox>
                 </Border>
-                    <ItemsControl ItemsSource="{Binding DetailTiles}" Focusable="False" AutomationProperties.Name="Weather details">
+                    <ItemsControl Grid.Row="1" ItemsSource="{Binding DetailTiles}" Focusable="False" AutomationProperties.Name="Weather details">
                         <ItemsControl.ItemsPanel>
                             <ItemsPanelTemplate><UniformGrid Columns="2" Margin="0,0,-10,0" /></ItemsPanelTemplate>
                         </ItemsControl.ItemsPanel>
                         <ItemsControl.ItemTemplate>
                             <DataTemplate>
-                                <Border Style="{StaticResource Island.Card}" Padding="12,10" Margin="0,0,10,10" Height="74" AutomationProperties.Name="{Binding Caption}">
+                                <Border Style="{StaticResource Island.Card}" Padding="12,10" Margin="0,0,10,10" MinHeight="64" AutomationProperties.Name="{Binding Caption}">
                                     <StackPanel>
                                         <TextBlock Text="{Binding Caption}" FontSize="11" Opacity="0.6" />
                                         <TextBlock Text="{Binding Value}" FontSize="16" FontWeight="SemiBold" Margin="0,2,0,0" TextTrimming="CharacterEllipsis" />
@@ -133,7 +134,7 @@
                             </DataTemplate>
                         </ItemsControl.ItemTemplate>
                     </ItemsControl>
-                </StackPanel>
+                </Grid>
             </Grid>
         </StackPanel>
     </ScrollViewer>

@@ -24,10 +24,9 @@ def _send(event, session_id="", tool_name=None, args=None, **kwargs):
 
 
 def _ended(completed=False, interrupted=False, **kwargs):
-    if interrupted:
-        _send("Interrupt", **kwargs)
-    elif not completed:
-        _send("Error", **kwargs)
+    # Every ending must leave the session not-working; post_llm_call is not sent for every completed turn.
+    # A repeated Stop after post_llm_call changes nothing.
+    _send("Interrupt" if interrupted else "Stop" if completed else "Error", **kwargs)
 
 
 def register(ctx):
