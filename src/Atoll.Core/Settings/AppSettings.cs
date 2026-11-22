@@ -105,6 +105,8 @@ public sealed class AppSettings
 
     public DictationSettings Dictation { get; set; } = new();
 
+    public PaletteSettings Palette { get; set; } = new();
+
     /// <summary>Changed shortcuts by <see cref="ShortcutCatalog"/> id. Missing means the default; empty means off.</summary>
     public Dictionary<string, string> Shortcuts { get; set; } = new();
 
@@ -603,4 +605,17 @@ public sealed class DictationSettings
 
     /// <summary>Keep the speech model in memory this long after the last use, for a faster next press. 0 frees it at once.</summary>
     public int KeepModelSeconds { get; set; } = 60;
+}
+
+/// <summary>What the command palette may look up besides tabs, apps and actions.</summary>
+public sealed class PaletteSettings
+{
+    /// <summary>Find files and folders by name. The list of names is built in memory and never saved.</summary>
+    public bool Files { get; set; } = true;
+
+    /// <summary>Folders searched for files. Empty means Desktop, Documents, Downloads and Pictures.</summary>
+    public List<string> Folders { get; set; } = [];
+
+    /// <summary>Look up exchange rates (one request to a free service) when a currency conversion is typed.</summary>
+    public bool Currency { get; set; } = true;
 }

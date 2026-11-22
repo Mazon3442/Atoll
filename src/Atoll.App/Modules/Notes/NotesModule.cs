@@ -127,12 +127,17 @@ public sealed partial class NotesViewModel : ObservableObject, IDisposable
             Message = "Add when: tomorrow at 9, in 20 minutes, every day at 23:00.";
             return;
         }
-        var item = new ReminderItem { Title = parsed.Title, Due = parsed.Due, RepeatDays = parsed.RepeatDays };
+        Add(new ReminderItem { Title = parsed.Title, Due = parsed.Due, RepeatDays = parsed.RepeatDays });
+        ReminderTitle = "";
+        Message = "Reminder set.";
+    }
+
+    /// <summary>Adds a ready-made reminder, for example one the command palette parsed.</summary>
+    public void Add(ReminderItem item)
+    {
         Reminders.Add(item);
         _settings.Reminders.Add(item);
         item.PropertyChanged += OnItemChanged;
-        ReminderTitle = "";
-        Message = "Reminder set.";
         SortReminders();
         Save();
     }

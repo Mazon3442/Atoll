@@ -74,6 +74,7 @@ public partial class IslandWindow : Window
     private ModuleTab? _transientTab;
     private bool _refreshingTabs;
     private readonly CommandPaletteViewModel _palette;
+    private readonly PaletteQueries _queries;
     private bool _paletteOpen;
     private Rect _peekAnchor = Rect.Empty;
     private object? _shownContent;
@@ -130,7 +131,8 @@ public partial class IslandWindow : Window
 
         Tabs.ItemsSource = _visibleTabs;
         TabMenu.ItemsSource = _menuTabs;
-        _palette = new CommandPaletteViewModel(BuildPaletteCommands);
+        _queries = new PaletteQueries(_settings, _modules, RunAndTuck, () => _palette.Requery());
+        _palette = new CommandPaletteViewModel(BuildPaletteCommands, _queries.Build);
         Palette.DataContext = _palette;
         _palette.CloseRequested += ClosePalette;
         modules.LayoutChanged += OnModulesLayoutChanged;
@@ -559,6 +561,12 @@ public partial class IslandWindow : Window
                 () => RunAndTuck(() => actions.ScreenOffCommand.Execute(null))));
             items.Add(new CommandItem("Open Downloads", "Action", "\uE896", "", CommandKind.Action,
                 () => RunAndTuck(() => actions.DownloadsCommand.Execute(null))));
+            items.Add(new CommandItem("Toggle Wi-Fi", "Action", "\uE701", "", CommandKind.Action,
+                () => RunAndTuck(() => actions.ToggleWifiCommand.Execute(null))));
+            items.Add(new CommandItem("Toggle Bluetooth", "Action", "\uE702", "", CommandKind.Action,
+                () => RunAndTuck(() => actions.ToggleBluetoothCommand.Execute(null))));
+            items.Add(new CommandItem("Switch Windows dark mode", "Action", "\uE708", "", CommandKind.Action,
+                () => RunAndTuck(() => actions.ToggleThemeCommand.Execute(null))));
         }
 
         var clock = _modules.Tabs.Select(tab => tab.Panel).OfType<ClockPanelViewModel>().FirstOrDefault();
@@ -592,6 +600,8 @@ public partial class IslandWindow : Window
                     () => RunAndTuck(focus.Clear)));
         }
 
+        items.Add(new CommandItem("Voice to text", "Action", "\uE720", "", CommandKind.Action,
+            () => RunAndTuck(() => Atoll.Navigation.Dictate?.Invoke())));
         items.Add(new CommandItem("Open Settings", "Action", "\uE713", "", CommandKind.Action,
             () => RunAndTuck(() => _openSettings(0))));
 
@@ -602,7 +612,9 @@ public partial class IslandWindow : Window
             {
                 var target = app;
                 items.Add(new CommandItem(app.Name, app.Source, "", app.Initial, CommandKind.App,
-                    () => RunAndTuck(() => apps.LaunchCommand.Execute(target))));
+                    () => RunAndTuck(() => apps.LaunchCommand.Execute(target)),
+                    RunFolder: () => RunAndTuck(() => PaletteActions.ShowInFolder(PaletteActions.ShortcutTarget(target.LaunchPath))),
+                    RunElevated: () => RunAndTuck(() => PaletteActions.Elevated(PaletteActions.ShortcutTarget(target.LaunchPath)))));
             }
         }
 

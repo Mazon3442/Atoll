@@ -488,6 +488,17 @@
                         <TextBlock Style="{StaticResource Hint}" Margin="4,2,0,0"
                                    Text="Click a shortcut and press new keys to change it. Backspace turns it off. In the open island, Ctrl+Tab or the mouse wheel over the tabs switches sections." />
 
+                        <TextBlock Style="{StaticResource SectionHeader}" Text="Command palette" />
+                        <TextBlock Style="{StaticResource SectionHint}" Text="What typing can find or work out. Everything else stays on this PC." />
+                        <s:SettingCard Glyph="&#xE8A5;" Header="Find files by name"
+                                       Description="Searches Desktop, Documents, Downloads and Pictures. The names are kept in memory only, never saved.">
+                            <CheckBox Style="{StaticResource Toggle}" IsChecked="{Binding PaletteFiles}" AutomationProperties.Name="Find files by name" />
+                        </s:SettingCard>
+                        <s:SettingCard Glyph="&#xE8EF;" Header="Look up exchange rates"
+                                       Description="Typing 100 usd to eur downloads current rates once from a free service (open.er-api.com). Only the base currency is sent.">
+                            <CheckBox Style="{StaticResource Toggle}" IsChecked="{Binding PaletteCurrency}" AutomationProperties.Name="Look up exchange rates" />
+                        </s:SettingCard>
+
                         <TextBlock Style="{StaticResource SectionHeader}" Text="Position" />
                         <TextBlock Style="{StaticResource SectionHint}" Text="Choose which screens show an island." />
                         <s:SettingCard Glyph="&#xE7F4;" Header="Show on" Description="Which displays get an island.">
