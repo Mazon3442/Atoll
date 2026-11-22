@@ -79,6 +79,14 @@ public partial class App : Application
 
         _dictation = new Modules.Dictation.DictationService(_activities, _settings, Dispatcher, _hotkeys);
         Navigation.Dictate = () => _ = _dictation.ToggleAsync();
+        _hotkeys.AddAction(ShortcutCatalog.MicMute, () =>
+        {
+            var muted = Modules.Actions.QuickActionsModule.SwitchMic();
+            _activities.Post(new Activities.Activity("mic.toggle", "actions",
+                new Activities.IndicatorViewModel(muted == true ? "\uE720" : "\uE720", muted is null ? "No microphone found" : muted.Value ? "Microphone muted" : "Microphone on"),
+                Activities.ActivityPriority.High, TimeSpan.FromSeconds(2)));
+        });
+        _hotkeys.AddAction(ShortcutCatalog.PlainPaste, PasteWithoutFormatting);
         _screen = new Modules.Screen.ScreenTools(_activities, _settings, Dispatcher, _hotkeys);
         Navigation.ScreenTool = tool =>
         {
@@ -235,6 +243,18 @@ public partial class App : Application
         // An overlay that vanishes is worse than one with a broken widget: log and keep running.
         Log.Error("Unhandled UI exception", e.Exception);
         e.Handled = true;
+    }
+
+    /// <summary>Pastes the clipboard as plain text: re-copies only its text, then presses Ctrl+V in the window that has the keyboard.</summary>
+    private static void PasteWithoutFormatting()
+    {
+        try
+        {
+            if (!Clipboard.ContainsText()) return;
+            Clipboard.SetText(Clipboard.GetText());
+        }
+        catch (System.Runtime.InteropServices.COMException) { return; } // the clipboard was busy
+        _ = KeyboardInjector.PasteAsync();
     }
 
     protected override void OnExit(ExitEventArgs e)

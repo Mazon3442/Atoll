@@ -94,6 +94,12 @@ public sealed class AppSettings
     /// <summary>Header battery chip and low-battery behavior on laptops. Desktops have no battery to show.</summary>
     public bool ShowBattery { get; set; } = true;
 
+    /// <summary>A short popup with the layout name (EN, RU) when the keyboard layout changes.</summary>
+    public bool ShowKeyboardLayout { get; set; } = true;
+
+    /// <summary>Mouse wheel over the resting island changes the volume. Off by default, because the wheel can also scroll the page under the pointer.</summary>
+    public bool WheelVolume { get; set; }
+
     /// <summary>System-wide shortcut that opens the island with keyboard focus, or closes it. Empty turns it off.</summary>
     public string OpenShortcut { get; set; } = "Ctrl+Alt+Space";
 

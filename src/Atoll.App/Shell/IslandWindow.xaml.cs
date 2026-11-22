@@ -155,6 +155,7 @@ public partial class IslandWindow : Window
         };
         RefreshTabStrip();
 
+        Pill.MouseWheel += OnPillWheel;
         Pill.MouseLeftButtonUp += (_, e) =>
         {
             if (_mode == IslandMode.Expanded) return;
@@ -744,6 +745,24 @@ public partial class IslandWindow : Window
         }
         TabMenu.SelectedItem = null;
     }
+
+    /// <summary>With the island resting, the wheel over it changes the volume, one step per notch (Settings turns this on).</summary>
+    private void OnPillWheel(object sender, MouseWheelEventArgs e)
+    {
+        if (!_settings.Current.WheelVolume || _mode != IslandMode.Compact) return;
+        if (_modules.Tabs.Select(tab => tab.Panel).OfType<SystemGroupViewModel>().FirstOrDefault()?.Devices is not { } devices) return;
+        if (Math.Sign(e.Delta) != Math.Sign(_pillWheelDelta)) _pillWheelDelta = 0;
+        _pillWheelDelta += e.Delta;
+        while (Math.Abs(_pillWheelDelta) >= Mouse.MouseWheelDeltaForOneLine)
+        {
+            var notch = Math.Sign(_pillWheelDelta);
+            _pillWheelDelta -= notch * Mouse.MouseWheelDeltaForOneLine;
+            devices.Volume = Math.Clamp(devices.Volume + 5 * notch, 0, 100);
+        }
+        e.Handled = true;
+    }
+
+    private int _pillWheelDelta;
 
     private void OnHeaderWheel(object sender, MouseWheelEventArgs e)
     {

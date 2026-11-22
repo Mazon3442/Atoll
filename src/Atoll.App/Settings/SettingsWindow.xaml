@@ -488,6 +488,15 @@
                         <TextBlock Style="{StaticResource Hint}" Margin="4,2,0,0"
                                    Text="Click a shortcut and press new keys to change it. Backspace turns it off. In the open island, Ctrl+Tab or the mouse wheel over the tabs switches sections." />
 
+                        <TextBlock Style="{StaticResource SectionHeader}" Text="Status popups" />
+                        <TextBlock Style="{StaticResource SectionHint}" Text="Small things the island can tell you or let you do without opening it." />
+                        <s:SettingCard Glyph="&#xE765;" Header="Keyboard layout" Description="A short popup (EN, RU) when you switch the keyboard layout.">
+                            <CheckBox Style="{StaticResource Toggle}" IsChecked="{Binding ShowKeyboardLayout}" AutomationProperties.Name="Show a popup when the keyboard layout changes" />
+                        </s:SettingCard>
+                        <s:SettingCard Glyph="&#xE767;" Header="Mouse wheel changes the volume" Description="Scroll over the resting island to turn the volume up or down. Off by default: it only works while the island can take the wheel, not in click through mode.">
+                            <CheckBox Style="{StaticResource Toggle}" IsChecked="{Binding WheelVolume}" AutomationProperties.Name="Mouse wheel changes the volume" />
+                        </s:SettingCard>
+
                         <TextBlock Style="{StaticResource SectionHeader}" Text="Screen tools" />
                         <TextBlock Style="{StaticResource SectionHint}" Text="Screenshots, text and QR codes from the screen, and the color picker. Pictures are never uploaded." />
                         <s:SettingCard Glyph="&#xE838;" Header="Save pictures to" Description="Screenshots and recordings go here. Empty means Pictures\Atoll.">

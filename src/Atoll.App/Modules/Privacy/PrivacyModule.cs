@@ -21,6 +21,10 @@ public sealed partial class PrivacyViewModel : ObservableObject
     [NotifyPropertyChangedFor(nameof(Title), nameof(Description))]
     private IReadOnlyList<string> _cameraApps = [];
 
+    /// <summary>The mute button on the pill: the same switch as the Mic tile, so what is heard stops without opening the app.</summary>
+    [CommunityToolkit.Mvvm.Input.RelayCommand]
+    private void ToggleMic() => Atoll.Modules.Actions.QuickActionsModule.SwitchMic();
+
     public bool Microphone => MicrophoneApps.Count > 0;
     public bool Camera => CameraApps.Count > 0;
 

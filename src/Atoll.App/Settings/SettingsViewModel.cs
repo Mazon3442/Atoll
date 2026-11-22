@@ -92,6 +92,8 @@ public sealed partial class SettingsViewModel : ObservableObject
     }
 
     public bool ClickThrough { get => S.ClickThrough; set => Set(S.ClickThrough, value, v => S.ClickThrough = v); }
+    public bool ShowKeyboardLayout { get => S.ShowKeyboardLayout; set => Set(S.ShowKeyboardLayout, value, v => S.ShowKeyboardLayout = v); }
+    public bool WheelVolume { get => S.WheelVolume; set => Set(S.WheelVolume, value, v => S.WheelVolume = v); }
     public bool ScreenShowIsland { get => S.Screen.ShowIsland; set => Set(S.Screen.ShowIsland, value, v => S.Screen.ShowIsland = v); }
     public bool ScreenRecord60 { get => S.Screen.RecordFps >= 60; set => Set(S.Screen.RecordFps >= 60, value, v => S.Screen.RecordFps = v ? 60 : 30); }
     public bool ScreenRecordHigh { get => S.Screen.RecordHighQuality; set => Set(S.Screen.RecordHighQuality, value, v => S.Screen.RecordHighQuality = v); }

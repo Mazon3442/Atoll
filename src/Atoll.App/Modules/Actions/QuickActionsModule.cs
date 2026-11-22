@@ -136,13 +136,16 @@ public sealed class QuickActionsModule : IIslandModule
         _disarm.Start();
     }
 
+    /// <summary>Flips the default microphone's mute and returns the new state; null when there is no microphone.</summary>
+    internal static bool? SwitchMic() => WithMic(v =>
+    {
+        v.Mute = !v.Mute;
+        return v.Mute;
+    });
+
     internal void ToggleMic()
     {
-        var muted = WithMic(v =>
-        {
-            v.Mute = !v.Mute;
-            return v.Mute;
-        });
+        var muted = SwitchMic();
         if (muted is not { } m)
         {
             Indicate("", "No microphone found");
