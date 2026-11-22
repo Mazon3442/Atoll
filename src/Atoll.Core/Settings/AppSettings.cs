@@ -89,6 +89,9 @@ public sealed class AppSettings
     /// </summary>
     public bool ClickThrough { get; set; } = true;
 
+    /// <summary>Programs that hide, dim or keep the island while they are in front, checked before the window-size settings.</summary>
+    public List<ProgramRule> ProgramRules { get; set; } = [];
+
     public int HoverDelayMs { get; set; } = 200;
 
     /// <summary>Header battery chip and low-battery behavior on laptops. Desktops have no battery to show.</summary>

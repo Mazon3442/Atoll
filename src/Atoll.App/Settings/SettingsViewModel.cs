@@ -36,6 +36,7 @@ public sealed partial class SettingsViewModel : ObservableObject
         Displays = new(Shell.Monitors.GetAll().Select(m => new DisplayRow(m, S, Save)));
         CalendarSources = new(S.Calendar.Sources.Select(s => new CalendarSourceRow(s) { Url = SecretStore.Unprotect(s.EncryptedUrl) ?? "" }));
         LoadProviderAccounts();
+        LoadProgramRules();
         RebuildThemes();
         HookShortcuts();
     }
@@ -92,6 +93,42 @@ public sealed partial class SettingsViewModel : ObservableObject
     }
 
     public bool ClickThrough { get => S.ClickThrough; set => Set(S.ClickThrough, value, v => S.ClickThrough = v); }
+    public ObservableCollection<ProgramRuleRow> ProgramRules { get; } = [];
+    [ObservableProperty] private string _newProgram = "";
+    [ObservableProperty] private FullscreenMode _newProgramMode = FullscreenMode.Hide;
+    public IReadOnlyList<Choice<FullscreenMode>> ProgramModes { get; } =
+    [
+        new(FullscreenMode.Hide, "Hide the island"), new(FullscreenMode.PopUp, "Hide, but pop up for alerts"),
+        new(FullscreenMode.Dim, "Dim the island"), new(FullscreenMode.Stay, "Keep the island"),
+    ];
+
+    private void LoadProgramRules()
+    {
+        ProgramRules.Clear();
+        foreach (var rule in S.ProgramRules) ProgramRules.Add(new ProgramRuleRow(this, rule));
+    }
+
+    [RelayCommand]
+    private void AddProgramRule()
+    {
+        var name = Atoll.Settings.ProgramRules.Normalize(NewProgram);
+        if (name.Length == 0 || S.ProgramRules.Any(rule => Atoll.Settings.ProgramRules.Normalize(rule.Process).Equals(name, StringComparison.OrdinalIgnoreCase))) return;
+        var rule = new ProgramRule { Process = name, Mode = NewProgramMode };
+        S.ProgramRules.Add(rule);
+        ProgramRules.Add(new ProgramRuleRow(this, rule));
+        NewProgram = "";
+        Save();
+    }
+
+    internal void RemoveProgramRule(ProgramRuleRow row)
+    {
+        S.ProgramRules.Remove(row.Rule);
+        ProgramRules.Remove(row);
+        Save();
+    }
+
+    internal void ProgramRuleChanged() => Save();
+
     public bool ShowKeyboardLayout { get => S.ShowKeyboardLayout; set => Set(S.ShowKeyboardLayout, value, v => S.ShowKeyboardLayout = v); }
     public bool WheelVolume { get => S.WheelVolume; set => Set(S.WheelVolume, value, v => S.WheelVolume = v); }
     public bool ScreenShowIsland { get => S.Screen.ShowIsland; set => Set(S.Screen.ShowIsland, value, v => S.Screen.ShowIsland = v); }

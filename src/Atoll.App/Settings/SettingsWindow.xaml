@@ -443,6 +443,31 @@
                         </StackPanel>
                         </Expander>
 
+                        <TextBlock Style="{StaticResource SectionHeader}" Text="Programs" />
+                        <TextBlock Style="{StaticResource SectionHint}" Text="Hide, dim or keep the island while a named program is in front, whatever size its window is. These rules win over the settings above." />
+                        <s:SettingCard Glyph="&#xE71D;" Header="Add a program" Description="Type its file name, for example chrome or obs64.">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBox Style="{StaticResource Island.Input}" Width="130" Text="{Binding NewProgram, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Program file name" />
+                                <ComboBox Style="{StaticResource Island.Picker}" Width="190" Margin="8,0,8,0" ItemsSource="{Binding ProgramModes}" DisplayMemberPath="Label"
+                                          SelectedValuePath="Value" SelectedValue="{Binding NewProgramMode}" AutomationProperties.Name="What the island does" />
+                                <Button Style="{StaticResource Island.ChipButton}" Content="Add" Margin="0" Command="{Binding AddProgramRuleCommand}" />
+                            </StackPanel>
+                        </s:SettingCard>
+                        <ItemsControl ItemsSource="{Binding ProgramRules}" Focusable="False">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <s:SettingCard Glyph="&#xE71D;" Header="{Binding Name}" Description="">
+                                        <StackPanel Orientation="Horizontal">
+                                            <ComboBox Style="{StaticResource Island.Picker}" Width="190" ItemsSource="{Binding Modes}" DisplayMemberPath="Label"
+                                                      SelectedValuePath="Value" SelectedValue="{Binding Mode}" AutomationProperties.Name="{Binding Name, StringFormat=What the island does for {0}}" />
+                                            <Button Style="{StaticResource Island.ChipButton}" Content="Remove" Margin="8,0,0,0" Command="{Binding RemoveCommand}"
+                                                    AutomationProperties.Name="{Binding Name, StringFormat=Remove the rule for {0}}" />
+                                        </StackPanel>
+                                    </s:SettingCard>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+
                         <TextBlock Style="{StaticResource SectionHeader}" Text="Keyboard" />
                         <TextBlock Style="{StaticResource SectionHint}" Text="Shortcuts that work from any app." />
                         <s:SettingCard Glyph="&#xE765;" Header="Open ATOLL"

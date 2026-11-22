@@ -105,7 +105,7 @@ public sealed class IslandManager : IDisposable
     {
         foreach (var w in _windows)
         {
-            w.SetEnvironment(_paused, FullscreenWatcher.Classify(w.Monitor));
+            w.SetEnvironment(_paused, FullscreenWatcher.Classify(w.Monitor), FullscreenWatcher.ForegroundProcess());
             if (w.IsVisible) w.EnsureTopmost(); // other topmost apps can push us down
         }
     }

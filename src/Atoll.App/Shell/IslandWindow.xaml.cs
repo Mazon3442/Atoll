@@ -780,9 +780,10 @@ public partial class IslandWindow : Window
 
     /// <summary>Called by the manager whenever pause or the foreground app's state may have changed.</summary>
     /// <param name="foreground">Null while one of ATOLL's own windows is in front: keep the last answer.</param>
-    public void SetEnvironment(bool paused, ForegroundKind? foreground)
+    public void SetEnvironment(bool paused, ForegroundKind? foreground, string? process = null)
     {
         _paused = paused;
+        if (foreground is not null) _foregroundProcess = process; // ATOLL itself in front keeps the last program
         if (foreground is { } kind && kind != _foreground)
         {
             Log.Info($"Foreground on {Monitor.DeviceName}: {kind}");
@@ -864,7 +865,10 @@ public partial class IslandWindow : Window
     }
 
     /// <summary>The visibility setting that applies to what is in front of the island.</summary>
-    internal static FullscreenMode ModeFor(ForegroundKind foreground, AppSettings settings) => foreground switch
+    internal static FullscreenMode ModeFor(ForegroundKind foreground, AppSettings settings, string? process = null) =>
+        ProgramRules.Match(settings.ProgramRules, process) ?? ModeForSize(foreground, settings);
+
+    private static FullscreenMode ModeForSize(ForegroundKind foreground, AppSettings settings) => foreground switch
     {
         // Overlay: the game pill stays up. Hidden: only an intentional edge hold or the open shortcut reveals it.
         ForegroundKind.Game => settings.Games.Mode == GameIslandMode.Overlay ? FullscreenMode.Stay : FullscreenMode.Hide,
@@ -884,13 +888,15 @@ public partial class IslandWindow : Window
         _ => open || !hideWhenIdle || primary is { Priority: > ActivityPriority.Idle },
     };
 
-    private bool ShownWithoutReveal() => ShownWithoutReveal(ModeFor(_foreground, _settings.Current),
+    private string? _foregroundProcess;
+
+    private bool ShownWithoutReveal() => ShownWithoutReveal(ModeFor(_foreground, _settings.Current, _foregroundProcess),
         _settings.Current.HideWhenIdle, _primary, _mode != IslandMode.Compact);
 
     /// <summary>Shows, hides or dims the window for pause and the visibility settings.</summary>
     private void UpdatePresence()
     {
-        var mode = ModeFor(_foreground, _settings.Current);
+        var mode = ModeFor(_foreground, _settings.Current, _foregroundProcess);
         var shown = !_paused && (_revealed || ShownWithoutReveal());
         Opacity = mode == FullscreenMode.Dim ? 0.5 : 1;
 
