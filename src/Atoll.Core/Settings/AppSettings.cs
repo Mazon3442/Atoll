@@ -525,12 +525,28 @@ public sealed partial class NoteItem : ObservableObject
     public string Id { get; set; } = Guid.NewGuid().ToString("N");
 
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(UpdatedText))]
+    [NotifyPropertyChangedFor(nameof(UpdatedText), nameof(Title))]
     private string _text = "";
+
+    /// <summary>The note as a FlowDocument in XAML, with its formatting. Empty for notes written before formatting existed: <see cref="Text"/> is shown instead.</summary>
+    [ObservableProperty] private string _rich = "";
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(UpdatedText))]
     private DateTimeOffset _updated = DateTimeOffset.Now;
+
+    /// <summary>The first line, which names the note on its tab.</summary>
+    [JsonIgnore]
+    public string Title
+    {
+        get
+        {
+            var line = Text.Split(['\r', '\n'], StringSplitOptions.RemoveEmptyEntries).FirstOrDefault()?.Trim() ?? "";
+            line = line.TrimStart('☐', '☑', '•', '-', ' ');
+            if (line.Length == 0) return "New note";
+            return line.Length > 18 ? line[..17] + "…" : line;
+        }
+    }
 
     [JsonIgnore]
     public string UpdatedText => Updated.LocalDateTime.ToString("MMM d, h:mm tt", CultureInfo.CurrentCulture);
@@ -552,7 +568,14 @@ public sealed partial class ReminderItem : ObservableObject
     [NotifyPropertyChangedFor(nameof(DueText), nameof(IsOverdue))]
     private bool _done;
 
-    [JsonIgnore] public string DueText => Done ? "Done" : IcsCalendar.Relative(Due, DateTimeOffset.Now);
+    /// <summary>Days it repeats on, bit 0 = Sunday like <see cref="AlarmEntry"/>. 0 = once.</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(DueText), nameof(IsRepeating))]
+    private int _repeatDays;
+
+    [JsonIgnore] public bool IsRepeating => RepeatDays != 0;
+
+    [JsonIgnore] public string DueText => Done ? "Done" : (RepeatDays == 0 ? "" : "Repeats · ") + IcsCalendar.Relative(Due, DateTimeOffset.Now);
     [JsonIgnore] public bool IsOverdue => !Done && Due <= DateTimeOffset.Now;
 
     internal void RefreshTime()

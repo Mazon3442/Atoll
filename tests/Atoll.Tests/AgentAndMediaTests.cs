@@ -311,8 +311,6 @@ internal static class AgentMediaUi
         var notes = new Atoll.Modules.Notes.NotesViewModel(notesSettings, () => { });
         Render(notes, "NotesViewModel.Panel", "notes-panel", 640, 380);
         notes.SectionIndex = 1;
-        Render(notes, "NotesViewModel.Panel", "notes-reminders", 640, 380);
-        notes.SectionIndex = 2;
         Render(notes, "NotesViewModel.Panel", "notes-todos", 640, 380);
     }
 
