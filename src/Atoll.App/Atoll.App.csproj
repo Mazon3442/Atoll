@@ -61,6 +61,7 @@
     <!-- Local speech-to-text. The CPU runtime is ~18 MB; the model itself is downloaded on first use. -->
     <PackageReference Include="Whisper.net" Version="1.9.1" />
     <PackageReference Include="Whisper.net.Runtime" Version="1.9.1" />
+    <PackageReference Include="ZXing.Net" Version="0.16.11" />
   </ItemGroup>
 
 </Project>

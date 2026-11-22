@@ -144,7 +144,7 @@ public class GroupedPanelsTests
             "Modules/Shelf/ShelfTemplates.xaml", "Modules/Downloads/DownloadsTemplates.xaml", "Modules/Clipboard/ClipboardTemplates.xaml", "Modules/Stats/StatsTemplates.xaml",
             "Modules/Weather/WeatherTemplates.xaml", "Modules/Indicators/IndicatorsTemplates.xaml", "Modules/Calendar/CalendarTemplates.xaml",
             "Modules/Games/GamesTemplates.xaml", "Modules/Launcher/LauncherTemplates.xaml", "Modules/Notes/NotesTemplates.xaml",
-            "Modules/Tide/TideTemplates.xaml", "Modules/TextTools/TextToolsTemplates.xaml",
+            "Modules/Tide/TideTemplates.xaml", "Modules/TextTools/TextToolsTemplates.xaml", "Modules/Screen/ScreenTemplates.xaml", "Modules/Dictation/DictationTemplates.xaml",
             "Modules/GroupedTemplates.xaml" })
             resources.MergedDictionaries.Add(new ResourceDictionary { Source = new Uri("/Atoll;component/" + file, UriKind.Relative) });
         var modules = Modules();

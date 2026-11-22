@@ -93,7 +93,11 @@ public sealed class QuickActionsModule : IIslandModule
         _vm.MicMuted = WithMic(v => v.Mute) ?? false;
     }
 
-    internal void Screenshot() => Run("ms-screenclip:");
+    internal void Screenshot()
+    {
+        if (Atoll.Navigation.ScreenTool is { } tool) tool("area");
+        else Run("ms-screenclip:");
+    }
 
     /// <summary>Reads the radios and the theme; the status card calls this each time it opens.</summary>
     internal async void RefreshControls()

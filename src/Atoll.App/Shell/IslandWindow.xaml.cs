@@ -600,6 +600,12 @@ public partial class IslandWindow : Window
                     () => RunAndTuck(focus.Clear)));
         }
 
+        foreach (var (title, glyph, tool) in new[]
+        {
+            ("Screenshot of an area", "\uE722", "area"), ("Screenshot of the screen", "\uE7F4", "screen"), ("Text from the screen", "\uE8C8", "ocr"),
+            ("QR code from the screen", "\uE8B3", "qr"), ("Color picker", "\uE790", "color"),
+        })
+            items.Add(new CommandItem(title, "Action", glyph, "", CommandKind.Action, () => RunAndTuck(() => Atoll.Navigation.ScreenTool?.Invoke(tool))));
         items.Add(new CommandItem("Voice to text", "Action", "\uE720", "", CommandKind.Action,
             () => RunAndTuck(() => Atoll.Navigation.Dictate?.Invoke())));
         items.Add(new CommandItem("Open Settings", "Action", "\uE713", "", CommandKind.Action,

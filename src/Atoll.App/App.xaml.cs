@@ -20,6 +20,7 @@ public partial class App : Application
     private TrayIcon? _tray;
     private HotkeyService? _hotkeys;
     private Modules.Dictation.DictationService? _dictation;
+    private Modules.Screen.ScreenTools? _screen;
     private FocusService? _focus;
     private DispatcherTimer? _focusTimer;
     private SettingsWindow? _settingsWindow;
@@ -78,6 +79,19 @@ public partial class App : Application
 
         _dictation = new Modules.Dictation.DictationService(_activities, _settings, Dispatcher, _hotkeys);
         Navigation.Dictate = () => _ = _dictation.ToggleAsync();
+        _screen = new Modules.Screen.ScreenTools(_activities, _settings, Dispatcher, _hotkeys);
+        Navigation.ScreenTool = tool =>
+        {
+            _ = tool switch
+            {
+                "area" => _screen.ScreenshotArea(),
+                "screen" => _screen.ScreenshotScreen(),
+                "ocr" => _screen.ReadText(),
+                "qr" => _screen.ScanQr(),
+                "color" => _screen.PickColor(),
+                _ => Task.CompletedTask,
+            };
+        };
         Navigation.AskAi = prompt =>
         {
             if (_modules.Tabs.Select(tab => tab.Panel).OfType<Modules.Claude.ClaudeViewModel>().FirstOrDefault() is not { } claude) return;
@@ -227,6 +241,7 @@ public partial class App : Application
         _focusTimer?.Stop();
         _focusTimer = null;
         FocusService.Current = null;
+        _screen?.Dispose();
         _dictation?.Dispose();
         _hotkeys?.Dispose();
         _tray?.Dispose();

@@ -92,6 +92,8 @@ public sealed partial class SettingsViewModel : ObservableObject
     }
 
     public bool ClickThrough { get => S.ClickThrough; set => Set(S.ClickThrough, value, v => S.ClickThrough = v); }
+    public bool ScreenShowIsland { get => S.Screen.ShowIsland; set => Set(S.Screen.ShowIsland, value, v => S.Screen.ShowIsland = v); }
+    public string ScreenFolder { get => S.Screen.Folder; set => Set(S.Screen.Folder, value ?? "", v => S.Screen.Folder = v); }
     public bool PaletteFiles { get => S.Palette.Files; set => Set(S.Palette.Files, value, v => S.Palette.Files = v); }
     public bool PaletteCurrency { get => S.Palette.Currency; set => Set(S.Palette.Currency, value, v => S.Palette.Currency = v); }
     public bool DictationTypes { get => S.Dictation.TypeIntoWindow; set => Set(S.Dictation.TypeIntoWindow, value, v => S.Dictation.TypeIntoWindow = v); }

@@ -107,6 +107,8 @@ public sealed class AppSettings
 
     public PaletteSettings Palette { get; set; } = new();
 
+    public ScreenSettings Screen { get; set; } = new();
+
     /// <summary>Changed shortcuts by <see cref="ShortcutCatalog"/> id. Missing means the default; empty means off.</summary>
     public Dictionary<string, string> Shortcuts { get; set; } = new();
 
@@ -618,4 +620,14 @@ public sealed class PaletteSettings
 
     /// <summary>Look up exchange rates (one request to a free service) when a currency conversion is typed.</summary>
     public bool Currency { get; set; } = true;
+}
+
+/// <summary>Screenshots, text and QR from the screen, the colour picker and recordings.</summary>
+public sealed class ScreenSettings
+{
+    /// <summary>Where pictures and recordings are saved. Empty means Pictures\Atoll.</summary>
+    public string Folder { get; set; } = "";
+
+    /// <summary>Keep the island in screenshots and recordings. Off by default, so the island never ends up in a picture.</summary>
+    public bool ShowIsland { get; set; }
 }

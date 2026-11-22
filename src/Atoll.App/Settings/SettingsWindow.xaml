@@ -488,6 +488,16 @@
                         <TextBlock Style="{StaticResource Hint}" Margin="4,2,0,0"
                                    Text="Click a shortcut and press new keys to change it. Backspace turns it off. In the open island, Ctrl+Tab or the mouse wheel over the tabs switches sections." />
 
+                        <TextBlock Style="{StaticResource SectionHeader}" Text="Screen tools" />
+                        <TextBlock Style="{StaticResource SectionHint}" Text="Screenshots, text and QR codes from the screen, and the color picker. Pictures are never uploaded." />
+                        <s:SettingCard Glyph="&#xE838;" Header="Save pictures to" Description="Screenshots and recordings go here. Empty means Pictures\Atoll.">
+                            <TextBox Style="{StaticResource Island.Input}" Width="220" Text="{Binding ScreenFolder, UpdateSourceTrigger=LostFocus}" AutomationProperties.Name="Folder for screenshots" />
+                        </s:SettingCard>
+                        <s:SettingCard Glyph="&#xE7B3;" Header="Show the island in pictures"
+                                       Description="By default the island hides from screenshots and recordings. Turn this on to keep it in them.">
+                            <CheckBox Style="{StaticResource Toggle}" IsChecked="{Binding ScreenShowIsland}" AutomationProperties.Name="Show the island in pictures" />
+                        </s:SettingCard>
+
                         <TextBlock Style="{StaticResource SectionHeader}" Text="Command palette" />
                         <TextBlock Style="{StaticResource SectionHint}" Text="What typing can find or work out. Everything else stays on this PC." />
                         <s:SettingCard Glyph="&#xE8A5;" Header="Find files by name"
