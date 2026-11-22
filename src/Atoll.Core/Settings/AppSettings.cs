@@ -103,6 +103,9 @@ public sealed class AppSettings
     /// <summary>System-wide shortcut that opens the command palette. Empty turns it off.</summary>
     public string PaletteShortcut { get; set; } = "Ctrl+Alt+K";
 
+    /// <summary>Changed shortcuts by <see cref="ShortcutCatalog"/> id. Missing means the default; empty means off.</summary>
+    public Dictionary<string, string> Shortcuts { get; set; } = new();
+
     public MonitorMode MonitorMode { get; set; } = MonitorMode.Primary;
 
     /// <summary>Monitor device names (e.g. \\.\DISPLAY2) used when <see cref="MonitorMode"/> is Selected.</summary>

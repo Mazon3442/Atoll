@@ -465,6 +465,20 @@
                         <TextBlock Text="{Binding PaletteShortcutStatus}" Style="{StaticResource Hint}" Margin="4,-2,0,8"
                                    Foreground="{DynamicResource SystemFillColorCriticalBrush}" AutomationProperties.LiveSetting="Assertive"
                                    Visibility="{Binding PaletteShortcutStatus, Converter={StaticResource EmptyToCollapsed}}" />
+                        <ItemsControl ItemsSource="{Binding ExtraShortcuts}" KeyboardNavigation.TabNavigation="Continue">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <StackPanel>
+                                        <s:SettingCard Glyph="&#xE765;" Header="{Binding Name}" Description="{Binding Description}">
+                                            <s:HotkeyBox Shortcut="{Binding Shortcut}" AutomationProperties.Name="{Binding Name, StringFormat=Shortcut for {0}}" />
+                                        </s:SettingCard>
+                                        <TextBlock Text="{Binding Status}" Style="{StaticResource Hint}" Margin="4,-2,0,8"
+                                                   Foreground="{DynamicResource SystemFillColorCriticalBrush}" AutomationProperties.LiveSetting="Assertive"
+                                                   Visibility="{Binding Status, Converter={StaticResource EmptyToCollapsed}}" />
+                                    </StackPanel>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
                         <TextBlock Text="{Binding ShortcutMessage}" Style="{StaticResource Hint}" Margin="4,-2,0,8" AutomationProperties.LiveSetting="Polite"
                                    Visibility="{Binding ShortcutMessage, Converter={StaticResource EmptyToCollapsed}}" />
                         <TextBlock Style="{StaticResource Hint}" Margin="4,2,0,0"
