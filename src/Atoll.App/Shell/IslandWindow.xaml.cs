@@ -286,7 +286,8 @@ public partial class IslandWindow : Window
 
     private void OnStatusClick(object sender, RoutedEventArgs e)
     {
-        StatusPopup.HorizontalOffset = StatusButton.ActualWidth - 340;
+        StatusPopup.HorizontalOffset = StatusButton.ActualWidth - 372;
+        if (!StatusPopup.IsOpen && StatusChips.DataContext is Modules.SystemGroupViewModel system) system.Actions?.RefreshControlsCommand.Execute(null);
         StatusPopup.IsOpen = !StatusPopup.IsOpen;
     }
 
