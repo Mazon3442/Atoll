@@ -630,4 +630,10 @@ public sealed class ScreenSettings
 
     /// <summary>Keep the island in screenshots and recordings. Off by default, so the island never ends up in a picture.</summary>
     public bool ShowIsland { get; set; }
+
+    /// <summary>Frames per second for recordings: 30 or 60.</summary>
+    public int RecordFps { get; set; } = 30;
+
+    /// <summary>Spend more bits on each frame: sharper text, a bigger file.</summary>
+    public bool RecordHighQuality { get; set; }
 }

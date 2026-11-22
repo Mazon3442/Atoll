@@ -68,7 +68,16 @@ internal sealed class ScreenOverlayWindow : Window
 
         SourceInitialized += (_, _) => Place();
         Loaded += (_, _) => { Size(picture); Activate(); Focus(); Keyboard.Focus(this); Update(Mouse.GetPosition(_canvas)); };
-        KeyDown += (_, e) => { if (e.Key == Key.Escape) { _result = null; Close(); } };
+        KeyDown += (_, e) =>
+        {
+            if (e.Key == Key.Escape) { _result = null; Close(); }
+            else if (e.Key == Key.Enter && _mode == OverlayMode.Region)
+            {
+                // Enter takes the whole screen the cursor is on.
+                _result = new OverlayResult(ScreenCapture.MonitorUnderCursor().Clamp(_bounds).RelativeTo(_bounds), 0, 0);
+                Close();
+            }
+        };
         MouseMove += (_, e) => Update(e.GetPosition(_canvas));
         MouseLeftButtonDown += OnDown;
         MouseLeftButtonUp += OnUp;
@@ -146,7 +155,7 @@ internal sealed class ScreenOverlayWindow : Window
         {
             _frame.Visibility = Visibility.Collapsed;
             _dim.Data = new RectangleGeometry(new Rect(0, 0, width, height));
-            _labelText.Text = "Drag to choose an area";
+            _labelText.Text = "Drag to choose an area \u00B7 Enter for the whole screen";
             Canvas.SetLeft(_label, at.X + 16);
             Canvas.SetTop(_label, at.Y + 16);
             return;

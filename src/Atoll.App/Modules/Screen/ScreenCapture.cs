@@ -123,3 +123,95 @@ internal static class ScreenCapture
     [DllImport("gdi32.dll")] [return: MarshalAs(UnmanagedType.Bool)]
     private static extern bool BitBlt(nint dest, int x, int y, int width, int height, nint source, int sx, int sy, uint rop);
 }
+
+/// <summary>
+/// Grabs raw BGRA frames of one area, again and again, reusing one device context and one bitmap so a 30 fps
+/// recording does not allocate a picture per frame. The mouse pointer is drawn into each frame.
+/// </summary>
+internal sealed class FrameGrabber : IDisposable
+{
+    private const uint SRCCOPY = 0x00CC0020, CAPTUREBLT = 0x40000000, DI_NORMAL = 0x3;
+
+    private readonly PixelRect _area;
+    private readonly nint _screen;
+    private readonly nint _memory;
+    private readonly nint _bitmap;
+    private readonly nint _previous;
+    private readonly nint _bits;
+
+    public FrameGrabber(PixelRect area)
+    {
+        // H.264 wants even dimensions.
+        _area = area with { Width = area.Width & ~1, Height = area.Height & ~1 };
+        if (_area.IsEmpty) throw new ArgumentException("The area is too small to record.", nameof(area));
+        _screen = GetDC(0);
+        _memory = CreateCompatibleDC(_screen);
+        var info = new BITMAPINFO { Size = 40, Width = _area.Width, Height = -_area.Height, Planes = 1, BitCount = 32 }; // negative height: top-down
+        _bitmap = CreateDIBSection(_memory, ref info, 0, out _bits, 0, 0);
+        if (_bitmap == 0) { Dispose(); throw new InvalidOperationException("Windows could not allocate a frame."); }
+        _previous = SelectObject(_memory, _bitmap);
+    }
+
+    public int Width => _area.Width;
+    public int Height => _area.Height;
+    public int FrameBytes => Width * Height * 4;
+
+    /// <summary>The Windows error behind the last refused frame, for diagnosing a recording that stays empty.</summary>
+    public int LastError { get; private set; }
+
+    /// <summary>Copies the current screen contents into <paramref name="frame"/>.</summary>
+    public bool Grab(byte[] frame)
+    {
+        if (!BitBlt(_memory, 0, 0, _area.Width, _area.Height, _screen, _area.X, _area.Y, SRCCOPY | CAPTUREBLT))
+        {
+            LastError = Marshal.GetLastWin32Error();
+            return false;
+        }
+        DrawCursor();
+        Marshal.Copy(_bits, frame, 0, Math.Min(frame.Length, FrameBytes));
+        return true;
+    }
+
+    private void DrawCursor()
+    {
+        var cursor = new CURSORINFO { Size = Marshal.SizeOf<CURSORINFO>() };
+        if (!GetCursorInfo(ref cursor) || (cursor.Flags & 1) == 0) return; // CURSOR_SHOWING
+        DrawIconEx(_memory, cursor.X - _area.X - 0, cursor.Y - _area.Y - 0, cursor.Handle, 0, 0, 0, 0, DI_NORMAL);
+    }
+
+    public void Dispose()
+    {
+        if (_previous != 0) SelectObject(_memory, _previous);
+        if (_bitmap != 0) DeleteObject(_bitmap);
+        if (_memory != 0) DeleteDC(_memory);
+        if (_screen != 0) ReleaseDC(0, _screen);
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    private struct BITMAPINFO
+    {
+        public int Size, Width, Height;
+        public short Planes, BitCount;
+        public int Compression, SizeImage, XPels, YPels, ColorsUsed, ColorsImportant;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    private struct CURSORINFO
+    {
+        public int Size, Flags;
+        public nint Handle;
+        public int X, Y;
+    }
+
+    [DllImport("user32.dll")] private static extern nint GetDC(nint window);
+    [DllImport("user32.dll")] private static extern int ReleaseDC(nint window, nint dc);
+    [DllImport("user32.dll")] [return: MarshalAs(UnmanagedType.Bool)] private static extern bool GetCursorInfo(ref CURSORINFO info);
+    [DllImport("user32.dll")] [return: MarshalAs(UnmanagedType.Bool)] private static extern bool DrawIconEx(nint dc, int x, int y, nint icon, int width, int height, uint step, nint brush, uint flags);
+    [DllImport("gdi32.dll")] private static extern nint CreateCompatibleDC(nint dc);
+    [DllImport("gdi32.dll")] private static extern nint CreateDIBSection(nint dc, ref BITMAPINFO info, uint usage, out nint bits, nint section, uint offset);
+    [DllImport("gdi32.dll")] private static extern nint SelectObject(nint dc, nint obj);
+    [DllImport("gdi32.dll")] [return: MarshalAs(UnmanagedType.Bool)] private static extern bool DeleteObject(nint obj);
+    [DllImport("gdi32.dll")] [return: MarshalAs(UnmanagedType.Bool)] private static extern bool DeleteDC(nint dc);
+    [DllImport("gdi32.dll", SetLastError = true)] [return: MarshalAs(UnmanagedType.Bool)]
+    private static extern bool BitBlt(nint dest, int x, int y, int width, int height, nint source, int sx, int sy, uint rop);
+}

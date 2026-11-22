@@ -603,7 +603,7 @@ public partial class IslandWindow : Window
         foreach (var (title, glyph, tool) in new[]
         {
             ("Screenshot of an area", "\uE722", "area"), ("Screenshot of the screen", "\uE7F4", "screen"), ("Text from the screen", "\uE8C8", "ocr"),
-            ("QR code from the screen", "\uE8B3", "qr"), ("Color picker", "\uE790", "color"),
+            ("QR code from the screen", "\uE8B3", "qr"), ("Color picker", "\uE790", "color"), ("Screen recording", "\uE714", "record"),
         })
             items.Add(new CommandItem(title, "Action", glyph, "", CommandKind.Action, () => RunAndTuck(() => Atoll.Navigation.ScreenTool?.Invoke(tool))));
         items.Add(new CommandItem("Voice to text", "Action", "\uE720", "", CommandKind.Action,

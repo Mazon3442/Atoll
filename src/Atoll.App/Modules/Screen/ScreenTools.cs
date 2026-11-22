@@ -42,6 +42,18 @@ public sealed class ScreenCardViewModel(string title, string detail, string glyp
     public bool HasActions => Actions.Count > 0;
 }
 
+/// <summary>The pill while recording: a red dot, the time so far, and a Stop button.</summary>
+public sealed partial class RecordingViewModel : ObservableObject
+{
+    private readonly Action _stop;
+
+    internal RecordingViewModel(Action stop) => _stop = stop;
+
+    [ObservableProperty] private string _elapsed = "0:00";
+
+    [RelayCommand] private void Stop() => _stop();
+}
+
 /// <summary>Reads text and QR codes from a picture. Windows' own OCR runs on this PC; nothing is uploaded.</summary>
 internal static class ScreenReaders
 {
@@ -112,13 +124,20 @@ internal sealed class ScreenTools : IDisposable
     private readonly SettingsService _settings;
     private readonly Dispatcher _dispatcher;
     private bool _busy;
+    private ScreenRecorder? _recorder;
+    private IDisposable? _hold;
+    private readonly RecordingViewModel _recording;
+    private readonly DispatcherTimer _tick = new(DispatcherPriority.Background) { Interval = TimeSpan.FromMilliseconds(500) };
 
     public ScreenTools(ActivityHost activities, SettingsService settings, Dispatcher dispatcher, HotkeyService? hotkeys)
     {
         _activities = activities;
         _settings = settings;
         _dispatcher = dispatcher;
+        _recording = new RecordingViewModel(() => _ = StopRecordingAsync());
+        _tick.Tick += (_, _) => OnRecordingTick();
         if (hotkeys is null) return;
+        hotkeys.AddAction(ShortcutCatalog.Record, () => _ = ToggleRecording());
         hotkeys.AddAction(ShortcutCatalog.ScreenshotArea, () => _ = Run(ScreenshotAreaAsync));
         hotkeys.AddAction(ShortcutCatalog.ScreenshotScreen, () => _ = Run(ScreenshotScreenAsync));
         hotkeys.AddAction(ShortcutCatalog.Ocr, () => _ = Run(ReadTextAsync));
@@ -131,6 +150,9 @@ internal sealed class ScreenTools : IDisposable
     public Task ReadText() => Run(ReadTextAsync);
     public Task ScanQr() => Run(ScanQrAsync);
     public Task PickColor() => Run(PickColorAsync);
+
+    /// <summary>Starts recording (choose an area, or Enter for the screen), or stops the one in progress.</summary>
+    public Task ToggleRecording() => _recorder is not null ? StopRecordingAsync() : Run(StartRecordingAsync);
 
     /// <summary>One screen tool at a time: a second hotkey while the overlay is open does nothing.</summary>
     private async Task Run(Func<Task> tool)
@@ -236,6 +258,78 @@ internal sealed class ScreenTools : IDisposable
         Card(new ScreenCardViewModel(hex, $"copied · rgb({colour.R}, {colour.G}, {colour.B})", "", null, brush));
     }
 
+    private async Task StartRecordingAsync()
+    {
+        if (await Freeze() is not var (picture, bounds)) return;
+        if (ScreenOverlayWindow.Choose(picture, bounds, OverlayMode.Region) is not { } chosen || chosen.Area.IsEmpty) return;
+        var area = new PixelRect(chosen.Area.X + bounds.X, chosen.Area.Y + bounds.Y, chosen.Area.Width, chosen.Area.Height);
+        var screen = _settings.Current.Screen;
+        var folder = ScreenFiles.Folder(screen.Folder);
+        var path = ScreenFiles.NextPath(folder, DateTime.Now, ".mp4", File.Exists);
+        var hold = screen.ShowIsland ? null : CapturePrivacy.Hold();
+        var recorder = new ScreenRecorder(area, path, screen.RecordFps >= 60 ? 60 : 30, Windows.Media.MediaProperties.VideoEncodingQuality.HD720p, screen.RecordHighQuality);
+        try
+        {
+            if (hold is not null) await Task.Delay(90);
+            await recorder.StartAsync();
+        }
+        catch (Exception ex) when (ex is InvalidOperationException or COMException or IOException or ArgumentException or UnauthorizedAccessException)
+        {
+            hold?.Dispose();
+            recorder.Dispose();
+            Log.Error("Recording could not start", ex);
+            Card(new ScreenCardViewModel("Recording is not available", "Windows could not start its video encoder.", "\uE714"));
+            return;
+        }
+        _recorder = recorder;
+        _hold = hold;
+        _recording.Elapsed = "0:00";
+        _activities.Post(new Activity($"{Key}.rec", Key, _recording, ActivityPriority.High));
+        _tick.Start();
+    }
+
+    private void OnRecordingTick()
+    {
+        if (_recorder is not { } recorder) { _tick.Stop(); return; }
+        var elapsed = recorder.Elapsed;
+        _recording.Elapsed = elapsed.TotalHours >= 1 ? $"{(int)elapsed.TotalHours}:{elapsed.Minutes:00}:{elapsed.Seconds:00}" : $"{(int)elapsed.TotalMinutes}:{elapsed.Seconds:00}";
+        if (elapsed > TimeSpan.FromMinutes(30)) _ = StopRecordingAsync(); // a forgotten recording must not fill the disk
+    }
+
+    private async Task StopRecordingAsync()
+    {
+        if (_recorder is not { } recorder) return;
+        _recorder = null;
+        _tick.Stop();
+        var length = recorder.Elapsed;
+        var path = recorder.Path;
+        try { await recorder.StopAsync(); }
+        catch (Exception ex) when (ex is InvalidOperationException or COMException or IOException)
+        {
+            Log.Error("Recording did not finish cleanly", ex);
+        }
+        finally
+        {
+            _hold?.Dispose();
+            _hold = null;
+            _activities.Remove($"{Key}.rec");
+        }
+        if (!File.Exists(path) || new FileInfo(path).Length == 0)
+        {
+            Card(new ScreenCardViewModel("Recording failed", "The file could not be written.", "\uE714"));
+            return;
+        }
+        try
+        {
+            var files = new System.Collections.Specialized.StringCollection { path };
+            System.Windows.Clipboard.SetFileDropList(files);
+        }
+        catch (COMException) { /* the clipboard was busy; the file is still saved */ }
+        Card(new ScreenCardViewModel("Recording saved", $"{(int)length.TotalMinutes}:{length.Seconds:00} \u00B7 {System.IO.Path.GetFileName(path)} \u00B7 on the clipboard", "\uE714", null, null,
+            new CardAction("Play", "\uE768", () => PaletteActions.Open(path)),
+            new CardAction("Show in folder", "\uE838", () => PaletteActions.ShowInFolder(path))));
+    }
+
     private void Card(ScreenCardViewModel card) =>
         _dispatcher.BeginInvoke(() => _activities.Post(new Activity($"{Key}.card", Key, card, ActivityPriority.High, TimeSpan.FromSeconds(8), alert: true)));
 
@@ -266,5 +360,12 @@ internal sealed class ScreenTools : IDisposable
         return thumb;
     }
 
-    public void Dispose() => _activities.Remove($"{Key}.card");
+    public void Dispose()
+    {
+        _tick.Stop();
+        if (_recorder is { } recorder) { _recorder = null; _ = recorder.StopAsync(); }
+        _hold?.Dispose();
+        _activities.Remove($"{Key}.card");
+        _activities.Remove($"{Key}.rec");
+    }
 }

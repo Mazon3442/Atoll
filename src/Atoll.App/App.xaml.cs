@@ -89,6 +89,7 @@ public partial class App : Application
                 "ocr" => _screen.ReadText(),
                 "qr" => _screen.ScanQr(),
                 "color" => _screen.PickColor(),
+                "record" => _screen.ToggleRecording(),
                 _ => Task.CompletedTask,
             };
         };

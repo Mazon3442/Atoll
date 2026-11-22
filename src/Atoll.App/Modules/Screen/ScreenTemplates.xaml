@@ -60,6 +60,34 @@
         </StackPanel>
     </DataTemplate>
 
+    <!-- Recording: a red dot, the time, and Stop. -->
+    <SolidColorBrush x:Key="Screen.Recording" Color="#FF453A" />
+
+    <DataTemplate x:Key="RecordingViewModel.Compact">
+        <StackPanel Orientation="Horizontal" AutomationProperties.Name="{Binding Elapsed, StringFormat=Recording {0}}">
+            <Ellipse Width="9" Height="9" Fill="{StaticResource Screen.Recording}" VerticalAlignment="Center" />
+            <TextBlock Text="{Binding Elapsed}" FontSize="12" FontWeight="SemiBold" Margin="10,0,0,0" VerticalAlignment="Center" />
+            <TextBlock Text="MP4" FontSize="11" Foreground="{DynamicResource Island.Subtle}" Margin="12,0,0,0" VerticalAlignment="Center" />
+            <Button Style="{StaticResource Island.PrimaryChip}" Content="Stop" Margin="14,0,0,0" MinHeight="22" Padding="10,2" Command="{Binding StopCommand}"
+                    AutomationProperties.Name="Stop recording" />
+        </StackPanel>
+    </DataTemplate>
+
+    <DataTemplate x:Key="RecordingViewModel.Peek">
+        <StackPanel Orientation="Horizontal">
+            <Ellipse Width="12" Height="12" Fill="{StaticResource Screen.Recording}" VerticalAlignment="Center" />
+            <StackPanel Margin="14,0,16,0" VerticalAlignment="Center">
+                <TextBlock Text="Recording" FontSize="14" FontWeight="SemiBold" />
+                <TextBlock Text="{Binding Elapsed}" FontSize="12" Foreground="{DynamicResource Island.Subtle}" />
+            </StackPanel>
+            <Button Style="{StaticResource Island.PrimaryChip}" Content="Stop" Margin="0" Command="{Binding StopCommand}" AutomationProperties.Name="Stop recording" />
+        </StackPanel>
+    </DataTemplate>
+
+    <DataTemplate x:Key="RecordingViewModel.Mini">
+        <Ellipse Width="9" Height="9" Fill="{StaticResource Screen.Recording}" ToolTip="Recording" AutomationProperties.Name="Recording" />
+    </DataTemplate>
+
     <DataTemplate x:Key="ScreenCardViewModel.Mini">
         <TextBlock Text="{Binding Glyph}" FontFamily="{StaticResource Island.IconFont}" FontSize="13" ToolTip="{Binding Title}"
                    AutomationProperties.Name="{Binding Title}" />

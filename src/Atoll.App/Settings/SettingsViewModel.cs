@@ -93,6 +93,8 @@ public sealed partial class SettingsViewModel : ObservableObject
 
     public bool ClickThrough { get => S.ClickThrough; set => Set(S.ClickThrough, value, v => S.ClickThrough = v); }
     public bool ScreenShowIsland { get => S.Screen.ShowIsland; set => Set(S.Screen.ShowIsland, value, v => S.Screen.ShowIsland = v); }
+    public bool ScreenRecord60 { get => S.Screen.RecordFps >= 60; set => Set(S.Screen.RecordFps >= 60, value, v => S.Screen.RecordFps = v ? 60 : 30); }
+    public bool ScreenRecordHigh { get => S.Screen.RecordHighQuality; set => Set(S.Screen.RecordHighQuality, value, v => S.Screen.RecordHighQuality = v); }
     public string ScreenFolder { get => S.Screen.Folder; set => Set(S.Screen.Folder, value ?? "", v => S.Screen.Folder = v); }
     public bool PaletteFiles { get => S.Palette.Files; set => Set(S.Palette.Files, value, v => S.Palette.Files = v); }
     public bool PaletteCurrency { get => S.Palette.Currency; set => Set(S.Palette.Currency, value, v => S.Palette.Currency = v); }

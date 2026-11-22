@@ -498,6 +498,13 @@
                             <CheckBox Style="{StaticResource Toggle}" IsChecked="{Binding ScreenShowIsland}" AutomationProperties.Name="Show the island in pictures" />
                         </s:SettingCard>
 
+                        <s:SettingCard Glyph="&#xE714;" Header="Record at 60 frames per second" Description="Smoother motion for games and animations. 30 is plenty for most screens.">
+                            <CheckBox Style="{StaticResource Toggle}" IsChecked="{Binding ScreenRecord60}" AutomationProperties.Name="Record at 60 frames per second" />
+                        </s:SettingCard>
+                        <s:SettingCard Glyph="&#xE714;" Header="High quality recordings" Description="Sharper text, a larger file. Recordings are MP4 without sound.">
+                            <CheckBox Style="{StaticResource Toggle}" IsChecked="{Binding ScreenRecordHigh}" AutomationProperties.Name="High quality recordings" />
+                        </s:SettingCard>
+
                         <TextBlock Style="{StaticResource SectionHeader}" Text="Command palette" />
                         <TextBlock Style="{StaticResource SectionHint}" Text="What typing can find or work out. Everything else stays on this PC." />
                         <s:SettingCard Glyph="&#xE8A5;" Header="Find files by name"
