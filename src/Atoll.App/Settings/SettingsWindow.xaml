@@ -479,6 +479,10 @@
                                 </DataTemplate>
                             </ItemsControl.ItemTemplate>
                         </ItemsControl>
+                        <s:SettingCard Glyph="&#xE720;" Header="Type dictated text into the window"
+                                       Description="After voice to text copies what you said, paste it where you were typing. Off keeps it on the clipboard only.">
+                            <CheckBox Style="{StaticResource Toggle}" IsChecked="{Binding DictationTypes}" AutomationProperties.Name="Type dictated text into the window" />
+                        </s:SettingCard>
                         <TextBlock Text="{Binding ShortcutMessage}" Style="{StaticResource Hint}" Margin="4,-2,0,8" AutomationProperties.LiveSetting="Polite"
                                    Visibility="{Binding ShortcutMessage, Converter={StaticResource EmptyToCollapsed}}" />
                         <TextBlock Style="{StaticResource Hint}" Margin="4,2,0,0"

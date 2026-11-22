@@ -103,6 +103,8 @@ public sealed class AppSettings
     /// <summary>System-wide shortcut that opens the command palette. Empty turns it off.</summary>
     public string PaletteShortcut { get; set; } = "Ctrl+Alt+K";
 
+    public DictationSettings Dictation { get; set; } = new();
+
     /// <summary>Changed shortcuts by <see cref="ShortcutCatalog"/> id. Missing means the default; empty means off.</summary>
     public Dictionary<string, string> Shortcuts { get; set; } = new();
 
@@ -591,4 +593,14 @@ public sealed partial class TodoItem : ObservableObject
 
     [ObservableProperty] private string _text = "";
     [ObservableProperty] private bool _done;
+}
+
+/// <summary>Voice to text on a hotkey. The speech model and language are the ones Tide Listen uses.</summary>
+public sealed class DictationSettings
+{
+    /// <summary>After copying, press Ctrl+V in the window that had the keyboard.</summary>
+    public bool TypeIntoWindow { get; set; } = true;
+
+    /// <summary>Keep the speech model in memory this long after the last use, for a faster next press. 0 frees it at once.</summary>
+    public int KeepModelSeconds { get; set; } = 60;
 }

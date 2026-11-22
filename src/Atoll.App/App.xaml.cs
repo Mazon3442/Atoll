@@ -19,6 +19,7 @@ public partial class App : Application
     private IslandManager? _islands;
     private TrayIcon? _tray;
     private HotkeyService? _hotkeys;
+    private Modules.Dictation.DictationService? _dictation;
     private FocusService? _focus;
     private DispatcherTimer? _focusTimer;
     private SettingsWindow? _settingsWindow;
@@ -63,6 +64,8 @@ public partial class App : Application
         FocusService.Current = _focus;
         _focus.Configure(_settings.Current.Focus.Enabled, _settings.Current.Focus.FollowWindowsFocus);
         _focus.SetWindowsFocus(WindowsFocus());
+        // Created before the modules so a module can add its own shortcut while it starts. The islands exist a moment later.
+        _hotkeys = new HotkeyService(_settings, () => _islands?.ToggleFromKeyboard(), () => SetPaused(!(_islands?.Paused ?? false)), () => _islands?.OpenPalette());
         _modules = new ModuleManager(ModuleCatalog.All, _activities, Dispatcher, _settings);
         _modules.Apply();
 
@@ -73,6 +76,8 @@ public partial class App : Application
             _modules.Apply();
         };
 
+        _dictation = new Modules.Dictation.DictationService(_activities, _settings, Dispatcher, _hotkeys);
+        Navigation.Dictate = () => _ = _dictation.ToggleAsync();
         _islands = new IslandManager(_settings, _activities, _modules, OpenSettings, Dispatcher);
         Navigation.OpenModule = _islands.OpenModule;
         Navigation.OpenOnboarding = ShowOnboarding;
@@ -88,7 +93,6 @@ public partial class App : Application
             _focus.SetWindowsFocus(WindowsFocus());
         };
         _focusTimer.Start();
-        _hotkeys = new HotkeyService(_settings, _islands.ToggleFromKeyboard, () => SetPaused(!_islands.Paused), _islands.OpenPalette);
 
         // First run: explain the island and let the user choose the top row. Skipping still marks it done.
         if (!_settings.Current.OnboardingComplete)
@@ -215,6 +219,7 @@ public partial class App : Application
         _focusTimer?.Stop();
         _focusTimer = null;
         FocusService.Current = null;
+        _dictation?.Dispose();
         _hotkeys?.Dispose();
         _tray?.Dispose();
         _islands?.Dispose();

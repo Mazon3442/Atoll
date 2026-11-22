@@ -92,6 +92,7 @@ public sealed partial class SettingsViewModel : ObservableObject
     }
 
     public bool ClickThrough { get => S.ClickThrough; set => Set(S.ClickThrough, value, v => S.ClickThrough = v); }
+    public bool DictationTypes { get => S.Dictation.TypeIntoWindow; set => Set(S.Dictation.TypeIntoWindow, value, v => S.Dictation.TypeIntoWindow = v); }
     public bool ShowBattery { get => S.ShowBattery; set => Set(S.ShowBattery, value, v => S.ShowBattery = v); }
 
     /// <summary>Desktop PCs have no battery, so the battery card is not shown at all.</summary>

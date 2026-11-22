@@ -459,6 +459,10 @@ public sealed partial class ListenViewModel : ObservableObject, IDisposable
         NotesSource = NotesSources.FirstOrDefault(source => source.Id == previous) ?? NotesSources[0];
     }
 
+    // Dictation asks MicOwnership before it records, so it says so instead of failing on a busy device.
+    partial void OnIsListeningChanged(bool value) => MicOwnership.Set("Listen", value);
+    partial void OnIsPreparingChanged(bool value) => MicOwnership.Set("Listen", value || IsListening);
+
     partial void OnNotesSourceChanged(ListenNotesSource? value)
     {
         if (value is null) return;
