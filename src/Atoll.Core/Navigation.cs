@@ -7,6 +7,9 @@ public static class Navigation
     /// <summary>Opens the island expanded on a module id (for example "calendar").</summary>
     public static Action<string>? OpenModule { get; set; }
 
+    /// <summary>Sends a prompt to the AI in the Agents tab and opens it. Null while that tab is off.</summary>
+    public static Action<string>? AskAi { get; set; }
+
     /// <summary>Starts or finishes voice to text, the same as its hotkey.</summary>
     public static Action? Dictate { get; set; }
 

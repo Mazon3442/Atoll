@@ -92,7 +92,7 @@ internal static class CalendarUiTests
 
             // The default top row is Home, Agents, Media, Notifications, Calendar, Files and Weather.
             // Timer, Notes, Tide, System, API keys, Downloads and Launcher wait in the ⋯ menu.
-            string[] outside = ["clock", "notes", "tide", "system", "providers", "downloads", "launcher"];
+            string[] outside = ["clock", "notes", "tide", "text", "system", "providers", "downloads", "launcher"];
             Assert.Equal(Visibility.Visible, button.Visibility);
             Assert.Equal(outside.Length, menu.Items.Count);
             Assert.Equal(modules.Count - outside.Length, tabs.Items.Count);

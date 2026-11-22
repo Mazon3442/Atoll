@@ -1,0 +1,108 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:shell="clr-namespace:Atoll.Shell">
+
+    <!-- A small transform button. -->
+    <Style x:Key="Text.Chip" TargetType="Button" BasedOn="{StaticResource Island.ChipButton}">
+        <Setter Property="MinHeight" Value="28" />
+        <Setter Property="Padding" Value="10,4" />
+        <Setter Property="FontSize" Value="12" />
+        <Setter Property="Margin" Value="0,0,6,6" />
+    </Style>
+
+    <!-- The Text tab: text in, a result out, and a strip of transforms between them. -->
+    <DataTemplate x:Key="TextToolsViewModel.Panel">
+        <DockPanel MinHeight="236">
+            <TextBlock DockPanel.Dock="Bottom" Text="{Binding Message}" FontSize="11" Foreground="{DynamicResource Island.Subtle}" Margin="4,2,0,0" MinHeight="14" />
+
+            <!-- Transforms. Each one writes to the result card; "Use result" feeds it back in. -->
+            <WrapPanel DockPanel.Dock="Bottom" Margin="0,8,0,-6">
+                <Button Style="{StaticResource Text.Chip}" Content="Fix layout" Command="{Binding FixLayoutCommand}" ToolTip="Retype text that was typed with the wrong keyboard layout" />
+                <Button Style="{StaticResource Text.Chip}" Content="UPPER" Command="{Binding UpperCommand}" />
+                <Button Style="{StaticResource Text.Chip}" Content="lower" Command="{Binding LowerCommand}" />
+                <Button Style="{StaticResource Text.Chip}" Content="Title Case" Command="{Binding TitleCaseCommand}" />
+                <Button Style="{StaticResource Text.Chip}" Content="Sentence" Command="{Binding SentenceCaseCommand}" />
+                <Button Style="{StaticResource Text.Chip}" Content="snake_case" Command="{Binding SnakeCommand}" />
+                <Button Style="{StaticResource Text.Chip}" Content="camelCase" Command="{Binding CamelCommand}" />
+                <Button Style="{StaticResource Text.Chip}" Content="kebab-case" Command="{Binding KebabCommand}" />
+                <Button Style="{StaticResource Text.Chip}" Content="Translit" Command="{Binding TranslitCommand}" ToolTip="Cyrillic to Latin, or Latin to Cyrillic" />
+                <Button Style="{StaticResource Text.Chip}" Content="JSON" Command="{Binding JsonPrettyCommand}" ToolTip="Format JSON" />
+                <Button Style="{StaticResource Text.Chip}" Content="JSON min" Command="{Binding JsonMinifyCommand}" />
+                <Button Style="{StaticResource Text.Chip}" Content="Base64" Command="{Binding ToBase64Command}" />
+                <Button Style="{StaticResource Text.Chip}" Content="From Base64" Command="{Binding FromBase64Command}" />
+                <Button Style="{StaticResource Text.Chip}" Content="URL" Command="{Binding UrlEncodeCommand}" />
+                <Button Style="{StaticResource Text.Chip}" Content="From URL" Command="{Binding UrlDecodeCommand}" />
+                <Button Style="{StaticResource Text.Chip}" Content="Clean lines" Command="{Binding CleanLinesCommand}" />
+                <Button Style="{StaticResource Text.Chip}" Content="QR code" Command="{Binding MakeQrCommand}" />
+                <StackPanel Orientation="Horizontal" Visibility="{Binding HasAi, Converter={StaticResource Island.BoolToVisibility}}">
+                    <Button Style="{StaticResource Text.Chip}" Content="Translate" Command="{Binding TranslateCommand}" ToolTip="Ask the AI (Agents tab)" />
+                    <Button Style="{StaticResource Text.Chip}" Content="Fix" Command="{Binding FixTextCommand}" ToolTip="Ask the AI to fix spelling and grammar" />
+                    <Button Style="{StaticResource Text.Chip}" Content="Shorten" Command="{Binding ShortenCommand}" />
+                    <Button Style="{StaticResource Text.Chip}" Content="Explain" Command="{Binding ExplainCommand}" />
+                    <Button Style="{StaticResource Text.Chip}" Content="Reply" Command="{Binding ReplyCommand}" />
+                </StackPanel>
+            </WrapPanel>
+
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="10" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+
+                <Border Style="{StaticResource Island.Card}" Padding="12,8" MinHeight="96">
+                    <DockPanel>
+                        <DockPanel DockPanel.Dock="Bottom" Margin="0,6,0,0">
+                            <Button DockPanel.Dock="Right" Style="{StaticResource Island.IconButton}" Width="26" Height="26" Command="{Binding ClearAllCommand}"
+                                    ToolTip="Clear" AutomationProperties.Name="Clear">
+                                <shell:Icon Kind="trash" Size="13" />
+                            </Button>
+                            <Button Style="{StaticResource Island.ChipButton}" Content="Paste" HorizontalAlignment="Left" Margin="0" MinHeight="26"
+                                    Command="{Binding PasteInputCommand}" AutomationProperties.Name="Paste the clipboard text" />
+                        </DockPanel>
+                        <Grid>
+                            <TextBox Style="{StaticResource Island.Input}" Text="{Binding Input, UpdateSourceTrigger=PropertyChanged}" Background="Transparent"
+                                     AcceptsReturn="True" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto" Padding="0,2" AutomationProperties.Name="Text" />
+                            <TextBlock Text="Type or paste text" FontSize="13" Margin="0,2,0,0" IsHitTestVisible="False" Foreground="{DynamicResource Island.Subtle}"
+                                       Visibility="{Binding HasInput, Converter={StaticResource Island.InverseBoolToVisibility}}" />
+                        </Grid>
+                    </DockPanel>
+                </Border>
+
+                <Border Grid.Column="2" Style="{StaticResource Island.Card}" Padding="12,8" MinHeight="96">
+                    <DockPanel>
+                        <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" Margin="0,6,0,0">
+                            <Button Style="{StaticResource Island.PrimaryChip}" Content="Copy" Margin="0,0,6,0" MinHeight="26" Command="{Binding CopyOutputCommand}"
+                                    AutomationProperties.Name="Copy the result" />
+                            <Button Style="{StaticResource Island.ChipButton}" Content="Use result" Margin="0" MinHeight="26" Command="{Binding UseOutputCommand}"
+                                    ToolTip="Move the result into the text box to chain another change" />
+                        </StackPanel>
+                        <Grid>
+                            <TextBox Style="{StaticResource Island.Input}" Text="{Binding Output, Mode=OneWay}" IsReadOnly="True" Background="Transparent"
+                                     TextWrapping="Wrap" AcceptsReturn="True" VerticalScrollBarVisibility="Auto" Padding="0,2" AutomationProperties.Name="Result" />
+                            <Image Source="{Binding Qr}" Stretch="Uniform" MaxHeight="120" HorizontalAlignment="Center" RenderOptions.BitmapScalingMode="NearestNeighbor"
+                                   Visibility="{Binding HasQr, Converter={StaticResource Island.BoolToVisibility}}" AutomationProperties.Name="QR code" />
+                            <TextBlock Text="The result shows here" FontSize="13" Margin="0,2,0,0" IsHitTestVisible="False" Foreground="{DynamicResource Island.Subtle}">
+                                <TextBlock.Style>
+                                    <Style TargetType="TextBlock">
+                                        <Setter Property="Visibility" Value="Collapsed" />
+                                        <Style.Triggers>
+                                            <MultiDataTrigger>
+                                                <MultiDataTrigger.Conditions>
+                                                    <Condition Binding="{Binding HasOutput}" Value="False" />
+                                                    <Condition Binding="{Binding HasQr}" Value="False" />
+                                                </MultiDataTrigger.Conditions>
+                                                <Setter Property="Visibility" Value="Visible" />
+                                            </MultiDataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </TextBlock.Style>
+                            </TextBlock>
+                        </Grid>
+                    </DockPanel>
+                </Border>
+            </Grid>
+        </DockPanel>
+    </DataTemplate>
+
+</ResourceDictionary>

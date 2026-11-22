@@ -48,6 +48,7 @@ public class GroupedPanelsTests
             ["calendar"] = new CalendarViewModel(() => { }),
             ["notes"] = new Atoll.Modules.Notes.NotesViewModel(new Atoll.Settings.NotesSettings(), () => { }),
             ["tide"] = new Atoll.Modules.Tide.TideViewModel(new Atoll.Settings.TideSettings(), () => { }),
+            ["text"] = new Atoll.Modules.TextTools.TextToolsViewModel(_ => { }),
             ["system"] = sound,
             ["shelf"] = new ShelfViewModel(_ => { }, () => { }),
             ["clipboard"] = new ClipboardViewModel(new ClipboardHistory()),
@@ -67,7 +68,7 @@ public class GroupedPanelsTests
     {
         var modules = Modules();
         var tabs = PanelGroups.Combine(modules);
-        Assert.Equal(["claude", "providers", "media", "notifications", "clock", "calendar", "notes", "tide", "system", "shelf", "downloads", "clipboard", "weather", "launcher"],
+        Assert.Equal(["claude", "providers", "media", "notifications", "clock", "calendar", "notes", "tide", "text", "system", "shelf", "downloads", "clipboard", "weather", "launcher"],
             tabs.Select(t => t.Descriptor.Id));
         Assert.Equal(tabs, PanelGroups.Combine(modules));
         foreach (var module in modules)
@@ -143,7 +144,7 @@ public class GroupedPanelsTests
             "Modules/Shelf/ShelfTemplates.xaml", "Modules/Downloads/DownloadsTemplates.xaml", "Modules/Clipboard/ClipboardTemplates.xaml", "Modules/Stats/StatsTemplates.xaml",
             "Modules/Weather/WeatherTemplates.xaml", "Modules/Indicators/IndicatorsTemplates.xaml", "Modules/Calendar/CalendarTemplates.xaml",
             "Modules/Games/GamesTemplates.xaml", "Modules/Launcher/LauncherTemplates.xaml", "Modules/Notes/NotesTemplates.xaml",
-            "Modules/Tide/TideTemplates.xaml",
+            "Modules/Tide/TideTemplates.xaml", "Modules/TextTools/TextToolsTemplates.xaml",
             "Modules/GroupedTemplates.xaml" })
             resources.MergedDictionaries.Add(new ResourceDictionary { Source = new Uri("/Atoll;component/" + file, UriKind.Relative) });
         var modules = Modules();

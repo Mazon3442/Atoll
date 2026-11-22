@@ -78,6 +78,14 @@ public partial class App : Application
 
         _dictation = new Modules.Dictation.DictationService(_activities, _settings, Dispatcher, _hotkeys);
         Navigation.Dictate = () => _ = _dictation.ToggleAsync();
+        Navigation.AskAi = prompt =>
+        {
+            if (_modules.Tabs.Select(tab => tab.Panel).OfType<Modules.Claude.ClaudeViewModel>().FirstOrDefault() is not { } claude) return;
+            claude.SectionIndex = 1;
+            claude.Ask.Draft = prompt;
+            if (claude.Ask.SendCommand.CanExecute(null)) claude.Ask.SendCommand.Execute(null);
+            Navigation.OpenModule?.Invoke("claude");
+        };
         _islands = new IslandManager(_settings, _activities, _modules, OpenSettings, Dispatcher);
         Navigation.OpenModule = _islands.OpenModule;
         Navigation.OpenOnboarding = ShowOnboarding;
