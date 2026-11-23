@@ -47,6 +47,7 @@
     <Compile Include="../Atoll.App/Modules/Media/AudioOutputs.cs" Link="Modules/AudioOutputs.cs" />
     <Compile Include="../Atoll.App/Modules/Indicators/IndicatorsModule.cs" Link="Modules/IndicatorsModule.cs" />
     <Compile Include="../Atoll.App/Modules/Actions/QuickActionsModule.cs" Link="Modules/QuickActionsModule.cs" />
+    <Compile Include="../Atoll.App/Modules/Actions/SystemControls.cs" Link="Modules/SystemControls.cs" />
     <Compile Include="../Atoll.App/Modules/Notifications/NotificationsModule.cs" Link="Modules/NotificationsModule.cs" />
     <Compile Include="../Atoll.App/Modules/Notifications/NotificationSetup.cs" Link="Modules/NotificationSetup.cs" />
     <Compile Include="../Atoll.App/Shell/Native.cs" Link="Native.cs" />

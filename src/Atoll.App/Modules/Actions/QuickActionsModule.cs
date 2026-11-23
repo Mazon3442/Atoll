@@ -2,7 +2,11 @@ using System.Diagnostics;
 using System.Runtime.InteropServices;
 using Atoll.Activities;
 using Atoll.Modules.Controls;
+#if AVALONIA
+using Avalonia.Threading;
+#else
 using System.Windows.Threading;
+#endif
 using Windows.Devices.Radios;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;

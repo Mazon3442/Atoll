@@ -259,17 +259,50 @@ to step through the hours. Rain timing is a forecast, not an alert service.
 ### Launcher
 
 The **Launcher** tab has two sections. **Apps** searches your Start Menu and opens a shortcut with
-one click; **Games** holds the game library, the current session and the Minecraft server (Windows).
+one click. Above the list is a row of your own **pinned shortcuts**: apps, files, sites and links such
+as `steam://run/570`. Right-click an app to pin it, or use the plus to add anything the shell can open.
+Shortcuts with the same group name share one chip that opens a second row, and each can have its own
+global hotkey; **Games** holds the game library, the current session and the Minecraft server (Windows).
 Game behavior lives in **Settings > Games**: the island overlay, notifications, performance and play
 time, start announcements, game detection, library sources, and the Minecraft server check interval.
 Use the refresh button in Apps if you install something while ATOLL is open.
 
 ### Notes
 
-The **Notes** tab has three sections. **Notes** keeps quick text notes, **Reminders** sets a one-off
-reminder with 10-minute to 3-hour presets or tomorrow morning, and **To-do** is a simple checklist.
-Press Enter to add a to-do, or Ctrl+Enter to save a note. Reminders pop up in the island when they
-are due. Notes, reminders and to-dos are stored in ATOLL's settings file.
+The **Notes** tab has one tab per note, each with bold, italic, strikethrough, highlight, bullet and
+numbered lists, and tasks (click a box to tick it). On the right, type a reminder as one phrase and
+press Enter: "call mum tomorrow at 9", "in 20 minutes turn the stove off", "pills every day at 23:00",
+"gym every monday and wednesday at 18:30". Repeating reminders move to their next day when they fire,
+and any reminder can be snoozed for ten minutes. A **To-do** list sits behind a switch. Notes,
+reminders and to-dos are stored in ATOLL's settings file.
+
+### Command palette
+
+Press **Ctrl+Alt+K** (or Ctrl+K in the open island). Besides tabs, apps and actions, typing works out
+sums and conversions (`2*(3+4)`, `15% of 80`, `5 km to mi`, `100 usd to eur`; Enter copies the answer),
+starts timers (`timer 10 min`, `stopwatch`), sets reminders (`remind me to call mum tomorrow at 9`),
+finds files by name, and runs a line after `>` in PowerShell (`>cmd dir` for the classic prompt).
+**Ctrl+Enter** opens the folder of a file or program and **Ctrl+Shift+Enter** starts it as
+administrator. The last two rows always offer **Ask AI** and **Search the web**.
+
+### Text tools
+
+The **Text** tab (in the **...** menu) fixes text typed with the wrong keyboard layout (English and
+Russian), changes case, transliterates, formats JSON, encodes Base64 and URLs, makes QR codes, and can
+hand the text to the AI in the Agents tab to translate, fix, shorten, explain or reply. The transforms
+run on this PC.
+
+### Screen tools and voice
+
+Each has a hotkey (**Settings > General > Keyboard**) and a palette action. Screenshots (area or
+screen) are saved to `Pictures\Atoll` and copied, with a card to edit them: arrows, boxes, a
+highlighter, text and blur. **Text from the screen** uses Windows' own OCR in every language you have
+installed, **QR code from the screen** reads a code, and the **color picker** copies a pixel's hex.
+**Screen recording** writes an MP4 with Windows' own H.264 encoder (video only, 30 minutes at most;
+choose an area, or press Enter for the screen). The island hides from pictures unless Settings keeps it.
+**Voice to text** (Ctrl+Alt+D) records until you press it again, transcribes with the local Whisper
+model that Tide Listen uses, copies the text and, if you like, pastes it into the window you were in.
+**Ctrl+Alt+Shift+V** pastes the clipboard as plain text and **Ctrl+Alt+M** mutes the microphone.
 
 ### Files and clipboard
 
@@ -312,6 +345,10 @@ ATOLL runs locally and has no account or telemetry.
   up with your settings, or you'll need to enter your calendar links again. Encryption protects them
   from other accounts, not from programs running as you.
 - **Clipboard history** is never saved. Private, concealed and password formats are ignored.
+- **Optional requests** (each off or tied to something you type): exchange rates from open.er-api.com
+  when you type a currency conversion (Settings > Command palette); the country and address of a VPN
+  connection from ipwho.is (off by default). Screenshots, OCR, QR scanning, dictation and file search
+  run on this PC; the file index is kept in memory only.
 - **Agent adapters** send short summaries over a local pipe that only your account can open.
 - **Codex fallback monitoring** reads a limited set of recent local events. Prompts and replies are
   never displayed, kept or uploaded.
