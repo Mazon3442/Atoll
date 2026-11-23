@@ -45,6 +45,7 @@ internal sealed class VpnWatcher : IDisposable
         NetworkInterface.GetAllNetworkInterfaces()
             .Where(nic => nic.OperationalStatus == OperationalStatus.Up && nic.NetworkInterfaceType != NetworkInterfaceType.Loopback)
             .Where(nic => VpnAdapters.IsVpn(nic.Name, nic.Description, nic.NetworkInterfaceType == NetworkInterfaceType.Ppp))
+            .Where(nic => VpnAdapters.HasUsableAddress(nic.GetIPProperties().UnicastAddresses.Select(u => u.Address)))
             .Select(nic => nic.Name)
             .ToList();
 

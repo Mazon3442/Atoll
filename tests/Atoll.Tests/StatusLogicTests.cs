@@ -54,3 +54,19 @@ public class StatusLogicTests
     [InlineData(5L * 1024 * 1024 * 1024, "5.0 GB")]
     public void Sizes_read_naturally(long bytes, string expected) => Assert.Equal(expected, SteamDownloads.Size(bytes));
 }
+
+public class VpnAddressTests
+{
+    private static System.Net.IPAddress[] Ips(params string[] a) => a.Select(System.Net.IPAddress.Parse).ToArray();
+
+    [Fact]
+    public void A_stopped_tunnel_with_only_self_assigned_addresses_is_not_connected() =>
+        Assert.False(VpnAdapters.HasUsableAddress(Ips("169.254.83.107", "fe80::45e3:2ec3:87e0:5592")));
+
+    [Fact]
+    public void A_tunnel_with_a_real_address_is_connected()
+    {
+        Assert.True(VpnAdapters.HasUsableAddress(Ips("100.101.102.103")));
+        Assert.True(VpnAdapters.HasUsableAddress(Ips("fe80::1", "10.8.0.2")));
+    }
+}

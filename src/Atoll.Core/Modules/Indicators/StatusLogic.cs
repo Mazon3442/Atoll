@@ -11,6 +11,14 @@ public static class VpnAdapters
         "expressvpn", "surfshark", "windscribe", "private internet access", "pia ", "tailscale", "zerotier", "happ", "v2ray", "karing", "tunnel", " vpn", "vpn ",
     ];
 
+    /// <summary>
+    /// True when at least one address is usable. A stopped tunnel (Tailscale, WireGuard) keeps its adapter "up" but only
+    /// holds a self-assigned link-local address (169.254.x.x or fe80::), which means no connection.
+    /// </summary>
+    public static bool HasUsableAddress(IEnumerable<System.Net.IPAddress> addresses) =>
+        addresses.Any(a => !System.Net.IPAddress.IsLoopback(a) && !a.IsIPv6LinkLocal && !a.IsIPv6Multicast &&
+            !(a.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork && a.GetAddressBytes() is [169, 254, ..]));
+
     /// <summary>True for a Windows built-in VPN connection (PPP) or an adapter whose name or description is a known VPN client.</summary>
     public static bool IsVpn(string name, string description, bool isPointToPoint)
     {
