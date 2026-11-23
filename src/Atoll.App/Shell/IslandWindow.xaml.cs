@@ -282,6 +282,7 @@ public partial class IslandWindow : Window
         var focus = FocusService.Current;
         var show = focus is not null && _settings.Current.Focus.Enabled;
         FocusTile.Visibility = show ? Visibility.Visible : Visibility.Collapsed;
+        ActionTiles.Columns = show ? 3 : 2; // the tiles share the row, with no empty cell
         StatusFocusIcon.Visibility = show && focus!.IsActive ? Visibility.Visible : Visibility.Collapsed;
         if (!show)
         {

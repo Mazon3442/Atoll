@@ -171,7 +171,7 @@
                         <Border x:Name="ControlsSheet" Visibility="Collapsed" Background="{DynamicResource Island.Background}"
                                 DataContext="{Binding DataContext, ElementName=StatusChips}" AutomationProperties.Name="Controls">
                             <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Focusable="False">
-                                <Grid MaxWidth="460" HorizontalAlignment="Center" Margin="0,2,0,2">
+                                <Grid HorizontalAlignment="Stretch" Margin="0,2,0,2">
                                     <StackPanel>
                                         <!-- Controls: state tiles first, then the actions that need a second press. -->
                                         <UniformGrid Columns="4" Margin="0,0,-8,0">
@@ -255,7 +255,7 @@
                                                 </StackPanel>
                                             </Button>
                                         </UniformGrid>
-                                        <UniformGrid Columns="3" Margin="0,0,-8,0">
+                                        <UniformGrid x:Name="ActionTiles" Columns="3" Margin="0,0,-8,0">
                                             <Button x:Name="FocusTile" Style="{StaticResource System.ActionTile}" Margin="0,0,8,8" Click="OnFocusTileClick" AutomationProperties.Name="Do Not Disturb">
                                                 <StackPanel>
                                                     <shell:Icon Kind="moon" Size="16" HorizontalAlignment="Center" />
