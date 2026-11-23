@@ -518,6 +518,15 @@
                         <s:SettingCard Glyph="&#xE765;" Header="Keyboard layout" Description="A short popup (EN, RU) when you switch the keyboard layout.">
                             <CheckBox Style="{StaticResource Toggle}" IsChecked="{Binding ShowKeyboardLayout}" AutomationProperties.Name="Show a popup when the keyboard layout changes" />
                         </s:SettingCard>
+                        <s:SettingCard Glyph="&#xE72E;" Header="VPN connected" Description="A pill while a VPN adapter is up (WireGuard, OpenVPN, WARP, Windows VPN and others). Found on this PC, with no network request.">
+                            <CheckBox Style="{StaticResource Toggle}" IsChecked="{Binding VpnEnabled}" AutomationProperties.Name="Show a pill while a VPN is connected" />
+                        </s:SettingCard>
+                        <s:SettingCard Glyph="&#xE72E;" Header="Show the VPN country and address" Description="Asks ipwho.is where your connection appears to be, once each time a VPN connects. Off by default.">
+                            <CheckBox Style="{StaticResource Toggle}" IsChecked="{Binding VpnLookup}" AutomationProperties.Name="Show the VPN country and address" />
+                        </s:SettingCard>
+                        <s:SettingCard Glyph="&#xE896;" Header="Steam downloads" Description="Progress of a Steam download or update, read from Steam's own files on this PC.">
+                            <CheckBox Style="{StaticResource Toggle}" IsChecked="{Binding ShowSteamDownloads}" AutomationProperties.Name="Show Steam download progress" />
+                        </s:SettingCard>
                         <s:SettingCard Glyph="&#xE767;" Header="Mouse wheel changes the volume" Description="Scroll over the resting island to turn the volume up or down. Off by default: it only works while the island can take the wheel, not in click through mode.">
                             <CheckBox Style="{StaticResource Toggle}" IsChecked="{Binding WheelVolume}" AutomationProperties.Name="Mouse wheel changes the volume" />
                         </s:SettingCard>

@@ -21,6 +21,8 @@ public partial class App : Application
     private HotkeyService? _hotkeys;
     private Modules.Dictation.DictationService? _dictation;
     private Modules.Screen.ScreenTools? _screen;
+    private Modules.Status.VpnWatcher? _vpn;
+    private Modules.Status.SteamDownloadWatcher? _steam;
     private FocusService? _focus;
     private DispatcherTimer? _focusTimer;
     private SettingsWindow? _settingsWindow;
@@ -87,6 +89,8 @@ public partial class App : Application
                 Activities.ActivityPriority.High, TimeSpan.FromSeconds(2)));
         });
         _hotkeys.AddAction(ShortcutCatalog.PlainPaste, PasteWithoutFormatting);
+        _vpn = new Modules.Status.VpnWatcher(_activities, _settings, Dispatcher);
+        _steam = new Modules.Status.SteamDownloadWatcher(_activities, _settings);
         _screen = new Modules.Screen.ScreenTools(_activities, _settings, Dispatcher, _hotkeys);
         Navigation.ScreenTool = tool =>
         {
@@ -262,6 +266,8 @@ public partial class App : Application
         _focusTimer?.Stop();
         _focusTimer = null;
         FocusService.Current = null;
+        _steam?.Dispose();
+        _vpn?.Dispose();
         _screen?.Dispose();
         _dictation?.Dispose();
         _hotkeys?.Dispose();

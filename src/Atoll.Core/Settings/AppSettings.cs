@@ -106,6 +106,11 @@ public sealed class AppSettings
     /// <summary>A short popup with the layout name (EN, RU) when the keyboard layout changes.</summary>
     public bool ShowKeyboardLayout { get; set; } = true;
 
+    /// <summary>A pill with the progress of a Steam download or update, read from Steam's local files.</summary>
+    public bool ShowSteamDownloads { get; set; } = true;
+
+    public VpnSettings Vpn { get; set; } = new();
+
     /// <summary>Mouse wheel over the resting island changes the volume. Off by default, because the wheel can also scroll the page under the pointer.</summary>
     public bool WheelVolume { get; set; }
 
@@ -670,4 +675,14 @@ public enum MediaPillStyle
 public sealed class LauncherSettings
 {
     public List<Atoll.Modules.Launcher.PinnedLink> Pins { get; set; } = [];
+}
+
+/// <summary>The VPN pill. Finding the adapter is local; the country and address need one request.</summary>
+public sealed class VpnSettings
+{
+    /// <summary>Show a pill while a VPN adapter is connected.</summary>
+    public bool Enabled { get; set; } = true;
+
+    /// <summary>Ask ipwho.is for the country and address of the connection. Off until you turn it on.</summary>
+    public bool Lookup { get; set; }
 }
