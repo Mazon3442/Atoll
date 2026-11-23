@@ -143,6 +143,7 @@ public partial class IslandWindow : Window
         {
             if (_refreshingTabs) return;
             if (_paletteOpen) ClosePalette();
+            CloseControls();
             if (Tabs.SelectedItem is { } selected) Tabs.ScrollIntoView(selected); // a narrow island scrolls the tab bar
             // Picking a bookmarked tab leaves a menu tab that was only open for this visit.
             if (_transientTab is not null && !ReferenceEquals(Tabs.SelectedItem, _transientTab))
@@ -206,6 +207,12 @@ public partial class IslandWindow : Window
                 return;
             }
             if (_mode != IslandMode.Expanded) return;
+            if (e.Key == Key.Escape && ControlsSheet.Visibility == Visibility.Visible)
+            {
+                CloseControls();
+                e.Handled = true;
+                return;
+            }
             if (e.Key == Key.Escape)
             {
                 // The Ask box owns Escape while it has focus: stop a run, then clear the draft, before closing the island.
@@ -289,15 +296,25 @@ public partial class IslandWindow : Window
 
     private void OnStatusClick(object sender, RoutedEventArgs e)
     {
-        StatusPopup.HorizontalOffset = StatusButton.ActualWidth - 372;
-        if (!StatusPopup.IsOpen && StatusChips.DataContext is Modules.SystemGroupViewModel system) system.Actions?.RefreshControlsCommand.Execute(null);
-        StatusPopup.IsOpen = !StatusPopup.IsOpen;
+        if (ControlsSheet.Visibility == Visibility.Visible) { CloseControls(); return; }
+        if (_paletteOpen) ClosePalette();
+        if (StatusChips.DataContext is Modules.SystemGroupViewModel system) system.Actions?.RefreshControlsCommand.Execute(null);
+        PanelBody.Visibility = Visibility.Collapsed;
+        ControlsSheet.Visibility = Visibility.Visible;
+    }
+
+    /// <summary>Hides the Controls sheet that fills the pill and shows the tab again.</summary>
+    private void CloseControls()
+    {
+        if (ControlsSheet.Visibility != Visibility.Visible) return;
+        ControlsSheet.Visibility = Visibility.Collapsed;
+        if (!_paletteOpen) PanelBody.Visibility = Visibility.Visible;
     }
 
     /// <summary>The Focus tile hands over to the duration menu, which opens under the status chip.</summary>
     private void OnFocusTileClick(object sender, RoutedEventArgs e)
     {
-        StatusPopup.IsOpen = false;
+        CloseControls();
         OnFocusClick(sender, e);
     }
 
@@ -559,6 +576,7 @@ public partial class IslandWindow : Window
         _heldOpen = true;
         _paletteOpen = true;
         _palette.Refresh();
+        ControlsSheet.Visibility = Visibility.Collapsed;
         PanelBody.Visibility = Visibility.Collapsed;
         Palette.Visibility = Visibility.Visible;
         Palette.FocusSearch();
@@ -974,7 +992,7 @@ public partial class IslandWindow : Window
     private void SetMode(IslandMode mode, string? moduleId = null)
     {
         TabMenuPopup.IsOpen = false;
-        StatusPopup.IsOpen = false;
+        CloseControls();
         // A tab opened from the ⋯ menu only stays in the top row for its visit.
         if (mode != IslandMode.Expanded && _transientTab is not null)
         {

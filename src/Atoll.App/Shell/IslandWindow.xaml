@@ -84,11 +84,94 @@
                                     </StackPanel>
                                 </Border>
                             </Popup>
-                            <Popup x:Name="StatusPopup" PlacementTarget="{Binding ElementName=StatusButton}"
-                                   Placement="Bottom" VerticalOffset="6" StaysOpen="False" AllowsTransparency="True"
-                                   PopupAnimation="Fade" DataContext="{Binding DataContext, ElementName=StatusChips}">
-                                <Border Background="{DynamicResource Island.Menu}" BorderBrush="{DynamicResource Island.Hover}"
-                                        BorderThickness="1" CornerRadius="{shell:Round 22}" Padding="8" Width="372">
+                            <Button Width="Auto" ToolTip="Search tabs, apps and actions (Ctrl+K)" AutomationProperties.Name="Search" Click="OnPaletteClick">
+                                <StackPanel Orientation="Horizontal" Margin="12,0">
+                                    <shell:Icon Kind="search" Size="14" Foreground="{DynamicResource Island.Subtle}" />
+                                    <TextBlock Text="Ctrl K" FontSize="12" Foreground="{DynamicResource Island.Subtle}" Margin="6,0,0,0" VerticalAlignment="Center" />
+                                </StackPanel>
+                            </Button>
+                            <Button ToolTip="Settings" AutomationProperties.Name="Settings" Click="OnSettingsClick">
+                                <shell:Icon Kind="settings" Size="15" />
+                            </Button>
+                        </StackPanel>
+                        <Border x:Name="TabStrip" Background="{DynamicResource Island.Surface}" CornerRadius="{shell:Round}" Padding="3" HorizontalAlignment="Left">
+                            <StackPanel Orientation="Horizontal">
+                                <ListBox x:Name="Tabs"
+                                         Background="Transparent" BorderThickness="0"
+                                         ItemContainerStyle="{StaticResource Island.TabItem}"
+                                         ScrollViewer.HorizontalScrollBarVisibility="Hidden"
+                                         ScrollViewer.VerticalScrollBarVisibility="Disabled"
+                                         AutomationProperties.Name="ATOLL sections">
+                                    <ListBox.ItemsPanel>
+                                        <ItemsPanelTemplate>
+                                            <StackPanel Orientation="Horizontal" />
+                                        </ItemsPanelTemplate>
+                                    </ListBox.ItemsPanel>
+                                    <ListBox.ItemTemplate>
+                                        <DataTemplate>
+                                            <StackPanel Orientation="Horizontal" ToolTip="{Binding Descriptor.Name}"
+                                                        AutomationProperties.Name="{Binding Descriptor.Name}">
+                                                <shell:Icon Kind="{Binding Descriptor.Id, Converter={x:Static shell:TabIconConverter.Instance}}" Size="15" VerticalAlignment="Center" />
+                                                <TextBlock Text="{Binding Descriptor.Name}" FontSize="13" FontWeight="SemiBold" Margin="7,0,0,0" VerticalAlignment="Center"
+                                                           Visibility="{Binding IsSelected, RelativeSource={RelativeSource AncestorType=ListBoxItem}, Converter={StaticResource Island.BoolToVisibility}, FallbackValue=Collapsed}" />
+                                            </StackPanel>
+                                        </DataTemplate>
+                                    </ListBox.ItemTemplate>
+                                </ListBox>
+                                <Button x:Name="TabMenuButton" Style="{StaticResource Island.IconButton}" Width="34" Height="34"
+                                        Margin="2,0,0,0" Click="OnTabMenuClick" ToolTip="Sections outside the top row"
+                                        Visibility="Collapsed" AutomationProperties.Name="Sections outside the top row">
+                                    <shell:Icon Kind="more" Size="15" />
+                                </Button>
+                                <Popup x:Name="TabMenuPopup" PlacementTarget="{Binding ElementName=TabMenuButton}"
+                                       Placement="Bottom" VerticalOffset="6" StaysOpen="False" AllowsTransparency="True"
+                                       PopupAnimation="Fade" Opened="OnTabMenuOpened">
+                                    <Border Background="{DynamicResource Island.Menu}" BorderBrush="{DynamicResource Island.Hover}"
+                                            BorderThickness="1" CornerRadius="{shell:Round 22}" Padding="4" MinWidth="200" MaxHeight="360">
+                                        <StackPanel>
+                                            <TextBlock Text="Outside the top row" FontSize="11" FontWeight="Bold"
+                                                       Foreground="{DynamicResource Island.Subtle}" Margin="8,6,8,4" />
+                                            <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                                                <ListBox x:Name="TabMenu"
+                                                         ItemContainerStyle="{StaticResource Island.TabMenuItem}"
+                                                         Background="Transparent" BorderThickness="0"
+                                                         Foreground="{DynamicResource Island.Foreground}"
+                                                         KeyDown="OnTabMenuKeyDown" MouseLeftButtonUp="OnTabMenuClickItem"
+                                                         AutomationProperties.Name="Sections outside the top row">
+                                                    <ListBox.ItemTemplate>
+                                                        <DataTemplate>
+                                                            <DockPanel>
+                                                                <Button DockPanel.Dock="Right" Style="{StaticResource Island.IconButton}"
+                                                                        Width="24" Height="24" Margin="6,0,0,0"
+                                                                        Click="OnTabMenuBookmark" ToolTip="Keep in the top row"
+                                                                        AutomationProperties.Name="{Binding Descriptor.Name, StringFormat=Keep {0} in the top row}">
+                                                                    <shell:Icon Kind="pin" Size="12" />
+                                                                </Button>
+                                                                <TextBlock DockPanel.Dock="Left" Text="{Binding Descriptor.Glyph}"
+                                                                           FontFamily="{StaticResource Island.IconFont}" FontSize="15"
+                                                                           Margin="0,0,9,0" VerticalAlignment="Center" />
+                                                                <TextBlock Text="{Binding Descriptor.Name}" FontSize="13" TextTrimming="CharacterEllipsis"
+                                                                           VerticalAlignment="Center" />
+                                                            </DockPanel>
+                                                        </DataTemplate>
+                                                    </ListBox.ItemTemplate>
+                                                </ListBox>
+                                            </ScrollViewer>
+                                        </StackPanel>
+                                    </Border>
+                                </Popup>
+                            </StackPanel>
+                        </Border>
+                    </DockPanel>
+
+                    <Grid Grid.Row="1" Margin="4,10,4,0">
+                        <ContentPresenter x:Name="PanelBody" />
+                        <shell:CommandPaletteView x:Name="Palette" Visibility="Collapsed" />
+                        <!-- Controls: fills the panel area like the command palette; opened from the Status chip. -->
+                        <Border x:Name="ControlsSheet" Visibility="Collapsed" Background="{DynamicResource Island.Background}"
+                                DataContext="{Binding DataContext, ElementName=StatusChips}" AutomationProperties.Name="Controls">
+                            <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Focusable="False">
+                                <Grid MaxWidth="460" HorizontalAlignment="Center" Margin="0,2,0,2">
                                     <StackPanel>
                                         <!-- Controls: state tiles first, then the actions that need a second press. -->
                                         <UniformGrid Columns="4" Margin="0,0,-8,0">
@@ -237,91 +320,9 @@
                                             </StackPanel>
                                         </Border>
                                     </StackPanel>
-                                </Border>
-                            </Popup>
-                            <Button Width="Auto" ToolTip="Search tabs, apps and actions (Ctrl+K)" AutomationProperties.Name="Search" Click="OnPaletteClick">
-                                <StackPanel Orientation="Horizontal" Margin="12,0">
-                                    <shell:Icon Kind="search" Size="14" Foreground="{DynamicResource Island.Subtle}" />
-                                    <TextBlock Text="Ctrl K" FontSize="12" Foreground="{DynamicResource Island.Subtle}" Margin="6,0,0,0" VerticalAlignment="Center" />
-                                </StackPanel>
-                            </Button>
-                            <Button ToolTip="Settings" AutomationProperties.Name="Settings" Click="OnSettingsClick">
-                                <shell:Icon Kind="settings" Size="15" />
-                            </Button>
-                        </StackPanel>
-                        <Border x:Name="TabStrip" Background="{DynamicResource Island.Surface}" CornerRadius="{shell:Round}" Padding="3" HorizontalAlignment="Left">
-                            <StackPanel Orientation="Horizontal">
-                                <ListBox x:Name="Tabs"
-                                         Background="Transparent" BorderThickness="0"
-                                         ItemContainerStyle="{StaticResource Island.TabItem}"
-                                         ScrollViewer.HorizontalScrollBarVisibility="Hidden"
-                                         ScrollViewer.VerticalScrollBarVisibility="Disabled"
-                                         AutomationProperties.Name="ATOLL sections">
-                                    <ListBox.ItemsPanel>
-                                        <ItemsPanelTemplate>
-                                            <StackPanel Orientation="Horizontal" />
-                                        </ItemsPanelTemplate>
-                                    </ListBox.ItemsPanel>
-                                    <ListBox.ItemTemplate>
-                                        <DataTemplate>
-                                            <StackPanel Orientation="Horizontal" ToolTip="{Binding Descriptor.Name}"
-                                                        AutomationProperties.Name="{Binding Descriptor.Name}">
-                                                <shell:Icon Kind="{Binding Descriptor.Id, Converter={x:Static shell:TabIconConverter.Instance}}" Size="15" VerticalAlignment="Center" />
-                                                <TextBlock Text="{Binding Descriptor.Name}" FontSize="13" FontWeight="SemiBold" Margin="7,0,0,0" VerticalAlignment="Center"
-                                                           Visibility="{Binding IsSelected, RelativeSource={RelativeSource AncestorType=ListBoxItem}, Converter={StaticResource Island.BoolToVisibility}, FallbackValue=Collapsed}" />
-                                            </StackPanel>
-                                        </DataTemplate>
-                                    </ListBox.ItemTemplate>
-                                </ListBox>
-                                <Button x:Name="TabMenuButton" Style="{StaticResource Island.IconButton}" Width="34" Height="34"
-                                        Margin="2,0,0,0" Click="OnTabMenuClick" ToolTip="Sections outside the top row"
-                                        Visibility="Collapsed" AutomationProperties.Name="Sections outside the top row">
-                                    <shell:Icon Kind="more" Size="15" />
-                                </Button>
-                                <Popup x:Name="TabMenuPopup" PlacementTarget="{Binding ElementName=TabMenuButton}"
-                                       Placement="Bottom" VerticalOffset="6" StaysOpen="False" AllowsTransparency="True"
-                                       PopupAnimation="Fade" Opened="OnTabMenuOpened">
-                                    <Border Background="{DynamicResource Island.Menu}" BorderBrush="{DynamicResource Island.Hover}"
-                                            BorderThickness="1" CornerRadius="{shell:Round 22}" Padding="4" MinWidth="200" MaxHeight="360">
-                                        <StackPanel>
-                                            <TextBlock Text="Outside the top row" FontSize="11" FontWeight="Bold"
-                                                       Foreground="{DynamicResource Island.Subtle}" Margin="8,6,8,4" />
-                                            <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
-                                                <ListBox x:Name="TabMenu"
-                                                         ItemContainerStyle="{StaticResource Island.TabMenuItem}"
-                                                         Background="Transparent" BorderThickness="0"
-                                                         Foreground="{DynamicResource Island.Foreground}"
-                                                         KeyDown="OnTabMenuKeyDown" MouseLeftButtonUp="OnTabMenuClickItem"
-                                                         AutomationProperties.Name="Sections outside the top row">
-                                                    <ListBox.ItemTemplate>
-                                                        <DataTemplate>
-                                                            <DockPanel>
-                                                                <Button DockPanel.Dock="Right" Style="{StaticResource Island.IconButton}"
-                                                                        Width="24" Height="24" Margin="6,0,0,0"
-                                                                        Click="OnTabMenuBookmark" ToolTip="Keep in the top row"
-                                                                        AutomationProperties.Name="{Binding Descriptor.Name, StringFormat=Keep {0} in the top row}">
-                                                                    <shell:Icon Kind="pin" Size="12" />
-                                                                </Button>
-                                                                <TextBlock DockPanel.Dock="Left" Text="{Binding Descriptor.Glyph}"
-                                                                           FontFamily="{StaticResource Island.IconFont}" FontSize="15"
-                                                                           Margin="0,0,9,0" VerticalAlignment="Center" />
-                                                                <TextBlock Text="{Binding Descriptor.Name}" FontSize="13" TextTrimming="CharacterEllipsis"
-                                                                           VerticalAlignment="Center" />
-                                                            </DockPanel>
-                                                        </DataTemplate>
-                                                    </ListBox.ItemTemplate>
-                                                </ListBox>
-                                            </ScrollViewer>
-                                        </StackPanel>
-                                    </Border>
-                                </Popup>
-                            </StackPanel>
+                                </Grid>
+                            </ScrollViewer>
                         </Border>
-                    </DockPanel>
-
-                    <Grid Grid.Row="1" Margin="4,10,4,0">
-                        <ContentPresenter x:Name="PanelBody" />
-                        <shell:CommandPaletteView x:Name="Palette" Visibility="Collapsed" />
                     </Grid>
                 </Grid>
             </Grid>

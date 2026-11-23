@@ -181,16 +181,17 @@ internal static class CalendarUiTests
             var status = (Button)island.FindName("StatusButton");
             Assert.Equal(Visibility.Visible, status.Visibility);
             status.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
-            var statusPopup = (Popup)island.FindName("StatusPopup");
-            Assert.True(statusPopup.IsOpen);
-            if (statusPopup.Child is FrameworkElement popupRoot)
-            {
-                popupRoot.Measure(new Size(340, 520));
-                popupRoot.Arrange(new Rect(0, 0, 340, 520));
-                popupRoot.UpdateLayout();
-                Render(popupRoot, "status-popup");
-            }
-            statusPopup.IsOpen = false;
+            // Controls open inside the pill (over the tab), not in a window of their own.
+            var sheet = (FrameworkElement)island.FindName("ControlsSheet");
+            Assert.Equal(Visibility.Visible, sheet.Visibility);
+            Assert.Equal(Visibility.Collapsed, ((FrameworkElement)island.FindName("PanelBody")).Visibility);
+            sheet.Measure(new Size(520, 360));
+            sheet.Arrange(new Rect(0, 0, 520, 360));
+            sheet.UpdateLayout();
+            Render(sheet, "status-popup");
+            status.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+            Assert.Equal(Visibility.Collapsed, sheet.Visibility);
+            Assert.Equal(Visibility.Visible, ((FrameworkElement)island.FindName("PanelBody")).Visibility);
             var pill = (PillBorder)island.FindName("Pill");
             var bubble = (PillBorder)island.FindName("Bubble");
             var second = (PillBorder)island.FindName("Bubble2");
