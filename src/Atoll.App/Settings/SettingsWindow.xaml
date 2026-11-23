@@ -443,6 +443,31 @@
                         </StackPanel>
                         </Expander>
 
+                        <TextBlock Style="{StaticResource SectionHeader}" Text="Programs" />
+                        <TextBlock Style="{StaticResource SectionHint}" Text="Hide, dim or keep the island while a named program is in front, whatever size its window is. These rules win over the settings above." />
+                        <s:SettingCard Glyph="&#xE71D;" Header="Add a program" Description="Type its file name, for example chrome or obs64.">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBox Style="{StaticResource Island.Input}" Width="130" Text="{Binding NewProgram, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Program file name" />
+                                <ComboBox Style="{StaticResource Island.Picker}" Width="190" Margin="8,0,8,0" ItemsSource="{Binding ProgramModes}" DisplayMemberPath="Label"
+                                          SelectedValuePath="Value" SelectedValue="{Binding NewProgramMode}" AutomationProperties.Name="What the island does" />
+                                <Button Style="{StaticResource Island.ChipButton}" Content="Add" Margin="0" Command="{Binding AddProgramRuleCommand}" />
+                            </StackPanel>
+                        </s:SettingCard>
+                        <ItemsControl ItemsSource="{Binding ProgramRules}" Focusable="False">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <s:SettingCard Glyph="&#xE71D;" Header="{Binding Name}" Description="">
+                                        <StackPanel Orientation="Horizontal">
+                                            <ComboBox Style="{StaticResource Island.Picker}" Width="190" ItemsSource="{Binding Modes}" DisplayMemberPath="Label"
+                                                      SelectedValuePath="Value" SelectedValue="{Binding Mode}" AutomationProperties.Name="{Binding Name, StringFormat=What the island does for {0}}" />
+                                            <Button Style="{StaticResource Island.ChipButton}" Content="Remove" Margin="8,0,0,0" Command="{Binding RemoveCommand}"
+                                                    AutomationProperties.Name="{Binding Name, StringFormat=Remove the rule for {0}}" />
+                                        </StackPanel>
+                                    </s:SettingCard>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+
                         <TextBlock Style="{StaticResource SectionHeader}" Text="Keyboard" />
                         <TextBlock Style="{StaticResource SectionHint}" Text="Shortcuts that work from any app." />
                         <s:SettingCard Glyph="&#xE765;" Header="Open ATOLL"
@@ -465,10 +490,74 @@
                         <TextBlock Text="{Binding PaletteShortcutStatus}" Style="{StaticResource Hint}" Margin="4,-2,0,8"
                                    Foreground="{DynamicResource SystemFillColorCriticalBrush}" AutomationProperties.LiveSetting="Assertive"
                                    Visibility="{Binding PaletteShortcutStatus, Converter={StaticResource EmptyToCollapsed}}" />
+                        <ItemsControl ItemsSource="{Binding ExtraShortcuts}" KeyboardNavigation.TabNavigation="Continue">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <StackPanel>
+                                        <s:SettingCard Glyph="&#xE765;" Header="{Binding Name}" Description="{Binding Description}">
+                                            <s:HotkeyBox Shortcut="{Binding Shortcut}" AutomationProperties.Name="{Binding Name, StringFormat=Shortcut for {0}}" />
+                                        </s:SettingCard>
+                                        <TextBlock Text="{Binding Status}" Style="{StaticResource Hint}" Margin="4,-2,0,8"
+                                                   Foreground="{DynamicResource SystemFillColorCriticalBrush}" AutomationProperties.LiveSetting="Assertive"
+                                                   Visibility="{Binding Status, Converter={StaticResource EmptyToCollapsed}}" />
+                                    </StackPanel>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                        <s:SettingCard Glyph="&#xE720;" Header="Type dictated text into the window"
+                                       Description="After voice to text copies what you said, paste it where you were typing. Off keeps it on the clipboard only.">
+                            <CheckBox Style="{StaticResource Toggle}" IsChecked="{Binding DictationTypes}" AutomationProperties.Name="Type dictated text into the window" />
+                        </s:SettingCard>
                         <TextBlock Text="{Binding ShortcutMessage}" Style="{StaticResource Hint}" Margin="4,-2,0,8" AutomationProperties.LiveSetting="Polite"
                                    Visibility="{Binding ShortcutMessage, Converter={StaticResource EmptyToCollapsed}}" />
                         <TextBlock Style="{StaticResource Hint}" Margin="4,2,0,0"
                                    Text="Click a shortcut and press new keys to change it. Backspace turns it off. In the open island, Ctrl+Tab or the mouse wheel over the tabs switches sections." />
+
+                        <TextBlock Style="{StaticResource SectionHeader}" Text="Status popups" />
+                        <TextBlock Style="{StaticResource SectionHint}" Text="Small things the island can tell you or let you do without opening it." />
+                        <s:SettingCard Glyph="&#xE765;" Header="Keyboard layout" Description="A short popup (EN, RU) when you switch the keyboard layout.">
+                            <CheckBox Style="{StaticResource Toggle}" IsChecked="{Binding ShowKeyboardLayout}" AutomationProperties.Name="Show a popup when the keyboard layout changes" />
+                        </s:SettingCard>
+                        <s:SettingCard Glyph="&#xE72E;" Header="VPN connected" Description="A pill while a VPN adapter is up (WireGuard, OpenVPN, WARP, Windows VPN and others). Found on this PC, with no network request.">
+                            <CheckBox Style="{StaticResource Toggle}" IsChecked="{Binding VpnEnabled}" AutomationProperties.Name="Show a pill while a VPN is connected" />
+                        </s:SettingCard>
+                        <s:SettingCard Glyph="&#xE72E;" Header="Show the VPN country and address" Description="Asks ipwho.is where your connection appears to be, once each time a VPN connects. Off by default.">
+                            <CheckBox Style="{StaticResource Toggle}" IsChecked="{Binding VpnLookup}" AutomationProperties.Name="Show the VPN country and address" />
+                        </s:SettingCard>
+                        <s:SettingCard Glyph="&#xE896;" Header="Steam downloads" Description="Progress of a Steam download or update, read from Steam's own files on this PC.">
+                            <CheckBox Style="{StaticResource Toggle}" IsChecked="{Binding ShowSteamDownloads}" AutomationProperties.Name="Show Steam download progress" />
+                        </s:SettingCard>
+                        <s:SettingCard Glyph="&#xE767;" Header="Mouse wheel changes the volume" Description="Scroll over the resting island to turn the volume up or down. Off by default: it only works while the island can take the wheel, not in click through mode.">
+                            <CheckBox Style="{StaticResource Toggle}" IsChecked="{Binding WheelVolume}" AutomationProperties.Name="Mouse wheel changes the volume" />
+                        </s:SettingCard>
+
+                        <TextBlock Style="{StaticResource SectionHeader}" Text="Screen tools" />
+                        <TextBlock Style="{StaticResource SectionHint}" Text="Screenshots, text and QR codes from the screen, and the color picker. Pictures are never uploaded." />
+                        <s:SettingCard Glyph="&#xE838;" Header="Save pictures to" Description="Screenshots and recordings go here. Empty means Pictures\Atoll.">
+                            <TextBox Style="{StaticResource Island.Input}" Width="220" Text="{Binding ScreenFolder, UpdateSourceTrigger=LostFocus}" AutomationProperties.Name="Folder for screenshots" />
+                        </s:SettingCard>
+                        <s:SettingCard Glyph="&#xE7B3;" Header="Show the island in pictures"
+                                       Description="By default the island hides from screenshots and recordings. Turn this on to keep it in them.">
+                            <CheckBox Style="{StaticResource Toggle}" IsChecked="{Binding ScreenShowIsland}" AutomationProperties.Name="Show the island in pictures" />
+                        </s:SettingCard>
+
+                        <s:SettingCard Glyph="&#xE714;" Header="Record at 60 frames per second" Description="Smoother motion for games and animations. 30 is plenty for most screens.">
+                            <CheckBox Style="{StaticResource Toggle}" IsChecked="{Binding ScreenRecord60}" AutomationProperties.Name="Record at 60 frames per second" />
+                        </s:SettingCard>
+                        <s:SettingCard Glyph="&#xE714;" Header="High quality recordings" Description="Sharper text, a larger file. Recordings are MP4 without sound.">
+                            <CheckBox Style="{StaticResource Toggle}" IsChecked="{Binding ScreenRecordHigh}" AutomationProperties.Name="High quality recordings" />
+                        </s:SettingCard>
+
+                        <TextBlock Style="{StaticResource SectionHeader}" Text="Command palette" />
+                        <TextBlock Style="{StaticResource SectionHint}" Text="What typing can find or work out. Everything else stays on this PC." />
+                        <s:SettingCard Glyph="&#xE8A5;" Header="Find files by name"
+                                       Description="Searches Desktop, Documents, Downloads and Pictures. The names are kept in memory only, never saved.">
+                            <CheckBox Style="{StaticResource Toggle}" IsChecked="{Binding PaletteFiles}" AutomationProperties.Name="Find files by name" />
+                        </s:SettingCard>
+                        <s:SettingCard Glyph="&#xE8EF;" Header="Look up exchange rates"
+                                       Description="Typing 100 usd to eur downloads current rates once from a free service (open.er-api.com). Only the base currency is sent.">
+                            <CheckBox Style="{StaticResource Toggle}" IsChecked="{Binding PaletteCurrency}" AutomationProperties.Name="Look up exchange rates" />
+                        </s:SettingCard>
 
                         <TextBlock Style="{StaticResource SectionHeader}" Text="Position" />
                         <TextBlock Style="{StaticResource SectionHint}" Text="Choose which screens show an island." />
@@ -602,6 +691,10 @@
                                 <Slider Width="200" Minimum="0" Maximum="1" Value="{Binding Roundness}" AutomationProperties.Name="Roundness" />
                                 <TextBlock Style="{StaticResource ValueText}" Text="{Binding Roundness, StringFormat={}{0:P0}}" />
                             </StackPanel>
+                        </s:SettingCard>
+                        <s:SettingCard Glyph="&#xE81E;" Header="Liquid edge"
+                                       Description="The lower edge ripples like liquid and moves with the music. It stands still when Windows animations are off. Frosted glass keeps its straight blur area.">
+                            <CheckBox Style="{StaticResource Toggle}" IsChecked="{Binding LiquidEdge}" AutomationProperties.Name="Liquid edge" />
                         </s:SettingCard>
                         <s:SettingCard Glyph="&#xE81E;" Header="Outline" Description="A thin rim that separates the island from what is behind it.">
                             <CheckBox Style="{StaticResource Toggle}" IsChecked="{Binding Outline}" AutomationProperties.Name="Outline" />
@@ -801,6 +894,15 @@
                         <s:SettingCard Glyph="&#xE8D6;" Header="Show synced lyrics"
                                        Description="Looks up the playing song's title and artist on lrclib.net and shows the current line in the media tab.">
                             <CheckBox Style="{StaticResource Toggle}" IsChecked="{Binding ShowLyrics}" AutomationProperties.Name="Show synced lyrics" />
+                        </s:SettingCard>
+                        <s:SettingCard Glyph="&#xE8D6;" Header="Music pill"
+                                       Description="How the resting island looks while music plays. The mini player puts the title, a progress line and the buttons right in the pill.">
+                            <ComboBox Width="260" ItemsSource="{Binding MediaPillStyles}" DisplayMemberPath="Label"
+                                      SelectedValuePath="Value" SelectedValue="{Binding MediaPill}" AutomationProperties.Name="Music pill style" />
+                        </s:SettingCard>
+                        <s:SettingCard Glyph="&#xE8D6;" Header="Lyrics in the pill"
+                                       Description="Shows the line being sung in the pill instead of the title. Needs synced lyrics turned on.">
+                            <CheckBox Style="{StaticResource Toggle}" IsChecked="{Binding LyricsInPill}" AutomationProperties.Name="Show lyrics in the pill" />
                         </s:SettingCard>
                         <s:SettingCard Glyph="&#xE8D6;" Header="Bongo Cat"
                                        Description="A cat drums along in the media tab while lyrics are off. It plays with the music and freezes when the song pauses.">

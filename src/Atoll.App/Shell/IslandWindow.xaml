@@ -84,113 +84,6 @@
                                     </StackPanel>
                                 </Border>
                             </Popup>
-                            <Popup x:Name="StatusPopup" PlacementTarget="{Binding ElementName=StatusButton}"
-                                   Placement="Bottom" VerticalOffset="6" StaysOpen="False" AllowsTransparency="True"
-                                   PopupAnimation="Fade" DataContext="{Binding DataContext, ElementName=StatusChips}">
-                                <Border Background="{DynamicResource Island.Menu}" BorderBrush="{DynamicResource Island.Hover}"
-                                        BorderThickness="1" CornerRadius="{shell:Round 22}" Padding="8" Width="340">
-                                    <StackPanel>
-                                        <Border Background="{DynamicResource Island.Surface}" CornerRadius="{shell:Round 14}" Padding="12" Margin="0,0,0,8"
-                                                Visibility="{Binding Devices.HasBattery, Converter={StaticResource Island.BoolToVisibility}, FallbackValue=Collapsed}">
-                                            <StackPanel>
-                                                <DockPanel>
-                                                    <TextBlock DockPanel.Dock="Right" Text="{Binding Devices.BatteryShort}" FontSize="24" FontWeight="Light" />
-                                                    <shell:Icon Kind="battery" Size="16" DockPanel.Dock="Left" VerticalAlignment="Center" />
-                                                    <TextBlock Text="Battery" FontWeight="SemiBold" Margin="8,0,0,0" VerticalAlignment="Center" />
-                                                </DockPanel>
-                                                <ProgressBar Minimum="0" Maximum="100" Value="{Binding Devices.BatteryPercent, Mode=OneWay}" Height="6" Margin="0,8,0,6" Foreground="{DynamicResource Island.Foreground}">
-                                                    <ProgressBar.Template>
-                                                        <ControlTemplate TargetType="ProgressBar">
-                                                            <Grid>
-                                                                <Border Background="{DynamicResource Island.Raised}" CornerRadius="3" />
-                                                                <Border x:Name="PART_Track">
-                                                                    <Border x:Name="PART_Indicator" HorizontalAlignment="Left" Background="{TemplateBinding Foreground}" CornerRadius="3" />
-                                                                </Border>
-                                                            </Grid>
-                                                        </ControlTemplate>
-                                                    </ProgressBar.Template>
-                                                </ProgressBar>
-                                                <TextBlock Text="{Binding Devices.Battery}" FontSize="12" Foreground="{DynamicResource Island.Subtle}" />
-                                            </StackPanel>
-                                        </Border>
-                                        <Border Background="{DynamicResource Island.Surface}" CornerRadius="{shell:Round 14}" Padding="12" Margin="0,0,0,8">
-                                            <StackPanel>
-                                                <DockPanel>
-                                                    <shell:Icon Kind="bluetooth" Size="16" DockPanel.Dock="Left" VerticalAlignment="Center" />
-                                                    <TextBlock Text="Bluetooth" FontWeight="SemiBold" Margin="8,0,0,0" VerticalAlignment="Center" />
-                                                </DockPanel>
-                                                <TextBlock Text="{Binding Devices.Bluetooth}" FontSize="12" Foreground="{DynamicResource Island.Subtle}" TextWrapping="Wrap" Margin="0,6,0,0" />
-                                                <ItemsControl ItemsSource="{Binding Stats.Devices}" Focusable="False" Margin="0,6,0,0">
-                                                    <ItemsControl.ItemTemplate>
-                                                        <DataTemplate>
-                                                            <DockPanel Margin="0,3" AutomationProperties.Name="{Binding Description}">
-                                                                <TextBlock x:Name="Level" DockPanel.Dock="Right" Text="{Binding Text}" FontSize="12" Foreground="{DynamicResource Island.Subtle}" />
-                                                                <TextBlock Text="{Binding Name}" FontSize="13" TextTrimming="CharacterEllipsis" />
-                                                            </DockPanel>
-                                                            <DataTemplate.Triggers>
-                                                                <DataTrigger Binding="{Binding IsLow}" Value="True">
-                                                                    <Setter TargetName="Level" Property="Foreground" Value="#FF9F0A" />
-                                                                </DataTrigger>
-                                                            </DataTemplate.Triggers>
-                                                        </DataTemplate>
-                                                    </ItemsControl.ItemTemplate>
-                                                </ItemsControl>
-                                            </StackPanel>
-                                        </Border>
-                                        <Border Background="{DynamicResource Island.Surface}" CornerRadius="{shell:Round 14}" Padding="12" Margin="0,0,0,8">
-                                            <DockPanel>
-                                                <TextBlock DockPanel.Dock="Right" Text="{Binding Devices.Network}" FontSize="12" Foreground="{DynamicResource Island.Subtle}" />
-                                                <shell:Icon Kind="wifi" Size="16" DockPanel.Dock="Left" VerticalAlignment="Center" />
-                                                <TextBlock Text="Network" FontWeight="SemiBold" Margin="8,0,0,0" VerticalAlignment="Center" />
-                                            </DockPanel>
-                                        </Border>
-                                        <UniformGrid Columns="4" Margin="0,0,-8,0">
-                                            <Button x:Name="FocusTile" Style="{StaticResource System.ActionTile}" Margin="0,0,8,0" Click="OnFocusTileClick" AutomationProperties.Name="Do Not Disturb">
-                                                <StackPanel>
-                                                    <shell:Icon Kind="moon" Size="16" HorizontalAlignment="Center" />
-                                                    <TextBlock Text="Focus" FontSize="12" FontWeight="Medium" Margin="0,6,0,0" HorizontalAlignment="Center" />
-                                                </StackPanel>
-                                            </Button>
-                                            <Button Style="{StaticResource System.ActionTile}" Margin="0,0,8,0" Command="{Binding Actions.ToggleMicCommand}" AutomationProperties.Name="Mute or unmute the microphone">
-                                                <StackPanel>
-                                                    <shell:Icon Size="16" HorizontalAlignment="Center">
-                                                        <shell:Icon.Style>
-                                                            <Style TargetType="shell:Icon">
-                                                                <Setter Property="Kind" Value="mic" />
-                                                                <Style.Triggers>
-                                                                    <DataTrigger Binding="{Binding Actions.MicMuted}" Value="True"><Setter Property="Kind" Value="mic-off" /></DataTrigger>
-                                                                </Style.Triggers>
-                                                            </Style>
-                                                        </shell:Icon.Style>
-                                                    </shell:Icon>
-                                                    <TextBlock Text="Mic" FontSize="12" FontWeight="Medium" Margin="0,6,0,0" HorizontalAlignment="Center" />
-                                                </StackPanel>
-                                            </Button>
-                                            <Button Style="{StaticResource System.ActionTile}" Margin="0,0,8,0" Command="{Binding Devices.ToggleMuteCommand}" AutomationProperties.Name="Mute or unmute sound">
-                                                <StackPanel>
-                                                    <shell:Icon Size="16" HorizontalAlignment="Center">
-                                                        <shell:Icon.Style>
-                                                            <Style TargetType="shell:Icon">
-                                                                <Setter Property="Kind" Value="volume" />
-                                                                <Style.Triggers>
-                                                                    <DataTrigger Binding="{Binding Devices.IsMuted}" Value="True"><Setter Property="Kind" Value="volume-off" /></DataTrigger>
-                                                                </Style.Triggers>
-                                                            </Style>
-                                                        </shell:Icon.Style>
-                                                    </shell:Icon>
-                                                    <TextBlock Text="Mute" FontSize="12" FontWeight="Medium" Margin="0,6,0,0" HorizontalAlignment="Center" />
-                                                </StackPanel>
-                                            </Button>
-                                            <Button Style="{StaticResource System.ActionTile}" Margin="0,0,8,0" Command="{Binding Actions.LockCommand}" AutomationProperties.Name="Lock the PC">
-                                                <StackPanel>
-                                                    <shell:Icon Kind="lock" Size="16" HorizontalAlignment="Center" />
-                                                    <TextBlock Text="Lock" FontSize="12" FontWeight="Medium" Margin="0,6,0,0" HorizontalAlignment="Center" />
-                                                </StackPanel>
-                                            </Button>
-                                        </UniformGrid>
-                                    </StackPanel>
-                                </Border>
-                            </Popup>
                             <Button Width="Auto" ToolTip="Search tabs, apps and actions (Ctrl+K)" AutomationProperties.Name="Search" Click="OnPaletteClick">
                                 <StackPanel Orientation="Horizontal" Margin="12,0">
                                     <shell:Icon Kind="search" Size="14" Foreground="{DynamicResource Island.Subtle}" />
@@ -274,6 +167,162 @@
                     <Grid Grid.Row="1" Margin="4,10,4,0">
                         <ContentPresenter x:Name="PanelBody" />
                         <shell:CommandPaletteView x:Name="Palette" Visibility="Collapsed" />
+                        <!-- Controls: fills the panel area like the command palette; opened from the Status chip. -->
+                        <Border x:Name="ControlsSheet" Visibility="Collapsed" Background="{DynamicResource Island.Background}"
+                                DataContext="{Binding DataContext, ElementName=StatusChips}" AutomationProperties.Name="Controls">
+                            <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Focusable="False">
+                                <Grid HorizontalAlignment="Stretch" Margin="0,2,0,2">
+                                    <StackPanel>
+                                        <!-- Controls: state tiles first, then the actions that need a second press. -->
+                                        <UniformGrid Columns="4" Margin="0,0,-8,0">
+                                            <Button Style="{StaticResource System.ControlTile}" Margin="0,0,8,8" Command="{Binding Actions.ToggleWifiCommand}"
+                                                    IsEnabled="{Binding Actions.WifiAvailable}" AutomationProperties.Name="Wi-Fi">
+                                                <StackPanel>
+                                                    <Border Style="{StaticResource System.ControlBadge}" Tag="{Binding Actions.WifiOn}">
+                                                        <shell:Icon Kind="wifi" Size="15" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                                    </Border>
+                                                    <TextBlock Text="Wi-Fi" FontSize="12" FontWeight="SemiBold" Margin="0,8,0,0" />
+                                                    <TextBlock Text="{Binding Actions.WifiState}" FontSize="11" Foreground="{DynamicResource Island.Subtle}" />
+                                                </StackPanel>
+                                            </Button>
+                                            <Button Style="{StaticResource System.ControlTile}" Margin="0,0,8,8" Command="{Binding Actions.ToggleBluetoothCommand}"
+                                                    IsEnabled="{Binding Actions.BluetoothAvailable}" AutomationProperties.Name="Bluetooth">
+                                                <StackPanel>
+                                                    <Border Style="{StaticResource System.ControlBadge}" Tag="{Binding Actions.BluetoothOn}">
+                                                        <shell:Icon Kind="bluetooth" Size="15" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                                    </Border>
+                                                    <TextBlock Text="Bluetooth" FontSize="12" FontWeight="SemiBold" Margin="0,8,0,0" />
+                                                    <TextBlock Text="{Binding Actions.BluetoothState}" FontSize="11" Foreground="{DynamicResource Island.Subtle}" />
+                                                </StackPanel>
+                                            </Button>
+                                            <Button Style="{StaticResource System.ControlTile}" Margin="0,0,8,8" Command="{Binding Actions.ToggleThemeCommand}"
+                                                    AutomationProperties.Name="Dark theme">
+                                                <StackPanel>
+                                                    <Border Style="{StaticResource System.ControlBadge}" Tag="{Binding Actions.DarkTheme}">
+                                                        <shell:Icon Kind="moon" Size="15" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                                    </Border>
+                                                    <TextBlock Text="Dark theme" FontSize="12" FontWeight="SemiBold" Margin="0,8,0,0" />
+                                                    <TextBlock Text="{Binding Actions.ThemeState}" FontSize="11" Foreground="{DynamicResource Island.Subtle}" />
+                                                </StackPanel>
+                                            </Button>
+                                            <!-- Battery on a laptop; on a desktop the same slot shows the network. -->
+                                            <Button Style="{StaticResource System.ControlTile}" Margin="0,0,8,8" IsHitTestVisible="False" Focusable="False"
+                                                    AutomationProperties.Name="{Binding Devices.Battery, StringFormat=Battery: {0}}"
+                                                    Visibility="{Binding Devices.HasBattery, Converter={StaticResource Island.BoolToVisibility}, FallbackValue=Collapsed}">
+                                                <StackPanel>
+                                                    <Border Style="{StaticResource System.ControlBadge}">
+                                                        <shell:Icon Kind="battery" Size="15" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                                    </Border>
+                                                    <TextBlock Text="{Binding Devices.BatteryShort}" FontSize="12" FontWeight="SemiBold" Margin="0,8,0,0" />
+                                                    <TextBlock Text="{Binding Devices.Battery}" FontSize="11" Foreground="{DynamicResource Island.Subtle}" TextTrimming="CharacterEllipsis" />
+                                                </StackPanel>
+                                            </Button>
+                                            <Button Style="{StaticResource System.ControlTile}" Margin="0,0,8,8" IsHitTestVisible="False" Focusable="False"
+                                                    AutomationProperties.Name="{Binding Devices.Network, StringFormat=Network: {0}}"
+                                                    Visibility="{Binding Devices.HasBattery, Converter={StaticResource Island.InverseBoolToVisibility}, FallbackValue=Collapsed}">
+                                                <StackPanel>
+                                                    <Border Style="{StaticResource System.ControlBadge}">
+                                                        <shell:Icon Kind="wifi" Size="15" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                                    </Border>
+                                                    <TextBlock Text="Network" FontSize="12" FontWeight="SemiBold" Margin="0,8,0,0" />
+                                                    <TextBlock Text="{Binding Devices.Network}" FontSize="11" Foreground="{DynamicResource Island.Subtle}" />
+                                                </StackPanel>
+                                            </Button>
+                                        </UniformGrid>
+                                        <UniformGrid Columns="4" Margin="0,0,-8,0">
+                                            <Button Style="{StaticResource System.ControlTile}" Margin="0,0,8,8" Command="{Binding Actions.LockCommand}" AutomationProperties.Name="Lock the PC">
+                                                <StackPanel>
+                                                    <shell:Icon Kind="lock" Size="16" HorizontalAlignment="Center" />
+                                                    <TextBlock Text="Lock" FontSize="12" FontWeight="SemiBold" Margin="0,8,0,0" HorizontalAlignment="Center" />
+                                                </StackPanel>
+                                            </Button>
+                                            <Button Style="{StaticResource System.ControlTile}" Margin="0,0,8,8" Command="{Binding Actions.SleepCommand}" AutomationProperties.Name="Sleep. Press twice.">
+                                                <StackPanel>
+                                                    <shell:Icon Kind="moon-star" Size="16" HorizontalAlignment="Center" />
+                                                    <TextBlock Text="{Binding Actions.SleepLabel}" FontSize="12" FontWeight="SemiBold" Margin="0,8,0,0" HorizontalAlignment="Center" />
+                                                </StackPanel>
+                                            </Button>
+                                            <Button Style="{StaticResource System.ControlTile}" Margin="0,0,8,8" Command="{Binding Actions.RestartCommand}" AutomationProperties.Name="Restart. Press twice.">
+                                                <StackPanel>
+                                                    <shell:Icon Kind="rotate-cw" Size="16" HorizontalAlignment="Center" />
+                                                    <TextBlock Text="{Binding Actions.RestartLabel}" FontSize="12" FontWeight="SemiBold" Margin="0,8,0,0" HorizontalAlignment="Center" />
+                                                </StackPanel>
+                                            </Button>
+                                            <Button Style="{StaticResource System.ControlTile}" Margin="0,0,8,8" Command="{Binding Actions.ShutDownCommand}" AutomationProperties.Name="Shut down. Press twice.">
+                                                <StackPanel>
+                                                    <shell:Icon Kind="power" Size="16" HorizontalAlignment="Center" />
+                                                    <TextBlock Text="{Binding Actions.ShutDownLabel}" FontSize="12" FontWeight="SemiBold" Margin="0,8,0,0" HorizontalAlignment="Center" />
+                                                </StackPanel>
+                                            </Button>
+                                        </UniformGrid>
+                                        <UniformGrid x:Name="ActionTiles" Columns="3" Margin="0,0,-8,0">
+                                            <Button x:Name="FocusTile" Style="{StaticResource System.ActionTile}" Margin="0,0,8,8" Click="OnFocusTileClick" AutomationProperties.Name="Do Not Disturb">
+                                                <StackPanel>
+                                                    <shell:Icon Kind="moon" Size="16" HorizontalAlignment="Center" />
+                                                    <TextBlock Text="Focus" FontSize="12" FontWeight="Medium" Margin="0,6,0,0" HorizontalAlignment="Center" />
+                                                </StackPanel>
+                                            </Button>
+                                            <Button Style="{StaticResource System.ActionTile}" Margin="0,0,8,8" Command="{Binding Actions.ToggleMicCommand}" AutomationProperties.Name="Mute or unmute the microphone">
+                                                <StackPanel>
+                                                    <shell:Icon Size="16" HorizontalAlignment="Center">
+                                                        <shell:Icon.Style>
+                                                            <Style TargetType="shell:Icon">
+                                                                <Setter Property="Kind" Value="mic" />
+                                                                <Style.Triggers>
+                                                                    <DataTrigger Binding="{Binding Actions.MicMuted}" Value="True"><Setter Property="Kind" Value="mic-off" /></DataTrigger>
+                                                                </Style.Triggers>
+                                                            </Style>
+                                                        </shell:Icon.Style>
+                                                    </shell:Icon>
+                                                    <TextBlock Text="Mic" FontSize="12" FontWeight="Medium" Margin="0,6,0,0" HorizontalAlignment="Center" />
+                                                </StackPanel>
+                                            </Button>
+                                            <Button Style="{StaticResource System.ActionTile}" Margin="0,0,8,8" Command="{Binding Devices.ToggleMuteCommand}" AutomationProperties.Name="Mute or unmute sound">
+                                                <StackPanel>
+                                                    <shell:Icon Size="16" HorizontalAlignment="Center">
+                                                        <shell:Icon.Style>
+                                                            <Style TargetType="shell:Icon">
+                                                                <Setter Property="Kind" Value="volume" />
+                                                                <Style.Triggers>
+                                                                    <DataTrigger Binding="{Binding Devices.IsMuted}" Value="True"><Setter Property="Kind" Value="volume-off" /></DataTrigger>
+                                                                </Style.Triggers>
+                                                            </Style>
+                                                        </shell:Icon.Style>
+                                                    </shell:Icon>
+                                                    <TextBlock Text="Mute" FontSize="12" FontWeight="Medium" Margin="0,6,0,0" HorizontalAlignment="Center" />
+                                                </StackPanel>
+                                            </Button>
+                                        </UniformGrid>
+                                        <!-- Paired devices with their charge, only when something is connected. -->
+                                        <Border Background="{DynamicResource Island.Surface}" CornerRadius="{shell:Round 14}" Padding="12" Margin="0,0,0,0"
+                                                Visibility="{Binding Devices.HasBluetooth, Converter={StaticResource Island.BoolToVisibility}, FallbackValue=Collapsed}">
+                                            <StackPanel>
+                                                <DockPanel>
+                                                    <shell:Icon Kind="bluetooth" Size="16" DockPanel.Dock="Left" VerticalAlignment="Center" />
+                                                    <TextBlock Text="Connected devices" FontSize="12" FontWeight="SemiBold" Margin="8,0,0,0" VerticalAlignment="Center" />
+                                                </DockPanel>
+                                                <TextBlock Text="{Binding Devices.Bluetooth}" FontSize="12" Foreground="{DynamicResource Island.Subtle}" TextWrapping="Wrap" Margin="0,6,0,0" />
+                                                <ItemsControl ItemsSource="{Binding Stats.Devices}" Focusable="False" Margin="0,6,0,0">
+                                                    <ItemsControl.ItemTemplate>
+                                                        <DataTemplate>
+                                                            <DockPanel Margin="0,3" AutomationProperties.Name="{Binding Description}">
+                                                                <TextBlock x:Name="Level" DockPanel.Dock="Right" Text="{Binding Text}" FontSize="12" Foreground="{DynamicResource Island.Subtle}" />
+                                                                <TextBlock Text="{Binding Name}" FontSize="13" TextTrimming="CharacterEllipsis" />
+                                                            </DockPanel>
+                                                            <DataTemplate.Triggers>
+                                                                <DataTrigger Binding="{Binding IsLow}" Value="True">
+                                                                    <Setter TargetName="Level" Property="Foreground" Value="#FF9F0A" />
+                                                                </DataTrigger>
+                                                            </DataTemplate.Triggers>
+                                                        </DataTemplate>
+                                                    </ItemsControl.ItemTemplate>
+                                                </ItemsControl>
+                                            </StackPanel>
+                                        </Border>
+                                    </StackPanel>
+                                </Grid>
+                            </ScrollViewer>
+                        </Border>
                     </Grid>
                 </Grid>
             </Grid>

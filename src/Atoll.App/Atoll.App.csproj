@@ -54,12 +54,14 @@
     <PackageReference Include="H.NotifyIcon.Wpf" Version="2.4.1" />
     <PackageReference Include="Ical.Net" Version="5.2.4" />
     <PackageReference Include="NAudio.Wasapi" Version="3.3.0" />
+    <PackageReference Include="QRCoder" Version="1.9.0" />
     <PackageReference Include="System.Management" Version="10.0.14" />
     <PackageReference Include="System.Speech" Version="10.0.0" />
     <PackageReference Include="Velopack" Version="1.2.161" />
     <!-- Local speech-to-text. The CPU runtime is ~18 MB; the model itself is downloaded on first use. -->
     <PackageReference Include="Whisper.net" Version="1.9.1" />
     <PackageReference Include="Whisper.net.Runtime" Version="1.9.1" />
+    <PackageReference Include="ZXing.Net" Version="0.16.11" />
   </ItemGroup>
 
 </Project>

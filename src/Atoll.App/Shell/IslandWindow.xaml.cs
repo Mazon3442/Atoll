@@ -74,6 +74,7 @@ public partial class IslandWindow : Window
     private ModuleTab? _transientTab;
     private bool _refreshingTabs;
     private readonly CommandPaletteViewModel _palette;
+    private readonly PaletteQueries _queries;
     private bool _paletteOpen;
     private Rect _peekAnchor = Rect.Empty;
     private object? _shownContent;
@@ -130,7 +131,8 @@ public partial class IslandWindow : Window
 
         Tabs.ItemsSource = _visibleTabs;
         TabMenu.ItemsSource = _menuTabs;
-        _palette = new CommandPaletteViewModel(BuildPaletteCommands);
+        _queries = new PaletteQueries(_settings, _modules, RunAndTuck, () => _palette.Requery());
+        _palette = new CommandPaletteViewModel(BuildPaletteCommands, _queries.Build);
         Palette.DataContext = _palette;
         _palette.CloseRequested += ClosePalette;
         modules.LayoutChanged += OnModulesLayoutChanged;
@@ -141,6 +143,7 @@ public partial class IslandWindow : Window
         {
             if (_refreshingTabs) return;
             if (_paletteOpen) ClosePalette();
+            CloseControls();
             if (Tabs.SelectedItem is { } selected) Tabs.ScrollIntoView(selected); // a narrow island scrolls the tab bar
             // Picking a bookmarked tab leaves a menu tab that was only open for this visit.
             if (_transientTab is not null && !ReferenceEquals(Tabs.SelectedItem, _transientTab))
@@ -153,6 +156,7 @@ public partial class IslandWindow : Window
         };
         RefreshTabStrip();
 
+        Pill.MouseWheel += OnPillWheel;
         Pill.MouseLeftButtonUp += (_, e) =>
         {
             if (_mode == IslandMode.Expanded) return;
@@ -203,6 +207,12 @@ public partial class IslandWindow : Window
                 return;
             }
             if (_mode != IslandMode.Expanded) return;
+            if (e.Key == Key.Escape && ControlsSheet.Visibility == Visibility.Visible)
+            {
+                CloseControls();
+                e.Handled = true;
+                return;
+            }
             if (e.Key == Key.Escape)
             {
                 // The Ask box owns Escape while it has focus: stop a run, then clear the draft, before closing the island.
@@ -272,6 +282,7 @@ public partial class IslandWindow : Window
         var focus = FocusService.Current;
         var show = focus is not null && _settings.Current.Focus.Enabled;
         FocusTile.Visibility = show ? Visibility.Visible : Visibility.Collapsed;
+        ActionTiles.Columns = show ? 3 : 2; // the tiles share the row, with no empty cell
         StatusFocusIcon.Visibility = show && focus!.IsActive ? Visibility.Visible : Visibility.Collapsed;
         if (!show)
         {
@@ -286,14 +297,25 @@ public partial class IslandWindow : Window
 
     private void OnStatusClick(object sender, RoutedEventArgs e)
     {
-        StatusPopup.HorizontalOffset = StatusButton.ActualWidth - 340;
-        StatusPopup.IsOpen = !StatusPopup.IsOpen;
+        if (ControlsSheet.Visibility == Visibility.Visible) { CloseControls(); return; }
+        if (_paletteOpen) ClosePalette();
+        if (StatusChips.DataContext is Modules.SystemGroupViewModel system) system.Actions?.RefreshControlsCommand.Execute(null);
+        PanelBody.Visibility = Visibility.Collapsed;
+        ControlsSheet.Visibility = Visibility.Visible;
+    }
+
+    /// <summary>Hides the Controls sheet that fills the pill and shows the tab again.</summary>
+    private void CloseControls()
+    {
+        if (ControlsSheet.Visibility != Visibility.Visible) return;
+        ControlsSheet.Visibility = Visibility.Collapsed;
+        if (!_paletteOpen) PanelBody.Visibility = Visibility.Visible;
     }
 
     /// <summary>The Focus tile hands over to the duration menu, which opens under the status chip.</summary>
     private void OnFocusTileClick(object sender, RoutedEventArgs e)
     {
-        StatusPopup.IsOpen = false;
+        CloseControls();
         OnFocusClick(sender, e);
     }
 
@@ -433,12 +455,52 @@ public partial class IslandWindow : Window
     private Color AccentColor() =>
         ThemeService.TryParseColor(_settings.Current.Theme.Accent, out var color) ? color : Color.FromRgb(0x0A, 0x84, 0xFF);
 
+    // ---------- liquid edge ----------
+
+    private readonly DispatcherTimer _liquidTimer = new(DispatcherPriority.Render) { Interval = TimeSpan.FromMilliseconds(33) };
+    private double _liquidPhase;
+
+    /// <summary>
+    /// Turns the rippling edge on or off and keeps it moving only while it can be seen. With Windows animations off it
+    /// stays as a still, gentle ripple; hidden or off, there is no timer at all.
+    /// </summary>
+    private void UpdateLiquid()
+    {
+        var on = _settings.Current.Theme.LiquidEdge;
+        Pill.Liquid = on;
+        _liquidTimer.Tick -= OnLiquidTick;
+        if (!on) { _liquidTimer.Stop(); return; }
+        if (!Animated || !IsVisible)
+        {
+            _liquidTimer.Stop();
+            Pill.SetLiquid(0, 1.6, null);
+            return;
+        }
+        _liquidTimer.Tick += OnLiquidTick;
+        if (!_liquidTimer.IsEnabled) _liquidTimer.Start();
+    }
+
+    private void OnLiquidTick(object? sender, EventArgs e)
+    {
+        var player = _modules.Tabs.Select(tab => tab.Panel).OfType<MediaPanelViewModel>().FirstOrDefault()?.Player;
+        var playing = player is { IsPlaying: true };
+        _liquidPhase = (_liquidPhase + (playing ? 0.22 : 0.07)) % (2 * Math.PI * 1000);
+        IReadOnlyList<double>? bands = null;
+        if (playing)
+        {
+            var v = player!.Visualizer;
+            bands = new[] { v.Bar0, v.Bar1, v.Bar2, v.Bar3, v.Bar4 }.Select(bar => Math.Clamp((bar - 0.18) / 0.82, 0, 1)).ToArray();
+        }
+        Pill.SetLiquid(_liquidPhase, playing ? 1.2 : 1.6, bands);
+    }
+
     /// <summary>Re-reads size/offset/theme settings.</summary>
     public void ApplySettings()
     {
         var t = _settings.Current.Theme;
         var offset = TopGap;
         foreach (var b in new[] { Pill, Bubble, Bubble2, Bubble3, Bubble4 }) b.Notch = Notch;
+        UpdateLiquid();
         // The shoulders sit inside the pill's width, so the content keeps clear of them.
         Pill.Padding = Notch ? new Thickness(PillBorder.MaxShoulder, 0, PillBorder.MaxShoulder, 0) : new Thickness(0);
         Stage.Margin = new Thickness(0, offset, 0, 0);
@@ -515,6 +577,7 @@ public partial class IslandWindow : Window
         _heldOpen = true;
         _paletteOpen = true;
         _palette.Refresh();
+        ControlsSheet.Visibility = Visibility.Collapsed;
         PanelBody.Visibility = Visibility.Collapsed;
         Palette.Visibility = Visibility.Visible;
         Palette.FocusSearch();
@@ -558,6 +621,12 @@ public partial class IslandWindow : Window
                 () => RunAndTuck(() => actions.ScreenOffCommand.Execute(null))));
             items.Add(new CommandItem("Open Downloads", "Action", "\uE896", "", CommandKind.Action,
                 () => RunAndTuck(() => actions.DownloadsCommand.Execute(null))));
+            items.Add(new CommandItem("Toggle Wi-Fi", "Action", "\uE701", "", CommandKind.Action,
+                () => RunAndTuck(() => actions.ToggleWifiCommand.Execute(null))));
+            items.Add(new CommandItem("Toggle Bluetooth", "Action", "\uE702", "", CommandKind.Action,
+                () => RunAndTuck(() => actions.ToggleBluetoothCommand.Execute(null))));
+            items.Add(new CommandItem("Switch Windows dark mode", "Action", "\uE708", "", CommandKind.Action,
+                () => RunAndTuck(() => actions.ToggleThemeCommand.Execute(null))));
         }
 
         var clock = _modules.Tabs.Select(tab => tab.Panel).OfType<ClockPanelViewModel>().FirstOrDefault();
@@ -591,6 +660,14 @@ public partial class IslandWindow : Window
                     () => RunAndTuck(focus.Clear)));
         }
 
+        foreach (var (title, glyph, tool) in new[]
+        {
+            ("Screenshot of an area", "\uE722", "area"), ("Screenshot of the screen", "\uE7F4", "screen"), ("Text from the screen", "\uE8C8", "ocr"),
+            ("QR code from the screen", "\uE8B3", "qr"), ("Color picker", "\uE790", "color"), ("Screen recording", "\uE714", "record"),
+        })
+            items.Add(new CommandItem(title, "Action", glyph, "", CommandKind.Action, () => RunAndTuck(() => Atoll.Navigation.ScreenTool?.Invoke(tool))));
+        items.Add(new CommandItem("Voice to text", "Action", "\uE720", "", CommandKind.Action,
+            () => RunAndTuck(() => Atoll.Navigation.Dictate?.Invoke())));
         items.Add(new CommandItem("Open Settings", "Action", "\uE713", "", CommandKind.Action,
             () => RunAndTuck(() => _openSettings(0))));
 
@@ -601,7 +678,9 @@ public partial class IslandWindow : Window
             {
                 var target = app;
                 items.Add(new CommandItem(app.Name, app.Source, "", app.Initial, CommandKind.App,
-                    () => RunAndTuck(() => apps.LaunchCommand.Execute(target))));
+                    () => RunAndTuck(() => apps.LaunchCommand.Execute(target)),
+                    RunFolder: () => RunAndTuck(() => PaletteActions.ShowInFolder(PaletteActions.ShortcutTarget(target.LaunchPath))),
+                    RunElevated: () => RunAndTuck(() => PaletteActions.Elevated(PaletteActions.ShortcutTarget(target.LaunchPath)))));
             }
         }
 
@@ -726,6 +805,24 @@ public partial class IslandWindow : Window
         TabMenu.SelectedItem = null;
     }
 
+    /// <summary>With the island resting, the wheel over it changes the volume, one step per notch (Settings turns this on).</summary>
+    private void OnPillWheel(object sender, MouseWheelEventArgs e)
+    {
+        if (!_settings.Current.WheelVolume || _mode != IslandMode.Compact) return;
+        if (_modules.Tabs.Select(tab => tab.Panel).OfType<SystemGroupViewModel>().FirstOrDefault()?.Devices is not { } devices) return;
+        if (Math.Sign(e.Delta) != Math.Sign(_pillWheelDelta)) _pillWheelDelta = 0;
+        _pillWheelDelta += e.Delta;
+        while (Math.Abs(_pillWheelDelta) >= Mouse.MouseWheelDeltaForOneLine)
+        {
+            var notch = Math.Sign(_pillWheelDelta);
+            _pillWheelDelta -= notch * Mouse.MouseWheelDeltaForOneLine;
+            devices.Volume = Math.Clamp(devices.Volume + 5 * notch, 0, 100);
+        }
+        e.Handled = true;
+    }
+
+    private int _pillWheelDelta;
+
     private void OnHeaderWheel(object sender, MouseWheelEventArgs e)
     {
         // Precision touchpads send many small deltas; act once per full notch (120).
@@ -742,9 +839,10 @@ public partial class IslandWindow : Window
 
     /// <summary>Called by the manager whenever pause or the foreground app's state may have changed.</summary>
     /// <param name="foreground">Null while one of ATOLL's own windows is in front: keep the last answer.</param>
-    public void SetEnvironment(bool paused, ForegroundKind? foreground)
+    public void SetEnvironment(bool paused, ForegroundKind? foreground, string? process = null)
     {
         _paused = paused;
+        if (foreground is not null) _foregroundProcess = process; // ATOLL itself in front keeps the last program
         if (foreground is { } kind && kind != _foreground)
         {
             Log.Info($"Foreground on {Monitor.DeviceName}: {kind}");
@@ -826,7 +924,10 @@ public partial class IslandWindow : Window
     }
 
     /// <summary>The visibility setting that applies to what is in front of the island.</summary>
-    internal static FullscreenMode ModeFor(ForegroundKind foreground, AppSettings settings) => foreground switch
+    internal static FullscreenMode ModeFor(ForegroundKind foreground, AppSettings settings, string? process = null) =>
+        ProgramRules.Match(settings.ProgramRules, process) ?? ModeForSize(foreground, settings);
+
+    private static FullscreenMode ModeForSize(ForegroundKind foreground, AppSettings settings) => foreground switch
     {
         // Overlay: the game pill stays up. Hidden: only an intentional edge hold or the open shortcut reveals it.
         ForegroundKind.Game => settings.Games.Mode == GameIslandMode.Overlay ? FullscreenMode.Stay : FullscreenMode.Hide,
@@ -846,13 +947,15 @@ public partial class IslandWindow : Window
         _ => open || !hideWhenIdle || primary is { Priority: > ActivityPriority.Idle },
     };
 
-    private bool ShownWithoutReveal() => ShownWithoutReveal(ModeFor(_foreground, _settings.Current),
+    private string? _foregroundProcess;
+
+    private bool ShownWithoutReveal() => ShownWithoutReveal(ModeFor(_foreground, _settings.Current, _foregroundProcess),
         _settings.Current.HideWhenIdle, _primary, _mode != IslandMode.Compact);
 
     /// <summary>Shows, hides or dims the window for pause and the visibility settings.</summary>
     private void UpdatePresence()
     {
-        var mode = ModeFor(_foreground, _settings.Current);
+        var mode = ModeFor(_foreground, _settings.Current, _foregroundProcess);
         var shown = !_paused && (_revealed || ShownWithoutReveal());
         Opacity = mode == FullscreenMode.Dim ? 0.5 : 1;
 
@@ -864,11 +967,13 @@ public partial class IslandWindow : Window
         if (shown)
         {
             Show();
+            UpdateLiquid();
             EnsureTopmost();
         }
         else
         {
             if (_mode == IslandMode.Expanded) SetMode(IslandMode.Compact);
+            _liquidTimer.Stop(); // nothing to animate while hidden
             Hide();
         }
     }
@@ -888,7 +993,7 @@ public partial class IslandWindow : Window
     private void SetMode(IslandMode mode, string? moduleId = null)
     {
         TabMenuPopup.IsOpen = false;
-        StatusPopup.IsOpen = false;
+        CloseControls();
         // A tab opened from the ⋯ menu only stays in the top row for its visit.
         if (mode != IslandMode.Expanded && _transientTab is not null)
         {
@@ -1321,7 +1426,7 @@ public partial class IslandWindow : Window
             var expandedWidth = Math.Max(Math.Clamp(t.ExpandedWidth, 320, 900), HeaderWidth()); // every tab fits without scrolling
             FitTabStrip(expandedWidth);
             var expandedHeight = Math.Clamp(t.ExpandedHeight, 140, 600);
-            if (Tabs.SelectedItem is ModuleTab { Panel: MediaPanelViewModel or SystemGroupViewModel or Atoll.Modules.Weather.WeatherViewModel or Atoll.Modules.Home.HomeViewModel or Atoll.Modules.Games.GameViewModel or Atoll.Modules.Calendar.CalendarViewModel or Atoll.Modules.Notes.NotesViewModel or LauncherPanelViewModel or ClockPanelViewModel or Atoll.Modules.Tide.TideViewModel or Atoll.Modules.Claude.ClaudeViewModel })
+            if (Tabs.SelectedItem is ModuleTab { Panel: MediaPanelViewModel or SystemGroupViewModel or Atoll.Modules.Weather.WeatherViewModel or Atoll.Modules.Home.HomeViewModel or Atoll.Modules.Games.GameViewModel or Atoll.Modules.Calendar.CalendarViewModel or Atoll.Modules.Notes.NotesViewModel or Atoll.Modules.TextTools.TextToolsViewModel or LauncherPanelViewModel or ClockPanelViewModel or Atoll.Modules.Tide.TideViewModel or Atoll.Modules.Claude.ClaudeViewModel })
                 expandedHeight = Math.Max(expandedHeight, FittedPanelHeight(expandedWidth)); // show all of it
             expandedHeight = Math.Min(expandedHeight, AvailablePanelHeight);
             QueueRefit();

@@ -52,7 +52,13 @@ public sealed class AppSettings
     public bool OnboardingComplete { get; set; }
 
     /// <summary>Looks up time-synced lyrics for the playing song on lrclib.net.</summary>
-    public bool ShowLyrics { get; set; } = true;
+    public bool ShowLyrics { get; set; }
+
+    /// <summary>How the resting island looks while music plays.</summary>
+    public MediaPillStyle MediaPill { get; set; } = MediaPillStyle.Classic;
+
+    /// <summary>Show the line being sung in the music pill instead of the title (needs lyrics turned on).</summary>
+    public bool LyricsInPill { get; set; } = true;
 
     /// <summary>A drumming cat in the media tab's lyrics slot while lyrics are off. Off by default; it plays with the music.</summary>
     public BongoCatStyle BongoCat { get; set; } = BongoCatStyle.Off;
@@ -89,10 +95,24 @@ public sealed class AppSettings
     /// </summary>
     public bool ClickThrough { get; set; } = true;
 
+    /// <summary>Programs that hide, dim or keep the island while they are in front, checked before the window-size settings.</summary>
+    public List<ProgramRule> ProgramRules { get; set; } = [];
+
     public int HoverDelayMs { get; set; } = 200;
 
     /// <summary>Header battery chip and low-battery behavior on laptops. Desktops have no battery to show.</summary>
     public bool ShowBattery { get; set; } = true;
+
+    /// <summary>A short popup with the layout name (EN, RU) when the keyboard layout changes.</summary>
+    public bool ShowKeyboardLayout { get; set; } = true;
+
+    /// <summary>A pill with the progress of a Steam download or update, read from Steam's local files.</summary>
+    public bool ShowSteamDownloads { get; set; } = true;
+
+    public VpnSettings Vpn { get; set; } = new();
+
+    /// <summary>Mouse wheel over the resting island changes the volume. Off by default, because the wheel can also scroll the page under the pointer.</summary>
+    public bool WheelVolume { get; set; }
 
     /// <summary>System-wide shortcut that opens the island with keyboard focus, or closes it. Empty turns it off.</summary>
     public string OpenShortcut { get; set; } = "Ctrl+Alt+Space";
@@ -102,6 +122,17 @@ public sealed class AppSettings
 
     /// <summary>System-wide shortcut that opens the command palette. Empty turns it off.</summary>
     public string PaletteShortcut { get; set; } = "Ctrl+Alt+K";
+
+    public DictationSettings Dictation { get; set; } = new();
+
+    public PaletteSettings Palette { get; set; } = new();
+
+    public ScreenSettings Screen { get; set; } = new();
+
+    public LauncherSettings Launcher { get; set; } = new();
+
+    /// <summary>Changed shortcuts by <see cref="ShortcutCatalog"/> id. Missing means the default; empty means off.</summary>
+    public Dictionary<string, string> Shortcuts { get; set; } = new();
 
     public MonitorMode MonitorMode { get; set; } = MonitorMode.Primary;
 
@@ -186,6 +217,9 @@ public sealed class ThemeSettings
 
     /// <summary>Thin rim around the island.</summary>
     public bool Outline { get; set; } = true;
+
+    /// <summary>A rippling lower edge that moves with the music. Off by default; it still stands still when Windows animations are off.</summary>
+    public bool LiquidEdge { get; set; }
 
     /// <summary>Small bubbles beside the island for other running activities.</summary>
     public bool ShowSideActivities { get; set; } = true;
@@ -522,12 +556,28 @@ public sealed partial class NoteItem : ObservableObject
     public string Id { get; set; } = Guid.NewGuid().ToString("N");
 
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(UpdatedText))]
+    [NotifyPropertyChangedFor(nameof(UpdatedText), nameof(Title))]
     private string _text = "";
+
+    /// <summary>The note as a FlowDocument in XAML, with its formatting. Empty for notes written before formatting existed: <see cref="Text"/> is shown instead.</summary>
+    [ObservableProperty] private string _rich = "";
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(UpdatedText))]
     private DateTimeOffset _updated = DateTimeOffset.Now;
+
+    /// <summary>The first line, which names the note on its tab.</summary>
+    [JsonIgnore]
+    public string Title
+    {
+        get
+        {
+            var line = Text.Split(['\r', '\n'], StringSplitOptions.RemoveEmptyEntries).FirstOrDefault()?.Trim() ?? "";
+            line = line.TrimStart('☐', '☑', '•', '-', ' ');
+            if (line.Length == 0) return "New note";
+            return line.Length > 18 ? line[..17] + "…" : line;
+        }
+    }
 
     [JsonIgnore]
     public string UpdatedText => Updated.LocalDateTime.ToString("MMM d, h:mm tt", CultureInfo.CurrentCulture);
@@ -549,7 +599,14 @@ public sealed partial class ReminderItem : ObservableObject
     [NotifyPropertyChangedFor(nameof(DueText), nameof(IsOverdue))]
     private bool _done;
 
-    [JsonIgnore] public string DueText => Done ? "Done" : IcsCalendar.Relative(Due, DateTimeOffset.Now);
+    /// <summary>Days it repeats on, bit 0 = Sunday like <see cref="AlarmEntry"/>. 0 = once.</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(DueText), nameof(IsRepeating))]
+    private int _repeatDays;
+
+    [JsonIgnore] public bool IsRepeating => RepeatDays != 0;
+
+    [JsonIgnore] public string DueText => Done ? "Done" : (RepeatDays == 0 ? "" : "Repeats · ") + IcsCalendar.Relative(Due, DateTimeOffset.Now);
     [JsonIgnore] public bool IsOverdue => !Done && Due <= DateTimeOffset.Now;
 
     internal void RefreshTime()
@@ -565,4 +622,67 @@ public sealed partial class TodoItem : ObservableObject
 
     [ObservableProperty] private string _text = "";
     [ObservableProperty] private bool _done;
+}
+
+/// <summary>Voice to text on a hotkey. The speech model and language are the ones Tide Listen uses.</summary>
+public sealed class DictationSettings
+{
+    /// <summary>After copying, press Ctrl+V in the window that had the keyboard.</summary>
+    public bool TypeIntoWindow { get; set; } = true;
+
+    /// <summary>Keep the speech model in memory this long after the last use, for a faster next press. 0 frees it at once.</summary>
+    public int KeepModelSeconds { get; set; } = 60;
+}
+
+/// <summary>What the command palette may look up besides tabs, apps and actions.</summary>
+public sealed class PaletteSettings
+{
+    /// <summary>Find files and folders by name. The list of names is built in memory and never saved.</summary>
+    public bool Files { get; set; } = true;
+
+    /// <summary>Folders searched for files. Empty means Desktop, Documents, Downloads and Pictures.</summary>
+    public List<string> Folders { get; set; } = [];
+
+    /// <summary>Look up exchange rates (one request to a free service) when a currency conversion is typed.</summary>
+    public bool Currency { get; set; } = true;
+}
+
+/// <summary>Screenshots, text and QR from the screen, the colour picker and recordings.</summary>
+public sealed class ScreenSettings
+{
+    /// <summary>Where pictures and recordings are saved. Empty means Pictures\Atoll.</summary>
+    public string Folder { get; set; } = "";
+
+    /// <summary>Keep the island in screenshots and recordings. Off by default, so the island never ends up in a picture.</summary>
+    public bool ShowIsland { get; set; }
+
+    /// <summary>Frames per second for recordings: 30 or 60.</summary>
+    public int RecordFps { get; set; } = 30;
+
+    /// <summary>Spend more bits on each frame: sharper text, a bigger file.</summary>
+    public bool RecordHighQuality { get; set; }
+}
+
+/// <summary>The music pill: the classic art and bars, a wide one with the title and a progress line, or a mini player with buttons.</summary>
+public enum MediaPillStyle
+{
+    Classic,
+    Wide,
+    Mini,
+}
+
+/// <summary>The shortcuts pinned at the top of the Launcher.</summary>
+public sealed class LauncherSettings
+{
+    public List<Atoll.Modules.Launcher.PinnedLink> Pins { get; set; } = [];
+}
+
+/// <summary>The VPN pill. Finding the adapter is local; the country and address need one request.</summary>
+public sealed class VpnSettings
+{
+    /// <summary>Show a pill while a VPN adapter is connected.</summary>
+    public bool Enabled { get; set; } = true;
+
+    /// <summary>Ask ipwho.is for the country and address of the connection. Off until you turn it on.</summary>
+    public bool Lookup { get; set; }
 }

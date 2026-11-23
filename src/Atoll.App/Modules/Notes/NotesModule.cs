@@ -1,5 +1,6 @@
 using System.Collections.ObjectModel;
 using System.ComponentModel;
+using System.Media;
 using System.Windows.Threading;
 using Atoll.Activities;
 using Atoll.Modules;
@@ -9,19 +10,23 @@ using CommunityToolkit.Mvvm.Input;
 
 namespace Atoll.Modules.Notes;
 
-/// <summary>Notes, one-off reminders and a small to-do list. Everything lives in the settings file.</summary>
+/// <summary>
+/// Notes with formatting, reminders typed as one phrase, and a small to-do list. Everything lives in the settings
+/// file. Each note is one tab in the editor; the right column holds reminders and to-dos.
+/// </summary>
 public sealed partial class NotesViewModel : ObservableObject, IDisposable
 {
     private readonly NotesSettings _settings;
     private readonly Action _save;
-    private NoteItem? _editing;
+    private readonly Func<DateTimeOffset> _now;
     private bool _disposed;
 
-    public NotesViewModel(NotesSettings settings, Action save)
+    public NotesViewModel(NotesSettings settings, Action save, Func<DateTimeOffset>? now = null)
     {
         _settings = settings;
         _save = save;
-        foreach (var note in settings.Notes.OrderByDescending(note => note.Updated))
+        _now = now ?? (() => DateTimeOffset.Now);
+        foreach (var note in settings.Notes)
         {
             Notes.Add(note);
             note.PropertyChanged += OnItemChanged;
@@ -37,168 +42,116 @@ public sealed partial class NotesViewModel : ObservableObject, IDisposable
             todo.PropertyChanged += OnItemChanged;
         }
         Notes.CollectionChanged += (_, _) => OnPropertyChanged(nameof(HasNotes));
-        Reminders.CollectionChanged += (_, _) => { OnPropertyChanged(nameof(HasReminders)); RaiseNextReminder(); };
-        Todos.CollectionChanged += (_, _) => { OnPropertyChanged(nameof(HasTodos)); OnPropertyChanged(nameof(OpenTodoCount)); };
+        Reminders.CollectionChanged += (_, _) => { OnPropertyChanged(nameof(HasReminders)); RaiseCounts(); };
+        Todos.CollectionChanged += (_, _) => { OnPropertyChanged(nameof(HasTodos)); RaiseCounts(); };
+        _selectedNote = Notes.FirstOrDefault();
         RefreshTimes();
-    }
-
-    /// <summary>The soonest reminder that is not done, for the card beside the lists.</summary>
-    public ReminderItem? NextReminder => Reminders.Where(reminder => !reminder.Done).OrderBy(reminder => reminder.Due).FirstOrDefault();
-    public bool HasNextReminder => NextReminder is not null;
-    public int OpenReminderCount => Reminders.Count(reminder => !reminder.Done);
-    public int OpenTodoCount => Todos.Count(todo => !todo.Done);
-
-    private void RaiseNextReminder()
-    {
-        OnPropertyChanged(nameof(NextReminder));
-        OnPropertyChanged(nameof(HasNextReminder));
-        OnPropertyChanged(nameof(OpenReminderCount));
-        OnPropertyChanged(nameof(OpenTodoCount));
-    }
-
-    [RelayCommand]
-    private void SnoozeNext()
-    {
-        if (NextReminder is not { } reminder) return;
-        var from = reminder.Due > DateTimeOffset.Now ? reminder.Due : DateTimeOffset.Now;
-        reminder.Due = from.AddMinutes(10);
-        SortReminders();
-        Message = "Snoozed for 10 minutes.";
-    }
-
-    [RelayCommand]
-    private void FinishNext()
-    {
-        if (NextReminder is not { } reminder) return;
-        reminder.Done = true; // OnItemChanged sorts and saves
-        Message = "Reminder done.";
     }
 
     public ObservableCollection<NoteItem> Notes { get; } = [];
     public ObservableCollection<ReminderItem> Reminders { get; } = [];
     public ObservableCollection<TodoItem> Todos { get; } = [];
-    public IReadOnlyList<string> Sections { get; } = ["Notes", "Reminders", "To-do"];
+    public IReadOnlyList<string> Sections { get; } = ["Reminders", "To-do"];
     public bool HasNotes => Notes.Count > 0;
     public bool HasReminders => Reminders.Count > 0;
     public bool HasTodos => Todos.Count > 0;
+    public int OpenReminderCount => Reminders.Count(reminder => !reminder.Done);
+    public int OpenTodoCount => Todos.Count(todo => !todo.Done);
 
-    [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(IsNotes), nameof(IsReminders), nameof(IsTodos))]
+    /// <summary>The note being edited; null only when there are no notes.</summary>
+    [ObservableProperty, NotifyPropertyChangedFor(nameof(HasSelectedNote))]
+    private NoteItem? _selectedNote;
+
+    public bool HasSelectedNote => SelectedNote is not null;
+
+    [ObservableProperty, NotifyPropertyChangedFor(nameof(IsReminders), nameof(IsTodos))]
     private int _sectionIndex;
 
-    public bool IsNotes => SectionIndex == 0;
-    public bool IsReminders => SectionIndex == 1;
-    public bool IsTodos => SectionIndex == 2;
+    public bool IsReminders => SectionIndex == 0;
+    public bool IsTodos => SectionIndex == 1;
 
-    [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(CanSaveNote), nameof(HasNoteDraft))]
-    [NotifyCanExecuteChangedFor(nameof(SaveNoteCommand))]
-    private string _noteDraft = "";
-
-    [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(CanAddReminder), nameof(HasReminderTitle))]
-    [NotifyCanExecuteChangedFor(nameof(AddReminderCommand))]
+    [ObservableProperty, NotifyPropertyChangedFor(nameof(HasReminderTitle)), NotifyCanExecuteChangedFor(nameof(AddReminderCommand))]
     private string _reminderTitle = "";
 
-    [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(CanAddTodo), nameof(HasTodoDraft))]
-    [NotifyCanExecuteChangedFor(nameof(AddTodoCommand))]
+    [ObservableProperty, NotifyPropertyChangedFor(nameof(HasTodoDraft), nameof(CanAddTodo)), NotifyCanExecuteChangedFor(nameof(AddTodoCommand))]
     private string _todoDraft = "";
-
-    [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(NoteButtonLabel))]
-    private bool _editingNote;
 
     [ObservableProperty] private string _message = "";
 
-    public bool CanSaveNote => NoteDraft.Trim().Length > 0;
     public bool CanAddReminder => ReminderTitle.Trim().Length > 0;
     public bool CanAddTodo => TodoDraft.Trim().Length > 0;
-    public bool HasNoteDraft => NoteDraft.Length > 0;
     public bool HasReminderTitle => ReminderTitle.Length > 0;
     public bool HasTodoDraft => TodoDraft.Length > 0;
-    public string NoteButtonLabel => EditingNote ? "Save note" : "Add note";
 
-    [RelayCommand(CanExecute = nameof(CanSaveNote))]
-    private void SaveNote()
+    /// <summary>The editor reports its text here; saving is debounced by the editor itself.</summary>
+    public void UpdateNote(NoteItem note, string plain, string rich)
     {
-        var text = NoteDraft.Trim();
-        if (text.Length == 0) return;
-        if (_editing is { } note)
-        {
-            note.Text = text;
-            note.Updated = DateTimeOffset.Now;
-            if (Notes.Remove(note)) Notes.Insert(0, note);
-            Message = "Note updated.";
-        }
-        else
-        {
-            var item = new NoteItem { Text = text };
-            Notes.Insert(0, item);
-            _settings.Notes.Insert(0, item);
-            item.PropertyChanged += OnItemChanged;
-            Message = "Note saved.";
-        }
-        _editing = null;
-        EditingNote = false;
-        NoteDraft = "";
-        Save();
+        if (note.Text == plain && note.Rich == rich) return;
+        note.Text = plain;
+        note.Rich = rich;
+        note.Updated = _now();
     }
 
     [RelayCommand]
     private void NewNote()
     {
-        _editing = null;
-        EditingNote = false;
-        NoteDraft = "";
+        var item = new NoteItem { Updated = _now() };
+        Notes.Add(item);
+        _settings.Notes.Add(item);
+        item.PropertyChanged += OnItemChanged;
+        SelectedNote = item;
         Message = "";
-    }
-
-    [RelayCommand]
-    private void EditNote(NoteItem? note)
-    {
-        if (note is null) return;
-        _editing = note;
-        EditingNote = true;
-        NoteDraft = note.Text;
-        SectionIndex = 0;
-        Message = "";
+        Save();
     }
 
     [RelayCommand]
     private void DeleteNote(NoteItem? note)
     {
+        note ??= SelectedNote;
         if (note is null) return;
+        var index = Notes.IndexOf(note);
         note.PropertyChanged -= OnItemChanged;
         Notes.Remove(note);
         _settings.Notes.Remove(note);
-        if (ReferenceEquals(_editing, note)) NewNote();
+        if (ReferenceEquals(SelectedNote, note)) SelectedNote = Notes.Count == 0 ? null : Notes[Math.Min(index, Notes.Count - 1)];
         Message = "Note deleted.";
         Save();
     }
 
+    /// <summary>Adds a reminder from one phrase such as "call mum tomorrow at 9" or "pills every day at 23:00".</summary>
     [RelayCommand(CanExecute = nameof(CanAddReminder))]
-    private void AddReminder(string? when)
+    private void AddReminder()
     {
-        var title = ReminderTitle.Trim();
-        if (title.Length == 0) return;
-        var now = DateTimeOffset.Now;
-        DateTimeOffset due;
-        if (when == "tomorrow")
+        if (!ReminderPhrase.TryParse(ReminderTitle, _now(), out var parsed))
         {
-            var tomorrow = now.Date.AddDays(1).AddHours(9);
-            due = new DateTimeOffset(tomorrow, TimeZoneInfo.Local.GetUtcOffset(tomorrow));
+            Message = "Add when: tomorrow at 9, in 20 minutes, every day at 23:00.";
+            return;
         }
-        else due = now.AddMinutes(int.TryParse(when, out var minutes) ? minutes : 10);
+        Add(new ReminderItem { Title = parsed.Title, Due = parsed.Due, RepeatDays = parsed.RepeatDays });
+        ReminderTitle = "";
+        Message = "Reminder set.";
+    }
 
-        var item = new ReminderItem { Title = title, Due = due };
+    /// <summary>Adds a ready-made reminder, for example one the command palette parsed.</summary>
+    public void Add(ReminderItem item)
+    {
         Reminders.Add(item);
         _settings.Reminders.Add(item);
         item.PropertyChanged += OnItemChanged;
-        ReminderTitle = "";
-        Message = "Reminder set.";
         SortReminders();
         Save();
+    }
+
+    /// <summary>Puts a reminder back 10 minutes from now (or from its due time while it is still ahead).</summary>
+    [RelayCommand]
+    private void Snooze(ReminderItem? reminder)
+    {
+        if (reminder is null) return;
+        var now = _now();
+        reminder.Done = false;
+        reminder.Due = (reminder.Due > now ? reminder.Due : now).AddMinutes(10);
+        SortReminders();
+        Message = "Snoozed for 10 minutes.";
     }
 
     [RelayCommand]
@@ -208,7 +161,7 @@ public sealed partial class NotesViewModel : ObservableObject, IDisposable
         reminder.PropertyChanged -= OnItemChanged;
         Reminders.Remove(reminder);
         _settings.Reminders.Remove(reminder);
-        RaiseNextReminder();
+        RaiseCounts();
         Message = "Reminder deleted.";
         Save();
     }
@@ -264,11 +217,34 @@ public sealed partial class NotesViewModel : ObservableObject, IDisposable
         Save();
     }
 
+    /// <summary>
+    /// Fires what is due: one-off reminders are marked done, repeating ones move to their next day.
+    /// Returns the reminders that fired so the module can show them.
+    /// </summary>
+    public IReadOnlyList<ReminderItem> TakeDue()
+    {
+        var now = _now();
+        var due = _settings.Reminders.Where(reminder => !reminder.Done && reminder.Due <= now).ToList();
+        foreach (var reminder in due)
+        {
+            if (reminder.RepeatDays != 0)
+                reminder.Due = ReminderPhrase.NextRepeat(reminder.RepeatDays, reminder.Due.LocalDateTime.TimeOfDay, now);
+            else reminder.Done = true;
+        }
+        return due;
+    }
+
     /// <summary>Refresh "in 10 min" labels without writing settings on every tick.</summary>
     public void RefreshTimes()
     {
         foreach (var reminder in Reminders) reminder.RefreshTime();
-        RaiseNextReminder();
+        RaiseCounts();
+    }
+
+    private void RaiseCounts()
+    {
+        OnPropertyChanged(nameof(OpenReminderCount));
+        OnPropertyChanged(nameof(OpenTodoCount));
     }
 
     private void SortReminders()
@@ -279,14 +255,14 @@ public sealed partial class NotesViewModel : ObservableObject, IDisposable
             var at = Reminders.IndexOf(sorted[i]);
             if (at != i) Reminders.Move(at, i);
         }
-        RaiseNextReminder();
+        RaiseCounts();
     }
 
     private void OnItemChanged(object? sender, PropertyChangedEventArgs e)
     {
-        if (e.PropertyName is nameof(NoteItem.UpdatedText) or nameof(ReminderItem.DueText) or nameof(ReminderItem.IsOverdue)) return;
-        if (sender is ReminderItem && e.PropertyName == nameof(ReminderItem.Done)) SortReminders();
-        if (sender is TodoItem && e.PropertyName == nameof(TodoItem.Done)) OnPropertyChanged(nameof(OpenTodoCount));
+        if (e.PropertyName is nameof(NoteItem.UpdatedText) or nameof(NoteItem.Title) or nameof(ReminderItem.DueText) or nameof(ReminderItem.IsOverdue)) return;
+        if (sender is ReminderItem && e.PropertyName is nameof(ReminderItem.Done) or nameof(ReminderItem.Due)) SortReminders();
+        if (sender is TodoItem && e.PropertyName == nameof(TodoItem.Done)) RaiseCounts();
         Save();
     }
 
@@ -304,7 +280,7 @@ public sealed partial class NotesViewModel : ObservableObject, IDisposable
     }
 }
 
-/// <summary>Notes tab: notes, quick reminders and a to-do list, with reminder alerts.</summary>
+/// <summary>Notes tab: formatted notes, phrase reminders and a to-do list, with reminder alerts.</summary>
 public sealed class NotesModule : IIslandModule
 {
     private readonly DispatcherTimer _timer = new(DispatcherPriority.Background) { Interval = TimeSpan.FromSeconds(30) };
@@ -325,13 +301,12 @@ public sealed class NotesModule : IIslandModule
     private void CheckReminders()
     {
         if (_context is null || _vm is null) return;
-        var now = DateTimeOffset.Now;
-        var due = _context.Settings.Current.Notes.Reminders.Where(reminder => !reminder.Done && reminder.Due <= now).ToList();
+        var due = _vm.TakeDue();
         foreach (var reminder in due)
         {
-            reminder.Done = true;
-            _context.Post($"reminder.{reminder.Id}", new IndicatorViewModel("\uE916", reminder.Title, "Reminder"),
+            _context.Post($"reminder.{reminder.Id}", new IndicatorViewModel("", reminder.Title, reminder.RepeatDays != 0 ? "Repeating reminder" : "Reminder"),
                 ActivityPriority.Critical, TimeSpan.FromSeconds(10), alert: true);
+            SystemSounds.Exclamation.Play();
         }
         _vm.RefreshTimes();
         if (due.Count > 0) _context.Settings.NotifyChanged();

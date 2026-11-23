@@ -18,15 +18,19 @@ public sealed class HotkeyService : IDisposable
     private static readonly KeyGestureConverter Converter = new();
 
     private readonly SettingsService _settings;
-    private readonly Action _open;
-    private readonly Action _toggleHidden;
-    private readonly Action _openPalette;
+    private readonly Action? _open;
+    private readonly Action? _toggleHidden;
+    private readonly Action? _openPalette;
     private readonly HwndSource _window;
     private readonly HashSet<string> _unavailable = new(StringComparer.OrdinalIgnoreCase);
-    private (string Open, string Hide, string Palette)? _applied;
+    private string? _applied;
     private bool _suspended;
 
-    public HotkeyService(SettingsService settings, Action open, Action toggleHidden, Action openPalette)
+    /// <summary>Extra shortcuts added after construction: window-message id, resolver for the current keys, action.</summary>
+    private readonly Dictionary<int, (string Key, Func<string> Shortcut, Action Run)> _extra = new();
+    private int _nextExtraId = 100;
+
+    public HotkeyService(SettingsService settings, Action? open, Action? toggleHidden, Action? openPalette)
     {
         _settings = settings;
         _open = open;
@@ -57,22 +61,56 @@ public sealed class HotkeyService : IDisposable
         Apply();
     }
 
+    /// <summary>
+    /// Adds a catalog shortcut (see <see cref="ShortcutCatalog"/>). Its keys follow the user's setting, so the
+    /// action stays registered while the shortcut is off and starts working as soon as one is chosen.
+    /// </summary>
+    public void AddAction(string catalogId, Action run) =>
+        AddAction(catalogId, () => ShortcutCatalog.Resolve(_settings.Current, catalogId), run);
+
+    /// <summary>Adds a shortcut whose keys come from <paramref name="shortcut"/>, for example a per-item launcher hotkey.</summary>
+    public void AddAction(string key, Func<string> shortcut, Action run)
+    {
+        foreach (var id in _extra.Where(pair => pair.Value.Key == key).Select(pair => pair.Key).ToList())
+        {
+            UnregisterHotKey(_window.Handle, id); // a restarted module replaces its old shortcut
+            _extra.Remove(id);
+        }
+        _extra[_nextExtraId++] = (key, shortcut, run);
+        _applied = null;
+        Apply();
+    }
+
+    /// <summary>Removes every shortcut added under <paramref name="keyPrefix"/>.</summary>
+    public void RemoveActions(string keyPrefix)
+    {
+        foreach (var id in _extra.Where(pair => pair.Value.Key.StartsWith(keyPrefix, StringComparison.Ordinal)).Select(pair => pair.Key).ToList())
+        {
+            UnregisterHotKey(_window.Handle, id);
+            _extra.Remove(id);
+        }
+        _applied = null;
+        Apply();
+    }
+
+    /// <summary>Catalog ids that have an action, so Settings only lists shortcuts that do something.</summary>
+    public IReadOnlyList<string> RegisteredKeys => _extra.Values.Select(value => value.Key).ToList();
+
     private void Apply()
     {
         var s = _settings.Current;
-        var wanted = (s.OpenShortcut.Trim(), s.HideShortcut.Trim(), s.PaletteShortcut.Trim());
-        if (_applied == wanted) return;
-        _applied = wanted;
-        UnregisterHotKey(_window.Handle, OpenId);
-        UnregisterHotKey(_window.Handle, HideId);
-        UnregisterHotKey(_window.Handle, PaletteId);
+        var wanted = new List<(int Id, string Shortcut)>
+        {
+            (OpenId, s.OpenShortcut.Trim()), (HideId, s.HideShortcut.Trim()), (PaletteId, s.PaletteShortcut.Trim()),
+        };
+        wanted.AddRange(_extra.Select(pair => (pair.Key, pair.Value.Shortcut().Trim())));
+        var signature = string.Join("|", wanted.Select(item => $"{item.Id}={item.Shortcut}"));
+        if (_applied == signature) return;
+        _applied = signature;
+        foreach (var (id, _) in wanted) UnregisterHotKey(_window.Handle, id);
         _unavailable.Clear();
         if (!_suspended)
-        {
-            Register(OpenId, wanted.Item1);
-            Register(HideId, wanted.Item2);
-            Register(PaletteId, wanted.Item3);
-        }
+            foreach (var (id, shortcut) in wanted) Register(id, shortcut);
         Changed?.Invoke();
     }
 
@@ -88,9 +126,10 @@ public sealed class HotkeyService : IDisposable
     {
         if (msg != WM_HOTKEY) return 0;
         handled = true;
-        if (wParam == OpenId) _open();
-        else if (wParam == HideId) _toggleHidden();
-        else if (wParam == PaletteId) _openPalette();
+        if (wParam == OpenId) _open?.Invoke();
+        else if (wParam == HideId) _toggleHidden?.Invoke();
+        else if (wParam == PaletteId) _openPalette?.Invoke();
+        else if (_extra.TryGetValue((int)wParam, out var action)) action.Run();
         return 0;
     }
 
@@ -138,6 +177,8 @@ public sealed class HotkeyService : IDisposable
         _settings.Changed -= Apply;
         UnregisterHotKey(_window.Handle, OpenId);
         UnregisterHotKey(_window.Handle, HideId);
+        UnregisterHotKey(_window.Handle, PaletteId);
+        foreach (var id in _extra.Keys) UnregisterHotKey(_window.Handle, id);
         _window.Dispose();
         if (Current == this) Current = null;
     }

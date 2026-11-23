@@ -36,6 +36,7 @@ public sealed partial class SettingsViewModel : ObservableObject
         Displays = new(Shell.Monitors.GetAll().Select(m => new DisplayRow(m, S, Save)));
         CalendarSources = new(S.Calendar.Sources.Select(s => new CalendarSourceRow(s) { Url = SecretStore.Unprotect(s.EncryptedUrl) ?? "" }));
         LoadProviderAccounts();
+        LoadProgramRules();
         RebuildThemes();
         HookShortcuts();
     }
@@ -92,6 +93,60 @@ public sealed partial class SettingsViewModel : ObservableObject
     }
 
     public bool ClickThrough { get => S.ClickThrough; set => Set(S.ClickThrough, value, v => S.ClickThrough = v); }
+    public ObservableCollection<ProgramRuleRow> ProgramRules { get; } = [];
+    [ObservableProperty] private string _newProgram = "";
+    [ObservableProperty] private FullscreenMode _newProgramMode = FullscreenMode.Hide;
+    public IReadOnlyList<Choice<FullscreenMode>> ProgramModes { get; } =
+    [
+        new(FullscreenMode.Hide, "Hide the island"), new(FullscreenMode.PopUp, "Hide, but pop up for alerts"),
+        new(FullscreenMode.Dim, "Dim the island"), new(FullscreenMode.Stay, "Keep the island"),
+    ];
+
+    private void LoadProgramRules()
+    {
+        ProgramRules.Clear();
+        foreach (var rule in S.ProgramRules) ProgramRules.Add(new ProgramRuleRow(this, rule));
+    }
+
+    [RelayCommand]
+    private void AddProgramRule()
+    {
+        var name = Atoll.Settings.ProgramRules.Normalize(NewProgram);
+        if (name.Length == 0 || S.ProgramRules.Any(rule => Atoll.Settings.ProgramRules.Normalize(rule.Process).Equals(name, StringComparison.OrdinalIgnoreCase))) return;
+        var rule = new ProgramRule { Process = name, Mode = NewProgramMode };
+        S.ProgramRules.Add(rule);
+        ProgramRules.Add(new ProgramRuleRow(this, rule));
+        NewProgram = "";
+        Save();
+    }
+
+    internal void RemoveProgramRule(ProgramRuleRow row)
+    {
+        S.ProgramRules.Remove(row.Rule);
+        ProgramRules.Remove(row);
+        Save();
+    }
+
+    internal void ProgramRuleChanged() => Save();
+
+    public IReadOnlyList<Choice<MediaPillStyle>> MediaPillStyles { get; } =
+    [
+        new(MediaPillStyle.Classic, "Classic: cover and bars"), new(MediaPillStyle.Wide, "Wide: title and progress"), new(MediaPillStyle.Mini, "Mini player: title, progress and buttons"),
+    ];
+    public MediaPillStyle MediaPill { get => S.MediaPill; set => Set(S.MediaPill, value, v => S.MediaPill = v); }
+    public bool LyricsInPill { get => S.LyricsInPill; set => Set(S.LyricsInPill, value, v => S.LyricsInPill = v); }
+    public bool ShowSteamDownloads { get => S.ShowSteamDownloads; set => Set(S.ShowSteamDownloads, value, v => S.ShowSteamDownloads = v); }
+    public bool VpnEnabled { get => S.Vpn.Enabled; set => Set(S.Vpn.Enabled, value, v => S.Vpn.Enabled = v); }
+    public bool VpnLookup { get => S.Vpn.Lookup; set => Set(S.Vpn.Lookup, value, v => S.Vpn.Lookup = v); }
+    public bool ShowKeyboardLayout { get => S.ShowKeyboardLayout; set => Set(S.ShowKeyboardLayout, value, v => S.ShowKeyboardLayout = v); }
+    public bool WheelVolume { get => S.WheelVolume; set => Set(S.WheelVolume, value, v => S.WheelVolume = v); }
+    public bool ScreenShowIsland { get => S.Screen.ShowIsland; set => Set(S.Screen.ShowIsland, value, v => S.Screen.ShowIsland = v); }
+    public bool ScreenRecord60 { get => S.Screen.RecordFps >= 60; set => Set(S.Screen.RecordFps >= 60, value, v => S.Screen.RecordFps = v ? 60 : 30); }
+    public bool ScreenRecordHigh { get => S.Screen.RecordHighQuality; set => Set(S.Screen.RecordHighQuality, value, v => S.Screen.RecordHighQuality = v); }
+    public string ScreenFolder { get => S.Screen.Folder; set => Set(S.Screen.Folder, value ?? "", v => S.Screen.Folder = v); }
+    public bool PaletteFiles { get => S.Palette.Files; set => Set(S.Palette.Files, value, v => S.Palette.Files = v); }
+    public bool PaletteCurrency { get => S.Palette.Currency; set => Set(S.Palette.Currency, value, v => S.Palette.Currency = v); }
+    public bool DictationTypes { get => S.Dictation.TypeIntoWindow; set => Set(S.Dictation.TypeIntoWindow, value, v => S.Dictation.TypeIntoWindow = v); }
     public bool ShowBattery { get => S.ShowBattery; set => Set(S.ShowBattery, value, v => S.ShowBattery = v); }
 
     /// <summary>Desktop PCs have no battery, so the battery card is not shown at all.</summary>
@@ -154,6 +209,7 @@ public sealed partial class SettingsViewModel : ObservableObject
     public double ExpandedWidth { get => T.ExpandedWidth; set => Set(T.ExpandedWidth, value, v => T.ExpandedWidth = v); }
     public double ExpandedHeight { get => T.ExpandedHeight; set => Set(T.ExpandedHeight, value, v => T.ExpandedHeight = v); }
     public double CompactWidth { get => T.CompactWidth; set => Set(T.CompactWidth, value, v => T.CompactWidth = v); }
+    public bool LiquidEdge { get => T.LiquidEdge; set => Set(T.LiquidEdge, value, v => T.LiquidEdge = v); }
     public bool Outline { get => T.Outline; set => Set(T.Outline, value, v => T.Outline = v); }
     public bool ShowSideActivities { get => T.ShowSideActivities; set => Set(T.ShowSideActivities, value, v => T.ShowSideActivities = v); }
 

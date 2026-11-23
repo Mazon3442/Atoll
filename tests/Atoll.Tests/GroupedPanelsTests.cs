@@ -33,6 +33,11 @@ public class GroupedPanelsTests
         var sound = new SystemPanelViewModel(_ => { }, () => { })
         { Volume = 50, Network = "Connected", Bluetooth = "Headphones", Battery = "85%" };
         var launcher = new Atoll.Modules.Launcher.LauncherViewModel(Dispatcher.CurrentDispatcher);
+        launcher.Pins = new Atoll.Modules.Launcher.PinnedViewModel(
+        [
+            new() { Name = "Mail", Target = "https://mail.example.com" }, new() { Name = "Steam", Target = "steam://open/main", Group = "Games" },
+            new() { Name = "Epic", Target = "com.epicgames.launcher://", Group = "Games" }, new() { Name = "Docs", Target = @"C:\Windows\notepad.exe" },
+        ], () => new Atoll.Settings.AppSettings(), () => { });
         launcher.SetAppsForTest([
             new("Visual Studio Code", @"C:\ProgramData\Microsoft\Windows\Start Menu\Programs\Visual Studio Code.lnk", "Development"),
             new("Spotify", @"C:\Users\mason\AppData\Roaming\Microsoft\Windows\Start Menu\Programs\Spotify.lnk", "Music"),
@@ -48,6 +53,7 @@ public class GroupedPanelsTests
             ["calendar"] = new CalendarViewModel(() => { }),
             ["notes"] = new Atoll.Modules.Notes.NotesViewModel(new Atoll.Settings.NotesSettings(), () => { }),
             ["tide"] = new Atoll.Modules.Tide.TideViewModel(new Atoll.Settings.TideSettings(), () => { }),
+            ["text"] = new Atoll.Modules.TextTools.TextToolsViewModel(_ => { }),
             ["system"] = sound,
             ["shelf"] = new ShelfViewModel(_ => { }, () => { }),
             ["clipboard"] = new ClipboardViewModel(new ClipboardHistory()),
@@ -67,7 +73,7 @@ public class GroupedPanelsTests
     {
         var modules = Modules();
         var tabs = PanelGroups.Combine(modules);
-        Assert.Equal(["claude", "providers", "media", "notifications", "clock", "calendar", "notes", "tide", "system", "shelf", "downloads", "clipboard", "weather", "launcher"],
+        Assert.Equal(["claude", "providers", "media", "notifications", "clock", "calendar", "notes", "tide", "text", "system", "shelf", "downloads", "clipboard", "weather", "launcher"],
             tabs.Select(t => t.Descriptor.Id));
         Assert.Equal(tabs, PanelGroups.Combine(modules));
         foreach (var module in modules)
@@ -143,7 +149,7 @@ public class GroupedPanelsTests
             "Modules/Shelf/ShelfTemplates.xaml", "Modules/Downloads/DownloadsTemplates.xaml", "Modules/Clipboard/ClipboardTemplates.xaml", "Modules/Stats/StatsTemplates.xaml",
             "Modules/Weather/WeatherTemplates.xaml", "Modules/Indicators/IndicatorsTemplates.xaml", "Modules/Calendar/CalendarTemplates.xaml",
             "Modules/Games/GamesTemplates.xaml", "Modules/Launcher/LauncherTemplates.xaml", "Modules/Notes/NotesTemplates.xaml",
-            "Modules/Tide/TideTemplates.xaml",
+            "Modules/Tide/TideTemplates.xaml", "Modules/TextTools/TextToolsTemplates.xaml", "Modules/Screen/ScreenTemplates.xaml", "Modules/Dictation/DictationTemplates.xaml",
             "Modules/GroupedTemplates.xaml" })
             resources.MergedDictionaries.Add(new ResourceDictionary { Source = new Uri("/Atoll;component/" + file, UriKind.Relative) });
         var modules = Modules();

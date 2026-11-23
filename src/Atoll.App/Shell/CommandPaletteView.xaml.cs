@@ -29,7 +29,7 @@ public partial class CommandPaletteView : UserControl
         }
         else if (e.Key == Key.Enter)
         {
-            ViewModel?.RunSelected();
+            RunSelected();
             e.Handled = true;
         }
         else if (e.Key == Key.Escape)
@@ -39,11 +39,19 @@ public partial class CommandPaletteView : UserControl
         }
     }
 
+    /// <summary>Enter runs; Ctrl+Enter opens the folder of a file or program; Ctrl+Shift+Enter starts it as administrator.</summary>
+    private void RunSelected()
+    {
+        var control = (Keyboard.Modifiers & ModifierKeys.Control) != 0;
+        var shift = (Keyboard.Modifiers & ModifierKeys.Shift) != 0;
+        ViewModel?.RunSelected(folder: control && !shift, elevated: control && shift);
+    }
+
     private void OnResultsKeyDown(object sender, KeyEventArgs e)
     {
         if (e.Key == Key.Enter)
         {
-            ViewModel?.RunSelected();
+            RunSelected();
             e.Handled = true;
         }
         else if (e.Key == Key.Escape)

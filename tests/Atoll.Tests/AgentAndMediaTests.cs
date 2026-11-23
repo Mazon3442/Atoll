@@ -311,9 +311,30 @@ internal static class AgentMediaUi
         var notes = new Atoll.Modules.Notes.NotesViewModel(notesSettings, () => { });
         Render(notes, "NotesViewModel.Panel", "notes-panel", 640, 380);
         notes.SectionIndex = 1;
-        Render(notes, "NotesViewModel.Panel", "notes-reminders", 640, 380);
-        notes.SectionIndex = 2;
         Render(notes, "NotesViewModel.Panel", "notes-todos", 640, 380);
+
+        // The music pill in its three looks, and with the sung line in place of the title.
+        var pill = new MediaViewModel(() => Task.CompletedTask, () => Task.CompletedTask, () => Task.CompletedTask, _ => Task.CompletedTask)
+        { HasSession = true, HasTimeline = true, IsPlaying = true, Title = "Midnight Drive", Artist = "Neon Harbor", Lyric = "Headlights cutting through the night", Progress = 0.4 };
+        foreach (var style in new[] { Atoll.Settings.MediaPillStyle.Classic, Atoll.Settings.MediaPillStyle.Wide, Atoll.Settings.MediaPillStyle.Mini })
+        {
+            pill.PillStyle = style;
+            Assert.Equal("Midnight Drive", pill.PillLine);
+            Render(pill, "MediaViewModel.Compact", "media-pill-" + style.ToString().ToLowerInvariant(), 420, 30);
+        }
+        pill.LyricsInPill = true;
+        Assert.Equal("Headlights cutting through the night", pill.PillLine);
+        Render(pill, "MediaViewModel.Compact", "media-pill-mini-lyrics", 420, 30);
+
+        // Result cards and the dictation pill.
+        var shot = new Atoll.Modules.Screen.ScreenCardViewModel("Screenshot ready", "On the clipboard and in the folder \u00B7 1920\u00D71080", "\uE722", null, null,
+            new Atoll.Modules.Screen.CardAction("Edit", "\uE70F", () => { }), new Atoll.Modules.Screen.CardAction("Show in folder", "\uE838", () => { }));
+        Render(shot, "ScreenCardViewModel.Peek", "screen-card", 520, 56);
+        var orange = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(0xD9, 0x77, 0x57));
+        Render(new Atoll.Modules.Screen.ScreenCardViewModel("#D97757", "copied \u00B7 rgb(217, 119, 87)", "\uE790", null, orange), "ScreenCardViewModel.Peek", "screen-color", 420, 56);
+        var dictation = new Atoll.Modules.Dictation.DictationViewModel(() => { }, () => { }) { Elapsed = "0:07", Level = 0.6 };
+        Render(dictation, "DictationViewModel.Peek", "dictation-peek", 520, 56);
+        Render(dictation, "DictationViewModel.Compact", "dictation-compact", 260, 24);
     }
 
     private static System.Windows.Controls.TextBox FindAskInput(object vm)

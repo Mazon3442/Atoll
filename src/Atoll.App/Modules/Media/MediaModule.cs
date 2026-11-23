@@ -109,6 +109,8 @@ public sealed partial class MediaModule : IIslandModule
         _context = context;
         _vm.VolumeControlsApp = context.Settings.Current.VolumeControlsApp;
         _vm.ShowLyrics = context.Settings.Current.ShowLyrics;
+        _vm.PillStyle = context.Settings.Current.MediaPill;
+        _vm.LyricsInPill = context.Settings.Current.LyricsInPill;
         _vm.BongoCat = context.Settings.Current.BongoCat;
         _vm.ApplyTheme(context.Settings.Current.Theme);
         context.Settings.Changed += OnThemeChanged;
@@ -174,6 +176,8 @@ public sealed partial class MediaModule : IIslandModule
         var settings = _context!.Settings.Current;
         _vm.ApplyTheme(settings.Theme);
         _vm.BongoCat = settings.BongoCat;
+        _vm.PillStyle = settings.MediaPill;
+        _vm.LyricsInPill = settings.LyricsInPill;
         if (_vm.ShowLyrics == settings.ShowLyrics) return;
         _vm.ShowLyrics = settings.ShowLyrics; // switched in the panel or in Settings
         _ = LoadLyricsAsync(_vm.Artist, _vm.Title);

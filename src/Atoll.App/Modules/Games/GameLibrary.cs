@@ -29,14 +29,20 @@ public static partial class GameLibrary
 
     private static readonly HashSet<string> SteamTools = ["228980", "1070560", "1391110", "1628350", "1493710"]; // redistributables, Linux runtimes, Proton
 
-    internal static IEnumerable<GameEntry> Steam()
+    /// <summary>Every Steam library's <c>steamapps</c> folder that exists, the main one first.</summary>
+    internal static IEnumerable<string> SteamAppsFolders()
     {
-        if (Registry.GetValue(@"HKEY_CURRENT_USER\Software\Valve\Steam", "SteamPath", null) is not string steam) yield break;
+        if (Registry.GetValue(@"HKEY_CURRENT_USER\Software\Valve\Steam", "SteamPath", null) is not string steam) return [];
         var folders = new List<string> { Path.Combine(steam, "steamapps") };
         var vdf = Path.Combine(steam, "steamapps", "libraryfolders.vdf");
         if (File.Exists(vdf))
             folders.AddRange(VdfPath().Matches(File.ReadAllText(vdf)).Select(m => Path.Combine(m.Groups[1].Value.Replace(@"\\", @"\"), "steamapps")));
-        foreach (var folder in folders.Distinct(StringComparer.OrdinalIgnoreCase).Where(Directory.Exists))
+        return folders.Distinct(StringComparer.OrdinalIgnoreCase).Where(Directory.Exists).ToList();
+    }
+
+    internal static IEnumerable<GameEntry> Steam()
+    {
+        foreach (var folder in SteamAppsFolders())
             foreach (var manifest in Directory.EnumerateFiles(folder, "appmanifest_*.acf"))
                 if (ParseAcf(File.ReadAllText(manifest), folder) is { } game) yield return game;
     }

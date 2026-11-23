@@ -20,9 +20,12 @@
                 <ResourceDictionary Source="Modules/Indicators/IndicatorsTemplates.xaml" />
                 <ResourceDictionary Source="Modules/Calendar/CalendarTemplates.xaml" />
                 <ResourceDictionary Source="Modules/Privacy/PrivacyTemplates.xaml" />
+                <ResourceDictionary Source="Modules/Dictation/DictationTemplates.xaml" />
+                <ResourceDictionary Source="Modules/Screen/ScreenTemplates.xaml" />
                 <ResourceDictionary Source="Modules/Games/GamesTemplates.xaml" />
                 <ResourceDictionary Source="Modules/Launcher/LauncherTemplates.xaml" />
                 <ResourceDictionary Source="Modules/Notes/NotesTemplates.xaml" />
+                <ResourceDictionary Source="Modules/TextTools/TextToolsTemplates.xaml" />
                 <ResourceDictionary Source="Modules/Tide/TideTemplates.xaml" />
                 <ResourceDictionary Source="Modules/Home/HomeTemplates.xaml" />
                 <ResourceDictionary Source="Modules/GroupedTemplates.xaml" />

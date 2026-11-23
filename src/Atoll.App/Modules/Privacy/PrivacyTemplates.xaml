@@ -30,6 +30,11 @@
                 <TextBlock Text="{Binding Apps}" FontSize="12" Foreground="{DynamicResource Island.Subtle}"
                            MaxWidth="320" TextTrimming="CharacterEllipsis" />
             </StackPanel>
+            <Button Style="{StaticResource Island.RoundButton}" Command="{Binding ToggleMicCommand}" Margin="16,0,0,0" VerticalAlignment="Center"
+                    ToolTip="Mute or unmute the microphone" AutomationProperties.Name="Mute or unmute the microphone"
+                    Visibility="{Binding Microphone, Converter={StaticResource Island.BoolToVisibility}}">
+                <TextBlock Text="&#xE720;" FontFamily="{StaticResource Island.IconFont}" FontSize="14" />
+            </Button>
         </StackPanel>
     </DataTemplate>
 

@@ -77,6 +77,15 @@ public sealed partial class LauncherViewModel : ObservableObject
 
     public LauncherViewModel(Dispatcher dispatcher) => _dispatcher = dispatcher;
 
+    /// <summary>Your pinned shortcuts; null in tests that do not need them.</summary>
+    [ObservableProperty] private PinnedViewModel? _pins;
+
+    [RelayCommand]
+    private void Pin(LauncherApp? app)
+    {
+        if (app is not null) Pins?.PinApp(app);
+    }
+
     public ObservableCollection<LauncherApp> Apps { get; } = [];
     public ObservableCollection<LauncherApp> FilteredApps { get; } = [];
 
@@ -162,15 +171,33 @@ public sealed partial class LauncherViewModel : ObservableObject
 
 public sealed class LauncherModule : IIslandModule
 {
+    private const string HotkeyPrefix = "pin:";
     private LauncherViewModel? _vm;
+    private ModuleContext? _context;
 
     public object? Panel => _vm;
 
     public void Start(ModuleContext context)
     {
+        _context = context;
         _vm = new LauncherViewModel(context.Dispatcher);
+        _vm.Pins = new PinnedViewModel(context.Settings.Current.Launcher.Pins, () => context.Settings.Current, () => context.Settings.NotifyChanged());
+        _vm.Pins.Changed += RegisterHotkeys;
+        RegisterHotkeys();
         _vm.RefreshCommand.Execute(null);
     }
 
-    public void Dispose() { }
+    /// <summary>Each pin with a hotkey opens from anywhere. Registrations are rebuilt whenever the pins change.</summary>
+    private void RegisterHotkeys()
+    {
+        if (_vm?.Pins is not { } pins || Atoll.Shell.HotkeyService.Current is not { } hotkeys) return;
+        hotkeys.RemoveActions(HotkeyPrefix);
+        foreach (var pin in pins.Pins.Where(pin => pin.Hotkey.Length > 0).ToList())
+        {
+            var target = pin;
+            hotkeys.AddAction(HotkeyPrefix + target.Id, () => target.Hotkey, () => pins.Launch(target));
+        }
+    }
+
+    public void Dispose() => Atoll.Shell.HotkeyService.Current?.RemoveActions(HotkeyPrefix);
 }

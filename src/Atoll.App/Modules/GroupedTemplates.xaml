@@ -129,6 +129,29 @@
         </Setter>
     </Style>
 
+    <!-- A Controls tile: round icon badge, name and state on an inset surface. The badge fills with the accent while Tag is True. -->
+    <Style x:Key="System.ControlTile" TargetType="Button" BasedOn="{StaticResource System.ActionTile}">
+        <Setter Property="Height" Value="78" />
+        <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+        <Style.Triggers>
+            <Trigger Property="IsEnabled" Value="False"><Setter Property="Opacity" Value="0.5" /></Trigger>
+        </Style.Triggers>
+    </Style>
+
+    <Style x:Key="System.ControlBadge" TargetType="Border">
+        <Setter Property="Width" Value="30" />
+        <Setter Property="Height" Value="30" />
+        <Setter Property="HorizontalAlignment" Value="Left" />
+        <Setter Property="CornerRadius" Value="{shell:Round}" />
+        <Setter Property="Background" Value="{DynamicResource Island.Raised}" />
+        <Style.Triggers>
+            <DataTrigger Binding="{Binding Tag, RelativeSource={RelativeSource Self}}" Value="True">
+                <Setter Property="Background" Value="{DynamicResource Island.Accent}" />
+                <Setter Property="TextElement.Foreground" Value="{DynamicResource Island.AccentText}" />
+            </DataTrigger>
+        </Style.Triggers>
+    </Style>
+
     <DataTemplate x:Key="System.VolumeCard">
         <StackPanel VerticalAlignment="Center">
             <DockPanel>

@@ -34,6 +34,7 @@ public static class ModuleCatalog
         new("calendar", "Calendar", "\uE787", () => new CalendarModule()),
         new("notes", "Notes", "\uE70B", () => new NotesModule(), BookmarkedByDefault: false),
         new("tide", "Tide", "\uE8A5", () => new TideModule(), BookmarkedByDefault: false),
+        new("text", "Text", "\uE8E9", () => new TextTools.TextToolsModule(), BookmarkedByDefault: false),
         new("system", "System", "", () => new IndicatorsModule(), BookmarkedByDefault: false),
         new("shelf", "File shelf", "", () => new ShelfModule()),
         new("downloads", "Downloads", "\uE896", () => new DownloadsModule(), BookmarkedByDefault: false),

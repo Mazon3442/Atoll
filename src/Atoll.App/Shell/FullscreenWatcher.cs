@@ -44,6 +44,16 @@ public sealed class FullscreenWatcher : IDisposable
 
     public event Action? Check;
 
+    /// <summary>The program file name of the foreground window ("chrome.exe"), or null for the desktop or ATOLL itself.</summary>
+    public static string? ForegroundProcess()
+    {
+        var hwnd = Native.GetForegroundWindow();
+        if (hwnd == 0 || hwnd == Native.GetShellWindow() || hwnd == Native.GetDesktopWindow()) return null;
+        Native.GetWindowThreadProcessId(hwnd, out var pid);
+        if (pid == OwnProcessId) return null;
+        return Native.GetProcessPath(pid) is { } path ? System.IO.Path.GetFileName(path) : null;
+    }
+
     /// <summary>
     /// What the foreground window on <paramref name="monitor"/> is doing, or null while one of ATOLL's own windows
     /// (the open island, Settings) is in front: the caller keeps its last answer, because opening the island must

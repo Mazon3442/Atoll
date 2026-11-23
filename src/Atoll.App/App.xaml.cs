@@ -19,6 +19,10 @@ public partial class App : Application
     private IslandManager? _islands;
     private TrayIcon? _tray;
     private HotkeyService? _hotkeys;
+    private Modules.Dictation.DictationService? _dictation;
+    private Modules.Screen.ScreenTools? _screen;
+    private Modules.Status.VpnWatcher? _vpn;
+    private Modules.Status.SteamDownloadWatcher? _steam;
     private FocusService? _focus;
     private DispatcherTimer? _focusTimer;
     private SettingsWindow? _settingsWindow;
@@ -63,6 +67,8 @@ public partial class App : Application
         FocusService.Current = _focus;
         _focus.Configure(_settings.Current.Focus.Enabled, _settings.Current.Focus.FollowWindowsFocus);
         _focus.SetWindowsFocus(WindowsFocus());
+        // Created before the modules so a module can add its own shortcut while it starts. The islands exist a moment later.
+        _hotkeys = new HotkeyService(_settings, () => _islands?.ToggleFromKeyboard(), () => SetPaused(!(_islands?.Paused ?? false)), () => _islands?.OpenPalette());
         _modules = new ModuleManager(ModuleCatalog.All, _activities, Dispatcher, _settings);
         _modules.Apply();
 
@@ -73,6 +79,40 @@ public partial class App : Application
             _modules.Apply();
         };
 
+        _dictation = new Modules.Dictation.DictationService(_activities, _settings, Dispatcher, _hotkeys);
+        Navigation.Dictate = () => _ = _dictation.ToggleAsync();
+        _hotkeys.AddAction(ShortcutCatalog.MicMute, () =>
+        {
+            var muted = Modules.Actions.QuickActionsModule.SwitchMic();
+            _activities.Post(new Activities.Activity("mic.toggle", "actions",
+                new Activities.IndicatorViewModel(muted == true ? "\uE720" : "\uE720", muted is null ? "No microphone found" : muted.Value ? "Microphone muted" : "Microphone on"),
+                Activities.ActivityPriority.High, TimeSpan.FromSeconds(2)));
+        });
+        _hotkeys.AddAction(ShortcutCatalog.PlainPaste, PasteWithoutFormatting);
+        _vpn = new Modules.Status.VpnWatcher(_activities, _settings, Dispatcher);
+        _steam = new Modules.Status.SteamDownloadWatcher(_activities, _settings);
+        _screen = new Modules.Screen.ScreenTools(_activities, _settings, Dispatcher, _hotkeys);
+        Navigation.ScreenTool = tool =>
+        {
+            _ = tool switch
+            {
+                "area" => _screen.ScreenshotArea(),
+                "screen" => _screen.ScreenshotScreen(),
+                "ocr" => _screen.ReadText(),
+                "qr" => _screen.ScanQr(),
+                "color" => _screen.PickColor(),
+                "record" => _screen.ToggleRecording(),
+                _ => Task.CompletedTask,
+            };
+        };
+        Navigation.AskAi = prompt =>
+        {
+            if (_modules.Tabs.Select(tab => tab.Panel).OfType<Modules.Claude.ClaudeViewModel>().FirstOrDefault() is not { } claude) return;
+            claude.SectionIndex = 1;
+            claude.Ask.Draft = prompt;
+            if (claude.Ask.SendCommand.CanExecute(null)) claude.Ask.SendCommand.Execute(null);
+            Navigation.OpenModule?.Invoke("claude");
+        };
         _islands = new IslandManager(_settings, _activities, _modules, OpenSettings, Dispatcher);
         Navigation.OpenModule = _islands.OpenModule;
         Navigation.OpenOnboarding = ShowOnboarding;
@@ -88,7 +128,6 @@ public partial class App : Application
             _focus.SetWindowsFocus(WindowsFocus());
         };
         _focusTimer.Start();
-        _hotkeys = new HotkeyService(_settings, _islands.ToggleFromKeyboard, () => SetPaused(!_islands.Paused), _islands.OpenPalette);
 
         // First run: explain the island and let the user choose the top row. Skipping still marks it done.
         if (!_settings.Current.OnboardingComplete)
@@ -210,11 +249,27 @@ public partial class App : Application
         e.Handled = true;
     }
 
+    /// <summary>Pastes the clipboard as plain text: re-copies only its text, then presses Ctrl+V in the window that has the keyboard.</summary>
+    private static void PasteWithoutFormatting()
+    {
+        try
+        {
+            if (!Clipboard.ContainsText()) return;
+            Clipboard.SetText(Clipboard.GetText());
+        }
+        catch (System.Runtime.InteropServices.COMException) { return; } // the clipboard was busy
+        _ = KeyboardInjector.PasteAsync();
+    }
+
     protected override void OnExit(ExitEventArgs e)
     {
         _focusTimer?.Stop();
         _focusTimer = null;
         FocusService.Current = null;
+        _steam?.Dispose();
+        _vpn?.Dispose();
+        _screen?.Dispose();
+        _dictation?.Dispose();
         _hotkeys?.Dispose();
         _tray?.Dispose();
         _islands?.Dispose();

@@ -102,6 +102,7 @@ public sealed class IndicatorsModule : IIslandModule
     private bool _bluetoothReady;
     private DispatcherTimer? _keyPoll;
     private bool _caps;
+    private int _layout;
     private bool _num;
     private int _lastBatteryAlert = 100;
     private bool _lowPosted;
@@ -353,6 +354,7 @@ public sealed class IndicatorsModule : IIslandModule
     {
         _caps = IsToggled(Native.VK_CAPITAL);
         _num = IsToggled(Native.VK_NUMLOCK);
+        _layout = ForegroundLayout();
         _keyPoll = new DispatcherTimer(DispatcherPriority.Background) { Interval = TimeSpan.FromMilliseconds(150) };
         _keyPoll.Tick += (_, _) =>
         {
@@ -361,6 +363,16 @@ public sealed class IndicatorsModule : IIslandModule
             {
                 _caps = caps;
                 Show(new IndicatorViewModel("", caps ? "Caps Lock on" : "Caps Lock off"), TimeSpan.FromSeconds(1.5));
+            }
+            if (_context?.Settings.Current.ShowKeyboardLayout == true && ForegroundLayout() is var layout and not 0 && layout != _layout)
+            {
+                var announce = _layout != 0; // the first reading is the starting layout, not a change
+                _layout = layout;
+                if (announce)
+                {
+                    var (code, name) = Atoll.Modules.Indicators.KeyboardLayoutLabel.For(layout);
+                    Show(new IndicatorViewModel("\uE765", code, "Layout: " + name), TimeSpan.FromSeconds(1.5));
+                }
             }
             var num = IsToggled(Native.VK_NUMLOCK);
             if (num != _num)
@@ -373,6 +385,18 @@ public sealed class IndicatorsModule : IIslandModule
     }
 
     private static bool IsToggled(int key) => (Native.GetKeyState(key) & 1) != 0;
+
+    /// <summary>The language id of the keyboard layout the foreground window is using, or 0 when there is none.</summary>
+    private static int ForegroundLayout()
+    {
+        var window = Native.GetForegroundWindow();
+        if (window == 0) return 0;
+        var thread = Native.GetWindowThreadProcessId(window, out _);
+        return (int)((ulong)GetKeyboardLayout(thread) & 0xFFFF);
+    }
+
+    [System.Runtime.InteropServices.DllImport("user32.dll")]
+    private static extern nint GetKeyboardLayout(uint thread);
 
     // ---------- shared ----------
 

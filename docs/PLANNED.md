@@ -18,6 +18,18 @@ Status key: **done**, **partial**, **planned**, **pinned** (waiting), **dropped*
 - Media: shuffle and repeat (off, all, one) on the panel, driven by the player's own Windows media controls. They stay disabled for players that do not offer them.
 - Updates: after a background download finishes, the island asks Restart or Later; each version is asked about once.
 
+- Controls grid in the status chip (Wi-Fi, Bluetooth, Windows dark mode, battery, lock, and press-twice sleep, restart and shut down).
+- Notes redesign: a tab per note with formatting and tasks, reminders from one phrase, repeating reminders and snooze.
+- Voice to text on a hotkey (local Whisper, copy and optional paste), plus paste without formatting and a microphone mute hotkey.
+- Command palette answers: calculator, units, currencies, timers, reminders, `>` shell lines, files by name, Ctrl+Enter folder and Ctrl+Shift+Enter administrator, Ask AI and Search the web rows.
+- Text tab: layout fixer, case, transliteration, JSON, Base64, URL, QR code, AI rewrites.
+- Screen tools: screenshots with markup, text from the screen (OCR), QR scan, color picker, and MP4 screen recording without sound.
+- Launcher pinned shortcuts: apps, files, sites and links, groups by name, per-shortcut hotkeys.
+- Keyboard layout popup, mic mute on the privacy pill, mouse-wheel volume over the resting island (opt-in), VPN pill (country and address opt-in), Steam download progress.
+- Hide, dim or keep the island per program.
+- Wide and mini music pills, lyrics in the pill.
+- Liquid edge (opt-in): the lower edge ripples with the music.
+
 ## Partial
 
 - **Tide Listen** reports a transcript per 6 s window, not word-by-word. Language, model path and keep-audio are JSON-only, there is no in-app session list, and ducking is an unsmoothed per-frame switch. Nothing has been run against a real microphone, system audio or the Whisper model yet.
@@ -25,6 +37,17 @@ Status key: **done**, **partial**, **planned**, **pinned** (waiting), **dropped*
 - **Downloads** is WPF-only. Chrome's `Unconfirmed NNNNN.crdownload` does not match its final name, so it stops without an alert rather than guessing.
 
 ## Planned
+
+### Not built from the Island research
+
+- **OBS recording and stream status** (needs a local websocket client and a password setting).
+- **One island size slider (80 to 200 %).** The shell sizes are separate settings today; scaling the whole window and its text together is a larger change.
+- **Characters** (pets that react to the cursor and the music). Bongo Cat covers the media tab only.
+- **Screen recording with sound**, and GIF recordings.
+- **Drag a shortcut onto another to group it** and favicon icons for web shortcuts (groups are made by typing a group name; icons come from the file, never the web).
+- **Upload a screenshot to Imgur or ImgBB.**
+- **Pick the folders the palette searches in Settings** (`Palette.Folders` works in settings.json).
+- **Drips, beads and cursor-reaching in the liquid edge.** Only the ripple and the music reaction exist.
 
 ### Animation
 
