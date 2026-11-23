@@ -683,6 +683,10 @@
                                 <TextBlock Style="{StaticResource ValueText}" Text="{Binding Roundness, StringFormat={}{0:P0}}" />
                             </StackPanel>
                         </s:SettingCard>
+                        <s:SettingCard Glyph="&#xE81E;" Header="Liquid edge"
+                                       Description="The lower edge ripples like liquid and moves with the music. It stands still when Windows animations are off. Frosted glass keeps its straight blur area.">
+                            <CheckBox Style="{StaticResource Toggle}" IsChecked="{Binding LiquidEdge}" AutomationProperties.Name="Liquid edge" />
+                        </s:SettingCard>
                         <s:SettingCard Glyph="&#xE81E;" Header="Outline" Description="A thin rim that separates the island from what is behind it.">
                             <CheckBox Style="{StaticResource Toggle}" IsChecked="{Binding Outline}" AutomationProperties.Name="Outline" />
                         </s:SettingCard>

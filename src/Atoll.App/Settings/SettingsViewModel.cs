@@ -206,6 +206,7 @@ public sealed partial class SettingsViewModel : ObservableObject
     public double ExpandedWidth { get => T.ExpandedWidth; set => Set(T.ExpandedWidth, value, v => T.ExpandedWidth = v); }
     public double ExpandedHeight { get => T.ExpandedHeight; set => Set(T.ExpandedHeight, value, v => T.ExpandedHeight = v); }
     public double CompactWidth { get => T.CompactWidth; set => Set(T.CompactWidth, value, v => T.CompactWidth = v); }
+    public bool LiquidEdge { get => T.LiquidEdge; set => Set(T.LiquidEdge, value, v => T.LiquidEdge = v); }
     public bool Outline { get => T.Outline; set => Set(T.Outline, value, v => T.Outline = v); }
     public bool ShowSideActivities { get => T.ShowSideActivities; set => Set(T.ShowSideActivities, value, v => T.ShowSideActivities = v); }
 

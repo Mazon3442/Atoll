@@ -213,6 +213,9 @@ public sealed class ThemeSettings
     /// <summary>Thin rim around the island.</summary>
     public bool Outline { get; set; } = true;
 
+    /// <summary>A rippling lower edge that moves with the music. Off by default; it still stands still when Windows animations are off.</summary>
+    public bool LiquidEdge { get; set; }
+
     /// <summary>Small bubbles beside the island for other running activities.</summary>
     public bool ShowSideActivities { get; set; } = true;
 

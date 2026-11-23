@@ -437,12 +437,52 @@ public partial class IslandWindow : Window
     private Color AccentColor() =>
         ThemeService.TryParseColor(_settings.Current.Theme.Accent, out var color) ? color : Color.FromRgb(0x0A, 0x84, 0xFF);
 
+    // ---------- liquid edge ----------
+
+    private readonly DispatcherTimer _liquidTimer = new(DispatcherPriority.Render) { Interval = TimeSpan.FromMilliseconds(33) };
+    private double _liquidPhase;
+
+    /// <summary>
+    /// Turns the rippling edge on or off and keeps it moving only while it can be seen. With Windows animations off it
+    /// stays as a still, gentle ripple; hidden or off, there is no timer at all.
+    /// </summary>
+    private void UpdateLiquid()
+    {
+        var on = _settings.Current.Theme.LiquidEdge;
+        Pill.Liquid = on;
+        _liquidTimer.Tick -= OnLiquidTick;
+        if (!on) { _liquidTimer.Stop(); return; }
+        if (!Animated || !IsVisible)
+        {
+            _liquidTimer.Stop();
+            Pill.SetLiquid(0, 1.6, null);
+            return;
+        }
+        _liquidTimer.Tick += OnLiquidTick;
+        if (!_liquidTimer.IsEnabled) _liquidTimer.Start();
+    }
+
+    private void OnLiquidTick(object? sender, EventArgs e)
+    {
+        var player = _modules.Tabs.Select(tab => tab.Panel).OfType<MediaPanelViewModel>().FirstOrDefault()?.Player;
+        var playing = player is { IsPlaying: true };
+        _liquidPhase = (_liquidPhase + (playing ? 0.22 : 0.07)) % (2 * Math.PI * 1000);
+        IReadOnlyList<double>? bands = null;
+        if (playing)
+        {
+            var v = player!.Visualizer;
+            bands = new[] { v.Bar0, v.Bar1, v.Bar2, v.Bar3, v.Bar4 }.Select(bar => Math.Clamp((bar - 0.18) / 0.82, 0, 1)).ToArray();
+        }
+        Pill.SetLiquid(_liquidPhase, playing ? 1.2 : 1.6, bands);
+    }
+
     /// <summary>Re-reads size/offset/theme settings.</summary>
     public void ApplySettings()
     {
         var t = _settings.Current.Theme;
         var offset = TopGap;
         foreach (var b in new[] { Pill, Bubble, Bubble2, Bubble3, Bubble4 }) b.Notch = Notch;
+        UpdateLiquid();
         // The shoulders sit inside the pill's width, so the content keeps clear of them.
         Pill.Padding = Notch ? new Thickness(PillBorder.MaxShoulder, 0, PillBorder.MaxShoulder, 0) : new Thickness(0);
         Stage.Margin = new Thickness(0, offset, 0, 0);
@@ -908,11 +948,13 @@ public partial class IslandWindow : Window
         if (shown)
         {
             Show();
+            UpdateLiquid();
             EnsureTopmost();
         }
         else
         {
             if (_mode == IslandMode.Expanded) SetMode(IslandMode.Compact);
+            _liquidTimer.Stop(); // nothing to animate while hidden
             Hide();
         }
     }

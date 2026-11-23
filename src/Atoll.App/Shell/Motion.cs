@@ -88,12 +88,39 @@ public sealed class PillBorder : Border
         set => SetValue(NotchProperty, value);
     }
 
+    /// <summary>A rippling lower edge instead of a straight one. Off for every pill except the main island.</summary>
+    public static readonly DependencyProperty LiquidProperty = DependencyProperty.Register(
+        nameof(Liquid), typeof(bool), typeof(PillBorder), new PropertyMetadata(false, (d, _) => ((PillBorder)d).UpdateShape()));
+
+    public bool Liquid
+    {
+        get => (bool)GetValue(LiquidProperty);
+        set => SetValue(LiquidProperty, value);
+    }
+
+    private double _phase;
+    private double _amplitude;
+    private IReadOnlyList<double>? _bands;
+
+    /// <summary>Moves the ripple: <paramref name="phase"/> in radians, <paramref name="amplitude"/> its base height, <paramref name="bands"/> the music levels along the edge.</summary>
+    public void SetLiquid(double phase, double amplitude, IReadOnlyList<double>? bands)
+    {
+        _phase = phase;
+        _amplitude = amplitude;
+        _bands = bands;
+        if (!Liquid) return;
+        UpdateClip();
+        InvalidateVisual(); // the rim follows the same edge
+    }
+
+    private bool ClipsShape => Notch || Liquid;
+
     private void UpdateShape()
     {
         var r = Math.Max(0, Radius);
         CornerRadius = Notch ? new CornerRadius(0, 0, r, r) : new CornerRadius(r);
-        // A notch draws its own rim along the shoulders (see OnRender); the border's would be cut off by the clip.
-        BorderThickness = Notch ? new Thickness(0) : new Thickness(1);
+        // A notch (or a liquid edge) draws its own rim along its outline (see OnRender); the border's would be cut off by the clip.
+        BorderThickness = ClipsShape ? new Thickness(0) : new Thickness(1);
         UpdateClip();
         InvalidateVisual();
     }
@@ -154,20 +181,25 @@ public sealed class PillBorder : Border
 
     private void UpdateClip()
     {
-        if (!Notch || ActualWidth <= 0 || ActualHeight <= 0)
+        if (!ClipsShape || ActualWidth <= 0 || ActualHeight <= 0)
         {
             Clip = null;
             return;
         }
-        Clip = NotchGeometry(ActualWidth, ActualHeight, Radius, outline: false);
+        Clip = Liquid
+            ? LiquidShape.Build(ActualWidth, ActualHeight, Radius, Notch, outline: false, _phase, _amplitude, _bands)
+            : NotchGeometry(ActualWidth, ActualHeight, Radius, outline: false);
     }
 
     protected override void OnRender(DrawingContext dc)
     {
         base.OnRender(dc);
-        if (!Notch || ActualWidth <= 0 || ActualHeight <= 0 || BorderBrush is not { } brush) return;
+        if (!ClipsShape || ActualWidth <= 0 || ActualHeight <= 0 || BorderBrush is not { } brush) return;
         // Two pixels centred on the edge: the clip keeps the inner one, so the rim is one pixel along the whole outline.
-        dc.DrawGeometry(null, new Pen(brush, 2), NotchGeometry(ActualWidth, ActualHeight, Radius, outline: true));
+        var outline = Liquid
+            ? LiquidShape.Build(ActualWidth, ActualHeight, Radius, Notch, outline: true, _phase, _amplitude, _bands)
+            : NotchGeometry(ActualWidth, ActualHeight, Radius, outline: true);
+        dc.DrawGeometry(null, new Pen(brush, 2), outline);
     }
 }
 
