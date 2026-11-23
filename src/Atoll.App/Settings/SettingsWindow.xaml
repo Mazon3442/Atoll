@@ -882,6 +882,15 @@
                                        Description="Looks up the playing song's title and artist on lrclib.net and shows the current line in the media tab.">
                             <CheckBox Style="{StaticResource Toggle}" IsChecked="{Binding ShowLyrics}" AutomationProperties.Name="Show synced lyrics" />
                         </s:SettingCard>
+                        <s:SettingCard Glyph="&#xE8D6;" Header="Music pill"
+                                       Description="How the resting island looks while music plays. The mini player puts the title, a progress line and the buttons right in the pill.">
+                            <ComboBox Width="260" ItemsSource="{Binding MediaPillStyles}" DisplayMemberPath="Label"
+                                      SelectedValuePath="Value" SelectedValue="{Binding MediaPill}" AutomationProperties.Name="Music pill style" />
+                        </s:SettingCard>
+                        <s:SettingCard Glyph="&#xE8D6;" Header="Lyrics in the pill"
+                                       Description="Shows the line being sung in the pill instead of the title. Needs synced lyrics turned on.">
+                            <CheckBox Style="{StaticResource Toggle}" IsChecked="{Binding LyricsInPill}" AutomationProperties.Name="Show lyrics in the pill" />
+                        </s:SettingCard>
                         <s:SettingCard Glyph="&#xE8D6;" Header="Bongo Cat"
                                        Description="A cat drums along in the media tab while lyrics are off. It plays with the music and freezes when the song pauses.">
                             <ComboBox Width="200" ItemsSource="{Binding BongoCatStyles}" DisplayMemberPath="Label"

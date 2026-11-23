@@ -129,6 +129,12 @@ public sealed partial class SettingsViewModel : ObservableObject
 
     internal void ProgramRuleChanged() => Save();
 
+    public IReadOnlyList<Choice<MediaPillStyle>> MediaPillStyles { get; } =
+    [
+        new(MediaPillStyle.Classic, "Classic: cover and bars"), new(MediaPillStyle.Wide, "Wide: title and progress"), new(MediaPillStyle.Mini, "Mini player: title, progress and buttons"),
+    ];
+    public MediaPillStyle MediaPill { get => S.MediaPill; set => Set(S.MediaPill, value, v => S.MediaPill = v); }
+    public bool LyricsInPill { get => S.LyricsInPill; set => Set(S.LyricsInPill, value, v => S.LyricsInPill = v); }
     public bool ShowKeyboardLayout { get => S.ShowKeyboardLayout; set => Set(S.ShowKeyboardLayout, value, v => S.ShowKeyboardLayout = v); }
     public bool WheelVolume { get => S.WheelVolume; set => Set(S.WheelVolume, value, v => S.WheelVolume = v); }
     public bool ScreenShowIsland { get => S.Screen.ShowIsland; set => Set(S.Screen.ShowIsland, value, v => S.Screen.ShowIsland = v); }

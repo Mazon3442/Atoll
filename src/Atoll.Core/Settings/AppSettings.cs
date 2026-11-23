@@ -52,7 +52,13 @@ public sealed class AppSettings
     public bool OnboardingComplete { get; set; }
 
     /// <summary>Looks up time-synced lyrics for the playing song on lrclib.net.</summary>
-    public bool ShowLyrics { get; set; } = true;
+    public bool ShowLyrics { get; set; }
+
+    /// <summary>How the resting island looks while music plays.</summary>
+    public MediaPillStyle MediaPill { get; set; } = MediaPillStyle.Classic;
+
+    /// <summary>Show the line being sung in the music pill instead of the title (needs lyrics turned on).</summary>
+    public bool LyricsInPill { get; set; } = true;
 
     /// <summary>A drumming cat in the media tab's lyrics slot while lyrics are off. Off by default; it plays with the music.</summary>
     public BongoCatStyle BongoCat { get; set; } = BongoCatStyle.Off;
@@ -645,4 +651,12 @@ public sealed class ScreenSettings
 
     /// <summary>Spend more bits on each frame: sharper text, a bigger file.</summary>
     public bool RecordHighQuality { get; set; }
+}
+
+/// <summary>The music pill: the classic art and bars, a wide one with the title and a progress line, or a mini player with buttons.</summary>
+public enum MediaPillStyle
+{
+    Classic,
+    Wide,
+    Mini,
 }

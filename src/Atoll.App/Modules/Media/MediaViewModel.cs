@@ -84,7 +84,7 @@ public sealed partial class MediaViewModel(Func<Task> playPause, Func<Task> next
     public bool IsRepeatingOne => Repeat == MediaRepeat.One;
 
     [ObservableProperty] private string _visualizerNote = "System output";
-    [ObservableProperty] private string _title = "";
+    [ObservableProperty, NotifyPropertyChangedFor(nameof(PillLine))] private string _title = "";
     [ObservableProperty] private string _artist = "";
     [ObservableProperty] private string _appName = "";
     [ObservableProperty] private string _status = "Play something in a media app to see it here.";
@@ -99,7 +99,19 @@ public sealed partial class MediaViewModel(Func<Task> playPause, Func<Task> next
     [ObservableProperty] private string _positionText = "";
     [ObservableProperty] private string _durationText = "";
     /// <summary>The current line of time-synced lyrics; <see cref="HasLyrics"/> keeps its row so the panel does not jump.</summary>
-    [ObservableProperty] private string _lyric = "";
+    [ObservableProperty, NotifyPropertyChangedFor(nameof(PillLine))] private string _lyric = "";
+
+    /// <summary>The look of the music pill, from Settings.</summary>
+    [ObservableProperty, NotifyPropertyChangedFor(nameof(IsWidePill), nameof(IsMiniPill))] private MediaPillStyle _pillStyle;
+
+    /// <summary>Show the sung line in the pill in place of the title.</summary>
+    [ObservableProperty, NotifyPropertyChangedFor(nameof(PillLine))] private bool _lyricsInPill;
+
+    public bool IsWidePill => PillStyle == MediaPillStyle.Wide;
+    public bool IsMiniPill => PillStyle == MediaPillStyle.Mini;
+
+    /// <summary>The text on the pill: the line being sung when asked for and available, else the title.</summary>
+    public string PillLine => LyricsInPill && Lyric.Length > 0 ? Lyric : Title;
     [ObservableProperty] private bool _hasLyrics;
 
     /// <summary>Every line of the song for the scrolling lyrics view; <see cref="LyricIndex"/> is the one being sung.</summary>
