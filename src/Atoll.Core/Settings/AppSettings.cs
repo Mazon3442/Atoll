@@ -124,6 +124,8 @@ public sealed class AppSettings
 
     public ScreenSettings Screen { get; set; } = new();
 
+    public LauncherSettings Launcher { get; set; } = new();
+
     /// <summary>Changed shortcuts by <see cref="ShortcutCatalog"/> id. Missing means the default; empty means off.</summary>
     public Dictionary<string, string> Shortcuts { get; set; } = new();
 
@@ -659,4 +661,10 @@ public enum MediaPillStyle
     Classic,
     Wide,
     Mini,
+}
+
+/// <summary>The shortcuts pinned at the top of the Launcher.</summary>
+public sealed class LauncherSettings
+{
+    public List<Atoll.Modules.Launcher.PinnedLink> Pins { get; set; } = [];
 }

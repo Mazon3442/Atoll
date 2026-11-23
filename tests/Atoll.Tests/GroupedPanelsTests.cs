@@ -33,6 +33,11 @@ public class GroupedPanelsTests
         var sound = new SystemPanelViewModel(_ => { }, () => { })
         { Volume = 50, Network = "Connected", Bluetooth = "Headphones", Battery = "85%" };
         var launcher = new Atoll.Modules.Launcher.LauncherViewModel(Dispatcher.CurrentDispatcher);
+        launcher.Pins = new Atoll.Modules.Launcher.PinnedViewModel(
+        [
+            new() { Name = "Mail", Target = "https://mail.example.com" }, new() { Name = "Steam", Target = "steam://open/main", Group = "Games" },
+            new() { Name = "Epic", Target = "com.epicgames.launcher://", Group = "Games" }, new() { Name = "Docs", Target = @"C:\Windows\notepad.exe" },
+        ], () => new Atoll.Settings.AppSettings(), () => { });
         launcher.SetAppsForTest([
             new("Visual Studio Code", @"C:\ProgramData\Microsoft\Windows\Start Menu\Programs\Visual Studio Code.lnk", "Development"),
             new("Spotify", @"C:\Users\mason\AppData\Roaming\Microsoft\Windows\Start Menu\Programs\Spotify.lnk", "Music"),
